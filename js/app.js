@@ -464,7 +464,8 @@ const App = {
         document.getElementById('clienteNombre').value = client.nombre;
         document.getElementById('clienteDocumento').value = client.documento;
         document.getElementById('clienteTelefono').value = client.telefono || '';
-        document.getElementById('clientePlazo').value = client.plazo_dias;
+        document.getElementById('clienteCupo').value = this.formatNumber(client.cupo_credito || 0);
+        document.getElementById('clientePlazo').value = this.formatNumber(client.plazo_dias || 30);
         new bootstrap.Modal(document.getElementById('clienteModal')).show();
     },
 
@@ -712,10 +713,10 @@ const App = {
         document.getElementById('productoId').value = id;
         document.getElementById('productoCodigo').value = p.codigo;
         document.getElementById('productoNombre').value = p.nombre;
-        document.getElementById('productoPrecioCompra').value = p.precio_compra;
-        document.getElementById('productoPrecioVenta').value = p.precio_venta;
-        document.getElementById('productoStockActual').value = p.stock_actual;
-        document.getElementById('productoStockMinimo').value = p.stock_minimo;
+        document.getElementById('productoPrecioCompra').value = this.formatNumber(p.precio_compra);
+        document.getElementById('productoPrecioVenta').value = this.formatNumber(p.precio_venta);
+        document.getElementById('productoStockActual').value = this.formatNumber(p.stock_actual || 0);
+        document.getElementById('productoStockMinimo').value = this.formatNumber(p.stock_minimo || 5);
         new bootstrap.Modal(document.getElementById('productoModal')).show();
     },
 
@@ -1566,6 +1567,7 @@ const App = {
             banco_id: bancoId,
             fecha: fecha,
             proveedor: proveedor,
+            proveedor_id: proveedorId,
             observacion: observacion,
             estado: estado,
             usuario_id: Auth.currentUser ? Auth.currentUser.id : null
@@ -2164,7 +2166,7 @@ const App = {
         document.getElementById('gastoId').value = id;
         document.getElementById('gastoCategoria').value = e.categoria;
         document.getElementById('gastoDescripcion').value = e.descripcion;
-        document.getElementById('gastoMonto').value = e.monto;
+        document.getElementById('gastoMonto').value = this.formatNumber(e.monto);
         document.getElementById('gastoFecha').value = e.fecha;
 
         this.selectors.gastoBanco.setData(DB.getBanks().map(b => ({ id: b.id, text: b.nombre })));
@@ -2355,14 +2357,16 @@ const App = {
 
         switch (this.currentReportType) {
             case 'ventas':
-                html += '<th>Fecha</th><th>Cliente</th><th>Tipo</th><th>Total</th><th>Costo</th><th>Utilidad</th>';
+                html += '<th>Fecha</th><th>Cliente</th><th>Vendedor</th><th>Tipo</th><th>Total</th><th>Costo</th><th>Comisión</th><th>Utilidad</th>';
                 html += '</tr></thead><tbody>';
                 data.forEach(r => {
-                    html += `<tr><td>${r.fecha}</td><td>${r.cliente_nombre}</td><td>${r.tipo_venta}</td>
-                        <td>${fmt(r.total)}</td><td>${fmt(r.total_costo)}</td><td class="text-success">${fmt(r.utilidad)}</td></tr>`;
+                    html += `<tr><td>${r.fecha}</td><td>${r.cliente_nombre}</td><td>${r.vendedor_nombre || 'Sin Asesor'}</td><td>${r.tipo_venta}</td>
+                        <td>${fmt(r.total)}</td><td>${fmt(r.total_costo)}</td><td>${fmt(r.comision_monto || 0)}</td><td class="text-success">${fmt(r.utilidad)}</td></tr>`;
                 });
                 const totalVentas = data.reduce((s, r) => s + parseFloat(r.total), 0);
-                html += `<tr class="fw-bold"><td colspan="3">TOTAL</td><td>${fmt(totalVentas)}</td><td></td><td class="text-success">${fmt(data.reduce((s, r) => s + parseFloat(r.utilidad), 0))}</td></tr>`;
+                const totalComisiones = data.reduce((s, r) => s + parseFloat(r.comision_monto || 0), 0);
+                const totalUtilidad = data.reduce((s, r) => s + parseFloat(r.utilidad), 0);
+                html += `<tr class="fw-bold"><td colspan="4">TOTAL</td><td>${fmt(totalVentas)}</td><td></td><td>${fmt(totalComisiones)}</td><td class="text-success">${fmt(totalUtilidad)}</td></tr>`;
                 break;
             case 'utilidad':
                 html += '<th>Fecha</th><th>Venta</th><th>Costo</th><th>Utilidad</th>';
@@ -2814,14 +2818,14 @@ const App = {
 
         let detailRows = detalles.map(d => {
             const sale = d.factura_id ? DB.getSale(d.factura_id) : null;
-            const ref = sale ? '#' + (sale.numero || sale.id.substr(-6).toUpperCase()) : '-';
+            const ref = sale ? '#' + (sale.numero || sale.id.slice(-6).toUpperCase()) : '-';
             return `<tr>
                 <td>${ref}</td>
                 <td>${fmt(d.monto_aplicado)}</td>
             </tr>`;
         }).join('');
 
-        const ref = recibo.numero || recibo.id.substr(-6).toUpperCase();
+        const ref = recibo.numero || recibo.id.slice(-6).toUpperCase();
         const estado = recibo.estado === 'activo'
             ? '<span class="badge bg-success">ACTIVO</span>'
             : '<span class="badge bg-danger">ANULADO</span>';
@@ -2833,7 +2837,7 @@ const App = {
                 <p class="mb-1"><strong>Fecha:</strong> ${recibo.fecha}</p>
                 <p class="mb-1"><strong>Banco:</strong> ${bank ? bank.nombre : 'N/A'}</p>
                 <p class="mb-1"><strong>Monto Total:</strong> ${fmt(recibo.monto_total)}</p>
-                ${recibo.observacion ? `<p class="mb-1"><strong>Observación:</strong> ${recibo.observacion}</p>` : ''}
+                ${(recibo.observacion || recibo.observaciones || recibo.nota) ? `<p class="mb-1"><strong>Observación:</strong> ${recibo.observacion || recibo.observaciones || recibo.nota}</p>` : ''}
             </div>
             <h6 class="mb-2">Detalle de Aplicación</h6>
             <table class="table table-sm">

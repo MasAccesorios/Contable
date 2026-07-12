@@ -102,24 +102,40 @@ const DB = {
         }
     },
 
-    // Push specific key to Google Sheets
+    _syncPending: {},
+    _syncRunning: {},
+
+    // Push specific key to Google Sheets with LIFO queue optimization
     async pushToCloud(key, data) {
-        try {
-            await fetch(this.API_URL, {
-                method: 'POST',
-                body: JSON.stringify({
-                    key: key,
-                    value: JSON.stringify(data)
-                })
-            });
-        } catch(error) {
-            console.error("No se pudo guardar en la nube en este momento:", error);
+        this._syncPending[key] = data;
+        if (!this._syncRunning[key]) {
+            this._runPushToCloud(key);
         }
+    },
+
+    async _runPushToCloud(key) {
+        this._syncRunning[key] = true;
+        while (this._syncPending[key] !== undefined) {
+            const data = this._syncPending[key];
+            delete this._syncPending[key];
+            try {
+                await fetch(this.API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        key: key,
+                        value: JSON.stringify(data)
+                    })
+                });
+            } catch(error) {
+                console.error("No se pudo guardar en la nube en este momento:", error);
+            }
+        }
+        delete this._syncRunning[key];
     },
 
     // Generate unique ID
     genId() {
-        return Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
+        return Date.now().toString(36) + Math.random().toString(36).slice(2, 11);
     },
 
     // Normalize a date string into a full ISO string (CODE-01)
@@ -202,7 +218,9 @@ const DB = {
             items[idx].deleted_at = new Date().toISOString();
             items[idx].updated_at = new Date().toISOString();
             this._persist(key, items);
+            return true;
         }
+        return false;
     },
 
     // Get all non-deleted items
@@ -518,8 +536,9 @@ const DB = {
             cliente_id: cotizacion.cliente_id,
             tipo_venta: tipoVenta || 'contado',
             fecha: new Date().toISOString(),
-            observacion: `Convertida desde Cotización #${cotizacionId.substr(-6).toUpperCase()}`,
-            cotizacion_id: cotizacionId
+            observacion: `Convertida desde Cotización #${cotizacionId.slice(-6).toUpperCase()}`,
+            cotizacion_id: cotizacionId,
+            vendedor_id: cotizacion.vendedor_id || null
         };
 
         // 4. Register Sale (Reuse existing logic for stock, bank, and details)
@@ -536,13 +555,6 @@ const DB = {
             // 5. Update Quotation Status
             cotizacion.estado = 'convertida';
             cotizacion.factura_id = savedSale.id;
-
-            // Carry over seller if present
-            if (cotizacion.vendedor_id) {
-                savedSale.vendedor_id = cotizacion.vendedor_id;
-                savedSale.comision_monto = cotizacion.comision_monto;
-                this.save(this.KEYS.SALES, savedSale);
-            }
 
             this.save(this.KEYS.COTIZACIONES, cotizacion);
 
@@ -655,7 +667,7 @@ const DB = {
                     monto_total: total,
                     fecha: sale.fecha,
                     estado: 'activo',
-                    observaciones: `Pago contado - Venta #${sale.numero || sale.id.substr(-6)}`,
+                    observacion: `Pago contado - Venta #${sale.numero || sale.id.slice(-6)}`,
                     created_at: new Date().toISOString()
                 };
                 this.save(this.KEYS.RECIBOS_CAJA, recibo);
@@ -665,7 +677,7 @@ const DB = {
                     banco_id: bancoId,
                     tipo: 'ingreso',
                     monto: total,
-                    descripcion: `Factura contado #${sale.numero || sale.id.substr(-6)}: ${saleData.cliente_nombre || ''}`,
+                    descripcion: `Factura contado #${sale.numero || sale.id.slice(-6)}: ${this.getClient(saleData.cliente_id)?.nombre || ''}`,
                     referencia_id: savedSale.id,
                     fecha: sale.fecha
                 });
@@ -687,6 +699,134 @@ const DB = {
                     fecha_vencimiento: vencimiento.toISOString().split('T')[0],
                     estado: 'pendiente'
                 });
+            }
+        } else {
+            const client = this.getClient(saleData.cliente_id);
+            const clientName = client ? client.nombre : '';
+
+            if (existingSale.tipo_venta === 'contado') {
+                const bankMovements = this.getAll(this.KEYS.BANK_MOVEMENTS);
+                const movIdx = bankMovements.findIndex(m => m.referencia_id === savedSale.id && m.tipo === 'ingreso');
+                
+                const recibos = this.getAll(this.KEYS.RECIBOS_CAJA);
+                const recIdx = recibos.findIndex(r => r.observacion === `Pago contado - Venta #${savedSale.numero || savedSale.id.slice(-6)}` || r.observaciones === `Pago contado - Venta #${savedSale.numero || savedSale.id.slice(-6)}`);
+                
+                if (saleData.tipo_venta === 'contado') {
+                    if (movIdx !== -1) {
+                        const oldBancoId = bankMovements[movIdx].banco_id;
+                        bankMovements[movIdx].banco_id = bancoId;
+                        bankMovements[movIdx].monto = total;
+                        bankMovements[movIdx].fecha = sale.fecha;
+                        bankMovements[movIdx].descripcion = `Factura contado #${sale.numero || sale.id.slice(-6)}: ${clientName}`;
+                        this._persist(this.KEYS.BANK_MOVEMENTS, bankMovements);
+                        
+                        this.recalcBankBalance(oldBancoId);
+                        if (oldBancoId !== bancoId) {
+                            this.recalcBankBalance(bancoId);
+                        }
+                    } else if (bancoId) {
+                        this.addBankMovement({
+                            banco_id: bancoId,
+                            tipo: 'ingreso',
+                            monto: total,
+                            descripcion: `Factura contado #${sale.numero || sale.id.slice(-6)}: ${clientName}`,
+                            referencia_id: savedSale.id,
+                            fecha: sale.fecha
+                        });
+                    }
+                    
+                    if (recIdx !== -1) {
+                        recibos[recIdx].banco_id = bancoId;
+                        recibos[recIdx].monto_total = total;
+                        recibos[recIdx].fecha = sale.fecha;
+                        recibos[recIdx].cliente_id = saleData.cliente_id;
+                        this._persist(this.KEYS.RECIBOS_CAJA, recibos);
+                    }
+                } else {
+                    // Changed from Contado to Credito: Delete bank movement and recibo, create cartera
+                    if (movIdx !== -1) {
+                        const oldBancoId = bankMovements[movIdx].banco_id;
+                        bankMovements.splice(movIdx, 1);
+                        this._persist(this.KEYS.BANK_MOVEMENTS, bankMovements);
+                        this.recalcBankBalance(oldBancoId);
+                    }
+                    if (recIdx !== -1) {
+                        recibos.splice(recIdx, 1);
+                        this._persist(this.KEYS.RECIBOS_CAJA, recibos);
+                    }
+                    
+                    const plazoDias = client ? parseInt(client.plazo_dias) || 30 : 30;
+                    const baseDate = sale.fecha ? new Date(sale.fecha.includes('T') ? sale.fecha : sale.fecha + 'T00:00:00') : new Date();
+                    const vencimiento = new Date(baseDate);
+                    vencimiento.setDate(vencimiento.getDate() + plazoDias);
+                    
+                    this.save(this.KEYS.CARTERA, {
+                        venta_id: savedSale.id,
+                        cliente_id: saleData.cliente_id,
+                        total: total,
+                        saldo: total,
+                        fecha: sale.fecha,
+                        fecha_vencimiento: vencimiento.toISOString().split('T')[0],
+                        estado: 'pendiente'
+                    });
+                }
+            } else if (existingSale.tipo_venta === 'credito') {
+                const carteraList = this.getAll(this.KEYS.CARTERA);
+                const carteraIdx = carteraList.findIndex(c => c.venta_id === savedSale.id);
+                
+                if (saleData.tipo_venta === 'credito') {
+                    if (carteraIdx !== -1) {
+                        const cItem = carteraList[carteraIdx];
+                        const totalAbonado = parseFloat(cItem.total) - parseFloat(cItem.saldo);
+                        cItem.total = total;
+                        cItem.saldo = Math.max(0, total - totalAbonado);
+                        cItem.cliente_id = saleData.cliente_id;
+                        cItem.fecha = sale.fecha;
+                        
+                        const plazoDias = client ? parseInt(client.plazo_dias) || 30 : 30;
+                        const baseDate = sale.fecha ? new Date(sale.fecha.includes('T') ? sale.fecha : sale.fecha + 'T00:00:00') : new Date();
+                        const vencimiento = new Date(baseDate);
+                        vencimiento.setDate(vencimiento.getDate() + plazoDias);
+                        cItem.fecha_vencimiento = vencimiento.toISOString().split('T')[0];
+                        
+                        if (cItem.saldo === 0) {
+                            cItem.estado = 'pagada';
+                        } else {
+                            const today = new Date().toISOString().split('T')[0];
+                            cItem.estado = cItem.fecha_vencimiento < today ? 'vencida' : 'pendiente';
+                        }
+                        cItem.updated_at = new Date().toISOString();
+                        this._persist(this.KEYS.CARTERA, carteraList);
+                    }
+                } else {
+                    // Changed from Credito to Contado: Delete cartera entry and create bank movement + recibo
+                    if (carteraIdx !== -1) {
+                        carteraList.splice(carteraIdx, 1);
+                        this._persist(this.KEYS.CARTERA, carteraList);
+                    }
+                    
+                    const recibo = {
+                        id: this.genId(),
+                        numero: this.getNextNumber('recibo'),
+                        cliente_id: saleData.cliente_id,
+                        banco_id: bancoId,
+                        monto_total: total,
+                        fecha: sale.fecha,
+                        estado: 'activo',
+                        observacion: `Pago contado - Venta #${sale.numero || sale.id.slice(-6)}`,
+                        created_at: new Date().toISOString()
+                    };
+                    this.save(this.KEYS.RECIBOS_CAJA, recibo);
+
+                    this.addBankMovement({
+                        banco_id: bancoId,
+                        tipo: 'ingreso',
+                        monto: total,
+                        descripcion: `Factura contado #${sale.numero || sale.id.slice(-6)}: ${clientName}`,
+                        referencia_id: savedSale.id,
+                        fecha: sale.fecha
+                    });
+                }
             }
         }
 
@@ -1029,7 +1169,7 @@ const DB = {
             monto_total: valMonto,
             fecha: new Date().toISOString(),
             estado: 'activo',
-            nota: `Abono a Factura #${item.venta_id ? item.venta_id.substr(-6).toUpperCase() : 'N/A'}`,
+            observacion: `Abono a Factura #${item.venta_id ? item.venta_id.slice(-6).toUpperCase() : 'N/A'}`,
             created_at: new Date().toISOString()
         };
         this.save(this.KEYS.RECIBOS_CAJA, recibo);
@@ -1490,7 +1630,12 @@ const DB = {
                 if (hasta) sales = sales.filter(s => s.fecha <= (hasta.includes('T') ? hasta : hasta + 'T23:59:59'));
                 return sales.map(s => {
                     const client = this.getClient(s.cliente_id);
-                    return { ...s, cliente_nombre: client ? client.nombre : 'N/A' };
+                    const seller = s.vendedor_id ? this.getSeller(s.vendedor_id) : null;
+                    return { 
+                        ...s, 
+                        cliente_nombre: client ? client.nombre : 'N/A',
+                        vendedor_nombre: seller ? seller.nombre : 'Sin Asesor'
+                    };
                 });
             }
             case 'utilidad': {

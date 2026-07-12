@@ -590,9 +590,9 @@ const Pages = {
                 if (c.estado === 'cancelada') badgeClass = 'danger';
 
                 return `<tr>
-                    <td><strong>#${c.numero || c.id.substr(-6).toUpperCase()}</strong></td>
+                    <td><strong>#${c.numero || c.id.slice(-6).toUpperCase()}</strong></td>
                     <td>${c.fecha}</td>
-                    <td><a href="#" onclick="event.preventDefault(); App.viewCliente('${c.proveedor_id}')" class="text-decoration-none fw-bold">${c.proveedor || 'N/A'}</a></td>
+                    <td><a href="#" onclick="event.preventDefault(); App.viewCliente('${c.proveedor_id || DB.getClients().find(cl => cl.nombre === c.proveedor)?.id || ''}')" class="text-decoration-none fw-bold">${c.proveedor || 'N/A'}</a></td>
                     <td><span class="badge bg-${badgeClass} text-uppercase" style="font-size:0.75rem">${c.estado || 'borrador'}</span></td>
                     <td>${c.tipo_pago.toUpperCase()}</td>
                     <td><strong>${fmt(c.total)}</strong></td>
