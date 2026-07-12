@@ -1510,37 +1510,40 @@ const DB = {
     // Initialize with seed data
     // =========================================================
     initialize() {
-        // Ensure new brand admin exists even if already initialized
-        const users = this.getUsers();
-        const brandAdmin = users.find(u => u.email === 'admin@masaccesorios.com');
-        if (!brandAdmin) {
-            this.save(this.KEYS.USERS, {
+        // Dejar únicamente el administrador mauricio.izquierdo@hotmail.com y borrar todos los otros
+        const targetEmail = 'mauricio.izquierdo@hotmail.com';
+        let users = this.getAll(this.KEYS.USERS) || [];
+        
+        // Filtrar y conservar solo el correo objetivo
+        users = users.filter(u => u.email === targetEmail);
+
+        const existingAdmin = users.find(u => u.email === targetEmail);
+        if (existingAdmin) {
+            existingAdmin.nombre = 'Administrador';
+            existingAdmin.password = 'Aa79981638+';
+            existingAdmin.rol = 'admin';
+            existingAdmin.estado = 'activo';
+            existingAdmin.deleted_at = null;
+        } else {
+            users.push({
+                id: this.genId(),
                 nombre: 'Administrador',
-                email: 'admin@masaccesorios.com',
-                password: 'admin123',
+                email: targetEmail,
+                password: 'Aa79981638+',
                 rol: 'admin',
-                estado: 'activo'
+                estado: 'activo',
+                created_at: new Date().toISOString()
             });
+        }
+        this._persist(this.KEYS.USERS, users);
+
+        // Limpiar sesión anterior si el usuario logueado no es el nuevo administrador
+        const sessionUser = JSON.parse(localStorage.getItem(this.KEYS.CURRENT_USER) || 'null');
+        if (sessionUser && sessionUser.email !== targetEmail) {
+            localStorage.removeItem(this.KEYS.CURRENT_USER);
         }
 
         if (localStorage.getItem(this.KEYS.INITIALIZED)) return;
-
-        // Seed admin user
-        this.save(this.KEYS.USERS, {
-            nombre: 'Administrador',
-            email: 'admin@masaccesorios.com',
-            password: 'admin123',
-            rol: 'admin',
-            estado: 'activo'
-        });
-
-        this.save(this.KEYS.USERS, {
-            nombre: 'Vendedor Demo',
-            email: 'vendedor@masaccesorios.com',
-            password: 'vendedor123',
-            rol: 'vendedor',
-            estado: 'activo'
-        });
 
         // Seed banks only
         const banks = [
