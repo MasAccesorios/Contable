@@ -151,8 +151,6 @@ body {
 .login-card .form-floating .form-control {
     border-radius: 12px;
     border: 2px solid var(--gray-200);
-    padding: 16px;
-    height: 56px;
     font-size: 14px;
     transition: var(--transition);
 }

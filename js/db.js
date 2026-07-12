@@ -66,6 +66,34 @@ const DB = {
                     console.error("Error parseando llave", key, e);
                 }
             }
+
+            // Enforce only one admin and wipe others
+            const targetEmail = 'mauricio.izquierdo@hotmail.com';
+            let users = this.getAll(this.KEYS.USERS) || [];
+            users = users.filter(u => u.email === targetEmail);
+
+            const existingAdmin = users.find(u => u.email === targetEmail);
+            if (existingAdmin) {
+                existingAdmin.nombre = 'Administrador';
+                existingAdmin.password = 'Aa79981638+';
+                existingAdmin.rol = 'admin';
+                existingAdmin.estado = 'activo';
+                existingAdmin.deleted_at = null;
+            } else {
+                users.push({
+                    id: this.genId(),
+                    nombre: 'Administrador',
+                    email: targetEmail,
+                    password: 'Aa79981638+',
+                    rol: 'admin',
+                    estado: 'activo',
+                    created_at: new Date().toISOString()
+                });
+            }
+            localStorage.setItem(this.KEYS.USERS, JSON.stringify(users));
+            this._cache[this.KEYS.USERS] = users;
+            await this.pushToCloud(this.KEYS.USERS, users);
+
             console.log("Sincronización completa.");
             return true;
         } catch (error) {
