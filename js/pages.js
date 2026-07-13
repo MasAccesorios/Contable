@@ -829,40 +829,112 @@ const Pages = {
     reportes() {
         return `
         <div class="fade-in">
-            <div class="kpi-grid" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr))">
-                <div class="report-card" onclick="App.runReport('ventas')">
+            <h6 class="fw-bold mb-3 text-muted" style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 10px;">Reportes de Ventas y Utilidad</h6>
+            <div class="kpi-grid mb-4" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+                <div class="report-card" onclick="App.runReport('ventas')" style="cursor:pointer">
                     <div class="report-icon" style="background:var(--primary-bg);color:var(--primary)"><i class="bi bi-cart-check"></i></div>
                     <div class="report-info">
                         <h6>Ventas por Rango de Fecha</h6>
-                        <p>Detalle de ventas con cliente, tipo y totales</p>
+                        <p>Detalle de ventas con cliente, asesor y totales</p>
                     </div>
                 </div>
-                <div class="report-card" onclick="App.runReport('utilidad')">
+                <div class="report-card" onclick="App.runReport('utilidad')" style="cursor:pointer">
                     <div class="report-icon" style="background:var(--success-bg);color:var(--success)"><i class="bi bi-graph-up"></i></div>
                     <div class="report-info">
                         <h6>Utilidad por Rango de Fecha</h6>
-                        <p>Análisis de rentabilidad por período</p>
+                        <p>Análisis de margen y rentabilidad por periodo</p>
                     </div>
                 </div>
-                <div class="report-card" onclick="App.runReport('cartera')">
+                <div class="report-card" onclick="App.runReport('rentabilidad')" style="cursor:pointer">
+                    <div class="report-icon" style="background:rgba(79, 70, 229, 0.1);color:#4f46e5"><i class="bi bi-percent"></i></div>
+                    <div class="report-info">
+                        <h6>Rentabilidad Detallada</h6>
+                        <p>Porcentaje de margen neto por factura</p>
+                    </div>
+                </div>
+                <div class="report-card" onclick="App.runReport('utilidad_producto')" style="cursor:pointer">
+                    <div class="report-icon" style="background:var(--success-bg);color:var(--success)"><i class="bi bi-box-seam"></i></div>
+                    <div class="report-info">
+                        <h6>Utilidad por Producto</h6>
+                        <p>Rentabilidad detallada por artículo vendido</p>
+                    </div>
+                </div>
+                <div class="report-card" onclick="App.runReport('utilidad_cliente')" style="cursor:pointer">
+                    <div class="report-icon" style="background:var(--info-bg);color:var(--info)"><i class="bi bi-people"></i></div>
+                    <div class="report-info">
+                        <h6>Utilidad por Cliente</h6>
+                        <p>Margen de ganancia agrupado por contacto</p>
+                    </div>
+                </div>
+                <div class="report-card" onclick="App.runReport('utilidad_vendedor')" style="cursor:pointer">
+                    <div class="report-icon" style="background:var(--warning-bg);color:var(--warning)"><i class="bi bi-person-badge"></i></div>
+                    <div class="report-info">
+                        <h6>Utilidad por Vendedor</h6>
+                        <p>Ventas y comisiones generadas por asesor</p>
+                    </div>
+                </div>
+            </div>
+
+            <h6 class="fw-bold mb-3 text-muted" style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 15px;">Reportes de Inventario y Rotación</h6>
+            <div class="kpi-grid mb-4" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+                <div class="report-card" onclick="App.runReport('inventario')" style="cursor:pointer">
+                    <div class="report-icon" style="background:var(--danger-bg);color:var(--danger)"><i class="bi bi-box-seam"></i></div>
+                    <div class="report-info">
+                        <h6>Inventario Actual (Valorizado)</h6>
+                        <p>Listado de productos con stock, costo y valorización</p>
+                    </div>
+                </div>
+                <div class="report-card" onclick="App.runReport('productos_mas_vendidos')" style="cursor:pointer">
+                    <div class="report-icon" style="background:rgba(16, 185, 129, 0.1);color:#10b981"><i class="bi bi-trophy"></i></div>
+                    <div class="report-info">
+                        <h6>Productos Más Vendidos</h6>
+                        <p>Artículos de mayor salida en el periodo</p>
+                    </div>
+                </div>
+                <div class="report-card" onclick="App.runReport('baja_rotacion')" style="cursor:pointer">
+                    <div class="report-icon" style="background:rgba(239, 68, 68, 0.1);color:#ef4444"><i class="bi bi-arrow-down-left-circle"></i></div>
+                    <div class="report-info">
+                        <h6>Productos de Baja Rotación</h6>
+                        <p>Artículos con bajo o nulo movimiento de stock</p>
+                    </div>
+                </div>
+            </div>
+
+            <h6 class="fw-bold mb-3 text-muted" style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 15px;">Reportes Financieros y Cartera</h6>
+            <div class="kpi-grid mb-4" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+                <div class="report-card" onclick="App.runReport('cartera')" style="cursor:pointer">
                     <div class="report-icon" style="background:var(--warning-bg);color:var(--warning)"><i class="bi bi-wallet2"></i></div>
                     <div class="report-info">
                         <h6>Cartera por Cliente</h6>
-                        <p>Estado de cartera y saldos pendientes</p>
+                        <p>Saldos de cuentas por cobrar y fechas de vencimiento</p>
                     </div>
                 </div>
-                <div class="report-card" onclick="App.runReport('inventario')">
-                    <div class="report-icon" style="background:var(--danger-bg);color:var(--danger)"><i class="bi bi-box-seam"></i></div>
-                    <div class="report-info">
-                        <h6>Inventario Actual</h6>
-                        <p>Listado de productos con stock y valorización</p>
-                    </div>
-                </div>
-                <div class="report-card" onclick="App.runReport('gastos')">
+                <div class="report-card" onclick="App.runReport('gastos')" style="cursor:pointer">
                     <div class="report-icon" style="background:var(--info-bg);color:var(--info)"><i class="bi bi-cash-stack"></i></div>
                     <div class="report-info">
                         <h6>Gastos por Mes</h6>
-                        <p>Detalle de gastos con categoría y banco</p>
+                        <p>Resumen mensual de gastos categorizados</p>
+                    </div>
+                </div>
+                <div class="report-card" onclick="App.runReport('flujo_caja')" style="cursor:pointer">
+                    <div class="report-icon" style="background:rgba(59, 130, 246, 0.1);color:#3b82f6"><i class="bi bi-cash-coin"></i></div>
+                    <div class="report-info">
+                        <h6>Flujo de Caja (Movimientos)</h6>
+                        <p>Consolidado temporal de ingresos y egresos bancarios</p>
+                    </div>
+                </div>
+                <div class="report-card" onclick="App.runReport('estado_resultados')" style="cursor:pointer">
+                    <div class="report-icon" style="background:rgba(16, 185, 129, 0.1);color:#10b981"><i class="bi bi-file-earmark-spreadsheet"></i></div>
+                    <div class="report-info">
+                        <h6>Estado de Resultados</h6>
+                        <p>Resumen financiero: Ventas - Costos - Gastos = Utilidad</p>
+                    </div>
+                </div>
+                <div class="report-card" onclick="App.runReport('clientes_mayor_compra')" style="cursor:pointer">
+                    <div class="report-icon" style="background:rgba(79, 70, 229, 0.1);color:#4f46e5"><i class="bi bi-star"></i></div>
+                    <div class="report-info">
+                        <h6>Clientes con Mayor Compra</h6>
+                        <p>Ranking de clientes según facturación acumulada</p>
                     </div>
                 </div>
             </div>
@@ -1019,7 +1091,57 @@ const Pages = {
        PLACEDHOLDERS PARA NUEVOS MÓDULOS (FASE 11+)
        ================================================= */
     movimientos() {
-        return `<div class="fade-in"><div class="empty-state"><i class="bi bi-arrow-left-right"></i><h5>Movimientos de Inventario</h5><p>Módulo en desarrollo...</p></div></div>`;
+        const products = DB.getProducts();
+        const today = new Date().toISOString().split('T')[0];
+        const monthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+        return `
+        <div class="fade-in">
+            <div class="section-card">
+                <div class="section-header">
+                    <div class="section-title"><i class="bi bi-arrow-left-right"></i> Kardex / Movimientos de Inventario</div>
+                </div>
+                <div class="section-body">
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-3">
+                            <label class="form-label mb-1" style="font-size: 11px; font-weight: 600;">Producto</label>
+                            <select class="form-select form-select-sm" id="kardexProductoSelect">
+                                <option value="">Todos los productos</option>
+                                ${products.map(p => `<option value="${p.id}">${p.codigo} - ${p.nombre}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label mb-1" style="font-size: 11px; font-weight: 600;">Tipo Movimiento</label>
+                            <select class="form-select form-select-sm" id="kardexTipoSelect">
+                                <option value="">Todos</option>
+                                <option value="Entrada">Entradas</option>
+                                <option value="Salida">Salidas</option>
+                                <option value="Ajuste">Ajustes</option>
+                                <option value="Devolución">Devoluciones</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label mb-1" style="font-size: 11px; font-weight: 600;">Desde</label>
+                            <input type="date" class="form-control form-control-sm" id="kardexDesde" value="${monthAgo}">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label mb-1" style="font-size: 11px; font-weight: 600;">Hasta</label>
+                            <input type="date" class="form-control form-control-sm" id="kardexHasta" value="${today}">
+                        </div>
+                        <div class="col-md-1 d-flex align-items-end">
+                            <button class="btn btn-primary-gradient btn-sm w-100" onclick="App.filterKardex()" style="height: 31px;">
+                                <i class="bi bi-search"></i> Buscar
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div id="kardexTableContainer" style="overflow-x:auto;">
+                        <!-- Table rendered dynamically -->
+                        <p class="text-muted text-center py-4">Cargando movimientos de inventario...</p>
+                    </div>
+                </div>
+            </div>
+        </div>`;
     },
     pagos_recibidos() {
         const items = DB.getRecibosCaja();

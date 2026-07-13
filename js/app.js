@@ -406,6 +406,9 @@ const App = {
         if (page === 'dashboard') {
             setTimeout(() => Pages.initDashboardChart(), 100);
         }
+        if (page === 'movimientos') {
+            setTimeout(() => this.filterKardex(), 100);
+        }
 
         // Close sidebar on mobile
         this.closeSidebar();
@@ -474,6 +477,18 @@ const App = {
         document.getElementById('clienteTelefono').value = client.telefono || '';
         document.getElementById('clienteCupo').value = this.formatNumber(client.cupo_credito || 0);
         document.getElementById('clientePlazo').value = this.formatNumber(client.plazo_dias || 30);
+        
+        document.getElementById('clienteEmail').value = client.email || '';
+        document.getElementById('clienteContacto').value = client.persona_contacto || '';
+        document.getElementById('clienteDireccion').value = client.direccion || '';
+        document.getElementById('clienteBarrio').value = client.barrio || '';
+        document.getElementById('clienteCiudad').value = client.ciudad || '';
+        document.getElementById('clienteDepartamento').value = client.departamento || '';
+        document.getElementById('clientePais').value = client.pais || 'Colombia';
+        document.getElementById('clienteCodigoPostal').value = client.codigo_postal || '';
+        document.getElementById('clienteEstado').value = client.estado || 'Activo';
+        document.getElementById('clienteObservaciones').value = client.observaciones || '';
+        
         new bootstrap.Modal(document.getElementById('clienteModal')).show();
     },
 
@@ -488,29 +503,74 @@ const App = {
 
         // 1. General Tab
         let generalHtml = `
-            <div class="row mb-3">
-                <div class="col-sm-4 text-muted small">ID Sistema</div>
-                <div class="col-sm-8 fw-bold">${client.id}</div>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="row mb-3">
+                        <div class="col-sm-4 text-muted small">ID Sistema</div>
+                        <div class="col-sm-8 fw-bold">${client.id}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-4 text-muted small">Tipo Contacto</div>
+                        <div class="col-sm-8"><span class="badge badge-status badge-${client.tipo === 'Proveedor' ? 'credito' : 'contado'}">${client.tipo || 'Cliente'}</span></div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-4 text-muted small">Nombre</div>
+                        <div class="col-sm-8 fw-bold">${client.nombre}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-4 text-muted small">Documento</div>
+                        <div class="col-sm-8">${client.documento || 'N/A'}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-4 text-muted small">Correo Electrónico</div>
+                        <div class="col-sm-8">${client.email || 'N/A'}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-4 text-muted small">Teléfono</div>
+                        <div class="col-sm-8">${client.telefono || 'N/A'}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-4 text-muted small">Persona de Contacto</div>
+                        <div class="col-sm-8">${client.persona_contacto || 'N/A'}</div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="row mb-3">
+                        <div class="col-sm-4 text-muted small">Dirección</div>
+                        <div class="col-sm-8">${client.direccion || 'N/A'}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-4 text-muted small">Barrio</div>
+                        <div class="col-sm-8">${client.barrio || 'N/A'}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-4 text-muted small">Ciudad</div>
+                        <div class="col-sm-8">${client.ciudad || 'N/A'} - ${client.departamento || 'N/A'}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-4 text-muted small">País / C. Postal</div>
+                        <div class="col-sm-8">${client.pais || 'N/A'} ${client.codigo_postal ? '(' + client.codigo_postal + ')' : ''}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-4 text-muted small">Cupo de Crédito</div>
+                        <div class="col-sm-8">${fmt(client.cupo_credito || 0)}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-4 text-muted small">Plazo</div>
+                        <div class="col-sm-8">${client.plazo_dias || 30} días</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-4 text-muted small">Estado</div>
+                        <div class="col-sm-8"><span class="badge ${client.estado === 'Inactivo' ? 'bg-secondary' : 'bg-success'}">${client.estado || 'Activo'}</span></div>
+                    </div>
+                </div>
             </div>
-            <div class="row mb-3">
-                <div class="col-sm-4 text-muted small">Tipo Contacto</div>
-                <div class="col-sm-8"><span class="badge badge-status badge-${client.tipo === 'Proveedor' ? 'credito' : 'contado'}">${client.tipo || 'Cliente'}</span></div>
-            </div>
-            <div class="row mb-3">
-                <div class="col-sm-4 text-muted small">Documento</div>
-                <div class="col-sm-8">${client.documento || 'N/A'}</div>
-            </div>
-            <div class="row mb-3">
-                <div class="col-sm-4 text-muted small">Teléfono</div>
-                <div class="col-sm-8">${client.telefono || 'N/A'}</div>
-            </div>
-            <div class="row mb-3">
-                <div class="col-sm-4 text-muted small">Cupo de Crédito</div>
-                <div class="col-sm-8">${fmt(client.cupo_credito || 0)}</div>
-            </div>
-            <div class="row mb-3">
-                <div class="col-sm-4 text-muted small">Plazo (Días)</div>
-                <div class="col-sm-8">${client.plazo_dias || 0}</div>
+            <div class="row mt-2">
+                <div class="col-md-12">
+                    <div class="p-2 bg-light rounded" style="font-size: 13px;">
+                        <strong>Observaciones:</strong> ${client.observaciones || 'Sin observaciones.'}
+                    </div>
+                </div>
             </div>
         `;
         document.getElementById('c-general').innerHTML = generalHtml;
@@ -599,10 +659,18 @@ const App = {
     saveCliente() {
         const nombre = document.getElementById('clienteNombre').value.trim();
         const documento = document.getElementById('clienteDocumento').value.trim();
+        const email = document.getElementById('clienteEmail').value.trim();
+        
         if (!nombre || !documento) {
             this.showToast('Nombre y documento son obligatorios', 'Error', 'danger');
             return;
         }
+
+        if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            this.showToast('El formato del correo electrónico es inválido', 'Error', 'danger');
+            return;
+        }
+
         const client = {
             id: document.getElementById('clienteId').value || undefined,
             tipo: document.getElementById('clienteTipo').value,
@@ -610,7 +678,17 @@ const App = {
             documento,
             telefono: document.getElementById('clienteTelefono').value.trim(),
             cupo_credito: parseFloat(this.unformatNumber(document.getElementById('clienteCupo').value)) || 0,
-            plazo_dias: parseInt(this.unformatNumber(document.getElementById('clientePlazo').value)) || 30
+            plazo_dias: parseInt(this.unformatNumber(document.getElementById('clientePlazo').value)) || 30,
+            email: email,
+            persona_contacto: document.getElementById('clienteContacto').value.trim(),
+            direccion: document.getElementById('clienteDireccion').value.trim(),
+            barrio: document.getElementById('clienteBarrio').value.trim(),
+            ciudad: document.getElementById('clienteCiudad').value.trim(),
+            departamento: document.getElementById('clienteDepartamento').value.trim(),
+            pais: document.getElementById('clientePais').value.trim(),
+            codigo_postal: document.getElementById('clienteCodigoPostal').value.trim(),
+            estado: document.getElementById('clienteEstado').value,
+            observaciones: document.getElementById('clienteObservaciones').value.trim()
         };
         try {
             DB.saveClient(client);
@@ -725,6 +803,13 @@ const App = {
         document.getElementById('productoPrecioVenta').value = this.formatNumber(p.precio_venta);
         document.getElementById('productoStockActual').value = this.formatNumber(p.stock_actual || 0);
         document.getElementById('productoStockMinimo').value = this.formatNumber(p.stock_minimo || 5);
+        
+        document.getElementById('productoCategoria').value = p.categoria || '';
+        document.getElementById('productoUnidadMedida').value = p.unidad_medida || 'Unidad';
+        document.getElementById('productoUbicacion').value = p.ubicacion_bodega || '';
+        document.getElementById('productoEstado').value = p.estado || 'Activo';
+        document.getElementById('productoObservaciones').value = p.observaciones || '';
+        
         new bootstrap.Modal(document.getElementById('productoModal')).show();
     },
 
@@ -739,82 +824,64 @@ const App = {
 
         // 1. General Tab
         let generalHtml = `
-            <div class="row mb-3">
-                <div class="col-sm-4 text-muted small">Código/Referencia</div>
-                <div class="col-sm-8 fw-bold">${p.codigo}</div>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="row mb-3">
+                        <div class="col-sm-4 text-muted small">Código/Referencia</div>
+                        <div class="col-sm-8 fw-bold">${p.codigo}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-4 text-muted small">Nombre</div>
+                        <div class="col-sm-8">${p.nombre}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-4 text-muted small">Categoría</div>
+                        <div class="col-sm-8"><span class="badge bg-secondary">${p.categoria || 'Sin Categoría'}</span></div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-4 text-muted small">Precio Compra</div>
+                        <div class="col-sm-8">${fmt(p.precio_compra)}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-4 text-muted small">Precio Venta (Público)</div>
+                        <div class="col-sm-8 fw-bold text-success">${fmt(p.precio_venta)}</div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="row mb-3">
+                        <div class="col-sm-4 text-muted small">Stock Actual</div>
+                        <div class="col-sm-8"><span class="badge ${p.stock_actual <= p.stock_minimo ? 'bg-danger' : 'bg-primary'} fs-6">${p.stock_actual}</span></div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-4 text-muted small">Stock Mínimo Alerta</div>
+                        <div class="col-sm-8">${p.stock_minimo}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-4 text-muted small">Unidad de Medida</div>
+                        <div class="col-sm-8">${p.unidad_medida || 'Unidad'}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-4 text-muted small">Ubicación / Bodega</div>
+                        <div class="col-sm-8">${p.ubicacion_bodega || 'N/A'}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-4 text-muted small">Estado</div>
+                        <div class="col-sm-8"><span class="badge ${p.estado === 'Inactivo' ? 'bg-secondary' : 'bg-success'}">${p.estado || 'Activo'}</span></div>
+                    </div>
+                </div>
             </div>
-            <div class="row mb-3">
-                <div class="col-sm-4 text-muted small">Nombre</div>
-                <div class="col-sm-8">${p.nombre}</div>
-            </div>
-            <div class="row mb-3">
-                <div class="col-sm-4 text-muted small">Precio Compra</div>
-                <div class="col-sm-8">${fmt(p.precio_compra)}</div>
-            </div>
-            <div class="row mb-3">
-                <div class="col-sm-4 text-muted small">Precio Venta (Público)</div>
-                <div class="col-sm-8 fw-bold text-success">${fmt(p.precio_venta)}</div>
-            </div>
-            <div class="row mb-3">
-                <div class="col-sm-4 text-muted small">Stock Actual</div>
-                <div class="col-sm-8"><span class="badge ${p.stock_actual <= p.stock_minimo ? 'bg-danger' : 'bg-primary'} fs-6">${p.stock_actual}</span></div>
-            </div>
-            <div class="row mb-3">
-                <div class="col-sm-4 text-muted small">Stock Mínimo Alerta</div>
-                <div class="col-sm-8">${p.stock_minimo}</div>
+            <div class="row mt-2">
+                <div class="col-md-12">
+                    <div class="p-2 bg-light rounded" style="font-size: 13px;">
+                        <strong>Observaciones:</strong> ${p.observaciones || 'Sin observaciones.'}
+                    </div>
+                </div>
             </div>
         `;
         document.getElementById('p-general').innerHTML = generalHtml;
 
-        // 2. Kardex / Movements Tab
-        // Gather ALL movements for this product: Sales, Purchases, Adjustments
-        let movements = [];
-
-        // Get Sales
-        const allSaleDetails = DB.getAllActive(DB.KEYS.SALE_DETAILS).filter(d => d.producto_id === id);
-        allSaleDetails.forEach(d => {
-            const sale = DB.getSale(d.venta_id);
-            if (sale) {
-                movements.push({
-                    fecha: new Date(sale.created_at),
-                    tipo: 'Salida (Venta)',
-                    ref: sale.id.substr(-6),
-                    cant: -d.cantidad,
-                    origen: 'Venta ' + sale.tipo_venta
-                });
-            }
-        });
-
-        // Get Purchases (Compras)
-        const allCompraDetails = DB.getAllActive(DB.KEYS.COMPRA_DETAILS).filter(d => d.producto_id === id);
-        allCompraDetails.forEach(d => {
-            const compra = DB.getById(DB.KEYS.COMPRAS, d.compra_id);
-            if (compra) {
-                movements.push({
-                    fecha: new Date(compra.created_at),
-                    tipo: 'Entrada (Compra)',
-                    ref: compra.id.substr(-6),
-                    cant: d.cantidad,
-                    origen: 'Compra ' + compra.factura_numero
-                });
-            }
-        });
-
-        // Get Adjustments (Kardex Adjustments)
-        const allKardex = DB.getAllActive(DB.KEYS.KARDEX).filter(k => k.producto_id === id);
-        allKardex.forEach(k => {
-            movements.push({
-                fecha: new Date(k.fecha),
-                tipo: 'Ajuste Manual',
-                ref: 'N/A',
-                cant: k.movimiento_cantidad,
-                origen: k.motivo || 'Ajuste de Stock'
-            });
-        });
-
-        // Sort by date descending
-        movements.sort((a, b) => b.fecha - a.fecha);
-
+        // 2. Kardex / Movements Tab using DB.getKardexMovements
+        const movements = DB.getKardexMovements(id);
         let kardexHtml = '';
         if (movements.length === 0) {
             kardexHtml = `<div class="text-center text-muted p-3">No hay movimientos registrados para este producto.</div>`;
@@ -828,16 +895,18 @@ const App = {
                                 <th>Tipo</th>
                                 <th>Referencia</th>
                                 <th>Origen</th>
+                                <th>Contacto</th>
                                 <th class="text-end">Cant.</th>
                             </tr>
                         </thead>
                         <tbody>
                             ${movements.map(m => `
                                 <tr>
-                                    <td>${fmtDate(m.fecha.toISOString())}</td>
+                                    <td>${fmtDate(m.fecha)}</td>
                                     <td><span class="badge ${m.cant > 0 ? 'bg-success' : (m.tipo.includes('Salida') ? 'bg-warning text-dark' : 'bg-secondary')}">${m.tipo}</span></td>
                                     <td>${m.ref}</td>
                                     <td>${m.origen}</td>
+                                    <td>${m.cliente_proveedor || '-'}</td>
                                     <td class="text-end fw-bold ${m.cant > 0 ? 'text-success' : 'text-danger'}">${m.cant > 0 ? '+' : ''}${m.cant}</td>
                                 </tr>
                             `).join('')}
@@ -922,7 +991,12 @@ const App = {
             precio_compra: precioCompra,
             precio_venta: precioVenta,
             stock_actual: parseInt(this.unformatNumber(document.getElementById('productoStockActual').value)) || 0,
-            stock_minimo: parseInt(this.unformatNumber(document.getElementById('productoStockMinimo').value)) || 5
+            stock_minimo: parseInt(this.unformatNumber(document.getElementById('productoStockMinimo').value)) || 5,
+            categoria: document.getElementById('productoCategoria').value.trim(),
+            unidad_medida: document.getElementById('productoUnidadMedida').value,
+            ubicacion_bodega: document.getElementById('productoUbicacion').value.trim(),
+            estado: document.getElementById('productoEstado').value,
+            observaciones: document.getElementById('productoObservaciones').value.trim()
         };
 
         try {
@@ -1284,10 +1358,6 @@ const App = {
             <div class="doc-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #0d9488; padding-bottom: 15px; margin-bottom: 25px;">
                 <div style="display: flex; align-items: center; gap: 12px;">
                     <img src="LogoMas.png" alt="Logo" style="height: 50px; object-fit: contain;">
-                    <div>
-                        <div class="company-name" style="font-size: 22px; font-weight: 700; color: #1a1a2e; font-family: 'Inter', sans-serif;">Accesorios .</div>
-                        <div class="company-sub" style="color: #666; font-size: 11px;">Sistema de Facturación</div>
-                    </div>
                 </div>
                 <div class="doc-title" style="text-align: right;">
                     <h1 style="font-size: 22px; font-weight: 700; color: #1a1a2e; margin: 0;">FACTURA DE VENTA</h1>
@@ -1640,14 +1710,13 @@ const App = {
         <head><meta charset="UTF-8"><title>Orden de Compra #${refNum}</title>
         <style>${this._getPrintStyles()}</style></head>
         <body><div class="doc-wrapper">
-            <div class="doc-header">
-                <div>
-                    <div class="company-name">MAS Accesorios</div>
-                    <div class="company-sub">Sistema de Compras</div>
+            <div class="doc-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #0d9488; padding-bottom: 15px; margin-bottom: 25px;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <img src="LogoMas.png" alt="Logo" style="height: 50px; object-fit: contain;">
                 </div>
-                <div class="doc-title">
-                    <h1>ORDEN DE COMPRA</h1>
-                    <div class="ref"># ${refNum}</div>
+                <div class="doc-title" style="text-align: right;">
+                    <h1 style="font-size: 22px; font-weight: 700; color: #1a1a2e; margin: 0;">ORDEN DE COMPRA</h1>
+                    <div class="ref" style="color: #0d9488; font-size: 15px; font-weight: 600; margin-top: 4px;"># ${refNum}</div>
                 </div>
             </div>
             <div class="info-grid">
@@ -1942,10 +2011,6 @@ const App = {
             <div class="doc-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #0d9488; padding-bottom: 15px; margin-bottom: 25px;">
                 <div style="display: flex; align-items: center; gap: 12px;">
                     <img src="LogoMas.png" alt="Logo" style="height: 50px; object-fit: contain;">
-                    <div>
-                        <div class="company-name" style="font-size: 22px; font-weight: 700; color: #1a1a2e; font-family: 'Inter', sans-serif;">Accesorios .</div>
-                        <div class="company-sub" style="color: #666; font-size: 11px;">Sistema de Cotizaciones</div>
-                    </div>
                 </div>
                 <div class="doc-title" style="text-align: right;">
                     <h1 style="font-size: 22px; font-weight: 700; color: #1a1a2e; margin: 0;">COTIZACIÓN</h1>
@@ -2331,8 +2396,17 @@ const App = {
             ventas: 'Ventas por Rango de Fecha',
             utilidad: 'Utilidad por Rango de Fecha',
             cartera: 'Cartera por Cliente',
-            inventario: 'Inventario Actual',
-            gastos: 'Gastos por Mes'
+            inventario: 'Inventario Actual (Valorizado)',
+            gastos: 'Gastos por Mes',
+            rentabilidad: 'Rentabilidad Detallada',
+            productos_mas_vendidos: 'Productos Más Vendidos',
+            baja_rotacion: 'Productos de Baja Rotación',
+            clientes_mayor_compra: 'Clientes con Mayor Compra',
+            flujo_caja: 'Flujo de Caja (Movimientos Bancarios)',
+            estado_resultados: 'Estado de Resultados',
+            utilidad_producto: 'Utilidad por Producto',
+            utilidad_cliente: 'Utilidad por Cliente',
+            utilidad_vendedor: 'Utilidad por Vendedor'
         };
         document.getElementById('reportTitle').innerHTML = `<i class="bi bi-file-earmark-bar-graph"></i> ${titles[type]}`;
 
@@ -2393,7 +2467,7 @@ const App = {
                 html += '<th>Fecha</th><th>Cliente</th><th>Vendedor</th><th>Tipo</th><th>Total</th><th>Costo</th><th>Comisión</th><th>Utilidad</th>';
                 html += '</tr></thead><tbody>';
                 data.forEach(r => {
-                    html += `<tr><td>${r.fecha}</td><td>${r.cliente_nombre}</td><td>${r.vendedor_nombre || 'Sin Asesor'}</td><td>${r.tipo_venta}</td>
+                    html += `<tr><td>${r.fecha ? r.fecha.split('T')[0] : '-'}</td><td>${r.cliente_nombre}</td><td>${r.vendedor_nombre || 'Sin Asesor'}</td><td>${r.tipo_venta}</td>
                         <td>${fmt(r.total)}</td><td>${fmt(r.total_costo)}</td><td>${fmt(r.comision_monto || 0)}</td><td class="text-success">${fmt(r.utilidad)}</td></tr>`;
                 });
                 const totalVentas = data.reduce((s, r) => s + parseFloat(r.total), 0);
@@ -2405,7 +2479,7 @@ const App = {
                 html += '<th>Fecha</th><th>Venta</th><th>Costo</th><th>Utilidad</th>';
                 html += '</tr></thead><tbody>';
                 data.forEach(r => {
-                    html += `<tr><td>${r.fecha}</td><td>${fmt(r.total)}</td><td>${fmt(r.costo)}</td><td class="text-success">${fmt(r.utilidad)}</td></tr>`;
+                    html += `<tr><td>${r.fecha ? r.fecha.split('T')[0] : '-'}</td><td>${fmt(r.total)}</td><td>${fmt(r.costo)}</td><td class="text-success">${fmt(r.utilidad)}</td></tr>`;
                 });
                 html += `<tr class="fw-bold"><td>TOTAL</td><td>${fmt(data.reduce((s, r) => s + parseFloat(r.total), 0))}</td><td>${fmt(data.reduce((s, r) => s + parseFloat(r.costo), 0))}</td><td class="text-success">${fmt(data.reduce((s, r) => s + parseFloat(r.utilidad), 0))}</td></tr>`;
                 break;
@@ -2438,6 +2512,128 @@ const App = {
                 });
                 html += `<tr class="fw-bold"><td colspan="3">TOTAL</td><td class="text-danger">${fmt(data.reduce((s, r) => s + parseFloat(r.monto), 0))}</td></tr>`;
                 break;
+            case 'rentabilidad':
+                html += '<th>Fecha</th><th>Referencia</th><th>Cliente</th><th>Vendedor</th><th>Total Factura</th><th>Neto sin IVA</th><th>Costo FIFO</th><th>Utilidad Neta</th><th>Margen</th>';
+                html += '</tr></thead><tbody>';
+                data.forEach(r => {
+                    html += `<tr><td>${r.fecha}</td><td><code>${r.referencia}</code></td><td>${r.cliente_nombre}</td><td>${r.vendedor_nombre}</td>
+                        <td>${fmt(r.total)}</td><td>${fmt(r.total_neto)}</td><td>${fmt(r.total_costo)}</td><td class="text-success">${fmt(r.utilidad)}</td><td><span class="badge bg-info">${r.margen}</span></td></tr>`;
+                });
+                const rentTotalOriginal = data.reduce((s, r) => s + parseFloat(r.total), 0);
+                const rentTotalNeto = data.reduce((s, r) => s + parseFloat(r.total_neto), 0);
+                const rentTotalCosto = data.reduce((s, r) => s + parseFloat(r.total_costo), 0);
+                const rentTotalUtil = data.reduce((s, r) => s + parseFloat(r.utilidad), 0);
+                const rentMargin = rentTotalNeto > 0 ? (rentTotalUtil / rentTotalNeto * 100).toFixed(1) : 0;
+                html += `<tr class="fw-bold"><td colspan="4">TOTALES</td><td>${fmt(rentTotalOriginal)}</td><td>${fmt(rentTotalNeto)}</td><td>${fmt(rentTotalCosto)}</td><td class="text-success">${fmt(rentTotalUtil)}</td><td><span class="badge bg-primary">${rentMargin}%</span></td></tr>`;
+                break;
+            case 'productos_mas_vendidos':
+                html += '<th>Código SKU</th><th>Producto</th><th class="text-end">Unidades Vendidas</th><th class="text-end">Ingresos Netos</th><th class="text-end">Costo Total</th><th class="text-end">Utilidad</th>';
+                html += '</tr></thead><tbody>';
+                data.forEach(r => {
+                    html += `<tr><td><code>${r.codigo}</code></td><td>${r.nombre}</td>
+                        <td class="text-end fw-bold">${r.cantidad_vendida}</td><td class="text-end">${fmt(r.total_ingresos)}</td><td class="text-end">${fmt(r.total_costo)}</td><td class="text-end text-success">${fmt(r.utilidad)}</td></tr>`;
+                });
+                const pmasCant = data.reduce((s, r) => s + r.cantidad_vendida, 0);
+                const pmasIng = data.reduce((s, r) => s + r.total_ingresos, 0);
+                const pmasCost = data.reduce((s, r) => s + r.total_costo, 0);
+                const pmasUtil = data.reduce((s, r) => s + r.utilidad, 0);
+                html += `<tr class="fw-bold"><td colspan="2">TOTALES</td><td class="text-end">${pmasCant}</td><td class="text-end">${fmt(pmasIng)}</td><td class="text-end">${fmt(pmasCost)}</td><td class="text-end text-success">${fmt(pmasUtil)}</td></tr>`;
+                break;
+            case 'baja_rotacion':
+                html += '<th>Código SKU</th><th>Producto</th><th class="text-end">Stock Actual</th><th class="text-end">Unidades Vendidas</th><th class="text-end">Costo Unitario</th><th class="text-end">Valor Inventario</th>';
+                html += '</tr></thead><tbody>';
+                data.forEach(r => {
+                    html += `<tr><td><code>${r.codigo}</code></td><td>${r.nombre}</td>
+                        <td class="text-end">${r.stock_actual}</td><td class="text-end fw-bold text-danger">${r.cantidad_vendida}</td><td class="text-end">${fmt(r.precio_compra)}</td><td class="text-end">${fmt(r.valor_inventario)}</td></tr>`;
+                });
+                const protStock = data.reduce((s, r) => s + parseFloat(r.stock_actual || 0), 0);
+                const protVend = data.reduce((s, r) => s + r.cantidad_vendida, 0);
+                const protVal = data.reduce((s, r) => s + r.valor_inventario, 0);
+                html += `<tr class="fw-bold"><td colspan="2">TOTALES</td><td class="text-end">${protStock}</td><td class="text-end text-danger">${protVend}</td><td></td><td class="text-end">${fmt(protVal)}</td></tr>`;
+                break;
+            case 'clientes_mayor_compra':
+                html += '<th>Documento</th><th>Cliente</th><th class="text-end">Nro Compras</th><th class="text-end">Total Comprado (Inc. IVA)</th><th class="text-end">Utilidad Generada</th>';
+                html += '</tr></thead><tbody>';
+                data.forEach(r => {
+                    html += `<tr><td><code>${r.documento}</code></td><td>${r.nombre}</td>
+                        <td class="text-end">${r.numero_compras}</td><td class="text-end fw-bold text-primary">${fmt(r.total_comprado)}</td><td class="text-end text-success">${fmt(r.total_utilidad)}</td></tr>`;
+                });
+                const cliNum = data.reduce((s, r) => s + r.numero_compras, 0);
+                const cliComp = data.reduce((s, r) => s + r.total_comprado, 0);
+                const cliUtil = data.reduce((s, r) => s + r.total_utilidad, 0);
+                html += `<tr class="fw-bold"><td colspan="2">TOTALES</td><td class="text-end">${cliNum}</td><td class="text-end text-primary">${fmt(cliComp)}</td><td class="text-end text-success">${fmt(cliUtil)}</td></tr>`;
+                break;
+            case 'flujo_caja':
+                html += '<th>Fecha</th><th>Banco/Caja</th><th>Tipo Mov.</th><th>Descripción</th><th class="text-end">Monto</th>';
+                html += '</tr></thead><tbody>';
+                data.forEach(r => {
+                    html += `<tr><td>${r.fecha}</td><td>${r.banco_nombre}</td>
+                        <td><span class="badge ${r.tipo === 'Ingreso' ? 'bg-success' : 'bg-danger'}">${r.tipo}</span></td><td>${r.descripcion}</td>
+                        <td class="text-end fw-bold ${r.tipo === 'Ingreso' ? 'text-success' : 'text-danger'}">${r.tipo === 'Ingreso' ? '+' : '-'}${fmt(r.monto)}</td></tr>`;
+                });
+                const flowIng = data.filter(r => r.tipo === 'Ingreso').reduce((s, r) => s + r.monto, 0);
+                const flowEgr = data.filter(r => r.tipo === 'Egreso').reduce((s, r) => s + r.monto, 0);
+                html += `<tr class="fw-bold"><td colspan="3">NETO (Ingresos: ${fmt(flowIng)} | Egresos: ${fmt(flowEgr)})</td><td>SALDO DE FLUJO</td><td class="text-end ${flowIng >= flowEgr ? 'text-success' : 'text-danger'}">${fmt(flowIng - flowEgr)}</td></tr>`;
+                break;
+            case 'estado_resultados':
+                html += '<th>Cuenta Financiera</th><th class="text-end">Monto Neto (COP)</th><th class="text-end">Porcentaje</th>';
+                html += '</tr></thead><tbody>';
+                data.forEach(r => {
+                    const marginB = r.ventas_totales > 0 ? (r.utilidad_bruta / r.ventas_totales * 100).toFixed(1) : 0;
+                    const marginN = r.ventas_totales > 0 ? (r.utilidad_neta / r.ventas_totales * 100).toFixed(1) : 0;
+                    html += `
+                        <tr><td><strong>(+) Ingresos Operacionales (Ventas antes de IVA)</strong></td><td class="text-end fw-bold text-success">${fmt(r.ventas_totales)}</td><td class="text-end">100.0%</td></tr>
+                        <tr><td>(-) Costo de Ventas (COGS - FIFO)</td><td class="text-end text-muted">${fmt(r.costo_ventas)}</td><td class="text-end">-${(r.costo_ventas/r.ventas_totales*100 || 0).toFixed(1)}%</td></tr>
+                        <tr class="table-light"><td><strong>(=) UTILIDAD BRUTA</strong></td><td class="text-end fw-bold text-primary">${fmt(r.utilidad_bruta)}</td><td class="text-end fw-bold">${marginB}%</td></tr>
+                        <tr><td>(-) Gastos Operativos y Administrativos</td><td class="text-end text-danger">${fmt(r.gastos_operativos)}</td><td class="text-end">-${(r.gastos_operativos/r.ventas_totales*100 || 0).toFixed(1)}%</td></tr>
+                        <tr class="table-dark" style="background:#111827;color:#fff;"><td><strong>(=) UTILIDAD OPERATIVA (NETA DEL PERIODO)</strong></td><td class="text-end fw-bold text-success">${fmt(r.utilidad_neta)}</td><td class="text-end fw-bold text-success">${marginN}%</td></tr>
+                    `;
+                });
+                break;
+            case 'utilidad_producto':
+                html += '<th>Código SKU</th><th>Producto</th><th class="text-end">Cantidad Vendida</th><th class="text-end">Ingresos Netos</th><th class="text-end">Costo de Venta</th><th class="text-end">Utilidad Real</th><th class="text-end">Margen Neto</th>';
+                html += '</tr></thead><tbody>';
+                data.forEach(r => {
+                    const margin = r.ingresos > 0 ? (r.utilidad / r.ingresos * 100).toFixed(1) : 0;
+                    html += `<tr><td><code>${r.codigo}</code></td><td>${r.nombre}</td>
+                        <td class="text-end">${r.cantidad}</td><td class="text-end">${fmt(r.ingresos)}</td><td class="text-end">${fmt(r.costo)}</td>
+                        <td class="text-end text-success fw-bold">${fmt(r.utilidad)}</td><td class="text-end"><span class="badge bg-success">${margin}%</span></td></tr>`;
+                });
+                const uprodCant = data.reduce((s, r) => s + r.cantidad, 0);
+                const uprodIng = data.reduce((s, r) => s + r.ingresos, 0);
+                const uprodCost = data.reduce((s, r) => s + r.costo, 0);
+                const uprodUtil = data.reduce((s, r) => s + r.utilidad, 0);
+                const uprodMarg = uprodIng > 0 ? (uprodUtil / uprodIng * 100).toFixed(1) : 0;
+                html += `<tr class="fw-bold"><td colspan="2">TOTALES</td><td class="text-end">${uprodCant}</td><td class="text-end">${fmt(uprodIng)}</td><td class="text-end">${fmt(uprodCost)}</td><td class="text-end text-success">${fmt(uprodUtil)}</td><td class="text-end"><span class="badge bg-primary">${uprodMarg}%</span></td></tr>`;
+                break;
+            case 'utilidad_cliente':
+                html += '<th>Documento</th><th>Cliente</th><th class="text-end">Ventas Netas</th><th class="text-end">Costo Total</th><th class="text-end">Utilidad</th><th class="text-end">Margen</th>';
+                html += '</tr></thead><tbody>';
+                data.forEach(r => {
+                    const margin = r.total_ventas > 0 ? (r.utilidad / r.total_ventas * 100).toFixed(1) : 0;
+                    html += `<tr><td><code>${r.documento}</code></td><td>${r.cliente_nombre}</td>
+                        <td class="text-end">${fmt(r.total_ventas)}</td><td class="text-end">${fmt(r.total_costo)}</td>
+                        <td class="text-end text-success fw-bold">${fmt(r.utilidad)}</td><td class="text-end"><span class="badge bg-success">${margin}%</span></td></tr>`;
+                });
+                const ucliVent = data.reduce((s, r) => s + r.total_ventas, 0);
+                const ucliCost = data.reduce((s, r) => s + r.total_costo, 0);
+                const ucliUtil = data.reduce((s, r) => s + r.utilidad, 0);
+                const ucliMarg = ucliVent > 0 ? (ucliUtil / ucliVent * 100).toFixed(1) : 0;
+                html += `<tr class="fw-bold"><td colspan="2">TOTALES</td><td class="text-end">${fmt(ucliVent)}</td><td class="text-end">${fmt(ucliCost)}</td><td class="text-end text-success">${fmt(ucliUtil)}</td><td class="text-end"><span class="badge bg-primary">${ucliMarg}%</span></td></tr>`;
+                break;
+            case 'utilidad_vendedor':
+                html += '<th>Asesor Comercial</th><th class="text-end">Ventas Netas</th><th class="text-end">Comisión Asesor</th><th class="text-end">Utilidad Generada</th>';
+                html += '</tr></thead><tbody>';
+                data.forEach(r => {
+                    html += `<tr><td>${r.vendedor_nombre}</td>
+                        <td class="text-end">${fmt(r.total_ventas)}</td><td class="text-end text-danger">${fmt(r.total_comision)}</td>
+                        <td class="text-end text-success fw-bold">${fmt(r.utilidad)}</td></tr>`;
+                });
+                const uvelVent = data.reduce((s, r) => s + r.total_ventas, 0);
+                const uvelCom = data.reduce((s, r) => s + r.total_comision, 0);
+                const uvelUtil = data.reduce((s, r) => s + r.utilidad, 0);
+                html += `<tr class="fw-bold"><td>TOTALES</td><td class="text-end">${fmt(uvelVent)}</td><td class="text-end text-danger">${fmt(uvelCom)}</td><td class="text-end text-success">${fmt(uvelUtil)}</td></tr>`;
+                break;
         }
 
         html += '</tbody></table>';
@@ -2455,11 +2651,13 @@ const App = {
         // Formatear los datos para que el Excel sea limpio y legible
         if (this.currentReportType === 'ventas') {
             exportData = this.currentReportData.map(r => ({
-                'Fecha': r.fecha,
+                'Fecha': r.fecha ? r.fecha.split('T')[0] : '-',
                 'Cliente': r.cliente_nombre,
+                'Vendedor': r.vendedor_nombre,
                 'Tipo': r.tipo_venta,
                 'Total': r.total,
                 'Costo': r.total_costo,
+                'Comision': r.comision_monto,
                 'Utilidad': r.utilidad
             }));
         } else if (this.currentReportType === 'cartera') {
@@ -2482,7 +2680,7 @@ const App = {
             }));
         } else if (this.currentReportType === 'utilidad') {
             exportData = this.currentReportData.map(r => ({
-                'Fecha': r.fecha,
+                'Fecha': r.fecha ? r.fecha.split('T')[0] : '-',
                 'Venta Total': r.total,
                 'Costo Total': r.costo,
                 'Utilidad': r.utilidad
@@ -2493,6 +2691,86 @@ const App = {
                 'Categoría': r.categoria,
                 'Descripción': r.descripcion,
                 'Monto': r.monto
+            }));
+        } else if (this.currentReportType === 'rentabilidad') {
+            exportData = this.currentReportData.map(r => ({
+                'Fecha': r.fecha,
+                'Referencia': r.referencia,
+                'Cliente': r.cliente_nombre,
+                'Vendedor': r.vendedor_nombre,
+                'Total con IVA': r.total,
+                'Neto sin IVA': r.total_neto,
+                'Costo FIFO': r.total_costo,
+                'Utilidad Neta': r.utilidad,
+                'Porcentaje Margen': r.margen
+            }));
+        } else if (this.currentReportType === 'productos_mas_vendidos') {
+            exportData = this.currentReportData.map(r => ({
+                'Código SKU': r.codigo,
+                'Producto': r.nombre,
+                'Cantidad Vendida': r.cantidad_vendida,
+                'Ingresos Netos': r.total_ingresos,
+                'Costo Total': r.total_costo,
+                'Utilidad': r.utilidad
+            }));
+        } else if (this.currentReportType === 'baja_rotacion') {
+            exportData = this.currentReportData.map(r => ({
+                'Código SKU': r.codigo,
+                'Producto': r.nombre,
+                'Stock Actual': r.stock_actual,
+                'Cantidad Vendida': r.cantidad_vendida,
+                'Costo Unitario': r.precio_compra,
+                'Valor de Inventario': r.valor_inventario
+            }));
+        } else if (this.currentReportType === 'clientes_mayor_compra') {
+            exportData = this.currentReportData.map(r => ({
+                'Documento': r.documento,
+                'Cliente': r.nombre,
+                'Número Compras': r.numero_compras,
+                'Total Comprado (IVA Inc)': r.total_comprado,
+                'Utilidad Generada': r.total_utilidad
+            }));
+        } else if (this.currentReportType === 'flujo_caja') {
+            exportData = this.currentReportData.map(r => ({
+                'Fecha': r.fecha,
+                'Banco/Caja': r.banco_nombre,
+                'Tipo Movimiento': r.tipo,
+                'Descripción': r.descripcion,
+                'Monto': r.monto
+            }));
+        } else if (this.currentReportType === 'estado_resultados') {
+            exportData = this.currentReportData.map(r => ({
+                'Ventas Totales Netas': r.ventas_totales,
+                'Costo de Ventas (COGS)': r.costo_ventas,
+                'Utilidad Bruta': r.utilidad_bruta,
+                'Gastos Operativos': r.gastos_operativos,
+                'Utilidad Neta del Periodo': r.utilidad_neta
+            }));
+        } else if (this.currentReportType === 'utilidad_producto') {
+            exportData = this.currentReportData.map(r => ({
+                'Código SKU': r.codigo,
+                'Producto': r.nombre,
+                'Cantidad Vendida': r.cantidad,
+                'Ingresos Netos': r.ingresos,
+                'Costo de Venta': r.costo,
+                'Utilidad Real': r.utilidad,
+                'Margen Neto': (r.utilidad / r.ingresos * 100 || 0).toFixed(1) + '%'
+            }));
+        } else if (this.currentReportType === 'utilidad_cliente') {
+            exportData = this.currentReportData.map(r => ({
+                'Documento': r.documento,
+                'Cliente': r.cliente_nombre,
+                'Ventas Netas': r.total_ventas,
+                'Costo Total': r.total_costo,
+                'Utilidad': r.utilidad,
+                'Margen': (r.utilidad / r.total_ventas * 100 || 0).toFixed(1) + '%'
+            }));
+        } else if (this.currentReportType === 'utilidad_vendedor') {
+            exportData = this.currentReportData.map(r => ({
+                'Asesor Comercial': r.vendedor_nombre,
+                'Ventas Netas': r.total_ventas,
+                'Comisión Comercial': r.total_comision,
+                'Utilidad Generada': r.utilidad
             }));
         }
 
@@ -3514,6 +3792,76 @@ const App = {
         };
         
         new bootstrap.Modal(document.getElementById('rowDescriptionModal')).show();
+    },
+
+    filterKardex() {
+        const prodId = document.getElementById('kardexProductoSelect')?.value || '';
+        const tipo = document.getElementById('kardexTipoSelect')?.value || '';
+        const desde = document.getElementById('kardexDesde')?.value || '';
+        const hasta = document.getElementById('kardexHasta')?.value || '';
+
+        let movements = DB.getKardexMovements(prodId);
+
+        if (tipo) {
+            movements = movements.filter(m => m.tipo.includes(tipo));
+        }
+
+        if (desde) {
+            movements = movements.filter(m => m.fecha >= desde);
+        }
+        if (hasta) {
+            movements = movements.filter(m => m.fecha <= (hasta.includes('T') ? hasta : hasta + 'T23:59:59'));
+        }
+
+        const fmt = (n) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n);
+        const fmtDate = (d) => new Date(d).toLocaleDateString('es-CO') + ' ' + new Date(d).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+
+        let tableHtml = '';
+        if (movements.length === 0) {
+            tableHtml = `<div class="text-center text-muted py-4">No se encontraron movimientos con los filtros seleccionados.</div>`;
+        } else {
+            tableHtml = `
+            <table class="table-modern">
+                <thead>
+                    <tr>
+                        <th>Fecha y Hora</th>
+                        <th>Código SKU</th>
+                        <th>Producto</th>
+                        <th>Tipo</th>
+                        <th>Referencia</th>
+                        <th>Origen</th>
+                        <th>Contacto</th>
+                        <th class="text-end">Cantidad</th>
+                        <th class="text-end">Costo Unit.</th>
+                        <th class="text-end">Costo Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${movements.map(m => {
+                        const p = DB.getProduct(m.producto_id);
+                        const costTotal = Math.abs(m.cant) * m.costo_unitario;
+                        return `
+                        <tr>
+                            <td style="font-size: 11px;">${fmtDate(m.fecha)}</td>
+                            <td><code>${p ? p.codigo : 'N/A'}</code></td>
+                            <td class="fw-bold">${p ? p.nombre : 'Producto N/A'}</td>
+                            <td><span class="badge ${m.cant > 0 ? 'bg-success' : (m.tipo.includes('Salida') ? 'bg-warning text-dark' : 'bg-secondary')}">${m.tipo}</span></td>
+                            <td><code>${m.ref}</code></td>
+                            <td>${m.origen}</td>
+                            <td>${m.cliente_proveedor}</td>
+                            <td class="text-end fw-bold ${m.cant > 0 ? 'text-success' : 'text-danger'}">${m.cant > 0 ? '+' : ''}${m.cant}</td>
+                            <td class="text-end">${fmt(m.costo_unitario)}</td>
+                            <td class="text-end fw-bold">${fmt(costTotal)}</td>
+                        </tr>`;
+                    }).join('')}
+                </tbody>
+            </table>`;
+        }
+
+        const container = document.getElementById('kardexTableContainer');
+        if (container) {
+            container.innerHTML = tableHtml;
+        }
     },
 
     unformatNumber(str) {

@@ -404,13 +404,30 @@ const DB = {
         this._persist(this.KEYS.INVENTORY_LOTS, lots);
     },
 
-    adjustStock(productId, newStock) {
+    adjustStock(productId, newStock, motivo = 'Ajuste Manual') {
         const products = this.getAll(this.KEYS.PRODUCTS);
         const idx = products.findIndex(p => p.id === productId);
         if (idx !== -1) {
+            const oldStock = parseInt(products[idx].stock_actual) || 0;
+            const diff = parseInt(newStock) - oldStock;
+            
             products[idx].stock_actual = parseInt(newStock);
             products[idx].updated_at = new Date().toISOString();
             this._persist(this.KEYS.PRODUCTS, products);
+
+            if (diff !== 0) {
+                const adjustments = this.getAll(this.KEYS.KARDEX) || [];
+                adjustments.push({
+                    id: this.genId(),
+                    producto_id: productId,
+                    movimiento_cantidad: diff,
+                    costo_unitario: parseFloat(products[idx].precio_compra) || 0,
+                    fecha: new Date().toISOString(),
+                    motivo: motivo,
+                    created_at: new Date().toISOString()
+                });
+                this._persist(this.KEYS.KARDEX, adjustments);
+            }
         }
     },
 
@@ -615,6 +632,7 @@ const DB = {
             this._persist(this.KEYS.SALE_DETAILS, allDetails);
         }
 
+        let totalNeto = 0;
         // FIFO: Calculate cost from oldest lots
         details.forEach(d => {
             const product = this.getProduct(d.producto_id);
@@ -624,6 +642,7 @@ const DB = {
             const desc = d.descuento || 0;
             const taxSelect = d.impuesto || 'Ninguno';
             const netSubtotal = parseFloat(d.precio_unitario) * parseInt(d.cantidad) * (1 - desc / 100);
+            totalNeto += netSubtotal;
             const taxRate = taxSelect === '19%' ? 0.19 : 0.00;
             d.subtotal = netSubtotal + (netSubtotal * taxRate);
             total += d.subtotal;
@@ -639,7 +658,7 @@ const DB = {
             estado: estadoFactura,
             total: total,
             total_costo: totalCosto,
-            utilidad: total - totalCosto,
+            utilidad: totalNeto - totalCosto,
             vendedor_id: saleData.vendedor_id || null,
             comision_monto: saleData.vendedor_id ? (total * (parseFloat(this.getSeller(saleData.vendedor_id)?.comision_porcentaje || 0) / 100)) : 0,
             fecha: (saleData.fecha && saleData.fecha !== new Date().toISOString().split('T')[0]) ? (saleData.fecha + (saleData.fecha.includes('T') ? '' : 'T00:00:00')) : new Date().toISOString()
@@ -1628,6 +1647,86 @@ const DB = {
         };
     },
 
+    getKardexMovements(productoId) {
+        const movements = [];
+        // 1. Get Sales
+        const saleDetails = this.getAllActive(this.KEYS.SALE_DETAILS);
+        const filteredSaleDetails = productoId ? saleDetails.filter(d => d.producto_id === productoId) : saleDetails;
+        filteredSaleDetails.forEach(d => {
+            const sale = this.getSale(d.venta_id);
+            if (sale) {
+                movements.push({
+                    fecha: sale.fecha || sale.created_at,
+                    producto_id: d.producto_id,
+                    tipo: 'Salida (Venta)',
+                    ref: sale.numero || sale.id.substr(-6).toUpperCase(),
+                    cant: -parseInt(d.cantidad),
+                    costo_unitario: parseFloat(d.costo_unitario || 0),
+                    origen: 'Venta ' + sale.tipo_venta,
+                    cliente_proveedor: this.getClient(sale.cliente_id)?.nombre || 'Cliente N/A'
+                });
+            }
+        });
+
+        // 2. Get Purchases
+        const compraDetails = this.getAllActive(this.KEYS.COMPRA_DETAILS);
+        const filteredCompraDetails = productoId ? compraDetails.filter(d => d.producto_id === productoId) : compraDetails;
+        filteredCompraDetails.forEach(d => {
+            const compra = this.getById(this.KEYS.COMPRAS, d.compra_id);
+            if (compra) {
+                movements.push({
+                    fecha: compra.fecha || compra.created_at,
+                    producto_id: d.producto_id,
+                    tipo: 'Entrada (Compra)',
+                    ref: compra.numero || compra.id.substr(-6).toUpperCase(),
+                    cant: parseInt(d.cantidad),
+                    costo_unitario: parseFloat(d.costo_unitario || 0),
+                    origen: 'Compra ' + (compra.proveedor || ''),
+                    cliente_proveedor: compra.proveedor || 'Proveedor N/A'
+                });
+            }
+        });
+
+        // 3. Get Returns
+        const devDetails = this.getAllActive(this.KEYS.DEVOLUCION_DETAILS);
+        const filteredDevDetails = productoId ? devDetails.filter(d => d.producto_id === productoId) : devDetails;
+        filteredDevDetails.forEach(d => {
+            const dev = this.getById(this.KEYS.DEVOLUCIONES, d.devolucion_id);
+            if (dev) {
+                const sale = this.getSale(dev.venta_id);
+                movements.push({
+                    fecha: dev.fecha || dev.created_at,
+                    producto_id: d.producto_id,
+                    tipo: 'Entrada (Devolución)',
+                    ref: dev.id.substr(-6).toUpperCase(),
+                    cant: parseInt(d.cantidad),
+                    costo_unitario: parseFloat(d.subtotal / d.cantidad || 0),
+                    origen: 'Devolución Venta #' + (sale ? (sale.numero || sale.id.substr(-6).toUpperCase()) : 'N/A'),
+                    cliente_proveedor: sale ? (this.getClient(sale.cliente_id)?.nombre || 'Cliente N/A') : 'Cliente N/A'
+                });
+            }
+        });
+
+        // 4. Get Adjustments
+        const allAdjustments = this.getAllActive(this.KEYS.KARDEX);
+        const filteredAdjustments = productoId ? allAdjustments.filter(k => k.producto_id === productoId) : allAdjustments;
+        filteredAdjustments.forEach(k => {
+            movements.push({
+                fecha: k.fecha,
+                producto_id: k.producto_id,
+                tipo: k.movimiento_cantidad > 0 ? 'Entrada (Ajuste)' : 'Salida (Ajuste)',
+                ref: 'Ajuste',
+                cant: parseInt(k.movimiento_cantidad),
+                costo_unitario: parseFloat(k.costo_unitario || 0),
+                origen: k.motivo || 'Ajuste de Stock',
+                cliente_proveedor: 'Ajuste Manual'
+            });
+        });
+
+        // Sort by date descending
+        return movements.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+    },
+
     // =========================================================
     // Reports Data
     // =========================================================
@@ -1678,6 +1777,223 @@ const DB = {
                     precio_venta: p.precio_venta,
                     valor_inventario: p.stock_actual * p.precio_compra
                 }));
+            }
+            case 'gastos': {
+                let expenses = this.getExpenses();
+                if (desde) expenses = expenses.filter(e => e.fecha >= desde);
+                if (hasta) expenses = expenses.filter(e => e.fecha <= (hasta.includes('T') ? hasta : hasta + 'T23:59:59'));
+                return expenses;
+            }
+            case 'rentabilidad': {
+                let sales = this.getSales().filter(s => s.estado !== 'anulada');
+                if (desde) sales = sales.filter(s => s.fecha >= desde);
+                if (hasta) sales = sales.filter(s => s.fecha <= (hasta.includes('T') ? hasta : hasta + 'T23:59:59'));
+                return sales.map(s => {
+                    const client = this.getClient(s.cliente_id);
+                    const seller = s.vendedor_id ? this.getSeller(s.vendedor_id) : null;
+                    const totalNeto = parseFloat(s.total_costo) + parseFloat(s.utilidad);
+                    const margin = totalNeto > 0 ? (s.utilidad / totalNeto * 100).toFixed(1) : 0;
+                    return {
+                        fecha: s.fecha ? s.fecha.split('T')[0] : '-',
+                        referencia: s.numero || s.id.substr(-6).toUpperCase(),
+                        cliente_nombre: client ? client.nombre : 'N/A',
+                        vendedor_nombre: seller ? seller.nombre : 'Sin Asesor',
+                        total: s.total,
+                        total_neto: totalNeto,
+                        total_costo: s.total_costo,
+                        utilidad: s.utilidad,
+                        margen: margin + '%'
+                    };
+                });
+            }
+            case 'productos_mas_vendidos': {
+                let sales = this.getSales().filter(s => s.estado !== 'anulada');
+                if (desde) sales = sales.filter(s => s.fecha >= desde);
+                if (hasta) sales = sales.filter(s => s.fecha <= (hasta.includes('T') ? hasta : hasta + 'T23:59:59'));
+                const saleIds = new Set(sales.map(s => s.id));
+                const saleDetails = this.getAllActive(this.KEYS.SALE_DETAILS).filter(d => saleIds.has(d.venta_id));
+                const summary = {};
+                saleDetails.forEach(d => {
+                    if (!summary[d.producto_id]) {
+                        const product = this.getProduct(d.producto_id);
+                        summary[d.producto_id] = {
+                            codigo: product ? product.codigo : 'N/A',
+                            nombre: product ? product.nombre : 'Producto N/A',
+                            cantidad_vendida: 0,
+                            total_ingresos: 0,
+                            total_costo: 0,
+                            utilidad: 0
+                        };
+                    }
+                    const qty = parseInt(d.cantidad) || 0;
+                    const desc = d.descuento || 0;
+                    const netSub = qty * parseFloat(d.precio_unitario) * (1 - desc / 100);
+                    const cost = qty * parseFloat(d.costo_unitario || 0);
+                    summary[d.producto_id].cantidad_vendida += qty;
+                    summary[d.producto_id].total_ingresos += netSub;
+                    summary[d.producto_id].total_costo += cost;
+                    summary[d.producto_id].utilidad += (netSub - cost);
+                });
+                return Object.values(summary).sort((a, b) => b.cantidad_vendida - a.cantidad_vendida);
+            }
+            case 'baja_rotacion': {
+                let sales = this.getSales().filter(s => s.estado !== 'anulada');
+                if (desde) sales = sales.filter(s => s.fecha >= desde);
+                if (hasta) sales = sales.filter(s => s.fecha <= (hasta.includes('T') ? hasta : hasta + 'T23:59:59'));
+                const saleIds = new Set(sales.map(s => s.id));
+                const saleDetails = this.getAllActive(this.KEYS.SALE_DETAILS).filter(d => saleIds.has(d.venta_id));
+                const soldQty = {};
+                saleDetails.forEach(d => {
+                    soldQty[d.producto_id] = (soldQty[d.producto_id] || 0) + (parseInt(d.cantidad) || 0);
+                });
+                return this.getProducts().map(p => {
+                    const qty = soldQty[p.id] || 0;
+                    return {
+                        codigo: p.codigo,
+                        nombre: p.nombre,
+                        stock_actual: p.stock_actual,
+                        cantidad_vendida: qty,
+                        precio_compra: p.precio_compra,
+                        valor_inventario: p.stock_actual * p.precio_compra
+                    };
+                }).sort((a, b) => a.cantidad_vendida - b.cantidad_vendida);
+            }
+            case 'clientes_mayor_compra': {
+                let sales = this.getSales().filter(s => s.estado !== 'anulada');
+                if (desde) sales = sales.filter(s => s.fecha >= desde);
+                if (hasta) sales = sales.filter(s => s.fecha <= (hasta.includes('T') ? hasta : hasta + 'T23:59:59'));
+                const summary = {};
+                sales.forEach(s => {
+                    if (!summary[s.cliente_id]) {
+                        const client = this.getClient(s.cliente_id);
+                        summary[s.cliente_id] = {
+                            nombre: client ? client.nombre : 'Cliente N/A',
+                            documento: client ? client.documento : 'N/A',
+                            numero_compras: 0,
+                            total_comprado: 0,
+                            total_utilidad: 0
+                        };
+                    }
+                    summary[s.cliente_id].numero_compras += 1;
+                    summary[s.cliente_id].total_comprado += parseFloat(s.total);
+                    summary[s.cliente_id].total_utilidad += parseFloat(s.utilidad);
+                });
+                return Object.values(summary).sort((a, b) => b.total_comprado - a.total_comprado);
+            }
+            case 'flujo_caja': {
+                let movements = this.getAll(this.KEYS.BANK_MOVEMENTS);
+                if (desde) movements = movements.filter(m => m.fecha >= desde);
+                if (hasta) movements = movements.filter(m => m.fecha <= (hasta.includes('T') ? hasta : hasta + 'T23:59:59'));
+                return movements.map(m => {
+                    const bank = this.getBank(m.banco_id);
+                    return {
+                        fecha: m.fecha ? m.fecha.split('T')[0] : '-',
+                        banco_nombre: bank ? bank.nombre : 'N/A',
+                        tipo: m.tipo === 'ingreso' ? 'Ingreso' : 'Egreso',
+                        descripcion: m.descripcion,
+                        monto: parseFloat(m.monto || 0)
+                    };
+                }).sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+            }
+            case 'estado_resultados': {
+                let sales = this.getSales().filter(s => s.estado !== 'anulada');
+                let expenses = this.getExpenses();
+                if (desde) {
+                    sales = sales.filter(s => s.fecha >= desde);
+                    expenses = expenses.filter(e => e.fecha >= desde);
+                }
+                if (hasta) {
+                    sales = sales.filter(s => s.fecha <= (hasta.includes('T') ? hasta : hasta + 'T23:59:59'));
+                    expenses = expenses.filter(e => e.fecha <= (hasta.includes('T') ? hasta : hasta + 'T23:59:59'));
+                }
+                const totalIngresos = sales.reduce((sum, s) => sum + (parseFloat(s.total_costo) + parseFloat(s.utilidad)), 0);
+                const totalCostos = sales.reduce((sum, s) => sum + parseFloat(s.total_costo), 0);
+                const utilidadBruta = totalIngresos - totalCostos;
+                const totalGastos = expenses.reduce((sum, e) => sum + parseFloat(e.monto), 0);
+                const utilidadOperativa = utilidadBruta - totalGastos;
+                return [{
+                    ventas_totales: totalIngresos,
+                    costo_ventas: totalCostos,
+                    utilidad_bruta: utilidadBruta,
+                    gastos_operativos: totalGastos,
+                    utilidad_neta: utilidadOperativa
+                }];
+            }
+            case 'utilidad_producto': {
+                let sales = this.getSales().filter(s => s.estado !== 'anulada');
+                if (desde) sales = sales.filter(s => s.fecha >= desde);
+                if (hasta) sales = sales.filter(s => s.fecha <= (hasta.includes('T') ? hasta : hasta + 'T23:59:59'));
+                const saleIds = new Set(sales.map(s => s.id));
+                const saleDetails = this.getAllActive(this.KEYS.SALE_DETAILS).filter(d => saleIds.has(d.venta_id));
+                const summary = {};
+                saleDetails.forEach(d => {
+                    if (!summary[d.producto_id]) {
+                        const product = this.getProduct(d.producto_id);
+                        summary[d.producto_id] = {
+                            codigo: product ? product.codigo : 'N/A',
+                            nombre: product ? product.nombre : 'Producto N/A',
+                            cantidad: 0,
+                            ingresos: 0,
+                            costo: 0,
+                            utilidad: 0
+                        };
+                    }
+                    const qty = parseInt(d.cantidad) || 0;
+                    const desc = d.descuento || 0;
+                    const revenue = qty * parseFloat(d.precio_unitario) * (1 - desc / 100);
+                    const cost = qty * parseFloat(d.costo_unitario || 0);
+                    summary[d.producto_id].cantidad += qty;
+                    summary[d.producto_id].ingresos += revenue;
+                    summary[d.producto_id].costo += cost;
+                    summary[d.producto_id].utilidad += (revenue - cost);
+                });
+                return Object.values(summary).sort((a, b) => b.utilidad - a.utilidad);
+            }
+            case 'utilidad_cliente': {
+                let sales = this.getSales().filter(s => s.estado !== 'anulada');
+                if (desde) sales = sales.filter(s => s.fecha >= desde);
+                if (hasta) sales = sales.filter(s => s.fecha <= (hasta.includes('T') ? hasta : hasta + 'T23:59:59'));
+                const summary = {};
+                sales.forEach(s => {
+                    if (!summary[s.cliente_id]) {
+                        const client = this.getClient(s.cliente_id);
+                        summary[s.cliente_id] = {
+                            cliente_nombre: client ? client.nombre : 'Cliente N/A',
+                            documento: client ? client.documento : 'N/A',
+                            total_ventas: 0,
+                            total_costo: 0,
+                            utilidad: 0
+                        };
+                    }
+                    const totalNeto = parseFloat(s.total_costo) + parseFloat(s.utilidad);
+                    summary[s.cliente_id].total_ventas += totalNeto;
+                    summary[s.cliente_id].total_costo += parseFloat(s.total_costo);
+                    summary[s.cliente_id].utilidad += parseFloat(s.utilidad);
+                });
+                return Object.values(summary).sort((a, b) => b.utilidad - a.utilidad);
+            }
+            case 'utilidad_vendedor': {
+                let sales = this.getSales().filter(s => s.estado !== 'anulada');
+                if (desde) sales = sales.filter(s => s.fecha >= desde);
+                if (hasta) sales = sales.filter(s => s.fecha <= (hasta.includes('T') ? hasta : hasta + 'T23:59:59'));
+                const summary = {};
+                sales.forEach(s => {
+                    const vId = s.vendedor_id || 'sin_asesor';
+                    if (!summary[vId]) {
+                        const seller = s.vendedor_id ? this.getSeller(s.vendedor_id) : null;
+                        summary[vId] = {
+                            vendedor_nombre: seller ? seller.nombre : 'Sin Asesor',
+                            total_ventas: 0,
+                            total_comision: 0,
+                            utilidad: 0
+                        };
+                    }
+                    const totalNeto = parseFloat(s.total_costo) + parseFloat(s.utilidad);
+                    summary[vId].total_ventas += totalNeto;
+                    summary[vId].total_comision += parseFloat(s.comision_monto || 0);
+                    summary[vId].utilidad += parseFloat(s.utilidad);
+                });
+                return Object.values(summary).sort((a, b) => b.utilidad - a.utilidad);
             }
             case 'gastos': {
                 let expenses = this.getExpenses();

@@ -184,7 +184,7 @@
     <!-- Modals -->
     <!-- Client Modal -->
     <div class="modal fade" id="clienteModal" tabindex="-1">
-        <div class="modal-dialog">
+        <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="clienteModalTitle">Nuevo Contacto</h5>
@@ -193,36 +193,91 @@
                 <div class="modal-body">
                     <form id="clienteForm">
                         <input type="hidden" id="clienteId">
-                        <div class="mb-3">
-                            <label class="form-label">Tipo de Contacto *</label>
-                            <select class="form-select" id="clienteTipo" required>
-                                <option value="Cliente">Cliente</option>
-                                <option value="Proveedor">Proveedor</option>
-                                <option value="Ambos">Ambos</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Nombre *</label>
-                            <input type="text" class="form-control" id="clienteNombre" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Documento *</label>
-                            <input type="text" class="form-control" id="clienteDocumento" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Teléfono</label>
-                            <input type="text" class="form-control" id="clienteTelefono">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Tipo de Contacto *</label>
+                                <select class="form-select" id="clienteTipo" required>
+                                    <option value="Cliente">Cliente</option>
+                                    <option value="Proveedor">Proveedor</option>
+                                    <option value="Ambos">Ambos</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Nombre *</label>
+                                <input type="text" class="form-control" id="clienteNombre" required>
+                            </div>
                         </div>
                         <div class="row">
                             <div class="col-md-6 mb-3">
+                                <label class="form-label">Documento *</label>
+                                <input type="text" class="form-control" id="clienteDocumento" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Correo electrónico</label>
+                                <input type="email" class="form-control" id="clienteEmail">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Teléfono</label>
+                                <input type="text" class="form-control" id="clienteTelefono">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Persona de Contacto</label>
+                                <input type="text" class="form-control" id="clienteContacto">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Dirección</label>
+                                <input type="text" class="form-control" id="clienteDireccion">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Barrio</label>
+                                <input type="text" class="form-control" id="clienteBarrio">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Ciudad</label>
+                                <input type="text" class="form-control" id="clienteCiudad">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Departamento</label>
+                                <input type="text" class="form-control" id="clienteDepartamento">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">País</label>
+                                <input type="text" class="form-control" id="clientePais" value="Colombia">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Código Postal</label>
+                                <input type="text" class="form-control" id="clienteCodigoPostal">
+                            </div>
+                            <div class="col-md-4 mb-3">
                                 <label class="form-label">Cupo Crédito ($)</label>
                                 <input type="text" class="form-control number-format" id="clienteCupo"
                                     inputmode="numeric" value="0">
                             </div>
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-4 mb-3">
                                 <label class="form-label">Plazo (días)</label>
                                 <input type="text" class="form-control number-format" id="clientePlazo"
                                     inputmode="numeric" value="30">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Estado</label>
+                                <select class="form-select" id="clienteEstado">
+                                    <option value="Activo">Activo</option>
+                                    <option value="Inactivo">Inactivo</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Observaciones</label>
+                                <input type="text" class="form-control" id="clienteObservaciones">
                             </div>
                         </div>
                     </form>
@@ -237,7 +292,7 @@
 
     <!-- Product Modal -->
     <div class="modal fade" id="productoModal" tabindex="-1">
-        <div class="modal-dialog">
+        <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="productoModalTitle">Nuevo Producto</h5>
@@ -278,6 +333,41 @@
                                 <label class="form-label">Stock Mínimo</label>
                                 <input type="text" class="form-control number-format" id="productoStockMinimo"
                                     inputmode="numeric" value="5">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Categoría</label>
+                                <input type="text" class="form-control" id="productoCategoria" placeholder="Ej: Accesorios, Repuestos">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Unidad de Medida</label>
+                                <select class="form-select" id="productoUnidadMedida">
+                                    <option value="Unidad">Unidad (Und)</option>
+                                    <option value="Metro">Metro (Mtr)</option>
+                                    <option value="Kilogramo">Kilogramo (Kg)</option>
+                                    <option value="Paquete">Paquete (Pqt)</option>
+                                    <option value="Caja">Caja (Cj)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Ubicación / Bodega</label>
+                                <input type="text" class="form-control" id="productoUbicacion" placeholder="Ej: Bodega Principal, Estante A1">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Estado</label>
+                                <select class="form-select" id="productoEstado">
+                                    <option value="Activo">Activo</option>
+                                    <option value="Inactivo">Inactivo</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <label class="form-label">Observaciones</label>
+                                <textarea class="form-control" id="productoObservaciones" rows="2" placeholder="Opcional..."></textarea>
                             </div>
                         </div>
                     </form>
