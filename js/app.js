@@ -1252,20 +1252,46 @@ const App = {
             if (carteraItem) saldo = parseFloat(carteraItem.saldo);
         }
 
-        const refNum = sale.numero || sale.id.substr(-6).toUpperCase();
+        const refNum = sale.numero || sale.id.slice(-6).toUpperCase();
         const printWindow = window.open('', '_blank');
+        
+        let subtotalAccum = 0;
+        let discountAccum = 0;
+        let taxAccum = 0;
+        let totalAccum = 0;
+        
+        details.forEach(d => {
+            const qty = parseInt(d.cantidad) || 0;
+            const price = parseFloat(d.precio_unitario) || 0;
+            const descPercent = parseFloat(d.descuento) || 0;
+            
+            const rawSubtotal = qty * price;
+            const discountAmt = rawSubtotal * (descPercent / 100);
+            const netSubtotal = rawSubtotal - discountAmt;
+            const taxRate = d.impuesto === '19%' ? 0.19 : 0.00;
+            const taxAmt = netSubtotal * taxRate;
+            
+            subtotalAccum += rawSubtotal;
+            discountAccum += discountAmt;
+            taxAccum += taxAmt;
+            totalAccum += (netSubtotal + taxAmt);
+        });
+
         const html = `<!DOCTYPE html><html lang="es">
         <head><meta charset="UTF-8"><title>Factura de Venta #${refNum}</title>
         <style>${this._getPrintStyles()}</style></head>
         <body><div class="doc-wrapper">
-            <div class="doc-header">
-                <div>
-                    <div class="company-name">MAS Accesorios</div>
-                    <div class="company-sub">Sistema de Facturación</div>
+            <div class="doc-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #0d9488; padding-bottom: 15px; margin-bottom: 25px;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <img src="LogoMas.png" alt="Logo" style="height: 50px; object-fit: contain;">
+                    <div>
+                        <div class="company-name" style="font-size: 22px; font-weight: 700; color: #1a1a2e; font-family: 'Inter', sans-serif;">Accesorios .</div>
+                        <div class="company-sub" style="color: #666; font-size: 11px;">Sistema de Facturación</div>
+                    </div>
                 </div>
-                <div class="doc-title">
-                    <h1>FACTURA DE VENTA</h1>
-                    <div class="ref"># ${refNum}</div>
+                <div class="doc-title" style="text-align: right;">
+                    <h1 style="font-size: 22px; font-weight: 700; color: #1a1a2e; margin: 0;">FACTURA DE VENTA</h1>
+                    <div class="ref" style="color: #0d9488; font-size: 15px; font-weight: 600; margin-top: 4px;">No. ${refNum}</div>
                 </div>
             </div>
             <div class="info-grid">
@@ -1282,30 +1308,62 @@ const App = {
                     <p><strong>Tipo:</strong> ${sale.tipo_venta ? sale.tipo_venta.toUpperCase() : '-'}</p>
                     <p><strong>Estado:</strong> <span class="estado-badge ${sale.estado}">${sale.estado || 'OK'}</span></p>
                     ${seller ? `<p><strong>Vendedor:</strong> ${seller.nombre}</p>` : ''}
+                    ${sale.observacion ? `<p><strong>Notas:</strong> ${sale.observacion}</p>` : ''}
                 </div>
             </div>
-            <table>
-                <thead><tr><th>Ref.</th><th>Descripción</th><th style="text-align:center">Cant.</th><th style="text-align:right">P. Unitario</th><th style="text-align:right">Subtotal</th></tr></thead>
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+                <thead>
+                    <tr style="background: #0d9488; color: white;">
+                        <th style="padding: 10px 12px; font-size: 11px; text-align: center; width: 50px;">Línea</th>
+                        <th style="padding: 10px 12px; font-size: 11px;">Producto o Servicio</th>
+                        <th style="padding: 10px 12px; font-size: 11px; text-align: center; width: 80px;">Cant.</th>
+                        <th style="padding: 10px 12px; font-size: 11px; text-align: right; width: 110px;">Precio Unit.</th>
+                        <th style="padding: 10px 12px; font-size: 11px; text-align: center; width: 80px;">Desc. %</th>
+                        <th style="padding: 10px 12px; font-size: 11px; text-align: center; width: 90px;">IVA</th>
+                        <th style="padding: 10px 12px; font-size: 11px; text-align: right; width: 130px;">Subtotal</th>
+                    </tr>
+                </thead>
                 <tbody>
-                    ${details.map(d => {
+                    ${details.map((d, index) => {
                         const p = DB.getProduct(d.producto_id);
+                        const qty = parseInt(d.cantidad) || 0;
+                        const price = parseFloat(d.precio_unitario) || 0;
+                        const descPercent = parseFloat(d.descuento) || 0;
+                        
+                        const rawSubtotal = qty * price;
+                        const discountAmt = rawSubtotal * (descPercent / 100);
+                        const netSubtotal = rawSubtotal - discountAmt;
+                        const taxRate = d.impuesto === '19%' ? 0.19 : 0.00;
+                        const taxAmt = netSubtotal * taxRate;
+                        
+                        const subtotalVal = netSubtotal + taxAmt;
+                        
                         return `<tr>
-                            <td style="font-family:monospace;font-size:12px;color:#555;white-space:nowrap">${p ? p.codigo : '-'}</td>
-                            <td>${p ? p.nombre : 'Producto N/A'}${d.descripcion ? `<br><small style="color:#666">${d.descripcion}</small>` : ''}</td>
-                            <td style="text-align:center">${d.cantidad}</td>
-                            <td style="text-align:right">${fmt(d.precio_unitario)}</td>
-                            <td style="text-align:right">${fmt(d.subtotal)}</td>
+                            <td style="padding: 9px 12px; text-align: center; color: #666; border-bottom: 1px solid #e9ecef;">${index + 1}</td>
+                            <td style="padding: 9px 12px; border-bottom: 1px solid #e9ecef;">
+                                <strong>${p ? p.nombre : 'Producto N/A'}</strong>
+                                ${p ? `<br><small style="color: #666">SKU: ${p.codigo}</small>` : ''}
+                                ${d.descripcion ? `<br><small style="color: #555; font-style: italic;">${d.descripcion}</small>` : ''}
+                            </td>
+                            <td style="padding: 9px 12px; text-align: center; border-bottom: 1px solid #e9ecef;">${d.cantidad}</td>
+                            <td style="padding: 9px 12px; text-align: right; border-bottom: 1px solid #e9ecef;">${fmt(price)}</td>
+                            <td style="padding: 9px 12px; text-align: center; border-bottom: 1px solid #e9ecef;">${descPercent > 0 ? `${descPercent}%` : '-'}</td>
+                            <td style="padding: 9px 12px; text-align: center; border-bottom: 1px solid #e9ecef;">${d.impuesto || 'Ninguno'}</td>
+                            <td style="padding: 9px 12px; text-align: right; border-bottom: 1px solid #e9ecef;">${fmt(subtotalVal)}</td>
                         </tr>`;
                     }).join('')}
                 </tbody>
             </table>
-            <div class="totals-section">
-                <div class="totals-box">
+            <div class="totals-section" style="display: flex; justify-content: flex-end; margin-top: 10px;">
+                <div class="totals-box" style="width: 300px;">
+                    <div class="totals-row" style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #e9ecef;"><span>Subtotal:</span><span>${fmt(subtotalAccum)}</span></div>
+                    <div class="totals-row" style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #e9ecef;"><span>Descuento:</span><span style="color: #dc3545; font-weight: 500;">-${fmt(discountAccum)}</span></div>
+                    <div class="totals-row" style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #e9ecef;"><span>Impuestos (IVA 19%):</span><span>${fmt(taxAccum)}</span></div>
+                    <div class="totals-row" style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #e9ecef;"><span>Total Venta:</span><span>${fmt(totalAccum)}</span></div>
                     ${sale.tipo_venta === 'credito' ? `
-                    <div class="totals-row"><span>Total:</span><span>${fmt(sale.total)}</span></div>
-                    <div class="totals-row"><span>Abonado:</span><span>${fmt(sale.total - saldo)}</span></div>
-                    <div class="totals-row grand"><span>Saldo:</span><span>${fmt(saldo)}</span></div>
-                    ` : `<div class="totals-row grand"><span>TOTAL:</span><span>${fmt(sale.total)}</span></div>`}
+                    <div class="totals-row" style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #e9ecef;"><span>Abonado:</span><span>${fmt(totalAccum - saldo)}</span></div>
+                    <div class="totals-row grand" style="display: flex; justify-content: space-between; padding-top: 10px; margin-top: 5px; font-size: 16px; font-weight: 700; color: #0d9488; border-top: 2px solid #0d9488;"><span>SALDO RESTANTE:</span><span>${fmt(saldo)}</span></div>
+                    ` : `<div class="totals-row grand" style="display: flex; justify-content: space-between; padding-top: 10px; margin-top: 5px; font-size: 16px; font-weight: 700; color: #0d9488; border-top: 2px solid #0d9488;"><span>TOTAL PAGADO:</span><span>${fmt(totalAccum)}</span></div>`}
                 </div>
             </div>
             <div class="footer-note">Documento generado electrónicamente • ${new Date().toLocaleDateString('es-CO')}</div>
@@ -1851,21 +1909,47 @@ const App = {
         const details = DB.getCotizacionDetails(id);
         const seller = c.vendedor_id ? DB.getSeller(c.vendedor_id) : null;
         const fmt = (n) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n);
-        const refNum = c.numero || c.id.substr(-6).toUpperCase();
+        const refNum = c.numero || c.id.slice(-6).toUpperCase();
 
         const printWindow = window.open('', '_blank');
+        
+        let subtotalAccum = 0;
+        let discountAccum = 0;
+        let taxAccum = 0;
+        let totalAccum = 0;
+        
+        details.forEach(d => {
+            const qty = parseInt(d.cantidad) || 0;
+            const price = parseFloat(d.precio_unitario) || 0;
+            const descPercent = parseFloat(d.descuento) || 0;
+            
+            const rawSubtotal = qty * price;
+            const discountAmt = rawSubtotal * (descPercent / 100);
+            const netSubtotal = rawSubtotal - discountAmt;
+            const taxRate = d.impuesto === '19%' ? 0.19 : 0.00;
+            const taxAmt = netSubtotal * taxRate;
+            
+            subtotalAccum += rawSubtotal;
+            discountAccum += discountAmt;
+            taxAccum += taxAmt;
+            totalAccum += (netSubtotal + taxAmt);
+        });
+
         const html = `<!DOCTYPE html><html lang="es">
         <head><meta charset="UTF-8"><title>Cotización #${refNum}</title>
         <style>${this._getPrintStyles()}</style></head>
         <body><div class="doc-wrapper">
-            <div class="doc-header">
-                <div>
-                    <div class="company-name">MAS Accesorios</div>
-                    <div class="company-sub">Sistema de Cotizaciones</div>
+            <div class="doc-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #0d9488; padding-bottom: 15px; margin-bottom: 25px;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <img src="LogoMas.png" alt="Logo" style="height: 50px; object-fit: contain;">
+                    <div>
+                        <div class="company-name" style="font-size: 22px; font-weight: 700; color: #1a1a2e; font-family: 'Inter', sans-serif;">Accesorios .</div>
+                        <div class="company-sub" style="color: #666; font-size: 11px;">Sistema de Cotizaciones</div>
+                    </div>
                 </div>
-                <div class="doc-title">
-                    <h1>COTIZACIÓN</h1>
-                    <div class="ref"># ${refNum}</div>
+                <div class="doc-title" style="text-align: right;">
+                    <h1 style="font-size: 22px; font-weight: 700; color: #1a1a2e; margin: 0;">COTIZACIÓN</h1>
+                    <div class="ref" style="color: #0d9488; font-size: 15px; font-weight: 600; margin-top: 4px;">No. ${refNum}</div>
                 </div>
             </div>
             <div class="info-grid">
@@ -1885,24 +1969,55 @@ const App = {
                     ${c.observacion ? `<p><strong>Observaciones:</strong> ${c.observacion}</p>` : ''}
                 </div>
             </div>
-            <table>
-                <thead><tr><th>Ref.</th><th>Descripción</th><th style="text-align:center">Cant.</th><th style="text-align:right">Precio Unit.</th><th style="text-align:right">Subtotal</th></tr></thead>
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+                <thead>
+                    <tr style="background: #0d9488; color: white;">
+                        <th style="padding: 10px 12px; font-size: 11px; text-align: center; width: 50px;">Línea</th>
+                        <th style="padding: 10px 12px; font-size: 11px;">Producto o Servicio</th>
+                        <th style="padding: 10px 12px; font-size: 11px; text-align: center; width: 80px;">Cant.</th>
+                        <th style="padding: 10px 12px; font-size: 11px; text-align: right; width: 110px;">Precio Unit.</th>
+                        <th style="padding: 10px 12px; font-size: 11px; text-align: center; width: 80px;">Desc. %</th>
+                        <th style="padding: 10px 12px; font-size: 11px; text-align: center; width: 90px;">IVA</th>
+                        <th style="padding: 10px 12px; font-size: 11px; text-align: right; width: 130px;">Subtotal</th>
+                    </tr>
+                </thead>
                 <tbody>
-                    ${details.map(d => {
+                    ${details.map((d, index) => {
                         const p = DB.getProduct(d.producto_id);
+                        const qty = parseInt(d.cantidad) || 0;
+                        const price = parseFloat(d.precio_unitario) || 0;
+                        const descPercent = parseFloat(d.descuento) || 0;
+                        
+                        const rawSubtotal = qty * price;
+                        const discountAmt = rawSubtotal * (descPercent / 100);
+                        const netSubtotal = rawSubtotal - discountAmt;
+                        const taxRate = d.impuesto === '19%' ? 0.19 : 0.00;
+                        const taxAmt = netSubtotal * taxRate;
+                        
+                        const subtotalVal = netSubtotal + taxAmt;
+                        
                         return `<tr>
-                            <td style="font-family:monospace;font-size:12px;color:#555;white-space:nowrap">${p ? p.codigo : '-'}</td>
-                            <td>${p ? p.nombre : 'Producto N/A'}${d.descripcion ? `<br><small style="color:#666">${d.descripcion}</small>` : ''}</td>
-                            <td style="text-align:center">${d.cantidad}</td>
-                            <td style="text-align:right">${fmt(d.precio_unitario)}</td>
-                            <td style="text-align:right">${fmt(parseFloat(d.precio_unitario) * parseInt(d.cantidad))}</td>
+                            <td style="padding: 9px 12px; text-align: center; color: #666; border-bottom: 1px solid #e9ecef;">${index + 1}</td>
+                            <td style="padding: 9px 12px; border-bottom: 1px solid #e9ecef;">
+                                <strong>${p ? p.nombre : 'Producto N/A'}</strong>
+                                ${p ? `<br><small style="color: #666">SKU: ${p.codigo}</small>` : ''}
+                                ${d.descripcion ? `<br><small style="color: #555; font-style: italic;">${d.descripcion}</small>` : ''}
+                            </td>
+                            <td style="padding: 9px 12px; text-align: center; border-bottom: 1px solid #e9ecef;">${d.cantidad}</td>
+                            <td style="padding: 9px 12px; text-align: right; border-bottom: 1px solid #e9ecef;">${fmt(price)}</td>
+                            <td style="padding: 9px 12px; text-align: center; border-bottom: 1px solid #e9ecef;">${descPercent > 0 ? `${descPercent}%` : '-'}</td>
+                            <td style="padding: 9px 12px; text-align: center; border-bottom: 1px solid #e9ecef;">${d.impuesto || 'Ninguno'}</td>
+                            <td style="padding: 9px 12px; text-align: right; border-bottom: 1px solid #e9ecef;">${fmt(subtotalVal)}</td>
                         </tr>`;
                     }).join('')}
                 </tbody>
             </table>
-            <div class="totals-section">
-                <div class="totals-box">
-                    <div class="totals-row grand"><span>TOTAL:</span><span>${fmt(c.total)}</span></div>
+            <div class="totals-section" style="display: flex; justify-content: flex-end; margin-top: 10px;">
+                <div class="totals-box" style="width: 300px;">
+                    <div class="totals-row" style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #e9ecef;"><span>Subtotal:</span><span>${fmt(subtotalAccum)}</span></div>
+                    <div class="totals-row" style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #e9ecef;"><span>Descuento:</span><span style="color: #dc3545; font-weight: 500;">-${fmt(discountAccum)}</span></div>
+                    <div class="totals-row" style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #e9ecef;"><span>Impuestos (IVA 19%):</span><span>${fmt(taxAccum)}</span></div>
+                    <div class="totals-row grand" style="display: flex; justify-content: space-between; padding-top: 10px; margin-top: 5px; font-size: 16px; font-weight: 700; color: #0d9488; border-top: 2px solid #0d9488;"><span>TOTAL COTIZACIÓN:</span><span>${fmt(totalAccum)}</span></div>
                 </div>
             </div>
             <div class="footer-note">Esta cotización es válida hasta ${c.validez || '-'} • Documento generado electrónicamente</div>
