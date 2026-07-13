@@ -292,77 +292,116 @@
 
     <!-- Sale Modal -->
     <div class="modal fade" id="ventaModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
+        <div class="modal-dialog modal-xl">
             <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Nueva Venta</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <div class="modal-header d-flex align-items-center justify-content-between py-2 px-4 border-bottom-0">
+                    <div class="d-flex align-items-center gap-2">
+                        <img src="LogoMas.png" alt="Logo" style="height: 45px; object-fit: contain;">
+                        <span class="fw-bold fs-5 text-dark" style="font-family: 'Outfit', sans-serif;">Accesorios .</span>
+                    </div>
+                    <div class="text-end" style="min-width: 150px;">
+                        <select class="form-select form-select-sm fw-bold border-0 bg-light text-end" id="ventaDocumentType" style="font-size: 15px; cursor: default; pointer-events: none;">
+                            <option value="Factura" selected>Factura</option>
+                        </select>
+                        <div class="mt-1 fw-bold text-muted" id="ventaNumeroHeader" style="font-size: 14px; padding-right: 8px;">No. ----</div>
+                    </div>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body pt-0">
                     <form id="ventaForm">
                         <input type="hidden" id="ventaId">
-                        <div class="row mb-3">
-                            <div class="col-md-4">
-                                <label class="form-label">Contacto *</label>
-                                <div id="ventaClienteContainer"></div>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label">Tipo Venta *</label>
-                                <select class="form-select" id="ventaTipo" required>
-                                    <option value="contado">Contado</option>
-                                    <option value="credito">Crédito</option>
-                                </select>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label">Banco (Contado)</label>
-                                <div id="ventaBancoContainer"></div>
-                            </div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label class="form-label">Vendedor</label>
-                                <div id="ventaVendedorContainer"></div>
-                            </div>
-                        </div>
-                        <hr>
-                        <h6 class="mb-3">Detalle de Productos</h6>
-                        <div class="row mb-2">
-                            <div class="col-md-9" id="ventaProductoContainer"></div>
-                            <div class="col-md-3">
-                                <input type="text" class="form-control number-format" id="ventaCantidad"
-                                    placeholder="Cant." inputmode="numeric" value="1">
-                            </div>
-                            <div class="col-md-3">
-                                <button type="button" class="btn btn-outline-primary w-100" id="addProductoVenta">
-                                    <i class="bi bi-plus-lg"></i> Agregar
-                                </button>
+                        
+                        <div class="card border-0 bg-light mb-3">
+                            <div class="card-body p-3">
+                                <h6 class="fw-bold text-primary mb-3" style="font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">Información de la factura</h6>
+                                <div class="row g-2">
+                                    <div class="col-md-3">
+                                        <label class="form-label mb-1" style="font-size: 11px; font-weight: 600;">Cliente *</label>
+                                        <div id="ventaClienteContainer"></div>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label class="form-label mb-1" style="font-size: 11px; font-weight: 600;">Fecha *</label>
+                                        <input type="date" class="form-control form-control-sm" id="ventaFecha" required>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label class="form-label mb-1" style="font-size: 11px; font-weight: 600;">Tipo Venta *</label>
+                                        <select class="form-select form-select-sm" id="ventaTipo" required>
+                                            <option value="contado">Contado</option>
+                                            <option value="credito">Crédito</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label mb-1" style="font-size: 11px; font-weight: 600;">Banco (Contado)</label>
+                                        <div id="ventaBancoContainer"></div>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label class="form-label mb-1" style="font-size: 11px; font-weight: 600;">Asesor / Vendedor</label>
+                                        <div id="ventaVendedorContainer"></div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        <div class="table-responsive">
-                            <table class="table table-sm" id="ventaDetalleTable">
-                                <thead>
-                                    <tr>
-                                        <th>Producto</th>
-                                        <th>Descripción / Modelo</th>
-                                        <th>Cantidad</th>
-                                        <th>P. Unitario</th>
-                                        <th>Subtotal</th>
-                                        <th></th>
-                                    </tr>
-                                </thead>
-                                <tbody id="ventaDetalleBody"></tbody>
-                                <tfoot>
-                                    <tr class="fw-bold">
-                                        <td colspan="3" class="text-end">TOTAL:</td>
-                                        <td id="ventaTotal">$0.00</td>
-                                        <td></td>
-                                    </tr>
-                                </tfoot>
-                            </table>
+
+                        <div class="section-card border-0 shadow-none p-0 mb-3">
+                            <div class="section-header border-bottom-0 pb-2 px-0">
+                                <h6 class="fw-bold text-dark mb-0" style="font-size: 14px;"><i class="bi bi-box-seam me-1 text-primary"></i> Productos y servicios</h6>
+                            </div>
+                            
+                            <div class="table-responsive">
+                                <table class="table table-sm align-middle mb-2" id="ventaDetalleTable">
+                                    <thead>
+                                        <tr class="text-uppercase text-muted" style="font-size: 10px; border-bottom: 2px solid var(--gray-200);">
+                                            <th class="text-center" style="width: 40px;"><input type="checkbox" class="form-check-input" id="selectAllVentaRows"></th>
+                                            <th>Producto o servicios</th>
+                                            <th style="width: 90px;">Cantidad</th>
+                                            <th style="width: 140px;">Precio</th>
+                                            <th style="width: 100px;">Descuento</th>
+                                            <th style="width: 120px;">Impuesto</th>
+                                            <th class="text-end" style="width: 140px;">Subtotal</th>
+                                            <th style="width: 40px;"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="ventaDetalleBody">
+                                        <!-- Dynamic inline rows will be appended here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <button type="button" class="btn btn-link text-decoration-none fw-bold p-0 mt-1 d-flex align-items-center gap-1" id="addVentaRowBtn" style="color: #0d9488; font-size: 13px;">
+                                <i class="bi bi-plus-circle-fill"></i> Agregar línea
+                            </button>
+                        </div>
+
+                        <!-- Notes and Totals Section -->
+                        <div class="row mt-4">
+                            <div class="col-md-7">
+                                <label class="form-label fw-bold text-muted" style="font-size: 12px;">Notas</label>
+                                <textarea class="form-control" id="ventaObservacion" rows="4" placeholder="Observaciones o notas adicionales de la factura..."></textarea>
+                            </div>
+                            <div class="col-md-5 d-flex flex-column align-items-end justify-content-start pr-3">
+                                <div class="w-75" style="font-size: 14px;">
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span class="text-muted">Subtotal</span>
+                                        <span class="fw-bold" id="ventaSubtotalVal">$0,00</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span class="text-muted">Descuento</span>
+                                        <span class="text-danger fw-bold" id="ventaDescuentoVal">$0,00</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span class="text-muted">Impuestos</span>
+                                        <span class="fw-bold" id="ventaImpuestosVal">$0,00</span>
+                                    </div>
+                                    <hr class="my-2">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span class="fs-6 fw-bold text-dark">Total</span>
+                                        <span class="fs-5 fw-bold text-primary" id="ventaTotal">$0,00</span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </form>
                 </div>
-                <div class="modal-footer">
+                <div class="modal-footer border-top-0">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                     <button type="button" class="btn btn-primary" id="saveVentaBtn">Registrar Venta</button>
                 </div>
@@ -372,88 +411,109 @@
 
     <!-- Cotizacion Modal -->
     <div class="modal fade" id="cotizacionModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
+        <div class="modal-dialog modal-xl">
             <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="cotizacionModalTitle">Nueva Cotización</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <div class="modal-header d-flex align-items-center justify-content-between py-2 px-4 border-bottom-0">
+                    <div class="d-flex align-items-center gap-2">
+                        <img src="LogoMas.png" alt="Logo" style="height: 45px; object-fit: contain;">
+                        <span class="fw-bold fs-5 text-dark" style="font-family: 'Outfit', sans-serif;">Accesorios .</span>
+                    </div>
+                    <div class="text-end" style="min-width: 150px;">
+                        <select class="form-select form-select-sm fw-bold border-0 bg-light text-end" id="cotizacionDocumentType" style="font-size: 15px; cursor: default; pointer-events: none;">
+                            <option value="Cotización" selected>Cotización</option>
+                        </select>
+                        <div class="mt-1 fw-bold text-muted" id="cotizacionNumeroHeader" style="font-size: 14px; padding-right: 8px;">No. ----</div>
+                    </div>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body pt-0">
                     <form id="cotizacionForm">
                         <input type="hidden" id="cotizacionId">
-                        <div class="row mb-3">
-                            <div class="col-md-4">
-                                <label class="form-label">Contacto *</label>
-                                <div id="cotizacionClienteContainer"></div>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label">Fecha *</label>
-                                <input type="date" class="form-control" id="cotizacionFecha" required>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label">Validez hasta *</label>
-                                <input type="date" class="form-control" id="cotizacionValidez" required>
-                            </div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-md-4">
-                                <label class="form-label">Vendedor</label>
-                                <div id="cotizacionVendedorContainer"></div>
-                            </div>
-                            <div class="col-md-8">
-                                <label class="form-label">Observación</label>
-                                <input type="text" class="form-control" id="cotizacionObservacion"
-                                    placeholder="Opcional">
-                            </div>
-                        </div>
-                        <hr>
-                        <h6 class="mb-3">Detalle de Productos</h6>
-                        <div class="row mb-2">
-                            <div class="col-md-7" id="cotizacionProductoContainer"></div>
-                            <div class="col-md-2">
-                                <label class="form-label" style="font-size:11px">Precio Unit. *</label>
-                                <input type="text" class="form-control form-control-sm number-format"
-                                    id="cotizacionPrecioManual" placeholder="$0" inputmode="numeric">
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label" style="font-size:11px">Cant.</label>
-                                <input type="text" class="form-control form-control-sm number-format"
-                                    id="cotizacionCantidad" placeholder="Cant." inputmode="numeric" value="1">
-                            </div>
-                        </div>
-                        <div class="row mb-2">
-                            <div class="col-md-12">
-                                <button type="button" class="btn btn-outline-primary w-100" id="addProductoCotizacion">
-                                    <i class="bi bi-plus-lg"></i> Agregar Producto
-                                </button>
+                        
+                        <div class="card border-0 bg-light mb-3">
+                            <div class="card-body p-3">
+                                <h6 class="fw-bold text-primary mb-3" style="font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">Información de la cotización</h6>
+                                <div class="row g-2">
+                                    <div class="col-md-4">
+                                        <label class="form-label mb-1" style="font-size: 11px; font-weight: 600;">Cliente *</label>
+                                        <div id="cotizacionClienteContainer"></div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label mb-1" style="font-size: 11px; font-weight: 600;">Fecha de creación *</label>
+                                        <input type="date" class="form-control form-control-sm" id="cotizacionFecha" required>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label mb-1" style="font-size: 11px; font-weight: 600;">Fecha de vencimiento *</label>
+                                        <input type="date" class="form-control form-control-sm" id="cotizacionValidez" required>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label class="form-label mb-1" style="font-size: 11px; font-weight: 600;">Asesor / Vendedor</label>
+                                        <div id="cotizacionVendedorContainer"></div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
-                        <div class="table-responsive mt-3">
-                            <table class="table table-sm" id="cotizacionDetalleTable">
-                                <thead>
-                                    <tr>
-                                        <th>Producto</th>
-                                        <th>Descripción / Modelo</th>
-                                        <th>Cantidad</th>
-                                        <th>P. Unitario</th>
-                                        <th>Subtotal</th>
-                                        <th></th>
-                                    </tr>
-                                </thead>
-                                <tbody id="cotizacionDetalleBody"></tbody>
-                                <tfoot>
-                                    <tr class="fw-bold">
-                                        <td colspan="3" class="text-end">TOTAL:</td>
-                                        <td id="cotizacionTotal">$0.00</td>
-                                        <td></td>
-                                    </tr>
-                                </tfoot>
-                            </table>
+                        <div class="section-card border-0 shadow-none p-0 mb-3">
+                            <div class="section-header border-bottom-0 pb-2 px-0">
+                                <h6 class="fw-bold text-dark mb-0" style="font-size: 14px;"><i class="bi bi-box-seam me-1 text-primary"></i> Productos y servicios</h6>
+                            </div>
+                            
+                            <div class="table-responsive">
+                                <table class="table table-sm align-middle mb-2" id="cotizacionDetalleTable">
+                                    <thead>
+                                        <tr class="text-uppercase text-muted" style="font-size: 10px; border-bottom: 2px solid var(--gray-200);">
+                                            <th class="text-center" style="width: 40px;"><input type="checkbox" class="form-check-input" id="selectAllCotizacionRows"></th>
+                                            <th>Producto o servicios</th>
+                                            <th style="width: 90px;">Cantidad</th>
+                                            <th style="width: 140px;">Precio</th>
+                                            <th style="width: 100px;">Descuento</th>
+                                            <th style="width: 120px;">Impuesto</th>
+                                            <th class="text-end" style="width: 140px;">Subtotal</th>
+                                            <th style="width: 40px;"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="cotizacionDetalleBody">
+                                        <!-- Dynamic inline rows will be appended here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <button type="button" class="btn btn-link text-decoration-none fw-bold p-0 mt-1 d-flex align-items-center gap-1" id="addCotizacionRowBtn" style="color: #0d9488; font-size: 13px;">
+                                <i class="bi bi-plus-circle-fill"></i> Agregar línea
+                            </button>
+                        </div>
+
+                        <!-- Notes and Totals Section -->
+                        <div class="row mt-4">
+                            <div class="col-md-7">
+                                <label class="form-label fw-bold text-muted" style="font-size: 12px;">Notas</label>
+                                <textarea class="form-control" id="cotizacionObservacion" rows="4" placeholder="Observaciones o notas adicionales de la cotización..."></textarea>
+                            </div>
+                            <div class="col-md-5 d-flex flex-column align-items-end justify-content-start pr-3">
+                                <div class="w-75" style="font-size: 14px;">
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span class="text-muted">Subtotal</span>
+                                        <span class="fw-bold" id="cotizacionSubtotalVal">$0,00</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span class="text-muted">Descuento</span>
+                                        <span class="text-danger fw-bold" id="cotizacionDescuentoVal">$0,00</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span class="text-muted">Impuestos</span>
+                                        <span class="fw-bold" id="cotizacionImpuestosVal">$0,00</span>
+                                    </div>
+                                    <hr class="my-2">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span class="fs-6 fw-bold text-dark">Total</span>
+                                        <span class="fs-5 fw-bold text-primary" id="cotizacionTotal">$0,00</span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </form>
                 </div>
-                <div class="modal-footer justify-content-between">
+                <div class="modal-footer justify-content-between border-top-0">
                     <div>
                         <button type="button" class="btn btn-outline-secondary d-none" id="printCotizacionBtn">
                             <i class="bi bi-printer me-1"></i> Imprimir PDF
@@ -1137,6 +1197,28 @@
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
                     <button type="button" class="btn btn-primary" id="btnEditProductoFromDetail"><i
                             class="bi bi-pencil me-1"></i>Editar Producto</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Row Description Modal -->
+    <div class="modal fade" id="rowDescriptionModal" tabindex="-1" style="z-index: 2050;">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Descripción Detallada del Producto</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Escriba una especificación para este ítem (modelo, color, número de serie, etc.):</label>
+                        <textarea class="form-control" id="rowDescriptionText" rows="4" placeholder="Ej: Color azul, garantía de 1 año..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="saveRowDescriptionBtn">Aceptar</button>
                 </div>
             </div>
         </div>

@@ -469,7 +469,11 @@ const DB = {
         let total = 0;
         details.forEach(d => {
             if (!d.producto_id || d.cantidad <= 0) throw new Error('Detalle de producto inválido.');
-            d.subtotal = parseFloat(d.precio_unitario) * parseInt(d.cantidad);
+            const desc = d.descuento || 0;
+            const taxSelect = d.impuesto || 'Ninguno';
+            const netSubtotal = parseFloat(d.precio_unitario) * parseInt(d.cantidad) * (1 - desc / 100);
+            const taxRate = taxSelect === '19%' ? 0.19 : 0.00;
+            d.subtotal = netSubtotal + (netSubtotal * taxRate);
             total += d.subtotal;
         });
 
@@ -533,10 +537,11 @@ const DB = {
 
         // 3. Prepare Sale Data
         const saleData = {
+            numero: cotizacion.numero,
             cliente_id: cotizacion.cliente_id,
             tipo_venta: tipoVenta || 'contado',
             fecha: new Date().toISOString(),
-            observacion: `Convertida desde Cotización #${cotizacionId.slice(-6).toUpperCase()}`,
+            observacion: `Convertida desde Cotización #${cotizacion.numero || cotizacionId.slice(-6).toUpperCase()}`,
             cotizacion_id: cotizacionId,
             vendedor_id: cotizacion.vendedor_id || null
         };
@@ -546,6 +551,8 @@ const DB = {
             producto_id: d.producto_id,
             cantidad: d.cantidad,
             precio_unitario: d.precio_unitario,
+            descuento: d.descuento || 0,
+            impuesto: d.impuesto || 'Ninguno',
             descripcion: d.descripcion || ''
         }));
 
@@ -614,7 +621,11 @@ const DB = {
             const fifoResult = this.consumeFIFO(d.producto_id, d.cantidad);
             d.costo_unitario = fifoResult.costoPromedio;
             d.fifo_details = fifoResult.details;
-            d.subtotal = parseFloat(d.precio_unitario) * parseInt(d.cantidad);
+            const desc = d.descuento || 0;
+            const taxSelect = d.impuesto || 'Ninguno';
+            const netSubtotal = parseFloat(d.precio_unitario) * parseInt(d.cantidad) * (1 - desc / 100);
+            const taxRate = taxSelect === '19%' ? 0.19 : 0.00;
+            d.subtotal = netSubtotal + (netSubtotal * taxRate);
             total += d.subtotal;
             totalCosto += fifoResult.totalCosto;
         });
@@ -624,7 +635,7 @@ const DB = {
         const sale = {
             ...existingSale,
             ...saleData,
-            numero: existingSale ? existingSale.numero : this.getNextNumber('venta'),
+            numero: existingSale ? existingSale.numero : (saleData.numero || this.getNextNumber('venta')),
             estado: estadoFactura,
             total: total,
             total_costo: totalCosto,

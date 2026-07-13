@@ -73,9 +73,14 @@ const App = {
         document.getElementById('saveUsuarioBtn').addEventListener('click', () => this.saveUsuario());
         document.getElementById('saveVendedorBtn').addEventListener('click', () => this.saveVendedor());
         document.getElementById('saveAjusteBtn').addEventListener('click', () => this.saveAjuste());
-        document.getElementById('addProductoVenta').addEventListener('click', () => this.addProductToSale());
+        
+        const addVentaRowBtn = document.getElementById('addVentaRowBtn');
+        if (addVentaRowBtn) addVentaRowBtn.addEventListener('click', () => this.addVentaRow());
+        
+        const addCotizacionRowBtn = document.getElementById('addCotizacionRowBtn');
+        if (addCotizacionRowBtn) addCotizacionRowBtn.addEventListener('click', () => this.addCotizacionRow());
+
         document.getElementById('addProductoCompra').addEventListener('click', () => this.addProductoCompra());
-        document.getElementById('addProductoCotizacion').addEventListener('click', () => this.addProductoCotizacion());
         document.getElementById('saveCompraBtn').addEventListener('click', () => this.saveCompra());
         document.getElementById('saveCotizacionBtn').addEventListener('click', () => this.saveCotizacion());
         document.getElementById('saveReciboCajaBtn').addEventListener('click', () => this.saveReciboCaja());
@@ -101,8 +106,11 @@ const App = {
 
         // Venta tipo change
         document.getElementById('ventaTipo').addEventListener('change', (e) => {
-            document.getElementById('ventaBanco').closest('.col-md-4').style.display =
-                e.target.value === 'contado' ? 'block' : 'none';
+            const container = document.getElementById('ventaBancoContainer');
+            if (container) {
+                container.closest('.col-md-3').style.display =
+                    e.target.value === 'contado' ? 'block' : 'none';
+            }
         });
 
         // Compra tipo change
@@ -970,25 +978,15 @@ const App = {
        VENTAS
        ================================================= */
     newVenta() {
-        this.ventaDetalle = [];
-        document.getElementById('ventaForm').reset();
         document.getElementById('ventaId').value = '';
-        document.getElementById('ventaDetalleBody').innerHTML = '';
-        document.getElementById('ventaTotal').textContent = '$0';
+        document.getElementById('ventaForm').reset();
+        document.getElementById('ventaNumeroHeader').textContent = 'No. ' + DB.getNextNumber('venta');
+        document.getElementById('ventaFecha').value = new Date().toISOString().split('T')[0];
 
-        // Populate and clear selectors
         this.selectors.ventaCliente.setData(DB.getClients()
             .filter(c => !c.tipo || c.tipo.toLowerCase() === 'cliente' || c.tipo.toLowerCase() === 'ambos')
             .map(c => ({ id: c.id, text: c.nombre })));
         this.selectors.ventaCliente.clear();
-
-        this.selectors.ventaProducto.setData(DB.getProducts().map(p => ({
-            id: p.id,
-            text: p.nombre,
-            reference: p.codigo,
-            stock: p.stock_actual
-        })));
-        this.selectors.ventaProducto.clear();
 
         this.selectors.ventaBanco.setData(DB.getBanks().map(b => ({ id: b.id, text: b.nombre })));
         this.selectors.ventaBanco.clear();
@@ -998,6 +996,11 @@ const App = {
 
         document.getElementById('ventaTipo').value = 'contado';
         document.getElementById('ventaBancoContainer').style.display = 'block';
+
+        // Clear body and add initial row
+        document.getElementById('ventaDetalleBody').innerHTML = '';
+        this.addVentaRow();
+
         new bootstrap.Modal(document.getElementById('ventaModal')).show();
     },
 
@@ -1010,16 +1013,11 @@ const App = {
             return;
         }
 
-        this.ventaDetalle = DB.getSaleDetails(id).map(d => {
-            const p = DB.getProduct(d.producto_id);
-            return {
-                ...d,
-                nombre: p ? p.nombre : 'Prod. Eliminado'
-            };
-        });
-
         document.getElementById('ventaId').value = v.id;
+        document.getElementById('ventaNumeroHeader').textContent = 'No. ' + (v.numero || v.id.slice(-6).toUpperCase());
+        document.getElementById('ventaFecha').value = v.fecha ? v.fecha.split('T')[0] : new Date().toISOString().split('T')[0];
         document.getElementById('ventaTipo').value = v.tipo_venta;
+        document.getElementById('ventaObservacion').value = v.observacion || '';
 
         this.selectors.ventaCliente.setData(DB.getClients()
             .filter(cli => !cli.tipo || ['cliente', 'ambos'].includes(cli.tipo.toLowerCase()) || cli.id === v.cliente_id)
@@ -1030,21 +1028,12 @@ const App = {
         if (v.vendedor_id) this.selectors.ventaVendedor.setValue(v.vendedor_id);
         else this.selectors.ventaVendedor.clear();
 
-        this.selectors.ventaProducto.setData(DB.getProducts().map(p => ({
-            id: p.id,
-            text: p.nombre,
-            reference: p.codigo,
-            stock: p.stock_actual
-        })));
-        this.selectors.ventaProducto.clear();
-
         this.selectors.ventaBanco.setData(DB.getBanks().map(b => ({ id: b.id, text: b.nombre })));
         
         const bancoContainer = document.getElementById('ventaBancoContainer');
         if (v.tipo_venta === 'contado') {
             bancoContainer.style.display = 'block';
-            // Determine bank if there is a recibo associated
-            const recibo = DB.getAll(DB.KEYS.RECIBOS_CAJA).find(r => r.observaciones && r.observaciones.includes(v.numero || v.id.substr(-6)));
+            const recibo = DB.getAll(DB.KEYS.RECIBOS_CAJA).find(r => (r.observacion || r.observaciones || '').includes(v.numero || v.id.slice(-6)));
             if (recibo) this.selectors.ventaBanco.setValue(recibo.banco_id);
             else this.selectors.ventaBanco.clear();
         } else {
@@ -1052,67 +1041,17 @@ const App = {
             this.selectors.ventaBanco.clear();
         }
 
-        this._renderVentaDetalle();
-        new bootstrap.Modal(document.getElementById('ventaModal')).show();
-    },
-
-    addProductToSale() {
-        const prodId = this.selectors.ventaProducto.getValue();
-        const cantidad = parseInt(document.getElementById('ventaCantidad').value);
-        if (!prodId || !cantidad || cantidad < 1) {
-            this.showToast('Seleccione un producto y cantidad válida', 'Error', 'danger');
-            return;
-        }
-
-        const product = DB.getProduct(prodId);
-        if (!product) return;
-
-        if (product.stock_actual < cantidad) {
-            this.showToast(`Stock insuficiente. Disponible: ${product.stock_actual}`, 'Error', 'danger');
-            return;
-        }
-
-        // Check if product already in list
-        const existing = this.ventaDetalle.find(d => d.producto_id === prodId);
-        if (existing) {
-            existing.cantidad += cantidad;
-            existing.subtotal = existing.cantidad * existing.precio_unitario;
-        } else {
-            this.ventaDetalle.push({
-                producto_id: prodId,
-                nombre: product.nombre,
-                cantidad: cantidad,
-                precio_unitario: parseFloat(product.precio_venta),
-                subtotal: cantidad * parseFloat(product.precio_venta)
-            });
-        }
-
-        this._renderVentaDetalle();
-    },
-
-    removeFromSale(index) {
-        this.ventaDetalle.splice(index, 1);
-        this._renderVentaDetalle();
-    },
-
-    _renderVentaDetalle() {
-        const fmt = (n) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n);
+        // Render detail rows
         const body = document.getElementById('ventaDetalleBody');
-        let total = 0;
+        body.innerHTML = '';
+        const details = DB.getSaleDetails(id);
+        if (details.length === 0) {
+            this.addVentaRow();
+        } else {
+            details.forEach(d => this.addVentaRow(d));
+        }
 
-        body.innerHTML = this.ventaDetalle.map((d, i) => {
-            total += d.subtotal;
-            return `<tr>
-                <td>${d.nombre}</td>
-                <td><input type="text" class="form-control form-control-sm" style="min-width:120px" placeholder="Modelo, color..." value="${d.descripcion || ''}" oninput="App.ventaDetalle[${i}].descripcion=this.value"></td>
-                <td>${d.cantidad}</td>
-                <td>${fmt(d.precio_unitario)}</td>
-                <td>${fmt(d.subtotal)}</td>
-                <td><button class="btn-action btn-delete" onclick="App.removeFromSale(${i})"><i class="bi bi-x-lg"></i></button></td>
-            </tr>`;
-        }).join('');
-
-        document.getElementById('ventaTotal').textContent = fmt(total);
+        new bootstrap.Modal(document.getElementById('ventaModal')).show();
     },
 
     saveVenta() {
@@ -1120,13 +1059,15 @@ const App = {
         const tipoVenta = document.getElementById('ventaTipo').value;
         const bancoId = this.selectors.ventaBanco.getValue();
         const vendedorId = this.selectors.ventaVendedor.getValue();
+        const fecha = document.getElementById('ventaFecha').value;
+        const observacion = document.getElementById('ventaObservacion').value.trim();
 
         if (!clienteId) {
             this.showToast('Seleccione un cliente', 'Error', 'danger');
             return;
         }
-        if (this.ventaDetalle.length === 0) {
-            this.showToast('Agregue al menos un producto', 'Error', 'danger');
+        if (!fecha) {
+            this.showToast('La fecha es obligatoria', 'Error', 'danger');
             return;
         }
         if (tipoVenta === 'contado' && !bancoId) {
@@ -1134,37 +1075,74 @@ const App = {
             return;
         }
 
-        // Validate stock for all items
-        for (const d of this.ventaDetalle) {
-            const product = DB.getProduct(d.producto_id);
-            if (product && product.stock_actual < d.cantidad) {
-                this.showToast(`Stock insuficiente para ${d.nombre}`, 'Error', 'danger');
+        const rows = document.querySelectorAll('#ventaDetalleBody tr.detalle-row');
+        if (rows.length === 0) {
+            this.showToast('Agregue al menos un producto', 'Error', 'danger');
+            return;
+        }
+
+        const details = [];
+        for (const row of rows) {
+            const selectContainer = row.querySelector('[id^="vta-row-product-container-"]');
+            const prodId = selectContainer ? selectContainer.dataset.productId : null;
+            if (!prodId) {
+                this.showToast('Seleccione un producto para todas las líneas', 'Error', 'danger');
                 return;
             }
+
+            const cantidad = parseInt(this.unformatNumber(row.querySelector('.row-cantidad').value)) || 0;
+            const precioUnitario = parseFloat(this.unformatNumber(row.querySelector('.row-precio').value)) || 0;
+            const descuento = parseFloat(this.unformatNumber(row.querySelector('.row-descuento').value)) || 0;
+            const impuesto = row.querySelector('.row-impuesto').value;
+            const descripcion = row.querySelector('.row-descripcion').value.trim();
+
+            if (cantidad <= 0) {
+                this.showToast('La cantidad debe ser mayor a 0', 'Error', 'danger');
+                return;
+            }
+
+            // Validate stock
+            const product = DB.getProduct(prodId);
+            if (product && product.stock_actual < cantidad) {
+                this.showToast(`Stock insuficiente para ${product.nombre}. Disponible: ${product.stock_actual}`, 'Error', 'danger');
+                return;
+            }
+
+            const netSubtotal = cantidad * precioUnitario * (1 - descuento / 100);
+            const taxRate = impuesto === '19%' ? 0.19 : 0.00;
+            const taxAmount = netSubtotal * taxRate;
+
+            details.push({
+                producto_id: prodId,
+                cantidad: cantidad,
+                precio_unitario: precioUnitario,
+                descuento: descuento,
+                impuesto: impuesto,
+                descripcion: descripcion,
+                subtotal: netSubtotal + taxAmount
+            });
         }
 
         const id = document.getElementById('ventaId')?.value || undefined;
-
         const saleData = {
             id: id,
             cliente_id: clienteId,
             tipo_venta: tipoVenta,
             banco_id: bancoId || null,
             vendedor_id: vendedorId,
+            fecha: fecha,
+            observacion: observacion,
             usuario_id: Auth.currentUser ? Auth.currentUser.id : null
         };
 
-        const details = this.ventaDetalle.map(d => ({
-            producto_id: d.producto_id,
-            cantidad: d.cantidad,
-            precio_unitario: d.precio_unitario,
-            descripcion: d.descripcion || ''
-        }));
-
-        DB.registerSale(saleData, details, bancoId);
-        bootstrap.Modal.getInstance(document.getElementById('ventaModal')).hide();
-        this.showToast('Venta registrada correctamente');
-        this.navigateTo('ventas');
+        try {
+            DB.registerSale(saleData, details, bancoId);
+            bootstrap.Modal.getInstance(document.getElementById('ventaModal')).hide();
+            this.showToast('Venta registrada correctamente');
+            this.navigateTo('ventas');
+        } catch(error) {
+            this.showToast(error.message, 'Error', 'danger');
+        }
     },
 
     viewVenta(id) {
@@ -1659,13 +1637,10 @@ const App = {
        COTIZACIONES
        ================================================= */
     newCotizacion() {
-        this.cotizacionDetalle = [];
-        document.getElementById('cotizacionForm').reset();
         document.getElementById('cotizacionId').value = '';
-        document.getElementById('cotizacionDetalleBody').innerHTML = '';
-        document.getElementById('cotizacionTotal').textContent = '$0';
+        document.getElementById('cotizacionForm').reset();
+        document.getElementById('cotizacionNumeroHeader').textContent = 'No. ' + DB.getNextNumber('cotizacion');
         document.getElementById('cotizacionFecha').value = new Date().toISOString().split('T')[0];
-        document.getElementById('cotizacionPrecioManual').value = '';
 
         const validez = new Date();
         validez.setDate(validez.getDate() + 15);
@@ -1676,24 +1651,16 @@ const App = {
             .map(c => ({ id: c.id, text: c.nombre })));
         this.selectors.cotizacionCliente.clear();
 
-        this.selectors.cotizacionProducto.setData(DB.getProducts().map(p => ({
-            id: p.id,
-            text: p.nombre,
-            reference: p.codigo,
-            stock: p.stock_actual
-        })));
-        this.selectors.cotizacionProducto.clear();
-
         this.selectors.cotizacionVendedor.setData(DB.getSellers().map(s => ({ id: s.id, text: s.nombre })));
         this.selectors.cotizacionVendedor.clear();
 
-        document.getElementById('cotizacionModalTitle').textContent = 'Nueva Cotización';
         document.getElementById('printCotizacionBtn').classList.add('d-none');
         document.getElementById('convertFacturaBtn').classList.add('d-none');
-        
-        // BUG FIX: Ensure Add and Save buttons are visible
         document.getElementById('saveCotizacionBtn').classList.remove('d-none');
-        document.getElementById('addProductoCotizacion').classList.remove('d-none');
+
+        // Clear body and add initial row
+        document.getElementById('cotizacionDetalleBody').innerHTML = '';
+        this.addCotizacionRow();
 
         new bootstrap.Modal(document.getElementById('cotizacionModal')).show();
     },
@@ -1702,15 +1669,8 @@ const App = {
         const c = DB.getCotizacion(id);
         if (!c) return;
 
-        this.cotizacionDetalle = DB.getCotizacionDetails(id).map(d => {
-            const p = DB.getProduct(d.producto_id);
-            return {
-                ...d,
-                nombre: p ? p.nombre : 'Prod. Eliminado'
-            };
-        });
-
         document.getElementById('cotizacionId').value = c.id;
+        document.getElementById('cotizacionNumeroHeader').textContent = 'No. ' + (c.numero || c.id.slice(-6).toUpperCase());
         document.getElementById('cotizacionFecha').value = c.fecha ? c.fecha.split('T')[0] : '';
         document.getElementById('cotizacionValidez').value = c.validez ? c.validez.split('T')[0] : '';
         document.getElementById('cotizacionObservacion').value = c.observacion || '';
@@ -1724,103 +1684,33 @@ const App = {
         if (c.vendedor_id) this.selectors.cotizacionVendedor.setValue(c.vendedor_id);
         else this.selectors.cotizacionVendedor.clear();
 
-        this.selectors.cotizacionProducto.setData(DB.getProducts().map(p => ({
-            id: p.id,
-            text: p.nombre,
-            reference: p.codigo
-        })));
-        this.selectors.cotizacionProducto.clear();
-
         const isConverted = !!c.factura_id;
         const convBtn = document.getElementById('convertFacturaBtn');
         const saveBtn = document.getElementById('saveCotizacionBtn');
-        const addBtn = document.getElementById('addProductoCotizacion');
 
         // Reset UI state
         saveBtn.classList.remove('d-none');
-        addBtn.classList.remove('d-none');
         convBtn.classList.add('d-none');
 
         if (isConverted) {
-            document.getElementById('cotizacionModalTitle').textContent = `Cotización #${c.numero || c.id.substr(-6).toUpperCase()} [CONVERTIDA]`;
             saveBtn.classList.add('d-none');
-            addBtn.classList.add('d-none');
             this.showToast('Esta cotización ya fue convertida y no puede editarse.', 'Info', 'info');
         } else {
-            document.getElementById('cotizacionModalTitle').textContent = `Cotización #${c.numero || c.id.substr(-6).toUpperCase()}`;
-            // Simplified: Always show conversion button for non-converted quotes
             convBtn.classList.remove('d-none');
             convBtn.onclick = () => this.convertFactura(c.id);
         }
 
-        this._renderCotizacionDetalle(isConverted);
-        new bootstrap.Modal(document.getElementById('cotizacionModal')).show();
-    },
-
-    addProductoCotizacion() {
-        const prodId = this.selectors.cotizacionProducto.getValue();
-        const cantidadStr = document.getElementById('cotizacionCantidad').value;
-        const precioStr = document.getElementById('cotizacionPrecioManual').value;
-
-        const cantidad = parseInt(this.unformatNumber(cantidadStr));
-        const precioManual = parseFloat(this.unformatNumber(precioStr));
-
-        if (!prodId || !cantidad || cantidad < 1) {
-            this.showToast('Seleccione un producto y cantidad válida', 'Error', 'danger');
-            return;
-        }
-
-        const product = DB.getProduct(prodId);
-        if (!product) return;
-
-        const existing = this.cotizacionDetalle.find(d => d.producto_id === prodId);
-        if (existing) {
-            existing.cantidad += cantidad;
-            existing.subtotal = existing.cantidad * existing.precio_unitario;
-        } else {
-            const precioVenta = !isNaN(precioManual) ? precioManual : parseFloat(product.precio_venta);
-            this.cotizacionDetalle.push({
-                producto_id: prodId,
-                nombre: product.nombre,
-                cantidad: cantidad,
-                precio_unitario: precioVenta,
-                subtotal: cantidad * precioVenta
-            });
-        }
-
-        this._renderCotizacionDetalle();
-        this.selectors.cotizacionProducto.clear();
-        document.getElementById('cotizacionCantidad').value = '1';
-    },
-
-    removeFromCotizacion(index) {
-        this.cotizacionDetalle.splice(index, 1);
-        this._renderCotizacionDetalle();
-    },
-
-    _renderCotizacionDetalle(readOnly = false) {
-        const fmt = (n) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n);
+        // Render detail rows
         const body = document.getElementById('cotizacionDetalleBody');
-        let total = 0;
+        body.innerHTML = '';
+        const details = DB.getCotizacionDetails(id);
+        if (details.length === 0) {
+            this.addCotizacionRow();
+        } else {
+            details.forEach(d => this.addCotizacionRow(d));
+        }
 
-        body.innerHTML = this.cotizacionDetalle.map((d, i) => {
-            total += d.subtotal;
-            return `<tr>
-                <td>${d.nombre}</td>
-                <td>${readOnly
-                    ? (d.descripcion || '-')
-                    : `<input type="text" class="form-control form-control-sm" style="min-width:120px" placeholder="Modelo, color..." value="${d.descripcion || ''}" oninput="App.cotizacionDetalle[${i}].descripcion=this.value">`
-                }</td>
-                <td>${d.cantidad}</td>
-                <td>${fmt(d.precio_unitario)}</td>
-                <td>${fmt(d.subtotal)}</td>
-                <td>
-                    ${!readOnly ? `<button type="button" class="btn-action btn-delete" onclick="App.removeFromCotizacion(${i})"><i class="bi bi-x-lg"></i></button>` : ''}
-                </td>
-            </tr>`;
-        }).join('');
-
-        document.getElementById('cotizacionTotal').textContent = fmt(total);
+        new bootstrap.Modal(document.getElementById('cotizacionModal')).show();
     },
 
     saveCotizacion() {
@@ -1830,16 +1720,52 @@ const App = {
             const vendedorId = this.selectors.cotizacionVendedor.getValue();
             const fecha = document.getElementById('cotizacionFecha').value;
             const validez = document.getElementById('cotizacionValidez').value;
-            const observacion = document.getElementById('cotizacionObservacion').value;
+            const observacion = document.getElementById('cotizacionObservacion').value.trim();
 
             if (!clienteId || !fecha || !validez) {
                 this.showToast('Complete todos los campos obligatorios', 'Error', 'danger');
                 return;
             }
 
-            if (this.cotizacionDetalle.length === 0) {
+            const rows = document.querySelectorAll('#cotizacionDetalleBody tr.detalle-row');
+            if (rows.length === 0) {
                 this.showToast('Agregue al menos un producto', 'Error', 'danger');
                 return;
+            }
+
+            const details = [];
+            for (const row of rows) {
+                const selectContainer = row.querySelector('[id^="cot-row-product-container-"]');
+                const prodId = selectContainer ? selectContainer.dataset.productId : null;
+                if (!prodId) {
+                    this.showToast('Seleccione un producto para todas las líneas', 'Error', 'danger');
+                    return;
+                }
+
+                const cantidad = parseInt(this.unformatNumber(row.querySelector('.row-cantidad').value)) || 0;
+                const precioUnitario = parseFloat(this.unformatNumber(row.querySelector('.row-precio').value)) || 0;
+                const descuento = parseFloat(this.unformatNumber(row.querySelector('.row-descuento').value)) || 0;
+                const impuesto = row.querySelector('.row-impuesto').value;
+                const descripcion = row.querySelector('.row-descripcion').value.trim();
+
+                if (cantidad <= 0) {
+                    this.showToast('La cantidad debe ser mayor a 0', 'Error', 'danger');
+                    return;
+                }
+
+                const netSubtotal = cantidad * precioUnitario * (1 - descuento / 100);
+                const taxRate = impuesto === '19%' ? 0.19 : 0.00;
+                const taxAmount = netSubtotal * taxRate;
+
+                details.push({
+                    producto_id: prodId,
+                    cantidad: cantidad,
+                    precio_unitario: precioUnitario,
+                    descuento: descuento,
+                    impuesto: impuesto,
+                    descripcion: descripcion,
+                    subtotal: netSubtotal + taxAmount
+                });
             }
 
             const cotizacionData = {
@@ -1852,14 +1778,6 @@ const App = {
                 observacion: observacion,
                 usuario_id: Auth.currentUser ? Auth.currentUser.id : 'admin'
             };
-
-            const details = this.cotizacionDetalle.map(d => ({
-                producto_id: d.producto_id,
-                cantidad: d.cantidad,
-                precio_unitario: d.precio_unitario,
-                subtotal: d.subtotal,
-                descripcion: d.descripcion || ''
-            }));
 
             DB.registerCotizacion(cotizacionData, details);
             bootstrap.Modal.getInstance(document.getElementById('cotizacionModal')).hide();
@@ -3129,6 +3047,358 @@ const App = {
         const parts = n.toString().split('.');
         parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
         return parts.join(',');
+    },
+
+    unformatNumber(str) {
+        if (!str) return '0';
+        return str.toString().replace(/\./g, '').replace(/,/g, '.');
+    },
+
+    /* =================================================
+       INLINE EDITABLE DETAILS HELPERS
+       ================================================= */
+    addCotizacionRow(data = {}) {
+        const body = document.getElementById('cotizacionDetalleBody');
+        const rowIndex = body.querySelectorAll('tr.detalle-row').length;
+        
+        const row = document.createElement('tr');
+        row.className = 'detalle-row';
+        row.dataset.rowIndex = rowIndex;
+        
+        row.innerHTML = `
+            <td class="align-middle text-center" style="width: 40px;">
+                <input type="checkbox" class="form-check-input select-row-chk">
+                <span class="row-num ms-1">${rowIndex + 1}</span>
+            </td>
+            <td class="align-middle" style="min-width: 250px;">
+                <div id="cot-row-product-container-${rowIndex}"></div>
+                <div class="row-sku-description mt-1 d-flex align-items-center gap-2" style="font-size: 11px;">
+                    <span class="product-sku text-muted">SKU: -</span>
+                    <a href="#" class="add-desc-link text-decoration-none" onclick="event.preventDefault(); App.showRowDescriptionModal(this)">
+                        <i class="bi bi-pencil-square"></i> Agregar descripción
+                    </a>
+                    <input type="hidden" class="row-descripcion" value="${data.descripcion || ''}">
+                </div>
+            </td>
+            <td class="align-middle" style="width: 90px;">
+                <input type="text" class="form-control form-control-sm text-center number-format row-cantidad" value="${data.cantidad || 1}" inputmode="numeric">
+                <div class="row-stock text-muted text-center mt-1" style="font-size: 10px; display: none;">Disp: <span class="stock-val">0</span></div>
+            </td>
+            <td class="align-middle" style="width: 140px;">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text">$</span>
+                    <input type="text" class="form-control number-format row-precio" value="${this.formatNumber(data.precio_unitario || 0)}" inputmode="numeric">
+                </div>
+            </td>
+            <td class="align-middle" style="width: 100px;">
+                <div class="input-group input-group-sm">
+                    <input type="text" class="form-control number-format row-descuento" value="${this.formatNumber(data.descuento || 0)}" inputmode="numeric">
+                    <span class="input-group-text">%</span>
+                </div>
+            </td>
+            <td class="align-middle" style="width: 120px;">
+                <select class="form-select form-select-sm row-impuesto">
+                    <option value="Ninguno" ${data.impuesto === 'Ninguno' ? 'selected' : ''}>Ninguno</option>
+                    <option value="19%" ${data.impuesto === '19%' ? 'selected' : ''}>19% IVA</option>
+                </select>
+            </td>
+            <td class="align-middle text-end fw-bold row-subtotal text-dark" style="width: 140px; font-size: 14px;">
+                $0
+            </td>
+            <td class="align-middle text-center" style="width: 40px;">
+                <button type="button" class="btn btn-link text-danger p-0 delete-row-btn" onclick="App.deleteDetailRow(this, 'cotizacion')">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </td>
+        `;
+        
+        body.appendChild(row);
+        
+        const productsData = DB.getProducts().map(p => ({
+            id: p.id,
+            text: p.nombre,
+            reference: p.codigo
+        }));
+        
+        const selectContainerId = `cot-row-product-container-${rowIndex}`;
+        const select = new SearchableSelect(selectContainerId, {
+            data: productsData,
+            placeholder: 'Selecciona un producto',
+            onSelect: (val) => {
+                const product = DB.getProduct(val);
+                if (product) {
+                    row.querySelector('.product-sku').textContent = `SKU: ${product.codigo}`;
+                    row.querySelector('.row-precio').value = this.formatNumber(product.precio_venta);
+                    
+                    const stockVal = row.querySelector('.stock-val');
+                    stockVal.textContent = product.stock_actual;
+                    row.querySelector('.row-stock').style.display = 'block';
+                    
+                    document.getElementById(selectContainerId).dataset.productId = val;
+                    this.recalcRowSubtotal(row, 'cotizacion');
+                }
+            }
+        });
+        row.productSelectorInstance = select;
+        
+        if (data.producto_id) {
+            select.setValue(data.producto_id);
+            document.getElementById(selectContainerId).dataset.productId = data.producto_id;
+            
+            const product = DB.getProduct(data.producto_id);
+            if (product) {
+                row.querySelector('.product-sku').textContent = `SKU: ${product.codigo}`;
+                const stockVal = row.querySelector('.stock-val');
+                stockVal.textContent = product.stock_actual;
+                row.querySelector('.row-stock').style.display = 'block';
+            }
+            if (data.descripcion) {
+                row.querySelector('.add-desc-link').innerHTML = `<i class="bi bi-pencil-fill"></i> Editar descripción`;
+            }
+        }
+        
+        row.querySelector('.row-cantidad').addEventListener('input', () => this.recalcRowSubtotal(row, 'cotizacion'));
+        row.querySelector('.row-precio').addEventListener('input', () => this.recalcRowSubtotal(row, 'cotizacion'));
+        row.querySelector('.row-descuento').addEventListener('input', () => this.recalcRowSubtotal(row, 'cotizacion'));
+        row.querySelector('.row-impuesto').addEventListener('change', () => this.recalcRowSubtotal(row, 'cotizacion'));
+        
+        this.recalcRowSubtotal(row, 'cotizacion');
+    },
+
+    addVentaRow(data = {}) {
+        const body = document.getElementById('ventaDetalleBody');
+        const rowIndex = body.querySelectorAll('tr.detalle-row').length;
+        
+        const row = document.createElement('tr');
+        row.className = 'detalle-row';
+        row.dataset.rowIndex = rowIndex;
+        
+        row.innerHTML = `
+            <td class="align-middle text-center" style="width: 40px;">
+                <input type="checkbox" class="form-check-input select-row-chk">
+                <span class="row-num ms-1">${rowIndex + 1}</span>
+            </td>
+            <td class="align-middle" style="min-width: 250px;">
+                <div id="vta-row-product-container-${rowIndex}"></div>
+                <div class="row-sku-description mt-1 d-flex align-items-center gap-2" style="font-size: 11px;">
+                    <span class="product-sku text-muted">SKU: -</span>
+                    <a href="#" class="add-desc-link text-decoration-none" onclick="event.preventDefault(); App.showRowDescriptionModal(this)">
+                        <i class="bi bi-pencil-square"></i> Agregar descripción
+                    </a>
+                    <input type="hidden" class="row-descripcion" value="${data.descripcion || ''}">
+                </div>
+            </td>
+            <td class="align-middle" style="width: 90px;">
+                <input type="text" class="form-control form-control-sm text-center number-format row-cantidad" value="${data.cantidad || 1}" inputmode="numeric">
+                <div class="row-stock text-muted text-center mt-1" style="font-size: 10px; display: none;">Disp: <span class="stock-val">0</span></div>
+            </td>
+            <td class="align-middle" style="width: 140px;">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text">$</span>
+                    <input type="text" class="form-control number-format row-precio" value="${this.formatNumber(data.precio_unitario || 0)}" inputmode="numeric">
+                </div>
+            </td>
+            <td class="align-middle" style="width: 100px;">
+                <div class="input-group input-group-sm">
+                    <input type="text" class="form-control number-format row-descuento" value="${this.formatNumber(data.descuento || 0)}" inputmode="numeric">
+                    <span class="input-group-text">%</span>
+                </div>
+            </td>
+            <td class="align-middle" style="width: 120px;">
+                <select class="form-select form-select-sm row-impuesto">
+                    <option value="Ninguno" ${data.impuesto === 'Ninguno' ? 'selected' : ''}>Ninguno</option>
+                    <option value="19%" ${data.impuesto === '19%' ? 'selected' : ''}>19% IVA</option>
+                </select>
+            </td>
+            <td class="align-middle text-end fw-bold row-subtotal text-dark" style="width: 140px; font-size: 14px;">
+                $0
+            </td>
+            <td class="align-middle text-center" style="width: 40px;">
+                <button type="button" class="btn btn-link text-danger p-0 delete-row-btn" onclick="App.deleteDetailRow(this, 'venta')">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </td>
+        `;
+        
+        body.appendChild(row);
+        
+        const productsData = DB.getProducts().map(p => ({
+            id: p.id,
+            text: p.nombre,
+            reference: p.codigo
+        }));
+        
+        const selectContainerId = `vta-row-product-container-${rowIndex}`;
+        const select = new SearchableSelect(selectContainerId, {
+            data: productsData,
+            placeholder: 'Selecciona un producto',
+            onSelect: (val) => {
+                const product = DB.getProduct(val);
+                if (product) {
+                    row.querySelector('.product-sku').textContent = `SKU: ${product.codigo}`;
+                    row.querySelector('.row-precio').value = this.formatNumber(product.precio_venta);
+                    
+                    const stockVal = row.querySelector('.stock-val');
+                    stockVal.textContent = product.stock_actual;
+                    row.querySelector('.row-stock').style.display = 'block';
+                    
+                    document.getElementById(selectContainerId).dataset.productId = val;
+                    this.recalcRowSubtotal(row, 'venta');
+                }
+            }
+        });
+        row.productSelectorInstance = select;
+        
+        if (data.producto_id) {
+            select.setValue(data.producto_id);
+            document.getElementById(selectContainerId).dataset.productId = data.producto_id;
+            
+            const product = DB.getProduct(data.producto_id);
+            if (product) {
+                row.querySelector('.product-sku').textContent = `SKU: ${product.codigo}`;
+                const stockVal = row.querySelector('.stock-val');
+                stockVal.textContent = product.stock_actual;
+                row.querySelector('.row-stock').style.display = 'block';
+            }
+            if (data.descripcion) {
+                row.querySelector('.add-desc-link').innerHTML = `<i class="bi bi-pencil-fill"></i> Editar descripción`;
+            }
+        }
+        
+        row.querySelector('.row-cantidad').addEventListener('input', () => this.recalcRowSubtotal(row, 'venta'));
+        row.querySelector('.row-precio').addEventListener('input', () => this.recalcRowSubtotal(row, 'venta'));
+        row.querySelector('.row-descuento').addEventListener('input', () => this.recalcRowSubtotal(row, 'venta'));
+        row.querySelector('.row-impuesto').addEventListener('change', () => this.recalcRowSubtotal(row, 'venta'));
+        
+        this.recalcRowSubtotal(row, 'venta');
+    },
+
+    recalcRowSubtotal(row, type) {
+        const qty = parseFloat(this.unformatNumber(row.querySelector('.row-cantidad').value)) || 0;
+        const price = parseFloat(this.unformatNumber(row.querySelector('.row-precio').value)) || 0;
+        const desc = parseFloat(this.unformatNumber(row.querySelector('.row-descuento').value)) || 0;
+        const taxSelect = row.querySelector('.row-impuesto').value;
+        
+        const netSubtotal = qty * price * (1 - desc / 100);
+        const taxRate = taxSelect === '19%' ? 0.19 : 0.00;
+        const taxAmount = netSubtotal * taxRate;
+        const total = netSubtotal + taxAmount;
+        
+        const fmt = (n) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n);
+        row.querySelector('.row-subtotal').textContent = fmt(total);
+        
+        if (type === 'cotizacion') {
+            this.recalcCotizacionTotals();
+        } else {
+            this.recalcVentaTotals();
+        }
+    },
+
+    recalcCotizacionTotals() {
+        const body = document.getElementById('cotizacionDetalleBody');
+        const rows = body.querySelectorAll('tr.detalle-row');
+        
+        let subtotalAccum = 0;
+        let discountAccum = 0;
+        let taxAccum = 0;
+        let totalAccum = 0;
+        
+        rows.forEach(row => {
+            const qty = parseFloat(this.unformatNumber(row.querySelector('.row-cantidad').value)) || 0;
+            const price = parseFloat(this.unformatNumber(row.querySelector('.row-precio').value)) || 0;
+            const descPercent = parseFloat(this.unformatNumber(row.querySelector('.row-descuento').value)) || 0;
+            const taxSelect = row.querySelector('.row-impuesto').value;
+            
+            const rawSubtotal = qty * price;
+            const discountAmt = rawSubtotal * (descPercent / 100);
+            const netSubtotal = rawSubtotal - discountAmt;
+            const taxRate = taxSelect === '19%' ? 0.19 : 0.00;
+            const taxAmt = netSubtotal * taxRate;
+            
+            subtotalAccum += rawSubtotal;
+            discountAccum += discountAmt;
+            taxAccum += taxAmt;
+            totalAccum += (netSubtotal + taxAmt);
+        });
+        
+        const fmt = (n) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n);
+        
+        document.getElementById('cotizacionSubtotalVal').textContent = fmt(subtotalAccum);
+        document.getElementById('cotizacionDescuentoVal').textContent = fmt(discountAccum);
+        document.getElementById('cotizacionImpuestosVal').textContent = fmt(taxAccum);
+        document.getElementById('cotizacionTotal').textContent = fmt(totalAccum);
+    },
+
+    recalcVentaTotals() {
+        const body = document.getElementById('ventaDetalleBody');
+        const rows = body.querySelectorAll('tr.detalle-row');
+        
+        let subtotalAccum = 0;
+        let discountAccum = 0;
+        let taxAccum = 0;
+        let totalAccum = 0;
+        
+        rows.forEach(row => {
+            const qty = parseFloat(this.unformatNumber(row.querySelector('.row-cantidad').value)) || 0;
+            const price = parseFloat(this.unformatNumber(row.querySelector('.row-precio').value)) || 0;
+            const descPercent = parseFloat(this.unformatNumber(row.querySelector('.row-descuento').value)) || 0;
+            const taxSelect = row.querySelector('.row-impuesto').value;
+            
+            const rawSubtotal = qty * price;
+            const discountAmt = rawSubtotal * (descPercent / 100);
+            const netSubtotal = rawSubtotal - discountAmt;
+            const taxRate = taxSelect === '19%' ? 0.19 : 0.00;
+            const taxAmt = netSubtotal * taxRate;
+            
+            subtotalAccum += rawSubtotal;
+            discountAccum += discountAmt;
+            taxAccum += taxAmt;
+            totalAccum += (netSubtotal + taxAmt);
+        });
+        
+        const fmt = (n) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n);
+        
+        document.getElementById('ventaSubtotalVal').textContent = fmt(subtotalAccum);
+        document.getElementById('ventaDescuentoVal').textContent = fmt(discountAccum);
+        document.getElementById('ventaImpuestosVal').textContent = fmt(taxAccum);
+        document.getElementById('ventaTotal').textContent = fmt(totalAccum);
+    },
+
+    deleteDetailRow(button, type) {
+        const row = button.closest('tr');
+        row.remove();
+        
+        const body = document.getElementById(type === 'cotizacion' ? 'cotizacionDetalleBody' : 'ventaDetalleBody');
+        const rows = body.querySelectorAll('tr.detalle-row');
+        rows.forEach((r, idx) => {
+            r.querySelector('.row-num').textContent = idx + 1;
+        });
+        
+        if (type === 'cotizacion') {
+            this.recalcCotizacionTotals();
+        } else {
+            this.recalcVentaTotals();
+        }
+    },
+
+    showRowDescriptionModal(link) {
+        const row = link.closest('tr');
+        const hiddenInput = row.querySelector('.row-descripcion');
+        const textarea = document.getElementById('rowDescriptionText');
+        textarea.value = hiddenInput.value;
+        
+        const saveBtn = document.getElementById('saveRowDescriptionBtn');
+        saveBtn.onclick = () => {
+            hiddenInput.value = textarea.value.trim();
+            if (textarea.value.trim()) {
+                link.innerHTML = `<i class="bi bi-pencil-fill"></i> Editar descripción`;
+            } else {
+                link.innerHTML = `<i class="bi bi-pencil-square"></i> Agregar descripción`;
+            }
+            bootstrap.Modal.getInstance(document.getElementById('rowDescriptionModal')).hide();
+        };
+        
+        new bootstrap.Modal(document.getElementById('rowDescriptionModal')).show();
     },
 
     unformatNumber(str) {
