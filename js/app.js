@@ -594,7 +594,8 @@ const App = {
         } else {
             let thead = `<tr>
                 <th style="width: 15%">Fecha <i class="bi bi-arrow-down-short"></i></th>
-                <th style="width: 35%">Detalle</th>
+                ${tabName === 'facturas-venta' ? '<th style="width: 15%">Vence</th>' : ''}
+                <th style="width: ${tabName === 'facturas-venta' ? '20%' : '35%'}">Detalle</th>
                 <th style="width: 15%">Estado</th>
                 <th class="text-end" style="width: 17.5%">Gastos</th>
                 <th class="text-end" style="width: 17.5%">Ingresos</th>
@@ -652,8 +653,20 @@ const App = {
                 if (['anulada', 'rechazada', 'vencida'].includes(lowerStatus)) badgeClass = 'danger';
                 if (['convertida'].includes(lowerStatus)) badgeClass = 'primary';
 
+                let extraTd = '';
+                if (tabName === 'facturas-venta') {
+                    let vencHtml = '-';
+                    if (item.fecha_vencimiento) {
+                        const isOverdue = lowerStatus === 'pendiente' && new Date(item.fecha_vencimiento) < new Date();
+                        const colorClass = isOverdue ? 'text-danger fw-bold' : (['pagada', 'completado', 'anulada'].includes(lowerStatus) ? 'text-muted' : '');
+                        vencHtml = `<span class="${colorClass}">${fmtDate(item.fecha_vencimiento)}</span>`;
+                    }
+                    extraTd = `<td class="align-middle">${vencHtml}</td>`;
+                }
+
                 return `<tr>
                     <td class="align-middle">${fmtDate(fecha)}</td>
+                    ${extraTd}
                     <td class="align-middle text-muted">${detalle}</td>
                     <td class="align-middle"><span class="badge bg-${badgeClass} text-uppercase" style="font-size: 0.75rem;">${estado}</span></td>
                     <td class="align-middle text-end text-danger">${gasto > 0 ? fmt(gasto) : '-'}</td>

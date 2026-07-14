@@ -862,6 +862,7 @@ const DB = {
                 id: f.id_alegra || f.id,
                 numero: f.numero,
                 fecha: f.fecha_emision,
+                fecha_vencimiento: f.fecha_vencimiento || f.dueDate || f.datetime_vencimiento || f.fecha_emision,
                 cliente_id: resolvedClientId,
                 // Preserve Alegra client name so getClientName() can use it when local record missing
                 cliente_nombre_alegra: f.cliente_nombre || null,
@@ -894,6 +895,7 @@ const DB = {
                     id: f.id_alegra || f.id,
                     numero: f.numero,
                     fecha: f.fecha_emision,
+                    fecha_vencimiento: f.fecha_vencimiento || f.dueDate || f.datetime_vencimiento || f.fecha_emision,
                     cliente_id: localClient ? localClient.id : f.cliente_id_alegra,
                     tipo_venta: f.saldo > 0 ? 'credito' : 'contado',
                     estado: f.estado === 'open' ? 'pendiente' : (f.estado === 'void' ? 'anulada' : 'pagada'),
