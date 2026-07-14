@@ -3080,9 +3080,32 @@ const App = {
 
             // 5. Importar Cuentas por Cobrar (Cartera)
             const importedCartera = data.cuentas_por_cobrar || [];
-            if (importedCartera.length > 0) {
+            const importedFacturasVenta = data.facturas_venta || [];
+            
+            // Unificar cartera con saldo (activa) y facturas pagadas del histórico para poblar el filtro
+            const allCarteraItems = [...importedCartera];
+            importedFacturasVenta.forEach(f => {
+                if (parseFloat(f.saldo || 0) <= 0) {
+                    if (!allCarteraItems.some(item => String(item.id_factura) === String(f.id_alegra))) {
+                        allCarteraItems.push({
+                            id_factura: f.id_alegra,
+                            numero: f.numero,
+                            fecha_emision: f.fecha_emision,
+                            fecha_vencimiento: f.fecha_vencimiento,
+                            cliente_id: f.cliente_id_alegra,
+                            cliente_nombre: f.cliente_nombre,
+                            nit_rut: f.cliente_nit,
+                            total: parseFloat(f.total || 0),
+                            saldo: parseFloat(f.saldo || 0),
+                            status: 'pagada'
+                        });
+                    }
+                }
+            });
+
+            if (allCarteraItems.length > 0) {
                 let dbCartera = DB.getAll(DB.KEYS.CARTERA) || [];
-                importedCartera.forEach(c => {
+                allCarteraItems.forEach(c => {
                     const existingIdx = dbCartera.findIndex(car => String(car.id_alegra_factura) === String(c.id_factura));
                     
                     const clients = DB.getAll(DB.KEYS.CLIENTS) || [];

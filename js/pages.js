@@ -640,17 +640,27 @@ const Pages = {
         const items = DB.getCartera(filter);
         const fmt = (n) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n);
 
+        // Ordenar cronológicamente descendente (más recientes primero)
+        const sortedItems = [...items].sort((a, b) => {
+            const dateA = a.fecha_emision || a.fecha_vencimiento || a.created_at || '';
+            const dateB = b.fecha_emision || b.fecha_vencimiento || b.created_at || '';
+            return dateB.localeCompare(dateA);
+        });
+
+        // Limitar a 100 si es pagada para evitar congelar el navegador
+        const displayedItems = filter === 'pagada' ? sortedItems.slice(0, 100) : sortedItems;
+
         let rows = '';
-        if (items.length === 0) {
+        if (displayedItems.length === 0) {
             rows = `<tr><td colspan="7" class="text-center text-muted py-4">No hay registros de cartera</td></tr>`;
         } else {
-            rows = items.map(c => {
+            rows = displayedItems.map(c => {
                 const client = DB.getClient(c.cliente_id);
                 return `<tr>
                     <td><strong>${client ? client.nombre : 'N/A'}</strong></td>
                     <td>${fmt(c.total)}</td>
                     <td>${fmt(c.saldo)}</td>
-                    <td>${c.fecha_vencimiento}</td>
+                    <td>${c.fecha_vencimiento || 'N/A'}</td>
                     <td><span class="badge-status badge-${c.estado}">${c.estado}</span></td>
                     <td>${fmt(c.total - c.saldo)}</td>
                     <td>
@@ -658,6 +668,15 @@ const Pages = {
                     </td>
                 </tr>`;
             }).join('');
+        }
+
+        let noticeHtml = '';
+        if (filter === 'pagada' && items.length > 100) {
+            noticeHtml = `
+            <div class="alert alert-info py-2 px-3 m-3 d-flex align-items-center" style="font-size: 12px; border-radius: 8px;">
+                <i class="bi bi-info-circle-fill me-2 fs-6 text-primary"></i>
+                <span>Mostrando los <strong>100 registros pagados más recientes</strong> de un total histórico de <strong>${items.length}</strong> facturas conciliadas.</span>
+            </div>`;
         }
 
         return `
@@ -672,6 +691,7 @@ const Pages = {
                         <button class="filter-pill ${filter === 'pagada' ? 'active' : ''}" onclick="App.loadCartera('pagada')">Pagadas</button>
                     </div>
                 </div>
+                ${noticeHtml}
                 <div class="section-body" style="padding:0; overflow-x:auto;">
                     <table class="table-modern">
                         <thead>
