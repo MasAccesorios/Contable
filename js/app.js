@@ -2557,12 +2557,15 @@ const App = {
             this.showToast('El banco no existe.', 'Error', 'danger');
             return;
         }
-        document.getElementById('bancoModalTitle').textContent = 'Editar Banco';
+        document.getElementById('bancoModalTitle').textContent = 'Editar Cuenta Bancaria';
         document.getElementById('bancoId').value = id;
         document.getElementById('bancoNombre').value = bank.nombre || '';
         
+        const entidadEl = document.getElementById('bancoEntidad');
+        if (entidadEl) entidadEl.value = bank.entidad || '';
+        
         const tipoEl = document.getElementById('bancoTipo');
-        if (tipoEl) tipoEl.value = bank.tipo || '';
+        if (tipoEl) tipoEl.value = bank.tipo || 'Ahorros';
         
         const numEl = document.getElementById('bancoNumero');
         if (numEl) numEl.value = bank.numero_cuenta || '';
@@ -2570,25 +2573,34 @@ const App = {
         new bootstrap.Modal(document.getElementById('bancoModal')).show();
     },
 
-
     saveBanco() {
         const nombre = document.getElementById('bancoNombre').value.trim();
-        if (!nombre) {
-            this.showToast('Ingrese el nombre del banco', 'Error', 'danger');
+        const entidad = document.getElementById('bancoEntidad')?.value.trim() || '';
+        if (!nombre || !entidad) {
+            this.showToast('Ingrese el nombre de la cuenta y el banco', 'Error', 'danger');
             return;
         }
+        
+        const tipo = document.getElementById('bancoTipo')?.value || 'Ahorros';
+        const numero_cuenta = document.getElementById('bancoNumero')?.value.trim() || '';
+        
         const isNew = !document.getElementById('bancoId').value;
         const bankData = {
             id: document.getElementById('bancoId').value || undefined,
-            nombre
+            nombre,
+            entidad,
+            tipo,
+            numero_cuenta
         };
+        
         if (isNew) {
             bankData.saldo_inicial = 0;
             bankData.saldo_actual = 0;
         }
+        
         DB.saveBank(bankData);
         bootstrap.Modal.getInstance(document.getElementById('bancoModal')).hide();
-        this.showToast('Banco guardado correctamente');
+        this.showToast('Cuenta bancaria guardada correctamente');
         this.navigateTo('bancos');
     },
 

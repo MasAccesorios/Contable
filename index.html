@@ -931,8 +931,26 @@
                     <form id="bancoForm">
                         <input type="hidden" id="bancoId">
                         <div class="mb-3">
-                            <label class="form-label">Nombre del Banco *</label>
-                            <input type="text" class="form-control" id="bancoNombre" required>
+                            <label class="form-label">Nombre de la cuenta *</label>
+                            <input type="text" class="form-control" id="bancoNombre" placeholder="Ej. Mi cuenta principal" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Banco *</label>
+                            <input type="text" class="form-control" id="bancoEntidad" placeholder="Ej. Bancolombia, Nequi" required>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Número de cuenta</label>
+                                <input type="text" class="form-control" id="bancoNumero" placeholder="Opcional">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Tipo de cuenta *</label>
+                                <select class="form-select" id="bancoTipo" required>
+                                    <option value="Ahorros">Ahorros</option>
+                                    <option value="Corriente">Corriente</option>
+                                    <option value="Tarjeta de crédito">Tarjeta de crédito</option>
+                                </select>
+                            </div>
                         </div>
                     </form>
                 </div>
