@@ -2551,6 +2551,26 @@ const App = {
         new bootstrap.Modal(document.getElementById('bancoModal')).show();
     },
 
+    editBank(id) {
+        const bank = DB.getBank(id);
+        if (!bank) {
+            this.showToast('El banco no existe.', 'Error', 'danger');
+            return;
+        }
+        document.getElementById('bancoModalTitle').textContent = 'Editar Banco';
+        document.getElementById('bancoId').value = id;
+        document.getElementById('bancoNombre').value = bank.nombre || '';
+        
+        const tipoEl = document.getElementById('bancoTipo');
+        if (tipoEl) tipoEl.value = bank.tipo || '';
+        
+        const numEl = document.getElementById('bancoNumero');
+        if (numEl) numEl.value = bank.numero_cuenta || '';
+        
+        new bootstrap.Modal(document.getElementById('bancoModal')).show();
+    },
+
+
     saveBanco() {
         const nombre = document.getElementById('bancoNombre').value.trim();
         if (!nombre) {
