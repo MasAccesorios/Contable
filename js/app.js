@@ -2557,11 +2557,16 @@ const App = {
             this.showToast('Ingrese el nombre del banco', 'Error', 'danger');
             return;
         }
-        DB.saveBank({
+        const isNew = !document.getElementById('bancoId').value;
+        const bankData = {
             id: document.getElementById('bancoId').value || undefined,
-            nombre,
-            saldo_actual: 0
-        });
+            nombre
+        };
+        if (isNew) {
+            bankData.saldo_inicial = 0;
+            bankData.saldo_actual = 0;
+        }
+        DB.saveBank(bankData);
         bootstrap.Modal.getInstance(document.getElementById('bancoModal')).hide();
         this.showToast('Banco guardado correctamente');
         this.navigateTo('bancos');
@@ -2593,6 +2598,27 @@ const App = {
         const fmt = (n) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n);
         
         let movements = DB.getAll(DB.KEYS.BANK_MOVEMENTS) || [];
+        const localBanks = DB.getAll(DB.KEYS.BANKS) || [];
+        
+        // Auto-reparación: asignar banco_id a movimientos huérfanos de importaciones previas
+        let needsSave = false;
+        movements.forEach(m => {
+            if (!m.banco_id) {
+                let mappedBankId = null;
+                if (m.cuenta) {
+                    const b = localBanks.find(bk => bk.nombre.toLowerCase() === m.cuenta.toLowerCase());
+                    if (b) mappedBankId = b.id;
+                }
+                if (!mappedBankId && localBanks.length > 0) mappedBankId = localBanks[0].id;
+                if (mappedBankId) {
+                    m.banco_id = mappedBankId;
+                    needsSave = true;
+                }
+            }
+        });
+        if (needsSave) {
+            DB._persist(DB.KEYS.BANK_MOVEMENTS, movements);
+        }
         
         // Cargar otras tablas para cruzar datos
         const sales = DB.getSales();
@@ -3690,6 +3716,7 @@ const App = {
                     const bankData = {
                         nombre: b.name,
                         id_alegra: String(b.id),
+                        saldo_inicial: parseFloat(b.initialBalance || 0),
                         saldo_actual: parseFloat(b.initialBalance || 0),
                         tipo: b.type,
                         updated_at: new Date().toISOString()
@@ -3707,14 +3734,25 @@ const App = {
             const importedMovements = data.movimientos_bancarios || [];
             if (importedMovements.length > 0) {
                 let dbMovements = DB.getAll(DB.KEYS.BANK_MOVEMENTS) || [];
+                const localBanks = DB.getAll(DB.KEYS.BANKS) || [];
                 importedMovements.forEach(m => {
                     const existingIdx = dbMovements.findIndex(mov => String(mov.id_alegra) === String(m.id));
+                    
+                    let mappedBankId = null;
+                    if (m.bankAccount && m.bankAccount.id) {
+                        const b = localBanks.find(bk => String(bk.id_alegra) === String(m.bankAccount.id));
+                        if (b) mappedBankId = b.id;
+                    }
+                    // Fallback a la primera cuenta si no se puede mapear directamente
+                    if (!mappedBankId && localBanks.length > 0) mappedBankId = localBanks[0].id;
+                    
                     const bankAccountName = m.bankAccount ? m.bankAccount.name : 'Caja/Banco';
                     const movData = {
                         id_alegra: String(m.id),
                         fecha: m.date,
                         tipo: m.type === 'in' ? 'ingreso' : 'egreso',
                         monto: parseFloat(m.amount || 0),
+                        banco_id: mappedBankId,
                         cuenta: bankAccountName,
                         descripcion: m.observations || 'Importado desde Alegra',
                         referencia: m.paymentMethod || 'Transferencia',

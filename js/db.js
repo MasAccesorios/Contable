@@ -1648,7 +1648,14 @@ const DB = {
         const targetId = bankId.toString();
         const movements = this.getAll(this.KEYS.BANK_MOVEMENTS);
 
+        const banks = this.getAll(this.KEYS.BANKS);
+        const idx = banks.findIndex(b => b.id && b.id.toString() === targetId);
+        
         let saldo = 0;
+        if (idx !== -1) {
+            saldo = parseFloat(banks[idx].saldo_inicial || 0);
+        }
+
         movements.forEach(m => {
             if (m.banco_id && m.banco_id.toString() === targetId) {
                 const amount = this._parseNum(m.monto);
@@ -1657,10 +1664,7 @@ const DB = {
             }
         });
 
-        const banks = this.getAll(this.KEYS.BANKS);
-        const idx = banks.findIndex(b => b.id && b.id.toString() === targetId);
         if (idx !== -1) {
-            const oldSaldo = banks[idx].saldo_actual;
             banks[idx].saldo_actual = saldo;
             banks[idx].updated_at = new Date().toISOString();
             this._persist(this.KEYS.BANKS, banks);
