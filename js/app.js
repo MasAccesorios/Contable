@@ -2652,8 +2652,18 @@ const App = {
                     clientId = pago.proveedor_id;
                     clientName = DB.getClientName(pago.proveedor_id, null);
                 }
-                
-                // Formatear enlaces en el detalle
+            }
+            
+            // Fallback: Si no se encontró por referencia, intentar usar los datos directos del movimiento
+            if (clientName === 'N/A' && (m.cliente_id_alegra || m.cliente_nombre_alegra || m.cliente_id || m.cliente_nombre)) {
+                const cId = m.cliente_id || m.cliente_id_alegra;
+                const cName = m.cliente_nombre || m.cliente_nombre_alegra;
+                clientId = cId;
+                clientName = DB.getClientName(cId, cName);
+            }
+            
+            // Formatear enlaces en el detalle
+            if (m.referencia_id) {
                 const match = detailHtml.match(/#(?:Factura |Venta |[a-zA-Z\s]+)?([a-zA-Z0-9]+)/);
                 if (match) {
                     const clickCall = m.tipo === 'ingreso' ? `App.viewVenta('${m.referencia_id}')` : `App.editCompra('${m.referencia_id}')`;
@@ -3756,6 +3766,8 @@ const App = {
                         cuenta: bankAccountName,
                         descripcion: m.observations || 'Importado desde Alegra',
                         referencia: m.paymentMethod || 'Transferencia',
+                        cliente_id_alegra: m.client ? m.client.id : (m.provider ? m.provider.id : null),
+                        cliente_nombre_alegra: m.client ? m.client.name : (m.provider ? m.provider.name : null),
                         updated_at: new Date().toISOString()
                     };
                     if (existingIdx >= 0) {

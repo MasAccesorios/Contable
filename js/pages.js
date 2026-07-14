@@ -908,13 +908,25 @@ const Pages = {
     bancos() {
         const banks = DB.getBanks();
         const clients = DB.getClients();
+        const movements = DB.getAll(DB.KEYS.BANK_MOVEMENTS) || [];
         const fmt = (n) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n);
 
         let bankCards = '';
         if (banks.length === 0) {
             bankCards = `<div class="empty-state"><i class="bi bi-bank2"></i><h5>Sin bancos</h5><p>Agrega tu primer banco para comenzar</p></div>`;
         } else {
-            bankCards = `<div class="kpi-grid" style="margin-bottom:24px">` + banks.map(b => `
+            bankCards = `<div class="kpi-grid" style="margin-bottom:24px">` + banks.map(b => {
+                // Calcular saldo dinámicamente
+                let saldoReal = parseFloat(b.saldo_inicial || 0);
+                movements.forEach(m => {
+                    if (String(m.banco_id) === String(b.id)) {
+                        const amount = parseFloat(m.monto || 0);
+                        if (m.tipo === 'ingreso') saldoReal += amount;
+                        else saldoReal -= amount;
+                    }
+                });
+
+                return `
                 <div class="kpi-card card-info" style="cursor:pointer" onclick="document.getElementById('bancoFilter').value='${b.id}'; App.loadAllBankMovements(document.getElementById('bancoFilter').value, document.getElementById('bancoClienteFilter').value, 1);">
                     <div class="kpi-label">
                         <div class="icon-circle"><i class="bi bi-bank2"></i></div>
@@ -923,10 +935,11 @@ const Pages = {
                             <i class="bi bi-trash" style="font-size:12px"></i>
                         </button>
                     </div>
-                    <div class="kpi-value">${fmt(b.saldo_actual || 0)}</div>
+                    <div class="kpi-value">${fmt(saldoReal)}</div>
                     <div class="kpi-sub">Click para filtrar movimientos</div>
                 </div>
-            `).join('') + `</div>`;
+                `;
+            }).join('') + `</div>`;
         }
 
         const bankOptions = banks.map(b => `<option value="${b.id}">${b.nombre}</option>`).join('');
