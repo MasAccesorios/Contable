@@ -8,8 +8,8 @@
 const targetDate = "2026-07-14";
 
 // 1. Configurar credenciales (Puedes reemplazar los strings o usar variables de entorno)
-const email = process.env.ALEGRA_EMAIL || 'tu_correo@ejemplo.com';
-const apiKey = process.env.ALEGRA_API_KEY || 'tu_api_key';
+const email = process.env.ALEGRA_EMAIL || 'mauricio.izquierdo@hotmail.com';
+const apiKey = process.env.ALEGRA_API_KEY || '4be4096858fba53cdc21';
 
 if (email === 'tu_correo@ejemplo.com' || apiKey === 'tu_api_key') {
     console.warn("⚠️ ADVERTENCIA: Usando credenciales de prueba. Asegúrate de configurar ALEGRA_EMAIL y ALEGRA_API_KEY en tu entorno o en el script.");
