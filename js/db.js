@@ -32,7 +32,9 @@ const DB = {
         INVENTORY_LOTS: 'cg_inventory_lots',
         COUNTERS: 'cg_counters',
         CURRENT_USER: 'cg_current_user',
-        INITIALIZED: 'cg_initialized'
+        INITIALIZED: 'cg_initialized',
+        FACTURAS_ALEGRA: 'cg_facturas_alegra',
+        COTIZACIONES_ALEGRA: 'cg_cotizaciones_alegra'
     },
 
     // Google Sheets Web App URL

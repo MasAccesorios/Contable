@@ -3112,11 +3112,72 @@ const App = {
                 DB._persist(DB.KEYS.CARTERA, dbCartera);
             }
 
+            // 6. Importar Facturas Completas (Histórico Total Alegra)
+            const importedFacturas = data.facturas_venta || [];
+            if (importedFacturas.length > 0) {
+                let dbFacturas = DB.getAll(DB.KEYS.FACTURAS_ALEGRA) || [];
+                importedFacturas.forEach(f => {
+                    const existingIdx = dbFacturas.findIndex(r => String(r.id_alegra) === String(f.id_alegra));
+                    if (existingIdx >= 0) {
+                        dbFacturas[existingIdx] = { ...dbFacturas[existingIdx], ...f, updated_at: new Date().toISOString() };
+                    } else {
+                        dbFacturas.push({ id: DB.genId(), created_at: new Date().toISOString(), ...f });
+                    }
+                });
+                DB._persist(DB.KEYS.FACTURAS_ALEGRA, dbFacturas);
+            }
+
+            // 7. Importar Cotizaciones / Estimaciones
+            const importedCotizaciones = data.cotizaciones || [];
+            let cotCount = 0;
+            if (importedCotizaciones.length > 0) {
+                let dbCots = DB.getAll(DB.KEYS.COTIZACIONES_ALEGRA) || [];
+                importedCotizaciones.forEach(c => {
+                    const existingIdx = dbCots.findIndex(r => String(r.id_alegra) === String(c.id_alegra));
+                    if (existingIdx >= 0) {
+                        dbCots[existingIdx] = { ...dbCots[existingIdx], ...c, updated_at: new Date().toISOString() };
+                    } else {
+                        dbCots.push({ id: DB.genId(), created_at: new Date().toISOString(), ...c });
+                    }
+                    cotCount++;
+                });
+                DB._persist(DB.KEYS.COTIZACIONES_ALEGRA, dbCots);
+            }
+
+            // 8. Importar Vendedores
+            const importedVendedores = data.vendedores || [];
+            let vCount = 0;
+            if (importedVendedores.length > 0) {
+                let dbSellers = DB.getAll(DB.KEYS.SELLERS) || [];
+                importedVendedores.forEach(v => {
+                    const existingIdx = dbSellers.findIndex(s =>
+                        (s.id_alegra && String(s.id_alegra) === String(v.id_alegra)) ||
+                        (v.nombre && s.nombre && s.nombre.toLowerCase().trim() === v.nombre.toLowerCase().trim())
+                    );
+                    const sellerData = {
+                        nombre: v.nombre,
+                        email: v.email || '',
+                        identificacion: v.identificacion || '',
+                        id_alegra: String(v.id_alegra),
+                        estado: v.estado || 'Activo',
+                        comision_porcentaje: 0,
+                        updated_at: new Date().toISOString()
+                    };
+                    if (existingIdx >= 0) {
+                        dbSellers[existingIdx] = { ...dbSellers[existingIdx], ...sellerData };
+                    } else {
+                        dbSellers.push({ id: DB.genId(), created_at: new Date().toISOString(), ...sellerData });
+                    }
+                    vCount++;
+                });
+                DB._persist(DB.KEYS.SELLERS, dbSellers);
+            }
+
             const logsDiv = document.getElementById('integrationLogs');
             if (logsDiv) {
-                logsDiv.innerHTML = `<div class="alert alert-success py-2 mb-2"><i class="bi bi-check-circle me-1"></i> Éxito Importación Local: ${cCount} contactos, ${pCount} productos, ${importedBanks.length} bancos, ${importedMovements.length} movimientos, ${importedCartera.length} cuentas x cobrar. (${new Date().toLocaleString()})</div>` + (logsDiv.innerHTML.includes('No hay') ? '' : logsDiv.innerHTML);
+                logsDiv.innerHTML = `<div class="alert alert-success py-2 mb-2"><i class="bi bi-check-circle me-1"></i> <strong>Éxito Importación Espejo Total:</strong> ${cCount} contactos, ${pCount} productos, ${importedBanks.length} bancos, ${importedMovements.length} movimientos, ${importedCartera.length} CxC, ${importedFacturas.length} facturas históricas, ${cotCount} cotizaciones, ${vCount} vendedores. (${new Date().toLocaleString()})</div>` + (logsDiv.innerHTML.includes('No hay') ? '' : logsDiv.innerHTML);
             }
-            this.showToast('Importación completada con éxito.', 'Éxito', 'success');
+            this.showToast('Importación espejo total completada con éxito.', 'Éxito', 'success');
         } catch (error) {
             console.error(error);
             this.showToast(error.message, 'Error de Importación', 'danger');
