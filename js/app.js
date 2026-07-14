@@ -612,102 +612,149 @@ const App = {
                 <p class="mt-2 mb-0">No hay registros para mostrar en esta pestaña.</p>
             </div>`;
         } else {
-            let thead = `<tr>
-                <th style="width: 15%">Documento</th>
-                <th style="width: 15%">Fecha</th>
-                ${tabName === 'facturas-venta' ? '<th style="width: 15%">Vence</th>' : ''}
-                <th style="width: ${tabName === 'facturas-venta' ? '20%' : '35%'}">Detalle</th>
-                <th style="width: 15%">Estado</th>
-                <th class="text-end" style="width: 17.5%">Gastos</th>
-                <th class="text-end" style="width: 17.5%">Ingresos</th>
-            </tr>`;
-            
-            let rows = paginated.map(item => {
-                let fecha = item.fecha || item.fecha_emision || item.created_at;
-                let gasto = 0;
-                let ingreso = 0;
-                let docCell = '-';
-                let detalle = '';
-                let estado = item.estado || 'completado';
+            let thead = '';
+            let rows = '';
 
-                if (tabName === 'facturas-venta') {
-                    const num = item.numero || item.id.toString().substr(-6).toUpperCase();
-                    docCell = `<a href="#" onclick="event.preventDefault(); App.viewInvoice('${item.id}', 'venta')" class="text-primary fw-medium">${num.replace('#', '')}</a>`;
-                    detalle = `Factura de venta`;
-                    ingreso = item.total;
-                } else if (tabName === 'facturas-proveedor') {
-                    const num = item.numero_factura || item.id_alegra_factura || item.id.toString().substr(-6).toUpperCase();
-                    docCell = `<span class="text-primary fw-medium">${num.replace('#', '')}</span>`;
-                    detalle = `Factura de proveedor`;
-                    gasto = item.total;
-                } else if (tabName === 'cotizaciones') {
-                    const num = item.numero || item.id.toString().substr(-6).toUpperCase();
-                    docCell = `<a href="#" onclick="event.preventDefault(); App.viewInvoice('${item.id}', 'cotizacion')" class="text-primary fw-medium">${num.replace('#', '')}</a>`;
-                    detalle = `Cotización`;
-                    ingreso = item.total;
-                } else if (tabName === 'devoluciones') {
-                    const ref = item.id.toString().substr(-6).toUpperCase();
-                    docCell = `<span class="text-primary fw-medium">${ref.replace('#', '')}</span>`;
-                    detalle = `Devolución ${item.tipo === 'ingreso' ? 'de Venta' : 'a Proveedor'}`;
-                    if (item.tipo === 'ingreso') {
-                        gasto = item.total;
-                    } else {
-                        ingreso = item.total;
-                    }
-                } else if (tabName === 'cuentas-cobrar') {
-                    const num = item.venta_numero || item.venta_id.toString().substr(-6).toUpperCase();
-                    docCell = `<a href="#" onclick="event.preventDefault(); App.viewInvoice('${item.venta_id}', 'venta')" class="text-primary fw-medium">${num.replace('#', '')}</a>`;
-                    detalle = `Cuenta por cobrar`;
-                    ingreso = item.saldo; // lo que entra
-                } else if (tabName === 'pagos') {
-                    const ref = item.numero || item.id.toString().substr(-6).toUpperCase();
-                    docCell = `<span class="text-primary fw-medium">${ref.replace('#', '')}</span>`;
-                    detalle = `Recibo de Caja`;
-                    ingreso = item.total;
-                } else {
-                    detalle = item.descripcion || 'Movimiento';
-                    if (item.tipo === 'ingreso') ingreso = item.monto;
-                    else gasto = item.monto;
-                }
-
-                let extraTd = '';
-                if (tabName === 'facturas-venta') {
-                    let vencHtml = '-';
-                    if (item.fecha_vencimiento) {
-                        const colorClass = App.getVencimientoStyle(item.fecha_vencimiento, estado);
-                        vencHtml = `<span class="${colorClass}">${fmtDate(item.fecha_vencimiento)}</span>`;
-                    }
-                    extraTd = `<td class="align-middle">${vencHtml}</td>`;
-                }
-
-                let badgeClass = "text-gray-600 bg-gray-50 px-2 py-1 rounded font-medium"; 
-                const hoy = new Date("2026-07-14");
-                const vencimiento = new Date(item.fecha_vencimiento || item.validez || item.fecha || item.fecha_emision);
-                const estUpper = estado.toUpperCase();
-
-                if (estUpper === "PAGADA" || estUpper === "CONCILIADO") {
-                    badgeClass = "text-green-700 bg-green-50 px-2 py-1 rounded font-medium";
-                } else if (estUpper === "PENDIENTE") {
-                    if (vencimiento < hoy) {
-                        badgeClass = "text-red-700 bg-red-50 px-2 py-1 rounded font-medium"; // Vencido
-                    } else {
-                        badgeClass = "text-green-700 bg-green-50 px-2 py-1 rounded font-medium"; // Al día
-                    }
-                } else if (estUpper === "ANULADA" || estUpper === "RECHAZADA") {
-                    badgeClass = "text-red-700 bg-red-50 px-2 py-1 rounded font-medium";
-                } else if (estUpper === "CONVERTIDA" || estUpper === "ACEPTADA") {
-                    badgeClass = "text-blue-700 bg-blue-50 px-2 py-1 rounded font-medium";
-                }
-
-                return `<tr>
-                    <td class="align-middle">${fmtDate(fecha)}</td>
-                    ${extraTd}
-                    <td class="align-middle text-muted">${detalle}</td>
-                    <td class="align-middle"><span class="${badgeClass} text-uppercase" style="font-size: 0.75rem;">${estado}</span></td>
-                    <td class="align-middle text-end text-danger">${gasto > 0 ? fmt(gasto) : '-'}</td>
-                    <td class="align-middle text-end text-success">${ingreso > 0 ? fmt(ingreso) : '-'}</td>
+            if (tabName === 'facturas-venta') {
+                thead = `<tr>
+                    <th class="p-3">Documento</th>
+                    <th class="p-3">Fecha</th>
+                    <th class="p-3">Vence</th>
+                    <th class="p-3">Detalle</th>
+                    <th class="p-3">Estado</th>
+                    <th class="p-3 text-end">Total</th>
+                    <th class="p-3 text-end">Abono</th>
+                    <th class="p-3 text-end">Saldo</th>
                 </tr>`;
-            }).join('');
+                
+                rows = paginated.map(doc => {
+                    let badgeClass = "text-gray-600 bg-gray-50 px-2 py-1 rounded font-medium"; 
+                    const hoy = new Date("2026-07-14");
+                    const vencimiento = doc.fecha_vencimiento ? new Date(doc.fecha_vencimiento) : new Date(doc.fecha);
+                    const estado = doc.estado || 'PENDIENTE';
+                    const estUpper = estado.toUpperCase();
+
+                    if (estUpper === "PAGADA" || estUpper === "CONCILIADO") {
+                        badgeClass = "text-green-700 bg-green-50 px-2 py-1 rounded font-medium";
+                    } else if (estUpper === "PENDIENTE") {
+                        if (vencimiento < hoy) {
+                            badgeClass = "text-red-700 bg-red-50 px-2 py-1 rounded font-medium";
+                        } else {
+                            badgeClass = "text-green-700 bg-green-50 px-2 py-1 rounded font-medium";
+                        }
+                    } else if (estUpper === "ANULADA" || estUpper === "RECHAZADA") {
+                        badgeClass = "text-red-700 bg-red-50 px-2 py-1 rounded font-medium";
+                    }
+
+                    const num = doc.numero || doc.id.toString().substr(-6).toUpperCase();
+                    const total = parseFloat(doc.total || 0);
+                    
+                    const allCartera = DB.getAll(DB.KEYS.CARTERA) || [];
+                    const carteraItem = allCartera.find(c => String(c.venta_id) === String(doc.id));
+                    let abono = 0;
+                    if (doc.tipo_venta === 'contado') {
+                        abono = total;
+                    } else if (carteraItem) {
+                        abono = total - parseFloat(carteraItem.saldo);
+                    }
+                    
+                    const saldo = total - abono;
+                    const esVencido = (vencimiento < hoy);
+                    const saldoColorClass = (saldo > 0 && esVencido) ? "text-danger fw-bold" : (saldo === 0 ? "text-muted" : "text-success fw-bold");
+
+                    return `<tr>
+                        <td class="p-3 align-middle"><a href="#" onclick="event.preventDefault(); App.viewInvoice('${doc.id}', 'venta')" class="text-primary fw-medium text-decoration-none">${num.toString().replace('#', '')}</a></td>
+                        <td class="p-3 align-middle">${fmtDate(doc.fecha)}</td>
+                        <td class="p-3 align-middle"><span class="${badgeClass}">${fmtDate(doc.fecha_vencimiento)}</span></td>
+                        <td class="p-3 align-middle">Factura de venta</td>
+                        <td class="p-3 align-middle"><span class="${badgeClass} text-uppercase" style="font-size: 0.75rem;">${estado}</span></td>
+                        <td class="p-3 align-middle text-end text-dark">${fmt(total)}</td>
+                        <td class="p-3 align-middle text-end text-muted">${fmt(abono)}</td>
+                        <td class="p-3 align-middle text-end ${saldoColorClass}">${fmt(saldo)}</td>
+                    </tr>`;
+                }).join('');
+            } else {
+                thead = `<tr>
+                    <th style="width: 15%">Documento</th>
+                    <th style="width: 15%">Fecha</th>
+                    <th style="width: 35%">Detalle</th>
+                    <th style="width: 15%">Estado</th>
+                    <th class="text-end" style="width: 17.5%">Gastos</th>
+                    <th class="text-end" style="width: 17.5%">Ingresos</th>
+                </tr>`;
+                
+                rows = paginated.map(item => {
+                    let fecha = item.fecha || item.fecha_emision || item.created_at;
+                    let gasto = 0;
+                    let ingreso = 0;
+                    let docCell = '-';
+                    let detalle = '';
+                    let estado = item.estado || 'completado';
+
+                    if (tabName === 'facturas-proveedor') {
+                        const num = item.numero_factura || item.id_alegra_factura || item.id.toString().substr(-6).toUpperCase();
+                        docCell = `<span class="text-primary fw-medium">${num.toString().replace('#', '')}</span>`;
+                        detalle = `Factura de proveedor`;
+                        gasto = item.total;
+                    } else if (tabName === 'cotizaciones') {
+                        const num = item.numero || item.id.toString().substr(-6).toUpperCase();
+                        docCell = `<a href="#" onclick="event.preventDefault(); App.viewInvoice('${item.id}', 'cotizacion')" class="text-primary fw-medium">${num.toString().replace('#', '')}</a>`;
+                        detalle = `Cotización`;
+                        ingreso = item.total;
+                    } else if (tabName === 'devoluciones') {
+                        const ref = item.id.toString().substr(-6).toUpperCase();
+                        docCell = `<span class="text-primary fw-medium">${ref.replace('#', '')}</span>`;
+                        detalle = `Devolución ${item.tipo === 'ingreso' ? 'de Venta' : 'a Proveedor'}`;
+                        if (item.tipo === 'ingreso') {
+                            gasto = item.total;
+                        } else {
+                            ingreso = item.total;
+                        }
+                    } else if (tabName === 'cuentas-cobrar') {
+                        const num = item.venta_numero || item.venta_id.toString().substr(-6).toUpperCase();
+                        docCell = `<a href="#" onclick="event.preventDefault(); App.viewInvoice('${item.venta_id}', 'venta')" class="text-primary fw-medium">${num.toString().replace('#', '')}</a>`;
+                        detalle = `Cuenta por cobrar`;
+                        ingreso = item.saldo; // lo que entra
+                    } else if (tabName === 'pagos') {
+                        const ref = item.numero || item.id.toString().substr(-6).toUpperCase();
+                        docCell = `<span class="text-primary fw-medium">${ref.replace('#', '')}</span>`;
+                        detalle = `Recibo de Caja`;
+                        ingreso = item.total;
+                    } else {
+                        detalle = item.descripcion || 'Movimiento';
+                        if (item.tipo === 'ingreso') ingreso = item.monto;
+                        else gasto = item.monto;
+                    }
+
+                    let badgeClass = "text-gray-600 bg-gray-50 px-2 py-1 rounded font-medium"; 
+                    const hoy = new Date("2026-07-14");
+                    const vencimiento = new Date(item.fecha_vencimiento || item.validez || item.fecha || item.fecha_emision);
+                    const estUpper = estado.toUpperCase();
+
+                    if (estUpper === "PAGADA" || estUpper === "CONCILIADO") {
+                        badgeClass = "text-green-700 bg-green-50 px-2 py-1 rounded font-medium";
+                    } else if (estUpper === "PENDIENTE") {
+                        if (vencimiento < hoy) {
+                            badgeClass = "text-red-700 bg-red-50 px-2 py-1 rounded font-medium"; // Vencido
+                        } else {
+                            badgeClass = "text-green-700 bg-green-50 px-2 py-1 rounded font-medium"; // Al día
+                        }
+                    } else if (estUpper === "ANULADA" || estUpper === "RECHAZADA") {
+                        badgeClass = "text-red-700 bg-red-50 px-2 py-1 rounded font-medium";
+                    } else if (estUpper === "CONVERTIDA" || estUpper === "ACEPTADA") {
+                        badgeClass = "text-blue-700 bg-blue-50 px-2 py-1 rounded font-medium";
+                    }
+
+                    return `<tr>
+                        <td class="align-middle">${docCell}</td>
+                        <td class="align-middle">${fmtDate(fecha)}</td>
+                        <td class="align-middle text-muted">${detalle}</td>
+                        <td class="align-middle"><span class="${badgeClass} text-uppercase" style="font-size: 0.75rem;">${estado}</span></td>
+                        <td class="align-middle text-end text-danger">${gasto > 0 ? fmt(gasto) : '-'}</td>
+                        <td class="align-middle text-end text-success">${ingreso > 0 ? fmt(ingreso) : '-'}</td>
+                    </tr>`;
+                }).join('');
+            }
 
             tableHtml = `
                 <div class="table-responsive bg-white rounded shadow-sm">
