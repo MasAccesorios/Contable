@@ -915,7 +915,11 @@ const Pages = {
                     <td><strong>${client ? client.nombre : 'N/A'}</strong></td>
                     <td class="text-end">${fmt(c.total)}</td>
                     <td class="text-end">${fmt(c.saldo)}</td>
-                    <td>${c.fecha_vencimiento || 'N/A'}</td>
+                    <td>
+                        <span class="${App.getVencimientoStyle(c.fecha_vencimiento, c.estado)}">
+                            ${c.fecha_vencimiento || 'N/A'}
+                        </span>
+                    </td>
                     <td><span class="badge-status badge-${c.estado}">${c.estado}</span></td>
                     <td class="text-end">${fmt(c.total - c.saldo)}</td>
                     <td>

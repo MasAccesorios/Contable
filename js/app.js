@@ -65,6 +65,26 @@ const App = {
         document.getElementById('logoutBtn').addEventListener('click', () => this.handleLogout());
     },
 
+    getVencimientoStyle(fechaVencimiento, estado) {
+        if (!fechaVencimiento) return '-';
+        const status = String(estado).toLowerCase();
+        
+        if (['pagada', 'conciliado', 'anulada', 'completado'].includes(status)) {
+            return 'text-muted';
+        }
+        
+        if (status === 'pendiente') {
+            const hoy = new Date("2026-07-14");
+            const vence = new Date(fechaVencimiento);
+            if (vence < hoy) {
+                return 'text-danger fw-semibold bg-danger bg-opacity-10 px-2 py-1 rounded';
+            } else {
+                return 'text-success fw-semibold bg-success bg-opacity-10 px-2 py-1 rounded';
+            }
+        }
+        return '';
+    },
+
     setupEventListeners() {
         // Save buttons
         document.getElementById('saveClienteBtn').addEventListener('click', () => this.saveCliente());
@@ -657,8 +677,7 @@ const App = {
                 if (tabName === 'facturas-venta') {
                     let vencHtml = '-';
                     if (item.fecha_vencimiento) {
-                        const isOverdue = lowerStatus === 'pendiente' && new Date(item.fecha_vencimiento) < new Date();
-                        const colorClass = isOverdue ? 'text-danger fw-bold' : (['pagada', 'completado', 'anulada'].includes(lowerStatus) ? 'text-muted' : '');
+                        const colorClass = App.getVencimientoStyle(item.fecha_vencimiento, estado);
                         vencHtml = `<span class="${colorClass}">${fmtDate(item.fecha_vencimiento)}</span>`;
                     }
                     extraTd = `<td class="align-middle">${vencHtml}</td>`;
