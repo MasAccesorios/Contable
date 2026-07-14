@@ -2621,6 +2621,130 @@ const App = {
         setTimeout(() => this.loadAllBankMovements(bankId, 'all', 1), 150);
     },
 
+    toggleAllConciliacion(checkbox) {
+        const isChecked = checkbox.checked;
+        document.querySelectorAll('#concTable .mov-checkbox').forEach(cb => {
+            cb.checked = isChecked;
+            const tr = cb.closest('tr');
+            if (isChecked) {
+                tr.classList.add('table-active');
+            } else {
+                tr.classList.remove('table-active');
+            }
+        });
+        this.recalcConciliacion();
+    },
+
+    recalcConciliacion() {
+        const fmt = (n) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n);
+        
+        let sumEntradas = 0;
+        let sumSalidas = 0;
+
+        document.querySelectorAll('#concTable .mov-checkbox:checked').forEach(cb => {
+            const tr = cb.closest('tr');
+            tr.classList.add('table-active');
+            const type = tr.dataset.type;
+            const monto = parseFloat(tr.dataset.monto || 0);
+            if (type === 'ingreso') sumEntradas += monto;
+            else sumSalidas += monto;
+        });
+
+        document.querySelectorAll('#concTable .mov-checkbox:not(:checked)').forEach(cb => {
+            cb.closest('tr').classList.remove('table-active');
+        });
+
+        const entradasEl = document.getElementById('concEntradas');
+        const salidasEl = document.getElementById('concSalidas');
+        if (entradasEl) entradasEl.textContent = fmt(sumEntradas);
+        if (salidasEl) salidasEl.textContent = fmt(sumSalidas);
+
+        const saldoAnteriorEl = document.getElementById('concSaldoAnterior');
+        const saldoAnterior = saldoAnteriorEl ? parseFloat(saldoAnteriorEl.dataset.val || 0) : 0;
+        
+        const manualGastos = parseFloat(document.getElementById('concGastos')?.value || 0);
+        const manualImp = parseFloat(document.getElementById('concImpuestos')?.value || 0);
+        const manualEntradas = parseFloat(document.getElementById('concEntradasManual')?.value || 0);
+
+        const saldoTotal = saldoAnterior + sumEntradas - sumSalidas - manualGastos - manualImp + manualEntradas;
+        const saldoTotalEl = document.getElementById('concSaldoTotal');
+        if (saldoTotalEl) saldoTotalEl.textContent = fmt(saldoTotal);
+
+        const extractoStr = document.getElementById('concSaldoBancario')?.value;
+        const btnConciliar = document.getElementById('btnConciliar');
+        const concDiferenciaEl = document.getElementById('concDiferencia');
+        const concDifIcon = document.getElementById('concDifIcon');
+
+        if (!extractoStr || extractoStr.trim() === '') {
+            if (concDiferenciaEl) {
+                concDiferenciaEl.textContent = '$0';
+                concDiferenciaEl.className = 'mb-0 fw-bold text-muted';
+            }
+            if (concDifIcon) concDifIcon.className = 'bi bi-dash-circle text-muted fs-3';
+            if (btnConciliar) btnConciliar.classList.add('disabled');
+            return;
+        }
+
+        const saldoBancario = parseFloat(extractoStr || 0);
+        const diferencia = saldoBancario - saldoTotal;
+
+        if (concDiferenciaEl) concDiferenciaEl.textContent = fmt(diferencia);
+        
+        if (Math.abs(diferencia) < 0.01) { // is zero
+            if (concDiferenciaEl) concDiferenciaEl.className = 'mb-0 fw-bold text-success';
+            if (concDifIcon) concDifIcon.className = 'bi bi-check-circle-fill text-success fs-3';
+            if (btnConciliar) btnConciliar.classList.remove('disabled');
+        } else {
+            if (concDiferenciaEl) concDiferenciaEl.className = 'mb-0 fw-bold text-danger';
+            if (concDifIcon) concDifIcon.className = 'bi bi-exclamation-triangle-fill text-danger fs-3';
+            if (btnConciliar) btnConciliar.classList.add('disabled');
+        }
+    },
+
+    execConciliacion(bankId) {
+        if (document.getElementById('btnConciliar')?.classList.contains('disabled')) return;
+        
+        const selectedIds = Array.from(document.querySelectorAll('#concTable .mov-checkbox:checked')).map(cb => cb.value);
+        if (selectedIds.length === 0) {
+            return this.showToast('Debes seleccionar al menos un movimiento para conciliar.', 'Advertencia', 'warning');
+        }
+
+        try {
+            let allMovements = DB.getAll(DB.KEYS.BANK_MOVEMENTS) || [];
+            let updated = 0;
+            allMovements = allMovements.map(m => {
+                if (selectedIds.includes(String(m.id))) {
+                    updated++;
+                    return { ...m, estado: 'conciliado', fecha_conciliacion: new Date().toISOString() };
+                }
+                return m;
+            });
+            
+            const manualGastos = parseFloat(document.getElementById('concGastos')?.value || 0);
+            const manualImp = parseFloat(document.getElementById('concImpuestos')?.value || 0);
+            const manualEntradas = parseFloat(document.getElementById('concEntradasManual')?.value || 0);
+            
+            if (manualGastos > 0 || manualImp > 0 || manualEntradas > 0) {
+                if (manualGastos > 0) {
+                    allMovements.push({ id: DB.genId(), banco_id: bankId, tipo: 'egreso', monto: manualGastos, fecha: new Date().toISOString(), descripcion: 'Ajuste: Gastos bancarios', estado: 'conciliado' });
+                }
+                if (manualImp > 0) {
+                    allMovements.push({ id: DB.genId(), banco_id: bankId, tipo: 'egreso', monto: manualImp, fecha: new Date().toISOString(), descripcion: 'Ajuste: Impuestos bancarios', estado: 'conciliado' });
+                }
+                if (manualEntradas > 0) {
+                    allMovements.push({ id: DB.genId(), banco_id: bankId, tipo: 'ingreso', monto: manualEntradas, fecha: new Date().toISOString(), descripcion: 'Ajuste: Entradas bancarias', estado: 'conciliado' });
+                }
+            }
+            
+            DB._persist(DB.KEYS.BANK_MOVEMENTS, allMovements);
+
+            this.showToast(`¡Conciliación exitosa! Se conciliarion ${updated} movimientos.`);
+            this.navigateTo('bancos');
+        } catch(e) {
+            this.showToast('Error al conciliar: ' + e.message, 'Error', 'danger');
+        }
+    },
+
     loadAllBankMovements(bankIdFilter = 'all', clientIdFilter = 'all', page = 1) {
         const area = document.getElementById('bankMovementsTableArea');
         if (!area) return;

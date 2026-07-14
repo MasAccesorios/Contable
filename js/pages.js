@@ -1053,7 +1053,7 @@ const Pages = {
                     <td class="align-middle text-end ${saldoStyle}">${fmt(displaySaldo)}</td>
                     <td class="align-middle text-end">
                         <div class="d-flex justify-content-end align-items-center gap-2">
-                            <button class="btn btn-sm btn-outline-secondary rounded-pill px-3 fw-medium">Conciliar</button>
+                            <button class="btn btn-sm btn-outline-secondary rounded-pill px-3 fw-medium" onclick="App.navigateTo('conciliacion', '${b.id}')">Conciliar</button>
                             <button class="btn btn-sm btn-light text-primary" onclick="App.viewBankMovements('${b.id}')" title="Ver movimientos">
                                 <i class="bi bi-eye"></i>
                             </button>
@@ -1116,6 +1116,180 @@ const Pages = {
                         </table>
                     </div>
                 </div>
+            </div>
+        </div>
+        `;
+    },
+
+    conciliacion(bankId) {
+        const bank = DB.getBank(bankId);
+        if (!bank) return '<div class="alert alert-danger m-4">Banco no encontrado</div>';
+        
+        const allMovements = DB.getAll(DB.KEYS.BANK_MOVEMENTS) || [];
+        const unconciled = allMovements.filter(m => String(m.banco_id) === String(bankId) && m.estado !== 'conciliado');
+        
+        const fmt = (n) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n);
+        
+        // El saldo anterior es el saldo_inicial (o 0) más la sumatoria de todos los movimientos ya conciliados
+        let saldoAnterior = parseFloat(bank.saldo_inicial || 0);
+        const conciled = allMovements.filter(m => String(m.banco_id) === String(bankId) && m.estado === 'conciliado');
+        conciled.forEach(m => {
+            const amt = parseFloat(m.monto || 0);
+            if (m.tipo === 'ingreso') saldoAnterior += amt;
+            else saldoAnterior -= amt;
+        });
+
+        // Generar filas
+        const rows = unconciled.map(m => {
+            const isIngreso = m.tipo === 'ingreso';
+            const valClass = isIngreso ? 'text-success' : 'text-danger';
+            
+            let clientName = 'N/A';
+            if (m.cliente_id || m.cliente_id_alegra) {
+                clientName = DB.getClientName(m.cliente_id || m.cliente_id_alegra, m.cliente_nombre || m.cliente_nombre_alegra);
+            } else if (m.referencia_id) {
+                clientName = m.extracted_client_name || 'N/A';
+            }
+            if (clientName === 'N/A' && m.cliente_nombre_alegra) clientName = m.cliente_nombre_alegra;
+
+            return `
+            <tr class="mov-row" data-id="${m.id}" data-type="${m.tipo}" data-monto="${parseFloat(m.monto || 0)}">
+                <td class="align-middle ps-4">
+                    <div class="form-check">
+                        <input class="form-check-input mov-checkbox" type="checkbox" value="${m.id}" onchange="App.recalcConciliacion()" style="cursor:pointer; width: 1.2rem; height: 1.2rem;">
+                    </div>
+                </td>
+                <td class="align-middle text-muted">${new Date(m.fecha || m.created_at).toLocaleDateString('es-CO')}</td>
+                <td class="align-middle fw-medium">${clientName}</td>
+                <td class="align-middle text-muted text-capitalize">${m.tipo}</td>
+                <td class="align-middle text-muted">${m.descripcion || '-'}</td>
+                <td class="align-middle text-end fw-bold ${valClass}">${fmt(parseFloat(m.monto || 0))}</td>
+                <td class="align-middle text-end pe-4">
+                    <button class="btn btn-sm btn-light text-primary" title="Ver detalle">
+                        <i class="bi bi-eye"></i>
+                    </button>
+                </td>
+            </tr>
+            `;
+        }).join('');
+
+        const emptyState = `<tr><td colspan="7" class="text-center text-muted p-5"><i class="bi bi-check-circle fs-2 text-success d-block mb-2"></i>Todo está conciliado en esta cuenta.</td></tr>`;
+
+        return `
+        <div class="fade-in pb-5">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h3 class="fw-bold mb-1 text-dark"><i class="bi bi-shield-check me-2 text-primary"></i>Conciliación Bancaria</h3>
+                    <div class="text-muted fw-medium fs-5">${bank.nombre} ${bank.numero_cuenta ? '• ' + bank.numero_cuenta : ''}</div>
+                </div>
+                <button class="btn btn-outline-secondary fw-medium bg-white" onclick="App.navigateTo('bancos')">
+                    <i class="bi bi-arrow-left me-1"></i> Volver a Bancos
+                </button>
+            </div>
+
+            <!-- Panel Superior de Cálculos -->
+            <div class="row g-4 mb-4">
+                <!-- Tarjeta de Fórmulas -->
+                <div class="col-lg-8">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body p-4">
+                            <div class="row align-items-center mb-4">
+                                <div class="col-sm-3 text-muted fw-bold text-uppercase small">Saldo anterior</div>
+                                <div class="col-sm-9 text-dark fw-bold fs-5 text-end" id="concSaldoAnterior" data-val="${saldoAnterior}">${fmt(saldoAnterior)}</div>
+                            </div>
+                            <div class="row align-items-center mb-3">
+                                <div class="col-sm-3 text-muted fw-bold small text-uppercase"><i class="bi bi-plus-circle text-success me-2"></i>Entradas (+)</div>
+                                <div class="col-sm-9 text-success fw-bold text-end" id="concEntradas">$0</div>
+                            </div>
+                            <div class="row align-items-center mb-4">
+                                <div class="col-sm-3 text-muted fw-bold small text-uppercase"><i class="bi bi-dash-circle text-danger me-2"></i>Salidas (-)</div>
+                                <div class="col-sm-9 text-danger fw-bold text-end" id="concSalidas">$0</div>
+                            </div>
+                            <hr class="border-secondary opacity-25">
+                            <div class="row align-items-center mt-3">
+                                <div class="col-sm-3 text-dark fw-bold text-uppercase">Saldo total</div>
+                                <div class="col-sm-9 text-dark fw-bold fs-3 text-end" id="concSaldoTotal">${fmt(saldoAnterior)}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Tarjeta de Conciliación -->
+                <div class="col-lg-4">
+                    <div class="card border-0 shadow-sm h-100 bg-light">
+                        <div class="card-body p-4 d-flex flex-column">
+                            <div class="mb-4">
+                                <label class="form-label text-muted fw-bold small text-uppercase">Saldo bancario (Extracto)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-white border-end-0 text-muted">$</span>
+                                    <input type="number" class="form-control border-start-0 ps-0 fw-bold fs-4 text-end" id="concSaldoBancario" placeholder="0" oninput="App.recalcConciliacion()">
+                                </div>
+                            </div>
+                            <div class="mt-auto">
+                                <div class="text-muted fw-bold small text-uppercase mb-2">Diferencia</div>
+                                <div class="d-flex align-items-center justify-content-between bg-white p-3 rounded border">
+                                    <h3 class="mb-0 fw-bold text-danger" id="concDiferencia">$0</h3>
+                                    <i class="bi bi-exclamation-triangle-fill text-danger fs-3" id="concDifIcon"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ajustes manuales opcionales -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body p-4">
+                    <h6 class="text-muted fw-bold mb-3 small text-uppercase">Ajustes manuales (Opcional)</h6>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label text-muted small fw-medium">Gastos bancarios (-)</label>
+                            <input type="number" class="form-control bg-light" id="concGastos" placeholder="0" oninput="App.recalcConciliacion()">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label text-muted small fw-medium">Impuestos bancarios (-)</label>
+                            <input type="number" class="form-control bg-light" id="concImpuestos" placeholder="0" oninput="App.recalcConciliacion()">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label text-muted small fw-medium">Entradas bancarias (+)</label>
+                            <input type="number" class="form-control bg-light" id="concEntradasManual" placeholder="0" oninput="App.recalcConciliacion()">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabla de movimientos a conciliar -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0" id="concTable">
+                            <thead class="bg-light text-uppercase text-muted" style="font-size: 0.75rem;">
+                                <tr>
+                                    <th class="ps-4 border-0 py-3" style="width: 40px">
+                                        <input class="form-check-input" type="checkbox" id="concSelectAll" onchange="App.toggleAllConciliacion(this)">
+                                    </th>
+                                    <th class="border-0 py-3">Fecha</th>
+                                    <th class="border-0 py-3">Tercero</th>
+                                    <th class="border-0 py-3">Concepto</th>
+                                    <th class="border-0 py-3">Detalle</th>
+                                    <th class="text-end border-0 py-3">Valor</th>
+                                    <th class="text-end pe-4 border-0 py-3">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${unconciled.length > 0 ? rows : emptyState}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer fijo para acciones -->
+            <div class="d-flex justify-content-end gap-3 mt-4 mb-2">
+                <button class="btn btn-outline-secondary px-4 fw-medium bg-white" onclick="App.navigateTo('bancos')">Posponer</button>
+                <button class="btn btn-primary px-4 fw-bold shadow-sm disabled" id="btnConciliar" onclick="App.execConciliacion('${bankId}')">
+                    <i class="bi bi-check-circle me-1"></i> Conciliar
+                </button>
             </div>
         </div>
         `;
