@@ -907,6 +907,7 @@ const Pages = {
        ================================================= */
     bancos() {
         const banks = DB.getBanks();
+        const clients = DB.getClients();
         const fmt = (n) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n);
 
         let bankCards = '';
@@ -914,7 +915,7 @@ const Pages = {
             bankCards = `<div class="empty-state"><i class="bi bi-bank2"></i><h5>Sin bancos</h5><p>Agrega tu primer banco para comenzar</p></div>`;
         } else {
             bankCards = `<div class="kpi-grid" style="margin-bottom:24px">` + banks.map(b => `
-                <div class="kpi-card card-info" style="cursor:pointer" onclick="App.viewBankMovements('${b.id}')">
+                <div class="kpi-card card-info" style="cursor:pointer" onclick="document.getElementById('bancoFilter').value='${b.id}'; App.loadAllBankMovements(document.getElementById('bancoFilter').value, document.getElementById('bancoClienteFilter').value, 1);">
                     <div class="kpi-label">
                         <div class="icon-circle"><i class="bi bi-bank2"></i></div>
                         ${b.nombre}
@@ -923,16 +924,19 @@ const Pages = {
                         </button>
                     </div>
                     <div class="kpi-value">${fmt(b.saldo_actual || 0)}</div>
-                    <div class="kpi-sub">Click para ver movimientos</div>
+                    <div class="kpi-sub">Click para filtrar movimientos</div>
                 </div>
             `).join('') + `</div>`;
         }
+
+        const bankOptions = banks.map(b => `<option value="${b.id}">${b.nombre}</option>`).join('');
+        const clientOptions = clients.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
 
         return `
         <div class="fade-in">
             <div class="section-card">
                 <div class="section-header">
-                    <div class="section-title"><i class="bi bi-bank2"></i> Bancos</div>
+                    <div class="section-title"><i class="bi bi-bank2"></i> Bancos y Movimientos</div>
                     <div class="d-flex gap-2">
                         <button class="btn btn-outline-primary" onclick="App.recalibrateBanks()">
                             <i class="bi bi-arrow-repeat me-1"></i> Recalcular Saldos
@@ -943,42 +947,33 @@ const Pages = {
                     </div>
                 </div>
                 <div class="section-body">
+                    <!-- Tarjetas de Saldos -->
                     ${bankCards}
-                    <div id="bankMovementsArea"></div>
+
+                    <!-- Contenedor Maestro de Movimientos -->
+                    <div class="bg-white rounded shadow-sm border p-3">
+                        <div class="row mb-3">
+                            <div class="col-md-6 d-flex align-items-center">
+                                <h5 class="mb-0 fw-bold"><i class="bi bi-list-ul me-2 text-primary"></i>Listado de Movimientos</h5>
+                            </div>
+                            <div class="col-md-3">
+                                <select class="form-select" id="bancoFilter" onchange="App.loadAllBankMovements(this.value, document.getElementById('bancoClienteFilter').value, 1)">
+                                    <option value="all">Todas las Cuentas</option>
+                                    ${bankOptions}
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <select class="form-select" id="bancoClienteFilter" onchange="App.loadAllBankMovements(document.getElementById('bancoFilter').value, this.value, 1)">
+                                    <option value="all">Todos los Clientes/Proveedores</option>
+                                    ${clientOptions}
+                                </select>
+                            </div>
+                        </div>
+                        <div id="bankMovementsTableArea">
+                            <div class="text-center text-muted p-4"><i class="bi bi-arrow-repeat spin me-1"></i> Cargando movimientos...</div>
+                        </div>
+                    </div>
                 </div>
-            </div>
-        </div>`;
-    },
-
-    bankMovements(bankId) {
-        const bank = DB.getBank(bankId);
-        const movements = DB.getBankMovements(bankId);
-        const fmt = (n) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n);
-
-        if (movements.length === 0) return '<p class="text-muted text-center py-3">Sin movimientos</p>';
-
-        const rows = movements.map(m => `<tr>
-            <td>${m.fecha}</td>
-            <td><span class="badge-status badge-${m.tipo}">${m.tipo}</span></td>
-            <td>${m.descripcion}</td>
-            <td class="text-end ${m.tipo === 'ingreso' ? 'text-success' : 'text-danger'} fw-bold">${m.tipo === 'ingreso' ? '+' : '-'}${fmt(m.monto)}</td>
-        </tr>`).join('');
-
-        return `
-        <div class="mt-3">
-            <h6 class="fw-bold mb-3"><i class="bi bi-list-ul me-2"></i>Movimientos - ${bank ? bank.nombre : ''}</h6>
-            <div style="overflow-x:auto">
-                <table class="table-modern">
-                    <thead>
-                        <tr>
-                            ${TableSort.renderSortTh('Fecha', 'fecha', 'bancos')}
-                            ${TableSort.renderSortTh('Tipo', 'tipo', 'bancos')}
-                            <th>Descripción</th>
-                            <th class="text-end">Monto</th>
-                        </tr>
-                    </thead>
-                    <tbody>${rows}</tbody>
-                </table>
             </div>
         </div>`;
     },

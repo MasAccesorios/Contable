@@ -416,6 +416,9 @@ const App = {
         if (page === 'movimientos') {
             setTimeout(() => this.filterKardex(), 100);
         }
+        if (page === 'bancos') {
+            setTimeout(() => this.loadAllBankMovements('all', 'all', 1), 50);
+        }
         if (page === 'cliente_detail') {
             // Lazy load the first tab dynamically
             setTimeout(() => this.loadClientPageTab(param, 'transacciones', 1), 50);
@@ -2582,11 +2585,139 @@ const App = {
         }
     },
 
-    viewBankMovements(bankId) {
-        const area = document.getElementById('bankMovementsArea');
-        if (area) {
-            area.innerHTML = Pages.bankMovements(bankId);
+    loadAllBankMovements(bankIdFilter = 'all', clientIdFilter = 'all', page = 1) {
+        const area = document.getElementById('bankMovementsTableArea');
+        if (!area) return;
+
+        const fmtDate = (d) => d ? new Date(d).toLocaleDateString('es-CO') : '-';
+        const fmt = (n) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n);
+        
+        let movements = DB.getAll(DB.KEYS.BANK_MOVEMENTS) || [];
+        
+        // Cargar otras tablas para cruzar datos
+        const sales = DB.getSales();
+        const compras = DB.getCompras();
+        const recibos = DB.getAll(DB.KEYS.RECIBOS_CAJA) || [];
+        const pagosProv = DB.getPagosProveedores() || [];
+        
+        // Mapear cliente_id y nombre a los movimientos
+        let mappedMovements = movements.map(m => {
+            let clientId = null;
+            let clientName = 'N/A';
+            let detailHtml = m.descripcion || '';
+            const refId = String(m.referencia_id);
+            
+            if (m.referencia_id) {
+                const sale = sales.find(s => String(s.id) === refId);
+                const compra = compras.find(c => String(c.id) === refId);
+                const recibo = recibos.find(r => String(r.id) === refId);
+                const pago = pagosProv.find(p => String(p.id) === refId);
+                
+                if (sale) {
+                    clientId = sale.cliente_id;
+                    clientName = DB.getClientName(sale.cliente_id, sale.cliente_nombre_alegra);
+                } else if (compra) {
+                    clientId = compra.proveedor_id;
+                    clientName = DB.getClientName(compra.proveedor_id, compra.proveedor_nombre_alegra || compra.cliente_nombre);
+                } else if (recibo) {
+                    clientId = recibo.cliente_id;
+                    clientName = DB.getClientName(recibo.cliente_id, null);
+                } else if (pago) {
+                    clientId = pago.proveedor_id;
+                    clientName = DB.getClientName(pago.proveedor_id, null);
+                }
+                
+                // Formatear enlaces en el detalle
+                const match = detailHtml.match(/#(?:Factura |Venta |[a-zA-Z\s]+)?([a-zA-Z0-9]+)/);
+                if (match) {
+                    const clickCall = m.tipo === 'ingreso' ? `App.viewVenta('${m.referencia_id}')` : `App.editCompra('${m.referencia_id}')`;
+                    detailHtml = detailHtml.replace(match[0], `<a href="#" onclick="event.preventDefault(); ${clickCall}" class="text-primary fw-medium">${match[0]}</a>`);
+                }
+            }
+            
+            return {
+                ...m,
+                extracted_client_id: clientId,
+                extracted_client_name: clientName,
+                detail_html: detailHtml
+            };
+        });
+
+        // Aplicar filtros
+        if (bankIdFilter !== 'all') {
+            mappedMovements = mappedMovements.filter(m => String(m.banco_id) === String(bankIdFilter));
         }
+        if (clientIdFilter !== 'all') {
+            mappedMovements = mappedMovements.filter(m => String(m.extracted_client_id) === String(clientIdFilter));
+        }
+
+        // Ordenar por fecha descendente
+        mappedMovements.sort((a, b) => new Date(b.fecha || a.created_at) - new Date(a.fecha || b.created_at));
+
+        // Paginación
+        const limit = 10;
+        const total = mappedMovements.length;
+        const totalPages = Math.ceil(total / limit) || 1;
+        const currentPage = Math.max(1, Math.min(page, totalPages));
+        const start = (currentPage - 1) * limit;
+        const end = Math.min(start + limit, total);
+        const paginated = mappedMovements.slice(start, end);
+
+        let html = '';
+        if (total === 0) {
+            html = `<div class="text-center text-muted p-5 bg-light rounded border"><i class="bi bi-inbox fs-1 text-secondary"></i><p class="mt-2 mb-0">No se encontraron movimientos con los filtros aplicados.</p></div>`;
+        } else {
+            const rows = paginated.map(m => {
+                const bank = DB.getBank(m.banco_id);
+                const isGasto = m.tipo !== 'ingreso';
+                return `<tr>
+                    <td class="align-middle">${fmtDate(m.fecha)}</td>
+                    <td class="align-middle"><span class="badge bg-light text-dark border"><i class="bi bi-bank me-1"></i>${bank ? bank.nombre : 'N/A'}</span></td>
+                    <td class="align-middle fw-medium">${m.extracted_client_name}</td>
+                    <td class="align-middle text-muted">${m.detail_html}</td>
+                    <td class="align-middle text-end text-danger">${isGasto ? fmt(m.monto) : '-'}</td>
+                    <td class="align-middle text-end text-success">${!isGasto ? fmt(m.monto) : '-'}</td>
+                </tr>`;
+            }).join('');
+
+            html = `
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 12%">Fecha <i class="bi bi-arrow-down-short"></i></th>
+                                <th style="width: 15%">Cuenta</th>
+                                <th style="width: 20%">Cliente/Proveedor</th>
+                                <th style="width: 25%">Detalle/Referencia</th>
+                                <th class="text-end" style="width: 14%">Egreso / Débito</th>
+                                <th class="text-end" style="width: 14%">Ingreso / Crédito</th>
+                            </tr>
+                        </thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                </div>
+            `;
+        }
+
+        // Generar controles de paginación
+        let paginationHtml = '';
+        if (total > 0) {
+            paginationHtml = `
+                <div class="d-flex justify-content-end align-items-center mt-3 border-top pt-3">
+                    <span class="text-muted me-3" style="font-size: 0.85rem;">${start + 1}-${end} de ${total}</span>
+                    <div class="btn-group">
+                        <button class="btn btn-sm btn-outline-secondary" ${currentPage === 1 ? 'disabled' : ''} onclick="App.loadAllBankMovements('${bankIdFilter}', '${clientIdFilter}', ${currentPage - 1})">
+                            <i class="bi bi-chevron-left"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary" ${currentPage === totalPages ? 'disabled' : ''} onclick="App.loadAllBankMovements('${bankIdFilter}', '${clientIdFilter}', ${currentPage + 1})">
+                            <i class="bi bi-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        area.innerHTML = html + paginationHtml;
     },
 
     /* =================================================
