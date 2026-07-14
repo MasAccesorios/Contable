@@ -680,11 +680,30 @@ const App = {
                     extraTd = `<td class="align-middle">${vencHtml}</td>`;
                 }
 
+                let badgeClass = "text-gray-600 bg-gray-50 px-2 py-1 rounded font-medium"; 
+                const hoy = new Date("2026-07-14");
+                const vencimiento = new Date(item.fecha_vencimiento || item.validez || item.fecha || item.fecha_emision);
+                const estUpper = estado.toUpperCase();
+
+                if (estUpper === "PAGADA" || estUpper === "CONCILIADO") {
+                    badgeClass = "text-green-700 bg-green-50 px-2 py-1 rounded font-medium";
+                } else if (estUpper === "PENDIENTE") {
+                    if (vencimiento < hoy) {
+                        badgeClass = "text-red-700 bg-red-50 px-2 py-1 rounded font-medium"; // Vencido
+                    } else {
+                        badgeClass = "text-green-700 bg-green-50 px-2 py-1 rounded font-medium"; // Al día
+                    }
+                } else if (estUpper === "ANULADA" || estUpper === "RECHAZADA") {
+                    badgeClass = "text-red-700 bg-red-50 px-2 py-1 rounded font-medium";
+                } else if (estUpper === "CONVERTIDA" || estUpper === "ACEPTADA") {
+                    badgeClass = "text-blue-700 bg-blue-50 px-2 py-1 rounded font-medium";
+                }
+
                 return `<tr>
                     <td class="align-middle">${fmtDate(fecha)}</td>
                     ${extraTd}
                     <td class="align-middle text-muted">${detalle}</td>
-                    <td class="align-middle"><span class="badge bg-${badgeClass} text-uppercase" style="font-size: 0.75rem;">${estado}</span></td>
+                    <td class="align-middle"><span class="${badgeClass} text-uppercase" style="font-size: 0.75rem;">${estado}</span></td>
                     <td class="align-middle text-end text-danger">${gasto > 0 ? fmt(gasto) : '-'}</td>
                     <td class="align-middle text-end text-success">${ingreso > 0 ? fmt(ingreso) : '-'}</td>
                 </tr>`;
