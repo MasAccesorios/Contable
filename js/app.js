@@ -3079,8 +3079,8 @@ const App = {
             }
 
             // 5. Importar Cuentas por Cobrar (Cartera)
-            const importedCartera = data.cuentas_por_cobrar || [];
-            const importedFacturasVenta = data.facturas_venta || [];
+            const importedCartera = (data.cuentas_por_cobrar || []).filter(c => c.status !== 'draft' && c.status !== 'void');
+            const importedFacturasVenta = (data.facturas_venta || []).filter(f => f.estado !== 'draft' && f.estado !== 'void');
             
             // Unificar cartera con saldo (activa) y facturas pagadas del histórico para poblar el filtro
             const allCarteraItems = [...importedCartera];
@@ -3105,6 +3105,13 @@ const App = {
 
             if (allCarteraItems.length > 0) {
                 let dbCartera = DB.getAll(DB.KEYS.CARTERA) || [];
+                
+                // Prunar de la base de datos local cualquier factura previa de Alegra que no esté en la lista limpia (eliminando borradores y anulados)
+                dbCartera = dbCartera.filter(car => {
+                    if (!car.id_alegra_factura) return true;
+                    return allCarteraItems.some(item => String(item.id_factura) === String(car.id_alegra_factura));
+                });
+
                 allCarteraItems.forEach(c => {
                     const existingIdx = dbCartera.findIndex(car => String(car.id_alegra_factura) === String(c.id_factura));
                     
@@ -3136,9 +3143,16 @@ const App = {
             }
 
             // 6. Importar Facturas Completas (Histórico Total Alegra)
-            const importedFacturas = data.facturas_venta || [];
+            const importedFacturas = (data.facturas_venta || []).filter(f => f.estado !== 'draft' && f.estado !== 'void');
             if (importedFacturas.length > 0) {
                 let dbFacturas = DB.getAll(DB.KEYS.FACTURAS_ALEGRA) || [];
+                
+                // Prunar borradores y anuladas
+                dbFacturas = dbFacturas.filter(f => {
+                    if (!f.id_alegra) return true;
+                    return importedFacturas.some(item => String(item.id_alegra) === String(f.id_alegra));
+                });
+
                 importedFacturas.forEach(f => {
                     const existingIdx = dbFacturas.findIndex(r => String(r.id_alegra) === String(f.id_alegra));
                     if (existingIdx >= 0) {

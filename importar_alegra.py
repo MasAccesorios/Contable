@@ -201,6 +201,8 @@ for p in productos_crudos:
 facturas_procesadas = []
 cartera_procesada = []
 for inv in facturas_crudas:
+    if inv.get("status") in ["draft", "void"]:
+        continue
     client = inv.get("client") or {}
     seller = inv.get("seller") or {}
     items_factura = []
@@ -262,6 +264,8 @@ for inv in facturas_crudas:
 # --- Cotizaciones ---
 cotizaciones_procesadas = []
 for est in cotizaciones_crudas:
+    if est.get("status") in ["draft", "void"]:
+        continue
     client = est.get("client") or {}
     seller = est.get("seller") or {}
     items_cot = []
