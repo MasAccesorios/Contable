@@ -138,16 +138,21 @@ const Pages = {
     },
 
     _recentSalesRows() {
-        const sales = DB.getSales().sort((a, b) => new Date(b.fecha) - new Date(a.fecha)).slice(0, 5);
+        const sales = DB.getSales().sort((a, b) => {
+            const dateA = a && a.fecha ? new Date(a.fecha) : 0;
+            const dateB = b && b.fecha ? new Date(b.fecha) : 0;
+            return dateB - dateA;
+        }).slice(0, 5);
         const fmt = (n) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n);
         if (sales.length === 0) return '<tr><td class="text-center text-muted py-3">Sin ventas recientes</td></tr>';
         return sales.map(s => {
             const client = DB.getClient(s.cliente_id);
-            const dateStr = s.fecha.includes('T') ? new Date(s.fecha).toLocaleString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : s.fecha;
+            const dateStr = s.fecha ? (s.fecha.includes('T') ? new Date(s.fecha).toLocaleString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : s.fecha) : 'Sin fecha';
+            const ref = s.numero || (s.id ? (s.id.toString().length > 6 ? s.id.toString().substr(-6).toUpperCase() : s.id.toString().toUpperCase()) : 'N/A');
             return `<tr>
                 <td>
                     <div style="font-weight:600;font-size:13px">${client ? client.nombre : 'N/A'}</div>
-                    <div style="font-size:11px;color:var(--gray-400)">#${s.numero || s.id.substr(-6).toUpperCase()} - ${dateStr}</div>
+                    <div style="font-size:11px;color:var(--gray-400)">#${ref} - ${dateStr}</div>
                 </td>
                 <td class="text-end">
                     <div style="font-weight:700;font-size:14px">${fmt(s.total)}</div>
@@ -158,16 +163,21 @@ const Pages = {
     },
 
     _recentCotizacionesRows() {
-        const items = DB.getCotizaciones().sort((a, b) => new Date(b.fecha) - new Date(a.fecha)).slice(0, 5);
+        const items = DB.getCotizaciones().sort((a, b) => {
+            const dateA = a && a.fecha ? new Date(a.fecha) : 0;
+            const dateB = b && b.fecha ? new Date(b.fecha) : 0;
+            return dateB - dateA;
+        }).slice(0, 5);
         const fmt = (n) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n);
         if (items.length === 0) return '<tr><td class="text-center text-muted py-3">Sin cotizaciones recientes</td></tr>';
         return items.map(c => {
             const client = DB.getClient(c.cliente_id);
-            const dateStr = c.fecha.includes('T') ? new Date(c.fecha).toLocaleString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : c.fecha;
+            const dateStr = c.fecha ? (c.fecha.includes('T') ? new Date(c.fecha).toLocaleString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : c.fecha) : 'Sin fecha';
+            const ref = c.numero || (c.id ? (c.id.toString().length > 6 ? c.id.toString().substr(-6).toUpperCase() : c.id.toString().toUpperCase()) : 'N/A');
             return `<tr style="cursor:pointer" onclick="App.editCotizacion('${c.id}')">
                 <td>
-                    <div style="font-weight:600;font-size:13px">${client ? client.nombre : 'Desconocido'}</div>
-                    <div style="font-size:11px;color:var(--gray-400)">#${c.numero || c.id.substr(-6).toUpperCase()} - ${dateStr}</div>
+                    <div style="font-weight:600;font-size:13px">${DB.getClientName(c.cliente_id, c.cliente_nombre_alegra)}</div>
+                    <div style="font-size:11px;color:var(--gray-400)">#${ref} - ${dateStr}</div>
                 </td>
                 <td class="text-end">
                     <div style="font-weight:700;font-size:14px">${fmt(c.total)}</div>
@@ -267,9 +277,9 @@ const Pages = {
                     <td><span class="badge-status badge-secondary">${c.tipo || 'Cliente'}</span></td>
                     <td>${c.documento}</td>
                     <td>${c.telefono || '-'}</td>
-                    <td>${fmt(c.cupo_credito)}</td>
-                    <td>${c.plazo_dias} días</td>
-                    <td>${saldo > 0 ? `<span class="badge-status badge-vencida">${fmt(saldo)}</span>` : '<span class="badge-status badge-pagada">$0</span>'}</td>
+                    <td class="text-end">${fmt(c.cupo_credito)}</td>
+                    <td class="text-end">${c.plazo_dias} días</td>
+                    <td class="text-end">${saldo > 0 ? `<span class="badge-status badge-vencida">${fmt(saldo)}</span>` : '<span class="badge-status badge-pagada">$0</span>'}</td>
                     <td>
                         <button class="btn-action btn-edit" onclick="App.editCliente('${c.id}')" title="Editar"><i class="bi bi-pencil"></i></button>
                         <button class="btn-action btn-delete" onclick="App.deleteCliente('${c.id}')" title="Eliminar"><i class="bi bi-trash"></i></button>
@@ -283,25 +293,38 @@ const Pages = {
             <div class="section-card">
                 <div class="section-header">
                     <div class="section-title"><i class="bi bi-people-fill"></i> Contactos</div>
-                    <button class="btn btn-primary-gradient" onclick="App.newCliente()">
-                         <i class="bi bi-plus-lg me-1"></i> Nuevo Contacto
-                    </button>
+                    <div class="d-flex gap-2 align-items-center">
+                        ${TableSort.renderFilterBar({
+                            ctx: 'clientes',
+                            placeholder: 'Buscar por nombre o doc...',
+                            searchId: 'clientesSearchInput',
+                            onSearchInput: 'App.filterClientes ? App.filterClientes(this.value) : App.navigateTo(\'clientes\')',
+                            opts: [
+                                { value: 'todos', label: 'Todos los tipos' },
+                                { value: 'cliente', label: 'Solo Clientes' },
+                                { value: 'proveedor', label: 'Solo Proveedores' }
+                            ]
+                        })}
+                        <button class="btn btn-primary-gradient" onclick="App.newCliente()">
+                             <i class="bi bi-plus-lg me-1"></i> Nuevo Contacto
+                        </button>
+                    </div>
                 </div>
                 <div class="section-body" style="padding:0; overflow-x:auto;">
                     <table class="table-modern">
                         <thead>
                             <tr>
-                                <th>Nombre</th>
+                                ${TableSort.renderSortTh('Nombre', 'nombre', 'clientes')}
                                 <th>Tipo</th>
                                 <th>Documento</th>
                                 <th>Teléfono</th>
-                                <th>Cupo Crédito</th>
-                                <th>Plazo</th>
-                                <th>Saldo</th>
+                                <th class="text-end">Cupo Crédito</th>
+                                <th class="text-end">Plazo</th>
+                                <th class="text-end">Saldo</th>
                                 <th>Acciones</th>
                             </tr>
                         </thead>
-                        <tbody>${rows}</tbody>
+                        <tbody id="clientesTableBody">${rows}</tbody>
                     </table>
                 </div>
             </div>
@@ -323,7 +346,7 @@ const Pages = {
                 <td><strong>${s.nombre}</strong></td>
                 <td>${s.documento || '-'}</td>
                 <td>${s.telefono || '-'}</td>
-                <td><span class="badge bg-info text-dark">${fmt(s.comision_porcentaje || 0)}</span></td>
+                <td class="text-end"><span class="badge bg-info text-dark">${fmt(s.comision_porcentaje || 0)}</span></td>
                 <td>
                     <button class="btn-action btn-edit" onclick="App.editVendedor('${s.id}')" title="Editar"><i class="bi bi-pencil"></i></button>
                     <button class="btn-action btn-delete" onclick="App.deleteVendedor('${s.id}')" title="Eliminar"><i class="bi bi-trash"></i></button>
@@ -347,7 +370,7 @@ const Pages = {
                                 <th>Nombre</th>
                                 <th>Documento</th>
                                 <th>Teléfono</th>
-                                <th>Comisión</th>
+                                <th class="text-end">Comisión</th>
                                 <th>Acciones</th>
                             </tr>
                         </thead>
@@ -380,11 +403,11 @@ const Pages = {
                 return `<tr>
                     <td><a href="#" onclick="event.preventDefault(); App.viewProducto('${p.id}')" class="text-decoration-none fw-bold">${p.codigo}</a></td>
                     <td><a href="#" onclick="event.preventDefault(); App.viewProducto('${p.id}')" class="text-decoration-none">${p.nombre}</a></td>
-                    <td>${fmt(p.precio_compra)}</td>
-                    <td>${fmt(p.precio_venta)}</td>
-                    <td>${isLow ? `<span class="stock-alert"><i class="bi bi-exclamation-triangle"></i> ${p.stock_actual}</span>` : p.stock_actual}</td>
-                    <td>${p.stock_minimo}</td>
-                    <td>${fmt(p.precio_venta - p.precio_compra)}</td>
+                    <td class="text-end">${fmt(p.precio_compra)}</td>
+                    <td class="text-end">${fmt(p.precio_venta)}</td>
+                    <td class="text-end">${isLow ? `<span class="stock-alert"><i class="bi bi-exclamation-triangle"></i> ${p.stock_actual}</span>` : p.stock_actual}</td>
+                    <td class="text-end">${p.stock_minimo}</td>
+                    <td class="text-end">${fmt(p.precio_venta - p.precio_compra)}</td>
                     <td>
                         ${actionButtons}
                     </td>
@@ -415,11 +438,11 @@ const Pages = {
                             <tr>
                                 <th>Código</th>
                                 <th>Nombre</th>
-                                <th>P. Compra</th>
-                                <th>P. Venta</th>
-                                <th>Stock</th>
-                                <th>Mín.</th>
-                                <th>Margen</th>
+                                <th class="text-end">P. Compra</th>
+                                <th class="text-end">P. Venta</th>
+                                <th class="text-end">Stock</th>
+                                <th class="text-end">Mín.</th>
+                                <th class="text-end">Margen</th>
                                 <th>Acciones</th>
                             </tr>
                         </thead>
@@ -434,7 +457,11 @@ const Pages = {
        FACTURAS DE VENTA
        ================================================= */
     ventas(searchQuery = '') {
-        const allSales = DB.getSales().sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+        const allSales = DB.getSales().sort((a, b) => {
+            const dateA = a && a.fecha ? new Date(a.fecha) : 0;
+            const dateB = b && b.fecha ? new Date(b.fecha) : 0;
+            return dateB - dateA;
+        });
         const allCartera = DB.getAll(DB.KEYS.CARTERA);
         const fmt = (n) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n);
 
@@ -443,10 +470,10 @@ const Pages = {
         const sales = q ? allSales.filter(s => {
             if (!s) return false;
             const client = DB.getClient(s.cliente_id);
-            const ref = (s.numero || (s.id ? s.id.substr(-6) : '')).toString().toLowerCase();
-            const clientName = (client ? client.nombre : '').toLowerCase();
-            return ref.includes(q) || clientName.includes(q);
-        }) : allSales;
+        const ref = (s.numero || (s.id ? s.id.toString().substr(-6) : '')).toString().replace('#', '').toLowerCase();
+        const clientName = (client ? client.nombre : '').toLowerCase();
+        return ref.includes(q) || clientName.includes(q);
+    }) : allSales;
 
         let rows = '';
         if (sales.length === 0) {
@@ -456,6 +483,7 @@ const Pages = {
                 try {
                     if (!s || !s.id) return '';
                     const client = DB.getClient(s.cliente_id);
+                    const clientName = DB.getClientName(s.cliente_id, s.cliente_nombre_alegra);
                     const carteraItem = s.tipo_venta === 'credito' ? allCartera.find(c => c.venta_id === s.id) : null;
 
                     let stateBadge = 'secondary';
@@ -478,18 +506,18 @@ const Pages = {
                         saldo = 0;
                     }
 
-                    const ref = s.numero || s.id.substr(-6).toUpperCase();
+                    const ref = s.numero || s.id.toString().substr(-6).toUpperCase();
                     const fechaStr = s.fecha ? (s.fecha.includes('T') ? new Date(s.fecha).toLocaleDateString('es-CO') : s.fecha) : '-';
 
                     return `<tr>
-                        <td><strong>#${ref}</strong></td>
+                        <td><a href="#" onclick="event.preventDefault(); App.viewVenta('${s.id}')" class="text-decoration-none fw-bold">${ref.replace('#', '')}</a></td>
                         <td>${fechaStr}</td>
-                        <td><a href="#" onclick="event.preventDefault(); App.viewCliente('${s.cliente_id}')" class="text-decoration-none fw-bold">${client ? client.nombre : 'N/A'}</a></td>
+                        <td><a href="#" onclick="event.preventDefault(); App.viewCliente('${s.cliente_id}')" class="text-decoration-none fw-bold">${clientName}</a></td>
                         <td><span class="badge-status badge-${s.tipo_venta}">${s.tipo_venta}</span></td>
                         <td><span class="badge bg-${stateBadge} text-uppercase" style="font-size:0.75rem">${s.estado || 'OK'}</span></td>
-                        <td><strong class="text-primary">${fmt(s.total)}</strong></td>
-                        <td class="text-success">${fmt(abono)}</td>
-                        <td class="text-danger fw-bold">${fmt(saldo)}</td>
+                        <td class="text-end"><strong class="text-primary">${fmt(s.total)}</strong></td>
+                        <td class="text-end text-success">${fmt(abono)}</td>
+                        <td class="text-end text-danger fw-bold">${fmt(saldo)}</td>
                         <td>
                             <button class="btn-action btn-view" onclick="App.viewVenta('${s.id}')" title="Ver detalle"><i class="bi bi-eye"></i></button>
                             ${s.estado !== 'pagada' && s.estado !== 'anulada' ? `<button class="btn-action btn-edit" onclick="App.editVenta('${s.id}')" title="Editar Venta"><i class="bi bi-pencil"></i></button>` : ''}
@@ -513,10 +541,20 @@ const Pages = {
                         <span class="badge bg-light text-dark ms-2" style="font-size: 0.7rem; font-weight: 500;">${allSales.length} documentos</span>
                     </div>
                     <div class="d-flex gap-2 align-items-center">
-                        <div class="input-group input-group-sm" style="width:220px;">
-                            <span class="input-group-text"><i class="bi bi-search"></i></span>
-                            <input type="text" id="ventasSearchInput" class="form-control" placeholder="Buscar por cliente o #..." value="${searchQuery}" oninput="App.filterVentas(this.value)">
-                        </div>
+                        ${TableSort.renderFilterBar({
+                            ctx: 'ventas',
+                            placeholder: 'Buscar por cliente o #...',
+                            searchId: 'ventasSearchInput',
+                            onSearchInput: 'App.filterVentas(this.value)',
+                            searchValue: searchQuery,
+                            opts: [
+                                { value: 'todas', label: 'Todos los estados' },
+                                { value: 'pendiente', label: 'Pendientes' },
+                                { value: 'pagada', label: 'Pagadas' },
+                                { value: 'parcial', label: 'Parcial' },
+                                { value: 'anulada', label: 'Anuladas' }
+                            ]
+                        })}
                         <button class="btn btn-primary-gradient" onclick="App.newVenta()">
                             <i class="bi bi-plus-lg me-1"></i> Nueva Factura
                         </button>
@@ -526,14 +564,14 @@ const Pages = {
                     <table class="table-modern">
                         <thead>
                             <tr>
-                                <th>Referencia</th>
-                                <th>Fecha</th>
+                                ${TableSort.renderSortTh('Referencia', 'numero', 'ventas')}
+                                ${TableSort.renderSortTh('Fecha', 'fecha', 'ventas')}
                                 <th>Cliente</th>
                                 <th>Tipo</th>
-                                <th>Estado</th>
-                                <th>Total</th>
-                                <th>Abono</th>
-                                <th>Saldo</th>
+                                ${TableSort.renderSortTh('Estado', 'estado', 'ventas')}
+                                <th class="text-end">Total</th>
+                                <th class="text-end">Abono</th>
+                                <th class="text-end">Saldo</th>
                                 <th>Acciones</th>
                             </tr>
                         </thead>
@@ -560,11 +598,11 @@ const Pages = {
                 const sale = DB.getSale(d.venta_id);
                 const client = sale ? DB.getClient(sale.cliente_id) : null;
                 return `<tr>
-                    <td><strong>#${d.id.substr(-6).toUpperCase()}</strong></td>
+                    <td><strong>#${d.id.toString().substr(-6).toUpperCase()}</strong></td>
                     <td>${d.fecha}</td>
-                    <td>Factura #${sale ? (sale.numero || sale.id.substr(-6).toUpperCase()) : 'N/A'}</td>
+                    <td>Factura #${sale ? (sale.numero || sale.id.toString().substr(-6).toUpperCase()) : 'N/A'}</td>
                     <td>${client ? client.nombre : 'N/A'}</td>
-                    <td><strong>${fmt(d.total)}</strong></td>
+                    <td class="text-end"><strong>${fmt(d.total)}</strong></td>
                     <td>
                         <button class="btn-action btn-view" onclick="App.viewDevolucion('${d.id}')" title="Ver detalle"><i class="bi bi-eye"></i></button>
                     </td>
@@ -589,7 +627,7 @@ const Pages = {
                                 <th>Fecha</th>
                                 <th>Factura Origen</th>
                                 <th>Cliente</th>
-                                <th>Total Devuelto</th>
+                                <th class="text-end">Total Devuelto</th>
                                 <th>Acciones</th>
                             </tr>
                         </thead>
@@ -618,12 +656,12 @@ const Pages = {
                 if (c.estado === 'cancelada') badgeClass = 'danger';
 
                 return `<tr>
-                    <td><strong>#${c.numero || c.id.slice(-6).toUpperCase()}</strong></td>
+                    <td><strong>#${c.numero || c.id.toString().slice(-6).toUpperCase()}</strong></td>
                     <td>${c.fecha}</td>
                     <td><a href="#" onclick="event.preventDefault(); App.viewCliente('${c.proveedor_id || DB.getClients().find(cl => cl.nombre === c.proveedor)?.id || ''}')" class="text-decoration-none fw-bold">${c.proveedor || 'N/A'}</a></td>
                     <td><span class="badge bg-${badgeClass} text-uppercase" style="font-size:0.75rem">${c.estado || 'borrador'}</span></td>
                     <td>${c.tipo_pago.toUpperCase()}</td>
-                    <td><strong>${fmt(c.total)}</strong></td>
+                    <td class="text-end"><strong>${fmt(c.total)}</strong></td>
                     <td>
                         <button class="btn-action btn-edit" onclick="App.editCompra('${c.id}')" title="Ver / Editar Órden"><i class="bi bi-pencil"></i></button>
                         <button class="btn-action" style="color:#6c757d" onclick="App.printCompra('${c.id}')" title="Imprimir Órden"><i class="bi bi-printer"></i></button>
@@ -650,7 +688,7 @@ const Pages = {
                                 <th>Proveedor</th>
                                 <th>Estado</th>
                                 <th>Tipo Pago</th>
-                                <th>Total</th>
+                                <th class="text-end">Total</th>
                                 <th>Acciones</th>
                             </tr>
                         </thead>
@@ -686,11 +724,11 @@ const Pages = {
                 const client = DB.getClient(c.cliente_id);
                 return `<tr>
                     <td><strong>${client ? client.nombre : 'N/A'}</strong></td>
-                    <td>${fmt(c.total)}</td>
-                    <td>${fmt(c.saldo)}</td>
+                    <td class="text-end">${fmt(c.total)}</td>
+                    <td class="text-end">${fmt(c.saldo)}</td>
                     <td>${c.fecha_vencimiento || 'N/A'}</td>
                     <td><span class="badge-status badge-${c.estado}">${c.estado}</span></td>
-                    <td>${fmt(c.total - c.saldo)}</td>
+                    <td class="text-end">${fmt(c.total - c.saldo)}</td>
                     <td>
                         ${c.estado !== 'pagada' ? `<button class="btn-action btn-view" onclick="App.registrarAbono('${c.id}')" title="Registrar abono"><i class="bi bi-cash-coin"></i></button>` : ''}
                     </td>
@@ -712,11 +750,17 @@ const Pages = {
             <div class="section-card">
                 <div class="section-header">
                     <div class="section-title"><i class="bi bi-wallet2"></i> Cartera</div>
-                    <div class="filter-pills">
-                        <button class="filter-pill ${filter === 'todas' ? 'active' : ''}" onclick="App.loadCartera('todas')">Todas</button>
-                        <button class="filter-pill ${filter === 'vigente' ? 'active' : ''}" onclick="App.loadCartera('vigente')">Vigentes</button>
-                        <button class="filter-pill ${filter === 'vencida' ? 'active' : ''}" onclick="App.loadCartera('vencida')">Vencidas</button>
-                        <button class="filter-pill ${filter === 'pagada' ? 'active' : ''}" onclick="App.loadCartera('pagada')">Pagadas</button>
+                    <div class="d-flex gap-2 align-items-center flex-wrap">
+                        <div class="filter-pills">
+                            <button class="filter-pill ${filter === 'todas' ? 'active' : ''}" onclick="App.loadCartera('todas')">Todas</button>
+                            <button class="filter-pill ${filter === 'vigente' ? 'active' : ''}" onclick="App.loadCartera('vigente')">Vigentes</button>
+                            <button class="filter-pill ${filter === 'vencida' ? 'active' : ''}" onclick="App.loadCartera('vencida')">Vencidas</button>
+                            <button class="filter-pill ${filter === 'pagada' ? 'active' : ''}" onclick="App.loadCartera('pagada')">Pagadas</button>
+                        </div>
+                        <select class="form-select form-select-sm" style="width:auto;min-width:180px" onchange="TableSort.applyFilter('cartera', this.value); App.loadCartera(this.value)">
+                            <option value="todas" ${filter === 'todas' ? 'selected' : ''}>Ordenar: por Defecto</option>
+                            <option value="todas">Fecha Venc. ↑ (Urgentes primero)</option>
+                        </select>
                     </div>
                 </div>
                 ${noticeHtml}
@@ -724,12 +768,12 @@ const Pages = {
                     <table class="table-modern">
                         <thead>
                             <tr>
-                                <th>Cliente</th>
-                                <th>Total</th>
-                                <th>Saldo</th>
-                                <th>Vencimiento</th>
-                                <th>Estado</th>
-                                <th>Abonado</th>
+                                ${TableSort.renderSortTh('Cliente', 'cliente_nombre', 'cartera')}
+                                <th class="text-end">Total</th>
+                                <th class="text-end">Saldo</th>
+                                ${TableSort.renderSortTh('Vencimiento', 'fecha_vencimiento', 'cartera')}
+                                ${TableSort.renderSortTh('Estado', 'estado', 'cartera')}
+                                <th class="text-end">Abonado</th>
                                 <th>Acciones</th>
                             </tr>
                         </thead>
@@ -799,7 +843,7 @@ const Pages = {
             <td>${m.fecha}</td>
             <td><span class="badge-status badge-${m.tipo}">${m.tipo}</span></td>
             <td>${m.descripcion}</td>
-            <td class="${m.tipo === 'ingreso' ? 'text-success' : 'text-danger'} fw-bold">${m.tipo === 'ingreso' ? '+' : '-'}${fmt(m.monto)}</td>
+            <td class="text-end ${m.tipo === 'ingreso' ? 'text-success' : 'text-danger'} fw-bold">${m.tipo === 'ingreso' ? '+' : '-'}${fmt(m.monto)}</td>
         </tr>`).join('');
 
         return `
@@ -808,7 +852,12 @@ const Pages = {
             <div style="overflow-x:auto">
                 <table class="table-modern">
                     <thead>
-                        <tr><th>Fecha</th><th>Tipo</th><th>Descripción</th><th>Monto</th></tr>
+                        <tr>
+                            ${TableSort.renderSortTh('Fecha', 'fecha', 'bancos')}
+                            ${TableSort.renderSortTh('Tipo', 'tipo', 'bancos')}
+                            <th>Descripción</th>
+                            <th class="text-end">Monto</th>
+                        </tr>
                     </thead>
                     <tbody>${rows}</tbody>
                 </table>
@@ -833,7 +882,7 @@ const Pages = {
                     <td>${e.fecha}</td>
                     <td><span class="badge-status badge-credito">${e.categoria}</span></td>
                     <td>${e.descripcion}</td>
-                    <td class="text-danger fw-bold">${fmt(e.monto)}</td>
+                    <td class="text-end text-danger fw-bold">${fmt(e.monto)}</td>
                     <td>${bank ? bank.nombre : '-'}</td>
                     <td>
                         <button class="btn-action btn-edit" onclick="App.editGasto('${e.id}')" title="Editar"><i class="bi bi-pencil"></i></button>
@@ -859,7 +908,7 @@ const Pages = {
                                 <th>Fecha</th>
                                 <th>Categoría</th>
                                 <th>Descripción</th>
-                                <th>Monto</th>
+                                <th class="text-end">Monto</th>
                                 <th>Banco</th>
                                 <th>Acciones</th>
                             </tr>
@@ -1211,9 +1260,9 @@ const Pages = {
                 return `<tr>
                     <td><strong>#${ref}</strong></td>
                     <td>${r.fecha || '-'}</td>
-                    <td>${client ? client.nombre : 'Desconocido'}</td>
+                    <td>${client ? client.nombre : 'Consumidor Final'}</td>
                     <td>${bank ? bank.nombre : '-'}</td>
-                    <td><strong>${fmt(r.monto_total || 0)}</strong></td>
+                    <td class="text-end"><strong>${fmt(r.monto_total || 0)}</strong></td>
                     <td><span class="badge bg-${badgeClass} text-uppercase" style="font-size:0.75rem">${r.estado || 'activo'}</span></td>
                     <td>
                         <button class="btn-action btn-view" onclick="App.viewReciboCaja('${r.id}')" title="Ver detalle"><i class="bi bi-eye"></i></button>
@@ -1245,7 +1294,7 @@ const Pages = {
                                 <th>Fecha</th>
                                 <th>Cliente</th>
                                 <th>Banco</th>
-                                <th>Monto</th>
+                                <th class="text-end">Monto</th>
                                 <th>Estado</th>
                                 <th>Acciones</th>
                             </tr>
@@ -1273,7 +1322,7 @@ const Pages = {
         const items = q ? sorted.filter(c => {
             if (!c) return false;
             const client = DB.getClient(c.cliente_id);
-            const ref = (c.numero || (c.id ? c.id.substr(-6) : '')).toString().toLowerCase();
+            const ref = (c.numero || (c.id ? c.id.toString().substr(-6) : '')).toString().replace('#', '').toLowerCase();
             const clientName = (client ? client.nombre : '').toLowerCase();
             return ref.includes(q) || clientName.includes(q);
         }) : sorted;
@@ -1287,6 +1336,7 @@ const Pages = {
                 try {
                     if (!c || !c.id) return '';
                     const client = DB.getClient(c.cliente_id);
+                    const clientName = DB.getClientName(c.cliente_id, c.cliente_nombre_alegra);
                     let badgeClass = 'secondary';
                     if (c.estado === 'enviada') badgeClass = 'info';
                     if (c.estado === 'aceptada') badgeClass = 'success';
@@ -1294,18 +1344,18 @@ const Pages = {
                     if (c.estado === 'vencida') badgeClass = 'warning';
                     if (c.estado === 'convertida') badgeClass = 'primary';
 
-                    const ref = c.numero || (c.id.length > 6 ? c.id.substr(-6).toUpperCase() : c.id.toUpperCase());
+                    const ref = c.numero || (c.id ? (c.id.toString().length > 6 ? c.id.toString().substr(-6).toUpperCase() : c.id.toString().toUpperCase()) : 'N/A');
                     const fechaStr = c.fecha ? (c.fecha.includes('T') ? new Date(c.fecha).toLocaleDateString('es-CO') : c.fecha) : 'Sin fecha';
                     const validezStr = c.validez ? (c.validez.includes('T') ? new Date(c.validez).toLocaleDateString('es-CO') : c.validez) : '-';
                     const yaConvertida = c.estado === 'convertida' || !!c.factura_id;
 
                     return `<tr>
-                        <td><strong>#${ref}</strong></td>
+                        <td><a href="#" onclick="event.preventDefault(); App.editCotizacion('${c.id}')" class="text-decoration-none fw-bold">${ref.replace('#', '')}</a></td>
                         <td>${fechaStr}</td>
-                        <td><a href="#" onclick="event.preventDefault(); App.viewCliente('${c.cliente_id}')" class="text-decoration-none fw-bold">${client ? client.nombre : 'Desconocido'}</a></td>
+                        <td><a href="#" onclick="event.preventDefault(); App.viewCliente('${c.cliente_id}')" class="text-decoration-none fw-bold">${clientName}</a></td>
                         <td>${validezStr}</td>
                         <td><span class="badge bg-${badgeClass} text-uppercase" style="font-size:0.75rem">${c.estado || 'borrador'}</span></td>
-                        <td><strong>${fmt(c.total || 0)}</strong></td>
+                        <td class="text-end"><strong>${fmt(c.total || 0)}</strong></td>
                         <td>
                             <button class="btn-action btn-edit" onclick="App.editCotizacion('${c.id}')" title="Ver / Editar"><i class="bi bi-pencil"></i></button>
                             ${!yaConvertida ? `<button class="btn-action" style="color:#0d6efd" onclick="App.convertFactura('${c.id}')" title="Convertir a Factura"><i class="bi bi-arrow-right-circle"></i></button>` : `<button class="btn-action" style="color:#6c757d; opacity:0.5; cursor:default" title="Ya convertida - Factura #${c.factura_id ? c.factura_id.substr(-6).toUpperCase() : ''}"><i class="bi bi-check-circle"></i></button>`}
@@ -1329,10 +1379,21 @@ const Pages = {
                         <span class="badge bg-light text-dark ms-2" style="font-size: 0.7rem; font-weight: 500;">${allItems.length} documentos</span>
                     </div>
                     <div class="d-flex gap-2 align-items-center">
-                        <div class="input-group input-group-sm" style="width:220px;">
-                            <span class="input-group-text"><i class="bi bi-search"></i></span>
-                            <input type="text" id="cotizacionesSearchInput" class="form-control" placeholder="Buscar por cliente o #..." value="${searchQuery}" oninput="App.filterCotizaciones(this.value)">
-                        </div>
+                        ${TableSort.renderFilterBar({
+                            ctx: 'cotizaciones',
+                            placeholder: 'Buscar por cliente o #...',
+                            searchId: 'cotizacionesSearchInput',
+                            onSearchInput: 'App.filterCotizaciones(this.value)',
+                            searchValue: searchQuery,
+                            opts: [
+                                { value: 'todas', label: 'Todos los estados' },
+                                { value: 'borrador', label: 'Borrador' },
+                                { value: 'enviada', label: 'Enviadas' },
+                                { value: 'aceptada', label: 'Aceptadas' },
+                                { value: 'rechazada', label: 'Rechazadas' },
+                                { value: 'convertida', label: 'Convertidas' }
+                            ]
+                        })}
                         <button class="btn btn-primary-gradient" onclick="App.newCotizacion()">
                             <i class="bi bi-plus-lg me-1"></i> Nueva Cotización
                         </button>
@@ -1342,12 +1403,12 @@ const Pages = {
                     <table class="table-modern">
                         <thead>
                             <tr>
-                                <th>Referencia</th>
-                                <th>Fecha</th>
+                                ${TableSort.renderSortTh('Referencia', 'numero', 'cotizaciones')}
+                                ${TableSort.renderSortTh('Fecha', 'fecha', 'cotizaciones')}
                                 <th>Cliente</th>
                                 <th>Validez</th>
-                                <th>Estado</th>
-                                <th>Total</th>
+                                ${TableSort.renderSortTh('Estado', 'estado', 'cotizaciones')}
+                                <th class="text-end">Total</th>
                                 <th>Acciones</th>
                             </tr>
                         </thead>
@@ -1374,7 +1435,7 @@ const Pages = {
                     <td>${c.fecha}</td>
                     <td>${c.proveedor}</td>
                     <td><span class="badge-status badge-${c.tipo_pago}">${c.tipo_pago}</span></td>
-                    <td><strong>${fmt(c.total)}</strong></td>
+                    <td class="text-end"><strong>${fmt(c.total)}</strong></td>
                     <td>
                         <button class="btn-action btn-view" onclick="App.editCompra('${c.id}')" title="Ver Detalle"><i class="bi bi-eye"></i></button>
                     </td>
@@ -1396,7 +1457,7 @@ const Pages = {
                                 <th>Fecha</th>
                                 <th>Proveedor</th>
                                 <th>Tipo</th>
-                                <th>Total</th>
+                                <th class="text-end">Total</th>
                                 <th>Acciones</th>
                             </tr>
                         </thead>
@@ -1419,8 +1480,8 @@ const Pages = {
                 return `<tr>
                     <td><strong>${c.proveedor_nombre}</strong></td>
                     <td>#${c.compra_id.substr(-6).toUpperCase()}</td>
-                    <td>${fmt(c.total)}</td>
-                    <td class="text-danger"><strong>${fmt(c.saldo)}</strong></td>
+                    <td class="text-end">${fmt(c.total)}</td>
+                    <td class="text-end text-danger"><strong>${fmt(c.saldo)}</strong></td>
                     <td>${c.fecha_vencimiento}</td>
                     <td><span class="badge-status badge-${c.estado}">${c.estado}</span></td>
                     <td>
@@ -1438,7 +1499,7 @@ const Pages = {
                 const bank = DB.getBank(p.banco_id);
                 const dateStr = p.fecha.includes('T') ? new Date(p.fecha).toLocaleString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : p.fecha;
                 return `<tr>
-                    <td><strong>#${p.numero || p.id.substr(-6).toUpperCase()}</strong></td>
+                    <td><strong>#${p.numero || p.id.toString().substr(-6).toUpperCase()}</strong></td>
                     <td>${dateStr}</td>
                     <td>${p.proveedor_nombre}</td>
                     <td>${bank ? bank.nombre : 'N/A'}</td>
@@ -1465,8 +1526,8 @@ const Pages = {
                             <tr>
                                 <th>Proveedor</th>
                                 <th>Compra</th>
-                                <th>Total</th>
-                                <th>Saldo</th>
+                                <th class="text-end">Total</th>
+                                <th class="text-end">Saldo</th>
                                 <th>Vencimiento</th>
                                 <th>Estado</th>
                                 <th>Acciones</th>

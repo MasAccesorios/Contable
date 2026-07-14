@@ -19,8 +19,8 @@ const App = {
         }
         this.setupGlobals();
         
-        console.log("Iniciando app, sincronizando con Google Sheets...");
-        await DB.syncFromCloud();
+        // Sync with cloud in background - does NOT block app startup
+        DB.syncFromCloud().catch(e => console.warn('Cloud sync skipped:', e.message));
         
         this.setupAuth();
         this.setupNavigation();
@@ -509,7 +509,6 @@ const App = {
         const client = DB.getClient(id);
         if (!client) return;
         const fmt = (n) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n);
-        const fmtDate = (d) => new Date(d).toLocaleDateString('es-CO');
 
         // Populate modal headers
         document.getElementById('clienteDetailModalTitle').innerHTML = `<i class="bi bi-person-vcard me-2 text-primary"></i>${client.nombre}`;
@@ -596,73 +595,19 @@ const App = {
         `;
         document.getElementById('c-general').innerHTML = generalHtml;
 
-        // 2. Ventas Tab (Facturas)
-        const allSales = DB.getAll(DB.KEYS.SALES).filter(s => s.cliente_id === id);
-        let facturasHtml = '';
-        if (allSales.length === 0) {
-            facturasHtml = `<div class="text-center text-muted p-3">No hay facturas asociadas a este contacto.</div>`;
-        } else {
-            facturasHtml = `
-                <div class="table-responsive">
-                    <table class="table table-sm table-hover align-middle">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Fecha</th>
-                                <th>ID Venta</th>
-                                <th>Tipo</th>
-                                <th class="text-end">Total</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${allSales.sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).map(s => `
-                                <tr>
-                                    <td>${fmtDate(s.created_at)}</td>
-                                    <td><a href="#" onclick="event.preventDefault(); bootstrap.Modal.getInstance(document.getElementById('clienteDetailModal')).hide(); App.viewVenta('${s.id}')">#${s.id.substr(-6)}</a></td>
-                                    <td><span class="badge ${s.tipo_venta === 'contado' ? 'bg-success' : 'bg-warning text-dark'}">${s.tipo_venta.toUpperCase()}</span></td>
-                                    <td class="text-end fw-bold">${fmt(s.total)}</td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                </div>
-            `;
-        }
-        document.getElementById('c-facturas').innerHTML = facturasHtml;
+        // Reset and show dynamic Loading placeholders
+        const tabs = ['transacciones', 'facturas-venta', 'cotizaciones', 'devoluciones', 'cuentas-cobrar', 'pagos'];
+        tabs.forEach(tab => {
+            document.getElementById(`c-${tab}`).innerHTML = `<div class="text-center text-muted p-4"><i class="bi bi-arrow-repeat spin me-1"></i> Cargando datos...</div>`;
+        });
 
-        // 3. Pagos/Recibos Tab (Cartera and Movements)
-        const carteraItems = DB.getAllActive(DB.KEYS.CARTERA).filter(c => c.cliente_id === id);
-        let pagosHtml = '';
-        if (carteraItems.length === 0) {
-            pagosHtml = `<div class="text-center text-muted p-3">No hay saldos pendientes o movimientos en cartera.</div>`;
-        } else {
-            pagosHtml = `
-                <div class="table-responsive">
-                    <table class="table table-sm table-hover align-middle">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Vencimiento</th>
-                                <th>Venta Ref</th>
-                                <th class="text-end">Total Original</th>
-                                <th class="text-end">Saldo Pendiente</th>
-                                <th>Estado</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${carteraItems.sort((a, b) => new Date(a.fecha_vencimiento) - new Date(b.fecha_vencimiento)).map(c => `
-                                <tr>
-                                    <td>${fmtDate(c.fecha_vencimiento)}</td>
-                                    <td><a href="#" onclick="event.preventDefault(); bootstrap.Modal.getInstance(document.getElementById('clienteDetailModal')).hide(); App.viewVenta('${c.venta_id}')">#${c.venta_id.substr(-6)}</a></td>
-                                    <td class="text-end">${fmt(c.total)}</td>
-                                    <td class="text-end text-danger fw-bold">${fmt(c.saldo)}</td>
-                                    <td><span class="badge ${c.estado === 'pagado' ? 'bg-success' : 'bg-danger'}">${c.estado.toUpperCase()}</span></td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                </div>
-            `;
-        }
-        document.getElementById('c-pagos').innerHTML = pagosHtml;
+        // Set Tab Click Lazy Loading Events
+        document.getElementById('c-transacciones-tab').onclick = () => this.loadClientTab(id, 'transacciones', 1);
+        document.getElementById('c-facturas-venta-tab').onclick = () => this.loadClientTab(id, 'facturas-venta', 1);
+        document.getElementById('c-cotizaciones-tab').onclick = () => this.loadClientTab(id, 'cotizaciones', 1);
+        document.getElementById('c-devoluciones-tab').onclick = () => this.loadClientTab(id, 'devoluciones', 1);
+        document.getElementById('c-cuentas-cobrar-tab').onclick = () => this.loadClientTab(id, 'cuentas-cobrar', 1);
+        document.getElementById('c-pagos-tab').onclick = () => this.loadClientTab(id, 'pagos', 1);
 
         // Setup Edit Button
         const btnEdit = document.getElementById('btnEditClienteFromDetail');
@@ -671,10 +616,180 @@ const App = {
             this.editCliente(id);
         };
 
-        // Reset tabs
+        // Default click General Tab
         document.getElementById('c-general-tab').click();
-
         new bootstrap.Modal(document.getElementById('clienteDetailModal')).show();
+    },
+
+    loadClientTab(id, tabName, page = 1) {
+        const fmt = (n) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n);
+        const fmtDate = (d) => d ? new Date(d).toLocaleDateString('es-CO') : '-';
+        const container = document.getElementById(`c-${tabName}`);
+        if (!container) return;
+
+        let records = [];
+
+        if (tabName === 'transacciones') {
+            const movements = DB.getAll(DB.KEYS.BANK_MOVEMENTS) || [];
+            const sales = DB.getSales();
+            const compras = DB.getCompras();
+            const recibos = DB.getAll(DB.KEYS.RECIBOS_CAJA) || [];
+            const pagosProv = DB.getPagosProveedores() || [];
+            
+            records = movements.filter(m => {
+                if (!m.referencia_id) return false;
+                const refId = String(m.referencia_id);
+                
+                const sale = sales.find(s => String(s.id) === String(refId));
+                if (sale && String(sale.cliente_id) === String(id)) return true;
+                
+                const compra = compras.find(c => String(c.id) === String(refId));
+                if (compra && String(compra.proveedor_id) === String(id)) return true;
+                
+                const recibo = recibos.find(r => String(r.id) === String(refId));
+                if (recibo && String(recibo.cliente_id) === String(id)) return true;
+                
+                const pago = pagosProv.find(p => String(p.id) === String(refId));
+                if (pago && String(pago.proveedor_id) === String(id)) return true;
+                
+                return false;
+            }).sort((a, b) => new Date(b.fecha || a.created_at) - new Date(a.fecha || b.created_at));
+        } else if (tabName === 'facturas-venta') {
+            records = DB.getSales().filter(s => String(s.cliente_id) === String(id))
+                .sort((a, b) => new Date(b.fecha || a.created_at) - new Date(a.fecha || b.created_at));
+        } else if (tabName === 'cotizaciones') {
+            records = DB.getCotizaciones().filter(c => String(c.cliente_id) === String(id))
+                .sort((a, b) => new Date(b.fecha || a.created_at) - new Date(a.fecha || b.created_at));
+        } else if (tabName === 'devoluciones') {
+            const dev = DB.getAll(DB.KEYS.DEVOLUCIONES) || [];
+            records = dev.filter(d => {
+                const sale = DB.getSale(d.venta_id);
+                return sale && String(sale.cliente_id) === String(id);
+            }).sort((a, b) => new Date(b.fecha || a.created_at) - new Date(a.fecha || b.created_at));
+        } else if (tabName === 'cuentas-cobrar') {
+            records = DB.getCartera().filter(c => String(c.cliente_id) === String(id) && c.estado !== 'pagada')
+                .sort((a, b) => new Date(b.fecha_vencimiento) - new Date(a.fecha_vencimiento));
+        } else if (tabName === 'pagos') {
+            records = DB.getAll(DB.KEYS.RECIBOS_CAJA).filter(r => String(r.cliente_id) === String(id))
+                .sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+        }
+
+        const limit = 10;
+        const total = records.length;
+        const totalPages = Math.ceil(total / limit) || 1;
+        const currentPage = Math.max(1, Math.min(page, totalPages));
+        const start = (currentPage - 1) * limit;
+        const end = Math.min(start + limit, total);
+        const paginated = records.slice(start, end);
+
+        let tableHtml = '';
+        if (total === 0) {
+            tableHtml = `<div class="text-center text-muted p-4">No se encontraron registros en esta sección.</div>`;
+        } else {
+            let thead = '';
+            let rows = '';
+
+            if (tabName === 'transacciones') {
+                thead = `<tr><th>Fecha</th><th>Banco</th><th>Descripción</th><th>Tipo</th><th class="text-end">Monto</th></tr>`;
+                rows = paginated.map(m => {
+                    const bank = DB.getBank(m.banco_id);
+                    let desc = m.descripcion || '';
+                    const match = desc.match(/#(?:Factura |Venta |[a-zA-Z\s]+)?([a-zA-Z0-9]+)/);
+                    if (match && m.referencia_id) {
+                        const clickCall = m.tipo === 'ingreso' ? `App.viewVenta('${m.referencia_id}')` : `App.editCompra('${m.referencia_id}')`;
+                        desc = desc.replace(match[0], `<a href="#" onclick="event.preventDefault(); bootstrap.Modal.getInstance(document.getElementById('clienteDetailModal')).hide(); ${clickCall}">${match[0]}</a>`);
+                    }
+                    return `<tr>
+                        <td>${fmtDate(m.fecha)}</td>
+                        <td>${bank ? bank.nombre : 'N/A'}</td>
+                        <td>${desc}</td>
+                        <td><span class="badge ${m.tipo === 'ingreso' ? 'bg-success' : 'bg-danger'}">${m.tipo.toUpperCase()}</span></td>
+                        <td class="text-end fw-bold ${m.tipo === 'ingreso' ? 'text-success' : 'text-danger'}">${m.tipo === 'ingreso' ? '+' : '-'}${fmt(m.monto)}</td>
+                    </tr>`;
+                }).join('');
+            } else if (tabName === 'facturas-venta') {
+                thead = `<tr><th>Documento</th><th>Fecha</th><th>Tipo</th><th class="text-end">Total</th><th>Estado</th></tr>`;
+                rows = paginated.map(s => {
+                    const num = s.numero || s.id.toString().substr(-6).toUpperCase();
+                    return `<tr>
+                        <td><a href="#" onclick="event.preventDefault(); bootstrap.Modal.getInstance(document.getElementById('clienteDetailModal')).hide(); App.viewVenta('${s.id}')" class="text-decoration-none fw-bold">${num.replace('#', '')}</a></td>
+                        <td>${fmtDate(s.fecha)}</td>
+                        <td><span class="badge-status badge-${s.tipo_venta}">${s.tipo_venta}</span></td>
+                        <td class="text-end fw-bold">${fmt(s.total)}</td>
+                        <td><span class="badge bg-${s.estado === 'pagada' ? 'success' : (s.estado === 'anulada' ? 'danger' : 'warning text-dark')} text-uppercase">${s.estado || 'OK'}</span></td>
+                    </tr>`;
+                }).join('');
+            } else if (tabName === 'cotizaciones') {
+                thead = `<tr><th>Documento</th><th>Fecha</th><th>Validez</th><th class="text-end">Total</th><th>Estado</th></tr>`;
+                rows = paginated.map(c => {
+                    const num = c.numero || c.id.toString().substr(-6).toUpperCase();
+                    return `<tr>
+                        <td><a href="#" onclick="event.preventDefault(); bootstrap.Modal.getInstance(document.getElementById('clienteDetailModal')).hide(); App.editCotizacion('${c.id}')" class="text-decoration-none fw-bold">${num.replace('#', '')}</a></td>
+                        <td>${fmtDate(c.fecha)}</td>
+                        <td>${fmtDate(c.validez)}</td>
+                        <td class="text-end fw-bold">${fmt(c.total || 0)}</td>
+                        <td><span class="badge bg-${c.estado === 'convertida' ? 'primary' : 'secondary'} text-uppercase">${c.estado || 'borrador'}</span></td>
+                    </tr>`;
+                }).join('');
+            } else if (tabName === 'devoluciones') {
+                thead = `<tr><th>Referencia</th><th>Fecha</th><th>Factura Origen</th><th class="text-end">Total Devuelto</th></tr>`;
+                rows = paginated.map(d => {
+                    const sale = DB.getSale(d.venta_id);
+                    const ref = d.id.toString().substr(-6).toUpperCase();
+                    return `<tr>
+                        <td><strong>#${ref}</strong></td>
+                        <td>${fmtDate(d.fecha)}</td>
+                        <td>Factura #${sale ? (sale.numero || sale.id.toString().substr(-6).toUpperCase()) : 'N/A'}</td>
+                        <td class="text-end fw-bold">${fmt(d.total)}</td>
+                    </tr>`;
+                }).join('');
+            } else if (tabName === 'cuentas-cobrar') {
+                thead = `<tr><th>Vencimiento</th><th>Total</th><th class="text-end">Saldo Pendiente</th><th>Estado</th></tr>`;
+                rows = paginated.map(c => `
+                    <tr>
+                        <td>${fmtDate(c.fecha_vencimiento)}</td>
+                        <td>${fmt(c.total)}</td>
+                        <td class="text-end text-danger fw-bold">${fmt(c.saldo)}</td>
+                        <td><span class="badge ${c.estado === 'vencida' ? 'bg-danger' : 'bg-warning text-dark'}">${c.estado.toUpperCase()}</span></td>
+                    </tr>
+                `).join('');
+            } else if (tabName === 'pagos') {
+                thead = `<tr><th>Referencia</th><th>Fecha</th><th>Banco</th><th class="text-end">Monto</th><th>Estado</th></tr>`;
+                rows = paginated.map(r => {
+                    const ref = r.id.toString().length > 6 ? r.id.toString().substr(-6).toUpperCase() : r.id.toString().toUpperCase();
+                    const bank = DB.getBank(r.banco_id);
+                    return `<tr>
+                        <td><strong>#${ref}</strong></td>
+                        <td>${fmtDate(r.fecha)}</td>
+                        <td>${bank ? bank.nombre : 'N/A'}</td>
+                        <td class="text-end fw-bold">${fmt(r.monto_total || 0)}</td>
+                        <td><span class="badge bg-${r.estado === 'activo' ? 'success' : 'danger'} text-uppercase">${r.estado || 'activo'}</span></td>
+                    </tr>`;
+                }).join('');
+            }
+
+            tableHtml = `
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover align-middle">
+                        <thead class="table-light">${thead}</thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mt-2 px-2" style="font-size:12px;">
+                    <span class="text-muted">${start + 1}-${end} de ${total}</span>
+                    <div class="btn-group btn-group-sm">
+                        <button class="btn btn-outline-secondary" ${currentPage === 1 ? 'disabled' : ''} onclick="App.loadClientTab('${id}', '${tabName}', ${currentPage - 1})">
+                            <i class="bi bi-chevron-left"></i> Anterior
+                        </button>
+                        <button class="btn btn-outline-secondary" ${currentPage === totalPages ? 'disabled' : ''} onclick="App.loadClientTab('${id}', '${tabName}', ${currentPage + 1})">
+                            Siguiente <i class="bi bi-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        container.innerHTML = tableHtml;
     },
 
     saveCliente() {
@@ -1119,7 +1234,7 @@ const App = {
         }
 
         document.getElementById('ventaId').value = v.id;
-        document.getElementById('ventaNumeroHeader').textContent = 'No. ' + (v.numero || v.id.slice(-6).toUpperCase());
+        document.getElementById('ventaNumeroHeader').textContent = 'No. ' + (v.numero || v.id.toString().slice(-6).toUpperCase());
         document.getElementById('ventaFecha').value = v.fecha ? v.fecha.split('T')[0] : new Date().toISOString().split('T')[0];
         document.getElementById('ventaTipo').value = v.tipo_venta;
         document.getElementById('ventaObservacion').value = v.observacion || '';
@@ -1138,7 +1253,7 @@ const App = {
         const bancoContainer = document.getElementById('ventaBancoContainer');
         if (v.tipo_venta === 'contado') {
             bancoContainer.style.display = 'block';
-            const recibo = DB.getAll(DB.KEYS.RECIBOS_CAJA).find(r => (r.observacion || r.observaciones || '').includes(v.numero || v.id.slice(-6)));
+            const recibo = DB.getAll(DB.KEYS.RECIBOS_CAJA).find(r => (r.observacion || r.observaciones || '').includes(v.numero || v.id.toString().slice(-6)));
             if (recibo) this.selectors.ventaBanco.setValue(recibo.banco_id);
             else this.selectors.ventaBanco.clear();
         } else {
@@ -1277,16 +1392,16 @@ const App = {
             return `<tr>
                 <td><a href="#" onclick="event.preventDefault(); bootstrap.Modal.getInstance(document.getElementById('ventaDetailModal')).hide(); App.viewProducto('${product ? product.id : ''}')" class="text-decoration-none">${product ? product.nombre : 'N/A'}</a></td>
                 <td>${d.descripcion || '-'}</td>
-                <td>${d.cantidad}</td>
-                <td>${fmt(d.precio_unitario)}</td>
-                <td>${fmt(d.subtotal)}</td>
+                <td class="text-end">${d.cantidad}</td>
+                <td class="text-end">${fmt(d.precio_unitario)}</td>
+                <td class="text-end">${fmt(d.subtotal)}</td>
             </tr>`;
         }).join('');
 
         document.getElementById('ventaDetailBody').innerHTML = `
             <div class="row mb-4">
                 <div class="col-md-6">
-                    <p><strong># Documento:</strong> ${sale.numero || sale.id.substr(-6).toUpperCase()}</p>
+                    <p><strong># Documento:</strong> ${sale.numero || sale.id.toString().substr(-6).toUpperCase()}</p>
                     <p><strong>Cliente:</strong> <a href="#" onclick="event.preventDefault(); bootstrap.Modal.getInstance(document.getElementById('ventaDetailModal')).hide(); App.viewCliente('${client ? client.id : ''}')" class="text-decoration-none fw-bold">${client ? client.nombre : 'N/A'}</a></p>
                     <p><strong>Fecha:</strong> ${sale.fecha}</p>
                     <p><strong>Estado:</strong> <span class="badge bg-${sale.estado === 'pagada' ? 'success' : (sale.estado === 'anulada' ? 'danger' : 'warning text-dark')} text-uppercase">${sale.estado || 'OK'}</span></p>
@@ -1300,7 +1415,7 @@ const App = {
             </div>
             <table class="table-modern">
                 <thead>
-                    <tr><th>Producto</th><th>Descripción / Modelo</th><th>Cant.</th><th>P. Venta</th><th>Subtotal</th></tr>
+                    <tr><th>Producto</th><th>Descripción / Modelo</th><th class="text-end">Cant.</th><th class="text-end">P. Venta</th><th class="text-end">Subtotal</th></tr>
                 </thead>
                 <tbody>${detailRows}</tbody>
             </table>`;
@@ -1357,7 +1472,7 @@ const App = {
             if (carteraItem) saldo = parseFloat(carteraItem.saldo);
         }
 
-        const refNum = sale.numero || sale.id.slice(-6).toUpperCase();
+        const refNum = sale.numero || sale.id.toString().slice(-6).toUpperCase();
         const printWindow = window.open('', '_blank');
         
         let subtotalAccum = 0;
@@ -1588,7 +1703,7 @@ const App = {
         document.getElementById('printCompraBtn').style.display = 'inline-block';
         document.getElementById('printCompraBtn').onclick = () => this.printCompra(c.id);
 
-        document.getElementById('compraModalTitle').textContent = `Órden de Compra #${c.id.substr(-6).toUpperCase()}`;
+        document.getElementById('compraModalTitle').textContent = `Órden de Compra #${c.id.toString().substr(-6).toUpperCase()}`;
         this._renderCompraDetalle();
         new bootstrap.Modal(document.getElementById('compraModal')).show();
     },
@@ -1664,10 +1779,10 @@ const App = {
             total += d.subtotal;
             return `<tr>
                 <td>${d.nombre}</td>
-                <td>${d.cantidad}</td>
-                <td>${fmt(d.costo_unitario)}</td>
-                <td>${d.precio_venta_sugerido ? fmt(d.precio_venta_sugerido) : '-'}</td>
-                <td>${fmt(d.subtotal)}</td>
+                <td class="text-end">${d.cantidad}</td>
+                <td class="text-end">${fmt(d.costo_unitario)}</td>
+                <td class="text-end">${d.precio_venta_sugerido ? fmt(d.precio_venta_sugerido) : '-'}</td>
+                <td class="text-end">${fmt(d.subtotal)}</td>
                 <td>${!isProcessed ? `<button type="button" class="btn-action btn-delete" onclick="App.removeFromCompra(${i})"><i class="bi bi-x-lg"></i></button>` : ''}</td>
             </tr>`;
         }).join('');
@@ -1734,7 +1849,7 @@ const App = {
         if (!c) return;
         const details = DB.getCompraDetails(id);
         const fmt = (n) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n);
-        const refNum = c.numero || c.id.substr(-6).toUpperCase();
+        const refNum = c.numero || c.id.toString().substr(-6).toUpperCase();
 
         const printWindow = window.open('', '_blank');
         const html = `<!DOCTYPE html><html lang="es">
@@ -1828,7 +1943,7 @@ const App = {
         if (!c) return;
 
         document.getElementById('cotizacionId').value = c.id;
-        document.getElementById('cotizacionNumeroHeader').textContent = 'No. ' + (c.numero || c.id.slice(-6).toUpperCase());
+        document.getElementById('cotizacionNumeroHeader').textContent = 'No. ' + (c.numero || c.id.toString().slice(-6).toUpperCase());
         document.getElementById('cotizacionFecha').value = c.fecha ? c.fecha.split('T')[0] : '';
         document.getElementById('cotizacionValidez').value = c.validez ? c.validez.split('T')[0] : '';
         document.getElementById('cotizacionObservacion').value = c.observacion || '';
@@ -1953,13 +2068,15 @@ const App = {
         const allItems = DB.getCotizaciones();
         const fmt = (n) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n);
         const q = (query || '').toLowerCase().trim();
-        const sorted = [...allItems].sort((a, b) => new Date(b.fecha || 0) - new Date(a.fecha || 0));
-        const items = q ? sorted.filter(c => {
+        const sorted = TableSort.apply([...allItems].sort((a, b) => new Date(b.fecha || 0) - new Date(a.fecha || 0)), 'cotizaciones');
+        const statusFilter = TableSort._getState('cotizaciones').filter || 'todas';
+        const preFiltered = statusFilter !== 'todas' ? sorted.filter(c => c.estado === statusFilter) : sorted;
+        const items = q ? preFiltered.filter(c => {
             if (!c) return false;
             const client = DB.getClient(c.cliente_id);
-            const ref = (c.numero || (c.id ? c.id.substr(-6) : '')).toString().toLowerCase();
+            const ref = (c.numero || (c.id ? c.id.toString().substr(-6) : '')).toString().replace('#', '').toLowerCase();
             return ref.includes(q) || (client ? client.nombre.toLowerCase().includes(q) : false);
-        }) : sorted;
+        }) : preFiltered;
 
         if (items.length === 0) {
             tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-4">${q ? `Sin resultados para "<strong>${q}</strong>"` : 'No hay cotizaciones registradas'}</td></tr>`;
@@ -1974,17 +2091,17 @@ const App = {
             if (c.estado === 'rechazada') badgeClass = 'danger';
             if (c.estado === 'vencida') badgeClass = 'warning';
             if (c.estado === 'convertida') badgeClass = 'primary';
-            const ref = c.numero || c.id.substr(-6).toUpperCase();
+            const ref = c.numero || c.id.toString().substr(-6).toUpperCase();
             const fechaStr = c.fecha ? (c.fecha.includes('T') ? new Date(c.fecha).toLocaleDateString('es-CO') : c.fecha) : 'Sin fecha';
             const validezStr = c.validez ? (c.validez.includes('T') ? new Date(c.validez).toLocaleDateString('es-CO') : c.validez) : '-';
             const yaConvertida = c.estado === 'convertida' || !!c.factura_id;
             return `<tr>
-                <td><strong>#${ref}</strong></td>
+                <td><a href="#" onclick="event.preventDefault(); App.editCotizacion('${c.id}')" class="text-decoration-none fw-bold">${ref.replace('#', '')}</a></td>
                 <td>${fechaStr}</td>
-                <td><a href="#" onclick="event.preventDefault(); App.viewCliente('${c.cliente_id}')" class="text-decoration-none fw-bold">${client ? client.nombre : 'Desconocido'}</a></td>
+                <td><a href="#" onclick="event.preventDefault(); App.viewCliente('${c.cliente_id}')" class="text-decoration-none fw-bold">${DB.getClientName(c.cliente_id, c.cliente_nombre_alegra)}</a></td>
                 <td>${validezStr}</td>
                 <td><span class="badge bg-${badgeClass} text-uppercase" style="font-size:0.75rem">${c.estado || 'borrador'}</span></td>
-                <td><strong>${fmt(c.total || 0)}</strong></td>
+                <td class="text-end"><strong>${fmt(c.total || 0)}</strong></td>
                 <td>
                     <button class="btn-action btn-edit" onclick="App.editCotizacion('${c.id}')" title="Ver / Editar"><i class="bi bi-pencil"></i></button>
                     ${!yaConvertida ? `<button class="btn-action" style="color:#0d6efd" onclick="App.convertFactura('${c.id}')" title="Convertir a Factura"><i class="bi bi-arrow-right-circle"></i></button>` : `<button class="btn-action" style="color:#6c757d; opacity:0.5; cursor:default" title="Ya convertida"><i class="bi bi-check-circle"></i></button>`}
@@ -1998,16 +2115,19 @@ const App = {
     filterVentas(query) {
         const tbody = document.getElementById('ventasTableBody');
         if (!tbody) { this.navigateTo('ventas'); return; }
-        const allSales = DB.getSales().sort((a, b) => new Date(b.fecha || 0) - new Date(a.fecha || 0));
+        const baseSales = DB.getSales().sort((a, b) => new Date(b.fecha || 0) - new Date(a.fecha || 0));
+        const allSales = TableSort.apply(baseSales, 'ventas');
+        const statusFilterV = TableSort._getState('ventas').filter || 'todas';
         const allCartera = DB.getAll(DB.KEYS.CARTERA);
         const fmt = (n) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n);
         const q = (query || '').toLowerCase().trim();
-        const sales = q ? allSales.filter(s => {
+        const preFiltered = statusFilterV !== 'todas' ? allSales.filter(s => s.estado === statusFilterV) : allSales;
+        const sales = q ? preFiltered.filter(s => {
             if (!s) return false;
             const client = DB.getClient(s.cliente_id);
-            const ref = (s.numero || (s.id ? s.id.substr(-6) : '')).toString().toLowerCase();
+            const ref = (s.numero || (s.id ? s.id.toString().substr(-6) : '')).toString().replace('#', '').toLowerCase();
             return ref.includes(q) || (client ? client.nombre.toLowerCase().includes(q) : false);
-        }) : allSales;
+        }) : preFiltered;
 
         if (sales.length === 0) {
             tbody.innerHTML = `<tr><td colspan="9" class="text-center text-muted py-4">${q ? `Sin resultados para "<strong>${q}</strong>"` : 'No hay facturas de venta registradas'}</td></tr>`;
@@ -2026,17 +2146,17 @@ const App = {
             if (s.tipo_venta === 'contado') { abono = s.total; }
             else if (carteraItem) { saldo = parseFloat(carteraItem.saldo); abono = s.total - saldo; }
             else { abono = s.total; }
-            const ref = s.numero || s.id.substr(-6).toUpperCase();
+            const ref = s.numero || s.id.toString().substr(-6).toUpperCase();
             const fechaStr = s.fecha ? (s.fecha.includes('T') ? new Date(s.fecha).toLocaleDateString('es-CO') : s.fecha) : '-';
             return `<tr>
-                <td><strong>#${ref}</strong></td>
+                <td><a href="#" onclick="event.preventDefault(); App.viewVenta('${s.id}')" class="text-decoration-none fw-bold">${ref.replace('#', '')}</a></td>
                 <td>${fechaStr}</td>
-                <td><a href="#" onclick="event.preventDefault(); App.viewCliente('${s.cliente_id}')" class="text-decoration-none fw-bold">${client ? client.nombre : 'N/A'}</a></td>
+                <td><a href="#" onclick="event.preventDefault(); App.viewCliente('${s.cliente_id}')" class="text-decoration-none fw-bold">${DB.getClientName(s.cliente_id, s.cliente_nombre_alegra)}</a></td>
                 <td><span class="badge-status badge-${s.tipo_venta}">${s.tipo_venta}</span></td>
                 <td><span class="badge bg-${stateBadge} text-uppercase" style="font-size:0.75rem">${s.estado || 'OK'}</span></td>
-                <td><strong class="text-primary">${fmt(s.total)}</strong></td>
-                <td class="text-success">${fmt(abono)}</td>
-                <td class="text-danger fw-bold">${fmt(saldo)}</td>
+                <td class="text-end"><strong class="text-primary">${fmt(s.total)}</strong></td>
+                <td class="text-end text-success">${fmt(abono)}</td>
+                <td class="text-end text-danger fw-bold">${fmt(saldo)}</td>
                 <td>
                     <button class="btn-action btn-view" onclick="App.viewVenta('${s.id}')" title="Ver detalle"><i class="bi bi-eye"></i></button>
                     ${s.estado !== 'pagada' && s.estado !== 'anulada' ? `<button class="btn-action btn-edit" onclick="App.editVenta('${s.id}')" title="Editar"><i class="bi bi-pencil"></i></button>` : ''}
@@ -2055,7 +2175,7 @@ const App = {
             this.showToast('No se puede eliminar una cotización ya convertida en factura.', 'Operación no permitida', 'danger');
             return;
         }
-        if (!confirm(`¿Está seguro de eliminar la Cotización #${c.numero || id.substr(-6).toUpperCase()}? Esta acción no se puede deshacer.`)) return;
+        if (!confirm(`¿Está seguro de eliminar la Cotización #${c.numero || id.toString().substr(-6).toUpperCase()}? Esta acción no se puede deshacer.`)) return;
         // Delete header and details
         DB.delete(DB.KEYS.COTIZACIONES, id);
         const allDetails = DB.getAll(DB.KEYS.COTIZACION_DETAILS).filter(d => d.cotizacion_id !== id);
@@ -2126,7 +2246,7 @@ const App = {
         const details = DB.getCotizacionDetails(id);
         const seller = c.vendedor_id ? DB.getSeller(c.vendedor_id) : null;
         const fmt = (n) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n);
-        const refNum = c.numero || c.id.slice(-6).toUpperCase();
+        const refNum = c.numero || c.id.toString().slice(-6).toUpperCase();
 
         const printWindow = window.open('', '_blank');
         
@@ -2277,7 +2397,7 @@ const App = {
             const modal = bootstrap.Modal.getInstance(document.getElementById('cotizacionModal'));
             if (modal) modal.hide();
 
-            this.showToast(`Factura #${savedSale.numero || savedSale.id.substr(-6).toUpperCase()} creada correctamente.`);
+            this.showToast(`Factura #${savedSale.numero || savedSale.id.toString().substr(-6).toUpperCase()} creada correctamente.`);
 
             // Redirect to sales or show the new sale detail
             this.navigateTo('ventas');
@@ -2690,38 +2810,38 @@ const App = {
                 return;
             }
             case 'inventario':
-                html += '<th>Código</th><th>Nombre</th><th>Stock</th><th>Mín.</th><th>P. Compra</th><th>P. Venta</th><th>Valor Inv.</th>';
+                html += '<th>Código</th><th>Nombre</th><th class="text-end">Stock</th><th class="text-end">Mín.</th><th class="text-end">P. Compra</th><th class="text-end">P. Venta</th><th class="text-end">Valor Inv.</th>';
                 html += '</tr></thead><tbody>';
                 data.forEach(r => {
                     const isLow = r.stock_actual <= r.stock_minimo;
                     html += `<tr><td>${r.codigo}</td><td>${r.nombre}</td>
-                        <td>${isLow ? `<span class="stock-alert">${r.stock_actual}</span>` : r.stock_actual}</td>
-                        <td>${r.stock_minimo}</td><td>${fmt(r.precio_compra)}</td><td>${fmt(r.precio_venta)}</td>
-                        <td>${fmt(r.valor_inventario)}</td></tr>`;
+                        <td class="text-end">${isLow ? `<span class="stock-alert">${r.stock_actual}</span>` : r.stock_actual}</td>
+                        <td class="text-end">${r.stock_minimo}</td><td class="text-end">${fmt(r.precio_compra)}</td><td class="text-end">${fmt(r.precio_venta)}</td>
+                        <td class="text-end">${fmt(r.valor_inventario)}</td></tr>`;
                 });
-                html += `<tr class="fw-bold"><td colspan="6">TOTAL INVENTARIO</td><td>${fmt(data.reduce((s, r) => s + r.valor_inventario, 0))}</td></tr>`;
+                html += `<tr class="fw-bold"><td colspan="6">TOTAL INVENTARIO</td><td class="text-end">${fmt(data.reduce((s, r) => s + r.valor_inventario, 0))}</td></tr>`;
                 break;
             case 'gastos':
-                html += '<th>Fecha</th><th>Categoría</th><th>Descripción</th><th>Monto</th>';
+                html += '<th>Fecha</th><th>Categoría</th><th>Descripción</th><th class="text-end">Monto</th>';
                 html += '</tr></thead><tbody>';
                 data.forEach(r => {
-                    html += `<tr><td>${r.fecha}</td><td>${r.categoria}</td><td>${r.descripcion}</td><td class="text-danger">${fmt(r.monto)}</td></tr>`;
+                    html += `<tr><td>${r.fecha}</td><td>${r.categoria}</td><td>${r.descripcion}</td><td class="text-end text-danger">${fmt(r.monto)}</td></tr>`;
                 });
-                html += `<tr class="fw-bold"><td colspan="3">TOTAL</td><td class="text-danger">${fmt(data.reduce((s, r) => s + parseFloat(r.monto), 0))}</td></tr>`;
+                html += `<tr class="fw-bold"><td colspan="3">TOTAL</td><td class="text-end text-danger">${fmt(data.reduce((s, r) => s + parseFloat(r.monto), 0))}</td></tr>`;
                 break;
             case 'rentabilidad':
-                html += '<th>Fecha</th><th>Referencia</th><th>Cliente</th><th>Vendedor</th><th>Total Factura</th><th>Neto sin IVA</th><th>Costo FIFO</th><th>Utilidad Neta</th><th>Margen</th>';
+                html += '<th>Fecha</th><th>Referencia</th><th>Cliente</th><th>Vendedor</th><th class="text-end">Total Factura</th><th class="text-end">Neto sin IVA</th><th class="text-end">Costo FIFO</th><th class="text-end">Utilidad Neta</th><th class="text-end">Margen</th>';
                 html += '</tr></thead><tbody>';
                 data.forEach(r => {
                     html += `<tr><td>${r.fecha}</td><td><code>${r.referencia}</code></td><td>${r.cliente_nombre}</td><td>${r.vendedor_nombre}</td>
-                        <td>${fmt(r.total)}</td><td>${fmt(r.total_neto)}</td><td>${fmt(r.total_costo)}</td><td class="text-success">${fmt(r.utilidad)}</td><td><span class="badge bg-info">${r.margen}</span></td></tr>`;
+                        <td class="text-end">${fmt(r.total)}</td><td class="text-end">${fmt(r.total_neto)}</td><td class="text-end">${fmt(r.total_costo)}</td><td class="text-end text-success">${fmt(r.utilidad)}</td><td class="text-end"><span class="badge bg-info">${r.margen}</span></td></tr>`;
                 });
                 const rentTotalOriginal = data.reduce((s, r) => s + parseFloat(r.total), 0);
                 const rentTotalNeto = data.reduce((s, r) => s + parseFloat(r.total_neto), 0);
                 const rentTotalCosto = data.reduce((s, r) => s + parseFloat(r.total_costo), 0);
                 const rentTotalUtil = data.reduce((s, r) => s + parseFloat(r.utilidad), 0);
                 const rentMargin = rentTotalNeto > 0 ? (rentTotalUtil / rentTotalNeto * 100).toFixed(1) : 0;
-                html += `<tr class="fw-bold"><td colspan="4">TOTALES</td><td>${fmt(rentTotalOriginal)}</td><td>${fmt(rentTotalNeto)}</td><td>${fmt(rentTotalCosto)}</td><td class="text-success">${fmt(rentTotalUtil)}</td><td><span class="badge bg-primary">${rentMargin}%</span></td></tr>`;
+                html += `<tr class="fw-bold"><td colspan="4">TOTALES</td><td class="text-end">${fmt(rentTotalOriginal)}</td><td class="text-end">${fmt(rentTotalNeto)}</td><td class="text-end">${fmt(rentTotalCosto)}</td><td class="text-end text-success">${fmt(rentTotalUtil)}</td><td class="text-end"><span class="badge bg-primary">${rentMargin}%</span></td></tr>`;
                 break;
             case 'productos_mas_vendidos':
                 html += '<th>Código SKU</th><th>Producto</th><th class="text-end">Unidades Vendidas</th><th class="text-end">Ingresos Netos</th><th class="text-end">Costo Total</th><th class="text-end">Utilidad</th>';
@@ -3444,6 +3564,7 @@ const App = {
 
                     const carteraData = {
                         id_alegra_factura: String(c.id_factura),
+                        venta_id: String(c.id_factura),
                         numero: c.numero,
                         cliente_id: localClient ? localClient.id : DB.genId(),
                         fecha_emision: c.fecha_emision,
@@ -3483,6 +3604,37 @@ const App = {
                     }
                 });
                 DB._persist(DB.KEYS.FACTURAS_ALEGRA, dbFacturas);
+
+                // Auto-registrar clientes de facturas que no existen en cg_clients
+                let dbClients = DB.getAll(DB.KEYS.CLIENTS) || [];
+                let newClientsAdded = 0;
+                importedFacturas.forEach(f => {
+                    if (!f.cliente_id_alegra || !f.cliente_nombre) return;
+                    const exists = dbClients.some(cli =>
+                        (cli.id_alegra && String(cli.id_alegra) === String(f.cliente_id_alegra)) ||
+                        (cli.documento && f.cliente_nit && String(cli.documento) === String(f.cliente_nit))
+                    );
+                    if (!exists) {
+                        dbClients.push({
+                            id: DB.genId(),
+                            nombre: f.cliente_nombre,
+                            documento: f.cliente_nit || '',
+                            tipo_doc: 'NIT',
+                            id_alegra: String(f.cliente_id_alegra),
+                            tipo: 'cliente',
+                            estado: 'Activo',
+                            cupo_credito: 0,
+                            plazo_dias: 30,
+                            created_at: new Date().toISOString(),
+                            updated_at: new Date().toISOString()
+                        });
+                        newClientsAdded++;
+                    }
+                });
+                if (newClientsAdded > 0) {
+                    DB._persist(DB.KEYS.CLIENTS, dbClients);
+                    console.log(`Import: ${newClientsAdded} clientes nuevos auto-registrados desde facturas.`);
+                }
             }
 
             // 7. Importar Cotizaciones / Estimaciones
@@ -3626,7 +3778,7 @@ const App = {
             const dias = Math.floor((today - venc) / (1000 * 60 * 60 * 24));
             const diasLabel = dias > 0 ? `<span class="text-danger">${dias}d</span>` : `<span class="text-success">${Math.abs(dias)}d</span>`;
             const sale = f.venta_id ? DB.getSale(f.venta_id) : null;
-            const ref = sale ? '#' + (sale.numero || sale.id.substr(-6).toUpperCase()) : f.venta_id || '-';
+            const ref = sale ? '#' + (sale.numero || sale.id.toString().substr(-6).toUpperCase()) : f.venta_id || '-';
 
             return `<tr>
                 <td><strong>${ref}</strong></td>
@@ -3768,14 +3920,14 @@ const App = {
 
         let detailRows = detalles.map(d => {
             const sale = d.factura_id ? DB.getSale(d.factura_id) : null;
-            const ref = sale ? '#' + (sale.numero || sale.id.slice(-6).toUpperCase()) : '-';
+            const ref = sale ? '#' + (sale.numero || sale.id.toString().slice(-6).toUpperCase()) : '-';
             return `<tr>
                 <td>${ref}</td>
                 <td>${fmt(d.monto_aplicado)}</td>
             </tr>`;
         }).join('');
 
-        const ref = recibo.numero || recibo.id.slice(-6).toUpperCase();
+        const ref = recibo.numero || recibo.id.toString().slice(-6).toUpperCase();
         const estado = recibo.estado === 'activo'
             ? '<span class="badge bg-success">ACTIVO</span>'
             : '<span class="badge bg-danger">ANULADO</span>';
@@ -3888,7 +4040,7 @@ const App = {
             .filter(s => s.estado !== 'anulada')
             .map(s => {
                 const client = DB.getClient(s.cliente_id);
-                return { id: s.id, text: `Factura #${s.numero || s.id.substr(-6).toUpperCase()} - ${client ? client.nombre : 'N/A'}` };
+                return { id: s.id, text: `Factura #${s.numero || s.id.toString().substr(-6).toUpperCase()} - ${client ? client.nombre : 'N/A'}` };
             }));
         this.selectors.devolucionVenta.clear();
 
@@ -4035,7 +4187,7 @@ const App = {
                 <div class="col-md-6">
                     <p><strong>Cliente:</strong> <a href="#" onclick="event.preventDefault(); bootstrap.Modal.getInstance(document.getElementById('devolucionDetailModal')).hide(); App.viewCliente('${client ? client.id : ''}')" class="text-decoration-none fw-bold">${client ? client.nombre : 'N/A'}</a></p>
                     <p><strong>Fecha Dev:</strong> ${devolucion.fecha}</p>
-                    <p><strong>Factura Origen:</strong> <a href="#" onclick="event.preventDefault(); bootstrap.Modal.getInstance(document.getElementById('devolucionDetailModal')).hide(); App.viewVenta('${sale ? sale.id : ''}')" class="text-decoration-none fw-bold">#${sale ? (sale.numero || sale.id.substr(-6).toUpperCase()) : 'N/A'}</a></p>
+                    <p><strong>Factura Origen:</strong> <a href="#" onclick="event.preventDefault(); bootstrap.Modal.getInstance(document.getElementById('devolucionDetailModal')).hide(); App.viewVenta('${sale ? sale.id : ''}')" class="text-decoration-none fw-bold">#${sale ? (sale.numero || sale.id.toString().substr(-6).toUpperCase()) : 'N/A'}</a></p>
                 </div>
                 <div class="col-md-6 text-end">
                     <p><strong>Total Devuelto:</strong> <span class="fs-4 fw-bold">${fmt(devolucion.total)}</span></p>
@@ -4113,18 +4265,18 @@ const App = {
                 </div>
             </td>
             <td class="align-middle" style="width: 90px;">
-                <input type="text" class="form-control form-control-sm text-center number-format row-cantidad" value="${data.cantidad || 1}" inputmode="numeric">
+                <input type="text" class="form-control form-control-sm text-end number-format row-cantidad" value="${data.cantidad || 1}" inputmode="numeric">
                 <div class="row-stock text-muted text-center mt-1" style="font-size: 10px; display: none;">Disp: <span class="stock-val">0</span></div>
             </td>
             <td class="align-middle" style="width: 140px;">
                 <div class="input-group input-group-sm">
                     <span class="input-group-text">$</span>
-                    <input type="text" class="form-control number-format row-precio" value="${this.formatNumber(data.precio_unitario || 0)}" inputmode="numeric">
+                    <input type="text" class="form-control text-end number-format row-precio" value="${this.formatNumber(data.precio_unitario || 0)}" inputmode="numeric">
                 </div>
             </td>
             <td class="align-middle" style="width: 100px;">
                 <div class="input-group input-group-sm">
-                    <input type="text" class="form-control number-format row-descuento" value="${this.formatNumber(data.descuento || 0)}" inputmode="numeric">
+                    <input type="text" class="form-control text-end number-format row-descuento" value="${this.formatNumber(data.descuento || 0)}" inputmode="numeric">
                     <span class="input-group-text">%</span>
                 </div>
             </td>
@@ -4221,18 +4373,18 @@ const App = {
                 </div>
             </td>
             <td class="align-middle" style="width: 90px;">
-                <input type="text" class="form-control form-control-sm text-center number-format row-cantidad" value="${data.cantidad || 1}" inputmode="numeric">
+                <input type="text" class="form-control form-control-sm text-end number-format row-cantidad" value="${data.cantidad || 1}" inputmode="numeric">
                 <div class="row-stock text-muted text-center mt-1" style="font-size: 10px; display: none;">Disp: <span class="stock-val">0</span></div>
             </td>
             <td class="align-middle" style="width: 140px;">
                 <div class="input-group input-group-sm">
                     <span class="input-group-text">$</span>
-                    <input type="text" class="form-control number-format row-precio" value="${this.formatNumber(data.precio_unitario || 0)}" inputmode="numeric">
+                    <input type="text" class="form-control text-end number-format row-precio" value="${this.formatNumber(data.precio_unitario || 0)}" inputmode="numeric">
                 </div>
             </td>
             <td class="align-middle" style="width: 100px;">
                 <div class="input-group input-group-sm">
-                    <input type="text" class="form-control number-format row-descuento" value="${this.formatNumber(data.descuento || 0)}" inputmode="numeric">
+                    <input type="text" class="form-control text-end number-format row-descuento" value="${this.formatNumber(data.descuento || 0)}" inputmode="numeric">
                     <span class="input-group-text">%</span>
                 </div>
             </td>

@@ -11,10 +11,38 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
         rel="stylesheet">
-    <link rel="stylesheet" href="css/app.css?v=1709510405">
+    <link rel="stylesheet" href="css/app.css?v=20260714_2">
 </head>
 
 <body>
+    <!-- Global Error Display for Debugging -->
+    <div id="debugErrorContainer" style="position: fixed; bottom: 20px; right: 20px; z-index: 999999; max-width: 450px; padding: 15px; background: rgba(220, 53, 69, 0.95); color: white; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.35); font-family: monospace; font-size: 13px; display: none; border-left: 5px solid #721c24;">
+        <div style="font-weight: bold; margin-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.3); padding-bottom: 4px; display: flex; justify-content: space-between; align-items: center;">
+            <span>⚠️ ERROR DETECTADO (Soporte)</span>
+            <button onclick="document.getElementById('debugErrorContainer').style.display='none'" style="background: none; border: none; color: white; font-weight: bold; cursor: pointer; padding: 0 5px;">X</button>
+        </div>
+        <div id="debugErrorMessage" style="word-break: break-all; white-space: pre-wrap; max-height: 200px; overflow-y: auto;"></div>
+        <div style="margin-top: 8px; font-size: 11px; color: rgba(255,255,255,0.7); text-align: right;">Reportar este error al soporte técnico.</div>
+    </div>
+    <script>
+        window.addEventListener('error', function(e) {
+            const container = document.getElementById('debugErrorContainer');
+            const messageEl = document.getElementById('debugErrorMessage');
+            if (container && messageEl) {
+                container.style.display = 'block';
+                messageEl.textContent = 'Error: ' + e.message + '\nArchivo: ' + e.filename + '\nLínea: ' + e.lineno + ':' + e.colno + '\nStack: ' + (e.error ? e.error.stack : 'No disponible');
+            }
+        });
+        window.addEventListener('unhandledrejection', function(e) {
+            const container = document.getElementById('debugErrorContainer');
+            const messageEl = document.getElementById('debugErrorMessage');
+            if (container && messageEl) {
+                container.style.display = 'block';
+                messageEl.textContent = 'Promise rechazada: ' + e.reason + '\nStack: ' + (e.reason && e.reason.stack ? e.reason.stack : 'No disponible');
+            }
+        });
+    </script>
+
     <!-- Login Screen -->
     <div id="loginScreen" class="login-screen">
         <div class="login-card">
@@ -469,10 +497,10 @@
                                         <tr class="text-uppercase text-muted" style="font-size: 10px; border-bottom: 2px solid var(--gray-200);">
                                             <th class="text-center" style="width: 40px;"><input type="checkbox" class="form-check-input" id="selectAllVentaRows"></th>
                                             <th>Producto o servicios</th>
-                                            <th style="width: 90px;">Cantidad</th>
-                                            <th style="width: 140px;">Precio</th>
-                                            <th style="width: 100px;">Descuento</th>
-                                            <th style="width: 120px;">Impuesto</th>
+                                            <th class="text-end" style="width: 90px;">Cantidad</th>
+                                            <th class="text-end" style="width: 140px;">Precio</th>
+                                            <th class="text-end" style="width: 100px;">Descuento</th>
+                                            <th class="text-end" style="width: 120px;">Impuesto</th>
                                             <th class="text-end" style="width: 140px;">Subtotal</th>
                                             <th style="width: 40px;"></th>
                                         </tr>
@@ -581,10 +609,10 @@
                                         <tr class="text-uppercase text-muted" style="font-size: 10px; border-bottom: 2px solid var(--gray-200);">
                                             <th class="text-center" style="width: 40px;"><input type="checkbox" class="form-check-input" id="selectAllCotizacionRows"></th>
                                             <th>Producto o servicios</th>
-                                            <th style="width: 90px;">Cantidad</th>
-                                            <th style="width: 140px;">Precio</th>
-                                            <th style="width: 100px;">Descuento</th>
-                                            <th style="width: 120px;">Impuesto</th>
+                                            <th class="text-end" style="width: 90px;">Cantidad</th>
+                                            <th class="text-end" style="width: 140px;">Precio</th>
+                                            <th class="text-end" style="width: 100px;">Descuento</th>
+                                            <th class="text-end" style="width: 120px;">Impuesto</th>
                                             <th class="text-end" style="width: 140px;">Subtotal</th>
                                             <th style="width: 40px;"></th>
                                         </tr>
@@ -827,10 +855,10 @@
                                 <thead>
                                     <tr>
                                         <th>Producto</th>
-                                        <th>Cantidad</th>
-                                        <th>Costo U.</th>
-                                        <th>P. Venta</th>
-                                        <th>Subtotal</th>
+                                        <th class="text-end">Cantidad</th>
+                                        <th class="text-end">Costo U.</th>
+                                        <th class="text-end">P. Venta</th>
+                                        <th class="text-end">Subtotal</th>
                                         <th></th>
                                     </tr>
                                 </thead>
@@ -838,7 +866,7 @@
                                 <tfoot>
                                     <tr class="fw-bold">
                                         <td colspan="4" class="text-end">TOTAL COMPRA:</td>
-                                        <td id="compraTotal">$0.00</td>
+                                        <td id="compraTotal" class="text-end">$0.00</td>
                                         <td></td>
                                     </tr>
                                 </tfoot>
@@ -1249,27 +1277,52 @@
                 </div>
                 <div class="modal-body pt-3 pb-0" id="clienteDetailBody">
                     <!-- Nav tabs -->
-                    <ul class="nav nav-tabs nav-tabs-custom mb-3" id="clienteDetailTab" role="tablist">
+                    <ul class="nav nav-tabs nav-tabs-custom mb-3" id="clienteDetailTab" role="tablist" style="flex-wrap: nowrap; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; border-bottom: 1px solid var(--gray-200);">
                         <li class="nav-item" role="presentation">
                             <button class="nav-link active" id="c-general-tab" data-bs-toggle="tab"
                                 data-bs-target="#c-general" type="button" role="tab"><i
                                     class="bi bi-info-circle me-1"></i>General</button>
                         </li>
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="c-facturas-tab" data-bs-toggle="tab"
-                                data-bs-target="#c-facturas" type="button" role="tab"><i
-                                    class="bi bi-receipt me-1"></i>Ventas</button>
+                            <button class="nav-link" id="c-transacciones-tab" data-bs-toggle="tab"
+                                data-bs-target="#c-transacciones" type="button" role="tab"><i
+                                    class="bi bi-arrow-left-right me-1"></i>Transacciones</button>
                         </li>
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="c-pagos-tab" data-bs-toggle="tab" data-bs-target="#c-pagos"
-                                type="button" role="tab"><i class="bi bi-cash-stack me-1"></i>Pagos/Cobros</button>
+                            <button class="nav-link" id="c-facturas-venta-tab" data-bs-toggle="tab"
+                                data-bs-target="#c-facturas-venta" type="button" role="tab"><i
+                                    class="bi bi-receipt me-1"></i>Facturas de venta</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="c-cotizaciones-tab" data-bs-toggle="tab"
+                                data-bs-target="#c-cotizaciones" type="button" role="tab"><i
+                                    class="bi bi-file-earmark-text me-1"></i>Cotizaciones</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="c-devoluciones-tab" data-bs-toggle="tab"
+                                data-bs-target="#c-devoluciones" type="button" role="tab"><i
+                                    class="bi bi-arrow-return-left me-1"></i>Devoluciones</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="c-cuentas-cobrar-tab" data-bs-toggle="tab"
+                                data-bs-target="#c-cuentas-cobrar" type="button" role="tab"><i
+                                    class="bi bi-wallet2 me-1"></i>Cuentas por cobrar</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="c-pagos-tab" data-bs-toggle="tab"
+                                data-bs-target="#c-pagos" type="button" role="tab"><i
+                                    class="bi bi-cash-stack me-1"></i>Pagos</button>
                         </li>
                     </ul>
                     <!-- Tab panes -->
                     <div class="tab-content" id="clienteDetailContent" style="min-height: 300px;">
                         <div class="tab-pane fade show active px-2" id="c-general" role="tabpanel"></div>
-                        <div class="tab-pane fade" id="c-facturas" role="tabpanel"></div>
-                        <div class="tab-pane fade" id="c-pagos" role="tabpanel"></div>
+                        <div class="tab-pane fade px-2" id="c-transacciones" role="tabpanel"></div>
+                        <div class="tab-pane fade px-2" id="c-facturas-venta" role="tabpanel"></div>
+                        <div class="tab-pane fade px-2" id="c-cotizaciones" role="tabpanel"></div>
+                        <div class="tab-pane fade px-2" id="c-devoluciones" role="tabpanel"></div>
+                        <div class="tab-pane fade px-2" id="c-cuentas-cobrar" role="tabpanel"></div>
+                        <div class="tab-pane fade px-2" id="c-pagos" role="tabpanel"></div>
                     </div>
                 </div>
                 <div class="modal-footer bg-light">
@@ -1357,11 +1410,12 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    <script src="js/db.js?v=1709510430"></script>
-    <script src="js/auth.js?v=1709510430"></script>
-    <script src="js/pages.js?v=1709510430"></script>
-    <script src="js/components/SearchableSelect.js?v=1709510430"></script>
-    <script src="js/app.js?v=1709510430"></script>
+    <script src="js/db.js?v=20260714_2"></script>
+    <script src="js/auth.js?v=20260714_2"></script>
+    <script src="js/pages.js?v=20260714_2"></script>
+    <script src="js/components/SearchableSelect.js?v=20260714_2"></script>
+    <script src="js/components/TableSort.js?v=20260714_3"></script>
+    <script src="js/app.js?v=20260714_2"></script>
 </body>
 
 </html>

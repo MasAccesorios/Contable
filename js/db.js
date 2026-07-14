@@ -166,12 +166,33 @@ const DB = {
     // Sync all data from Google Sheets to IndexedDB/cache on startup
     async syncFromCloud() {
         try {
-            console.log("Sincronizando con Google Sheets...");
-            const response = await fetch(this.API_URL);
+            console.log("Sincronizando con Google Sheets (background)...");
+            
+            // Timeout of 5 seconds to avoid blocking
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 5000);
+            
+            const response = await fetch(this.API_URL, { signal: controller.signal });
+            clearTimeout(timeout);
+            
+            // Check content-type - if it's HTML (Google login page), abort safely
+            const contentType = response.headers.get('content-type') || '';
+            if (contentType.includes('text/html')) {
+                console.warn("syncFromCloud: respuesta es HTML (posiblemente login de Google). Datos locales conservados.");
+                return false;
+            }
+            
             const data = await response.json();
             
-            if (data.error) {
-                console.error("Error de Google Sheets:", data.error);
+            if (!data || data.error || typeof data !== 'object') {
+                console.warn("syncFromCloud: respuesta inválida o vacía. Datos locales conservados.");
+                return false;
+            }
+
+            // Safety check: only overwrite if cloud has meaningful data
+            const cloudKeys = Object.keys(data);
+            if (cloudKeys.length === 0) {
+                console.warn("syncFromCloud: nube vacía. Datos locales conservados.");
                 return false;
             }
             
@@ -217,10 +238,15 @@ const DB = {
             console.log("Sincronización completa.");
             return true;
         } catch (error) {
-            console.error("Error de conexión con Google Sheets:", error);
+            if (error.name === 'AbortError') {
+                console.warn("syncFromCloud: timeout - datos locales conservados.");
+            } else {
+                console.warn("syncFromCloud: sin conexión - datos locales conservados.", error.message);
+            }
             return false;
         }
     },
+
 
     _syncPending: {},
     _syncRunning: {},
@@ -307,13 +333,13 @@ const DB = {
 
     getById(key, id) {
         const items = this.getAll(key);
-        return items.find(item => item.id === id);
+        return items.find(item => item && (String(item.id) === String(id) || (item.id_alegra && String(item.id_alegra) === String(id))));
     },
 
     save(key, item) {
         const items = this.getAll(key);
         if (item.id) {
-            const idx = items.findIndex(i => i.id === item.id);
+            const idx = items.findIndex(i => i && String(i.id) === String(item.id));
             if (idx !== -1) {
                 item.updated_at = new Date().toISOString();
                 items[idx] = { ...items[idx], ...item };
@@ -335,13 +361,13 @@ const DB = {
 
     delete(key, id) {
         let items = this.getAll(key);
-        items = items.filter(i => i.id !== id);
+        items = items.filter(i => i && String(i.id) !== String(id));
         this._persist(key, items);
     },
 
     softDelete(key, id) {
         const items = this.getAll(key);
-        const idx = items.findIndex(i => i.id === id);
+        const idx = items.findIndex(i => i && String(i.id) === String(id));
         if (idx !== -1) {
             items[idx].deleted_at = new Date().toISOString();
             items[idx].updated_at = new Date().toISOString();
@@ -397,6 +423,22 @@ const DB = {
     // =========================================================
     getClients() { return this.getAllActive(this.KEYS.CLIENTS); },
     getClient(id) { return this.getById(this.KEYS.CLIENTS, id); },
+
+    // Devuelve el nombre del cliente resolviendo primero en CLIENTS locales,
+    // y como segundo recurso devuelve el campo ya guardado en el objeto raw (cliente_nombre_alegra).
+    getClientName(id, fallbackNameFromDoc) {
+        const client = this.getClient(id);
+        if (client) return client.nombre;
+        // Buscar por id_alegra en caso de que el id sea un id numerico de Alegra
+        if (id) {
+            const clients = this.getAll(this.KEYS.CLIENTS) || [];
+            const byAlegra = clients.find(c => c.id_alegra && String(c.id_alegra) === String(id));
+            if (byAlegra) return byAlegra.nombre;
+        }
+        // Usar el nombre guardado directamente del objeto de Alegra (siempre presente)
+        if (fallbackNameFromDoc) return fallbackNameFromDoc;
+        return '[Sin cliente]';
+    },
     saveClient(client) {
         if (client.documento) {
             const existing = this.getAll(this.KEYS.CLIENTS).find(c =>
@@ -583,14 +625,43 @@ const DB = {
     // Cotizaciones
     // =========================================================
     getCotizaciones() {
-        let data = this.getAll(this.KEYS.COTIZACIONES);
-        if (!Array.isArray(data)) return [];
+        let localCots = this.getAll(this.KEYS.COTIZACIONES) || [];
+        let data = Array.isArray(localCots) ? localCots : [];
+        
         // Auto-fix if nulls or bad data found
         if (data.includes(null) || data.some(d => !d || !d.id)) {
             console.warn('DB: Corrupt cotizaciones detected. Running auto-fix...');
-            return this.fixCotizacionesData();
+            data = this.fixCotizacionesData();
         }
-        return data;
+
+        const alegraCots = this.getAll(this.KEYS.COTIZACIONES_ALEGRA) || [];
+        const clients = this.getAll(this.KEYS.CLIENTS) || [];
+        const mappedAlegra = alegraCots.map(c => {
+            const localClient = clients.find(cli =>
+                (cli.id_alegra && String(cli.id_alegra) === String(c.cliente_id_alegra)) ||
+                (cli.documento && c.cliente_nit && String(cli.documento) === String(c.cliente_nit))
+            );
+            const resolvedClientId = localClient ? localClient.id : (c.cliente_id_alegra || null);
+            return {
+                id: c.id_alegra || c.id,
+                numero: c.numero,
+                fecha: c.fecha_emision,
+                validez: c.fecha_vencimiento,
+                cliente_id: resolvedClientId,
+                // Preserve Alegra client name so getClientName() can use it when local record missing
+                cliente_nombre_alegra: c.cliente_nombre || null,
+                estado: c.estado === 'open' ? 'enviada' : (c.estado === 'accepted' ? 'aceptada' : (c.estado === 'rejected' ? 'rechazada' : 'convertida')),
+                total: parseFloat(c.total || 0),
+                subtotal: parseFloat(c.subtotal || 0),
+                descuento: parseFloat(c.descuento || 0),
+                impuesto: parseFloat(c.impuesto || 0),
+                is_alegra: true
+            };
+        });
+
+        // Avoid duplicates
+        const filteredLocal = data.filter(lc => !mappedAlegra.some(ac => String(ac.numero) === String(lc.numero)));
+        return [...filteredLocal, ...mappedAlegra];
     },
 
     fixCotizacionesData() {
@@ -600,9 +671,59 @@ const DB = {
         this._persist(this.KEYS.COTIZACIONES, cleanItems);
         return cleanItems;
     },
-    getCotizacion(id) { return this.getById(this.KEYS.COTIZACIONES, id); },
+    
+    getCotizacion(id) {
+        let cot = this.getById(this.KEYS.COTIZACIONES, id);
+        if (!cot) {
+            const c = this.getById(this.KEYS.COTIZACIONES_ALEGRA, id);
+            if (c) {
+                const clients = this.getAll(this.KEYS.CLIENTS) || [];
+                const localClient = clients.find(cli => 
+                    (cli.id_alegra && String(cli.id_alegra) === String(c.cliente_id_alegra)) ||
+                    (cli.documento && String(cli.documento) === String(c.cliente_nit))
+                );
+                cot = {
+                    id: c.id_alegra || c.id,
+                    numero: c.numero,
+                    fecha: c.fecha_emision,
+                    validez: c.fecha_vencimiento,
+                    cliente_id: localClient ? localClient.id : c.cliente_id_alegra,
+                    estado: c.estado === 'open' ? 'enviada' : (c.estado === 'accepted' ? 'aceptada' : (c.estado === 'rejected' ? 'rechazada' : 'convertida')),
+                    total: parseFloat(c.total || 0),
+                    subtotal: parseFloat(c.subtotal || 0),
+                    descuento: parseFloat(c.descuento || 0),
+                    impuesto: parseFloat(c.impuesto || 0),
+                    is_alegra: true
+                };
+            }
+        }
+        return cot;
+    },
+    
     getCotizacionDetails(cotizacionId) {
-        return this.getAll(this.KEYS.COTIZACION_DETAILS).filter(d => d.cotizacion_id === cotizacionId);
+        let details = this.getAll(this.KEYS.COTIZACION_DETAILS).filter(d => String(d.cotizacion_id) === String(cotizacionId));
+        if (details.length === 0) {
+            const c = this.getById(this.KEYS.COTIZACIONES_ALEGRA, cotizacionId);
+            if (c && Array.isArray(c.items)) {
+                details = c.items.map(item => {
+                    const products = this.getAll(this.KEYS.PRODUCTS) || [];
+                    const localProduct = products.find(p => String(p.id_alegra) === String(item.id_item_alegra));
+                    return {
+                        id: this.genId(),
+                        cotizacion_id: cotizacionId,
+                        producto_id: localProduct ? localProduct.id : item.id_item_alegra,
+                        cantidad: parseFloat(item.cantidad || 0),
+                        precio_unitario: parseFloat(item.precio_unitario || 0),
+                        descuento: parseFloat(item.descuento || 0),
+                        impuesto: item.impuesto ? item.impuesto[0] || 'Ninguno' : 'Ninguno',
+                        subtotal: parseFloat(item.total || 0),
+                        nombre_producto: item.nombre,
+                        descripcion: item.descripcion
+                    };
+                });
+            }
+        }
+        return details;
     },
 
     registerCotizacion(cotizacionData, details) {
@@ -683,7 +804,7 @@ const DB = {
         // 3. Prepare Sale Data
         const saleData = {
             numero: cotizacion.numero,
-            cliente_id: cotizacion.cliente_id,
+            cliente_id: cotizacion.cliente_id || '',
             tipo_venta: tipoVenta || 'contado',
             fecha: new Date().toISOString(),
             observacion: `Convertida desde Cotización #${cotizacion.numero || cotizacionId.slice(-6).toUpperCase()}`,
@@ -720,20 +841,97 @@ const DB = {
     // Sales (Facturas de Venta)
     // =========================================================
     getSales() {
-        let data = this.getAll(this.KEYS.SALES);
-        if (!Array.isArray(data)) return [];
+        let localSales = this.getAll(this.KEYS.SALES) || [];
+        let data = Array.isArray(localSales) ? localSales : [];
         if (data.includes(null) || data.some(d => !d || !d.id)) {
             console.warn('DB: Corrupt sales data detected. Running auto-fix...');
-            const cleaned = data.filter(item => item !== null && typeof item === 'object' && item.id);
-            this._persist(this.KEYS.SALES, cleaned);
-            return cleaned;
+            data = data.filter(item => item !== null && typeof item === 'object' && item.id);
+            this._persist(this.KEYS.SALES, data);
         }
-        return data;
+
+        const alegraSales = this.getAll(this.KEYS.FACTURAS_ALEGRA) || [];
+        const clients = this.getAll(this.KEYS.CLIENTS) || [];
+        const mappedAlegra = alegraSales.map(f => {
+            const localClient = clients.find(cli =>
+                (cli.id_alegra && String(cli.id_alegra) === String(f.cliente_id_alegra)) ||
+                (cli.documento && f.cliente_nit && String(cli.documento) === String(f.cliente_nit))
+            );
+            // Resolved client_id: prefer local UUID, fall back to Alegra numeric ID
+            const resolvedClientId = localClient ? localClient.id : (f.cliente_id_alegra || null);
+            return {
+                id: f.id_alegra || f.id,
+                numero: f.numero,
+                fecha: f.fecha_emision,
+                cliente_id: resolvedClientId,
+                // Preserve Alegra client name so getClientName() can use it when local record missing
+                cliente_nombre_alegra: f.cliente_nombre || null,
+                tipo_venta: f.saldo > 0 ? 'credito' : 'contado',
+                estado: f.estado === 'open' ? 'pendiente' : (f.estado === 'void' ? 'anulada' : 'pagada'),
+                total: parseFloat(f.total || 0),
+                subtotal: parseFloat(f.subtotal || 0),
+                descuento: parseFloat(f.descuento || 0),
+                impuesto: parseFloat(f.impuesto || 0),
+                is_alegra: true
+            };
+        });
+
+        // Avoid duplicates by number
+        const filteredLocal = data.filter(ls => !mappedAlegra.some(as => String(as.numero) === String(ls.numero)));
+        return [...filteredLocal, ...mappedAlegra];
     },
-    getSale(id) { return this.getById(this.KEYS.SALES, id); },
+    
+    getSale(id) {
+        let sale = this.getById(this.KEYS.SALES, id);
+        if (!sale) {
+            const f = this.getById(this.KEYS.FACTURAS_ALEGRA, id);
+            if (f) {
+                const clients = this.getAll(this.KEYS.CLIENTS) || [];
+                const localClient = clients.find(cli => 
+                    (cli.id_alegra && String(cli.id_alegra) === String(f.cliente_id_alegra)) ||
+                    (cli.documento && String(cli.documento) === String(f.cliente_nit))
+                );
+                sale = {
+                    id: f.id_alegra || f.id,
+                    numero: f.numero,
+                    fecha: f.fecha_emision,
+                    cliente_id: localClient ? localClient.id : f.cliente_id_alegra,
+                    tipo_venta: f.saldo > 0 ? 'credito' : 'contado',
+                    estado: f.estado === 'open' ? 'pendiente' : (f.estado === 'void' ? 'anulada' : 'pagada'),
+                    total: parseFloat(f.total || 0),
+                    subtotal: parseFloat(f.subtotal || 0),
+                    descuento: parseFloat(f.descuento || 0),
+                    impuesto: parseFloat(f.impuesto || 0),
+                    is_alegra: true
+                };
+            }
+        }
+        return sale;
+    },
 
     getSaleDetails(saleId) {
-        return this.getAll(this.KEYS.SALE_DETAILS).filter(d => d.venta_id === saleId);
+        let details = this.getAll(this.KEYS.SALE_DETAILS).filter(d => String(d.venta_id) === String(saleId));
+        if (details.length === 0) {
+            const f = this.getById(this.KEYS.FACTURAS_ALEGRA, saleId);
+            if (f && Array.isArray(f.items)) {
+                details = f.items.map(item => {
+                    const products = this.getAll(this.KEYS.PRODUCTS) || [];
+                    const localProduct = products.find(p => String(p.id_alegra) === String(item.id_item_alegra));
+                    return {
+                        id: this.genId(),
+                        venta_id: saleId,
+                        producto_id: localProduct ? localProduct.id : item.id_item_alegra,
+                        cantidad: parseFloat(item.cantidad || 0),
+                        precio_unitario: parseFloat(item.precio_unitario || 0),
+                        descuento: parseFloat(item.descuento || 0),
+                        impuesto: item.impuesto ? item.impuesto[0] || 'Ninguno' : 'Ninguno',
+                        subtotal: parseFloat(item.total || 0),
+                        nombre_producto: item.nombre,
+                        descripcion: item.descripcion
+                    };
+                });
+            }
+        }
+        return details;
     },
 
     registerSale(saleData, details, bancoId) {
@@ -1290,6 +1488,10 @@ const DB = {
 
         // Normalizar y actualizar estados dinámicamente según saldo y fecha de vencimiento
         items.forEach(item => {
+            if (!item.venta_id && item.id_alegra_factura) {
+                item.venta_id = item.id_alegra_factura;
+                changed = true;
+            }
             let nuevoEstado = item.estado;
             if (parseFloat(item.saldo || 0) <= 0) {
                 nuevoEstado = 'pagada';
@@ -1816,7 +2018,7 @@ const DB = {
                     cant: -parseInt(d.cantidad),
                     costo_unitario: parseFloat(d.costo_unitario || 0),
                     origen: 'Venta ' + sale.tipo_venta,
-                    cliente_proveedor: this.getClient(sale.cliente_id)?.nombre || 'Cliente N/A'
+                    cliente_proveedor: this.getClient(sale.cliente_id)?.nombre || 'Consumidor Final'
                 });
             }
         });
@@ -1855,7 +2057,7 @@ const DB = {
                     cant: parseInt(d.cantidad),
                     costo_unitario: parseFloat(d.subtotal / d.cantidad || 0),
                     origen: 'Devolución Venta #' + (sale ? (sale.numero || sale.id.substr(-6).toUpperCase()) : 'N/A'),
-                    cliente_proveedor: sale ? (this.getClient(sale.cliente_id)?.nombre || 'Cliente N/A') : 'Cliente N/A'
+                    cliente_proveedor: sale ? (this.getClient(sale.cliente_id)?.nombre || 'Consumidor Final') : 'Consumidor Final'
                 });
             }
         });
@@ -1896,7 +2098,7 @@ const DB = {
                     const seller = s.vendedor_id ? this.getSeller(s.vendedor_id) : null;
                     return { 
                         ...s, 
-                        cliente_nombre: client ? client.nombre : 'N/A',
+                        cliente_nombre: client ? client.nombre : 'Consumidor Final',
                         vendedor_nombre: seller ? seller.nombre : 'Sin Asesor'
                     };
                 });
@@ -1929,7 +2131,7 @@ const DB = {
                 }
                 return cartera.map(c => {
                     const client = this.getClient(c.cliente_id);
-                    return { ...c, cliente_nombre: client ? client.nombre : 'N/A' };
+                    return { ...c, cliente_nombre: client ? client.nombre : 'Consumidor Final' };
                 });
             }
             case 'inventario': {
@@ -1961,7 +2163,7 @@ const DB = {
                     return {
                         fecha: s.fecha ? s.fecha.split('T')[0] : '-',
                         referencia: s.numero || s.id.substr(-6).toUpperCase(),
-                        cliente_nombre: client ? client.nombre : 'N/A',
+                        cliente_nombre: client ? client.nombre : 'Consumidor Final',
                         vendedor_nombre: seller ? seller.nombre : 'Sin Asesor',
                         total: s.total,
                         total_neto: totalNeto,
@@ -2032,7 +2234,7 @@ const DB = {
                     if (!summary[s.cliente_id]) {
                         const client = this.getClient(s.cliente_id);
                         summary[s.cliente_id] = {
-                            nombre: client ? client.nombre : 'Cliente N/A',
+                            nombre: client ? client.nombre : 'Consumidor Final',
                             documento: client ? client.documento : 'N/A',
                             numero_compras: 0,
                             total_comprado: 0,
@@ -2123,7 +2325,7 @@ const DB = {
                     if (!summary[s.cliente_id]) {
                         const client = this.getClient(s.cliente_id);
                         summary[s.cliente_id] = {
-                            cliente_nombre: client ? client.nombre : 'Cliente N/A',
+                            cliente_nombre: client ? client.nombre : 'Consumidor Final',
                             documento: client ? client.documento : 'N/A',
                             total_ventas: 0,
                             total_costo: 0,
