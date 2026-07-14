@@ -2570,6 +2570,9 @@ const App = {
         const numEl = document.getElementById('bancoNumero');
         if (numEl) numEl.value = bank.numero_cuenta || '';
         
+        const saldoIniEl = document.getElementById('bancoSaldoInicial');
+        if (saldoIniEl) saldoIniEl.value = bank.saldo_inicial || 0;
+        
         new bootstrap.Modal(document.getElementById('bancoModal')).show();
     },
 
@@ -2583,6 +2586,7 @@ const App = {
         
         const tipo = document.getElementById('bancoTipo')?.value || 'Ahorros';
         const numero_cuenta = document.getElementById('bancoNumero')?.value.trim() || '';
+        const saldo_inicial = parseFloat(document.getElementById('bancoSaldoInicial')?.value || 0);
         
         const isNew = !document.getElementById('bancoId').value;
         const bankData = {
@@ -2590,15 +2594,20 @@ const App = {
             nombre,
             entidad,
             tipo,
-            numero_cuenta
+            numero_cuenta,
+            saldo_inicial
         };
         
         if (isNew) {
-            bankData.saldo_inicial = 0;
-            bankData.saldo_actual = 0;
+            bankData.saldo_actual = saldo_inicial;
         }
         
         DB.saveBank(bankData);
+        if (!isNew) {
+            // Force recalculation so the new saldo_inicial impacts the total immediately
+            DB.recalcBankBalance(bankData.id);
+        }
+        
         bootstrap.Modal.getInstance(document.getElementById('bancoModal')).hide();
         this.showToast('Cuenta bancaria guardada correctamente');
         this.navigateTo('bancos');
