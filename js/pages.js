@@ -262,6 +262,124 @@ const Pages = {
     /* =================================================
        CLIENTES
        ================================================= */
+    /* =================================================
+       DETALLE DE CLIENTE (FULL PAGE)
+       ================================================= */
+    cliente_detail(id) {
+        const client = DB.getClient(id);
+        if (!client) {
+            return `
+            <div class="fade-in p-4 text-center">
+                <i class="bi bi-person-x text-muted" style="font-size: 3rem;"></i>
+                <h4 class="mt-3 text-muted">Cliente no encontrado</h4>
+                <button class="btn btn-outline-primary mt-3" onclick="App.navigateTo('clientes')"><i class="bi bi-arrow-left"></i> Volver a contactos</button>
+            </div>`;
+        }
+
+        const fmt = (n) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n);
+        
+        // Calcular Saldo de Cartera
+        const carteras = DB.getCartera().filter(c => String(c.cliente_id) === String(id) && c.estado !== 'pagada');
+        const saldoCuentasPorCobrar = carteras.reduce((sum, c) => sum + (c.saldo || 0), 0);
+
+        return `
+        <div class="fade-in">
+            <!-- Header Section -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div class="d-flex align-items-center gap-3">
+                    <button class="btn btn-light shadow-sm" onclick="App.navigateTo('clientes')" title="Volver">
+                        <i class="bi bi-arrow-left"></i>
+                    </button>
+                    <h2 class="mb-0 fw-bold">${client.nombre}</h2>
+                </div>
+                <button class="btn btn-primary" onclick="App.editCliente('${client.id}')">
+                    <i class="bi bi-pencil me-2"></i>Editar Contacto
+                </button>
+            </div>
+
+            <!-- Client Info Cards -->
+            <div class="row mb-4 g-3">
+                <div class="col-md-3">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body">
+                            <p class="text-muted small mb-1">NIT / Cédula</p>
+                            <h6 class="mb-0 fw-bold">${client.documento || 'N/A'}</h6>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body">
+                            <p class="text-muted small mb-1">Teléfono</p>
+                            <h6 class="mb-0 fw-bold">${client.telefono || 'N/A'}</h6>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body">
+                            <p class="text-muted small mb-1">Correo electrónico</p>
+                            <h6 class="mb-0 fw-bold text-truncate" title="${client.email || 'N/A'}">${client.email || 'N/A'}</h6>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card border-0 shadow-sm h-100 bg-primary text-white">
+                        <div class="card-body d-flex flex-column justify-content-center">
+                            <p class="text-white-50 small mb-1">Cuentas por cobrar</p>
+                            <h5 class="mb-0 fw-bold">${fmt(saldoCuentasPorCobrar)}</h5>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabs Navigation -->
+            <div class="d-flex align-items-center border-bottom mb-4 position-relative">
+                <!-- Scroll Left Button (Optional for JS scrolling if needed) -->
+                <!-- <button class="btn btn-link text-muted px-2 position-absolute start-0 h-100 bg-white" style="z-index: 10;"><i class="bi bi-chevron-left"></i></button> -->
+                
+                <ul class="nav nav-tabs border-0 flex-nowrap overflow-auto hide-scrollbar w-100 gap-3" id="client-tabs-menu" style="white-space: nowrap; -ms-overflow-style: none; scrollbar-width: none;">
+                    <li class="nav-item">
+                        <a class="nav-link bg-transparent text-muted fw-medium px-1 pb-3 active border-primary text-primary" style="border-bottom: 2px solid transparent; cursor: pointer;" id="cptab-transacciones" onclick="App.loadClientPageTab('${id}', 'transacciones')">Transacciones</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link bg-transparent text-muted fw-medium px-1 pb-3" style="border-bottom: 2px solid transparent; cursor: pointer;" id="cptab-facturas-venta" onclick="App.loadClientPageTab('${id}', 'facturas-venta')">Facturas</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link bg-transparent text-muted fw-medium px-1 pb-3" style="border-bottom: 2px solid transparent; cursor: pointer;" id="cptab-facturas-proveedor" onclick="App.loadClientPageTab('${id}', 'facturas-proveedor')">Facturas de proveedor</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link bg-transparent text-muted fw-medium px-1 pb-3" style="border-bottom: 2px solid transparent; cursor: pointer;" id="cptab-devoluciones" onclick="App.loadClientPageTab('${id}', 'devoluciones')">Devoluciones en ventas</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link bg-transparent text-muted fw-medium px-1 pb-3" style="border-bottom: 2px solid transparent; cursor: pointer;" id="cptab-pagos" onclick="App.loadClientPageTab('${id}', 'pagos')">Pagos / Recibos</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link bg-transparent text-muted fw-medium px-1 pb-3" style="border-bottom: 2px solid transparent; cursor: pointer;" id="cptab-cotizaciones" onclick="App.loadClientPageTab('${id}', 'cotizaciones')">Cotizaciones</a>
+                    </li>
+                </ul>
+
+                <!-- Scroll Right Button (Optional for JS scrolling if needed) -->
+                <!-- <button class="btn btn-link text-muted px-2 position-absolute end-0 h-100 bg-white" style="z-index: 10;"><i class="bi bi-chevron-right"></i></button> -->
+            </div>
+            
+            <style>
+                .hide-scrollbar::-webkit-scrollbar { display: none; }
+                .nav-link.active { color: var(--bs-primary) !important; border-bottom-color: var(--bs-primary) !important; }
+            </style>
+
+            <!-- Tab Content Container -->
+            <div id="cp-tab-content">
+                <div class="text-center text-muted p-5 bg-white rounded shadow-sm">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Cargando...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        `;
+    },
+
     clientes() {
         const clients = DB.getClients();
         const fmt = (n) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n);

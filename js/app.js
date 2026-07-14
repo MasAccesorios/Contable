@@ -351,8 +351,10 @@ const App = {
     /* =================================================
        NAVIGATION
        ================================================= */
-    navigateTo(page) {
-        if (!Auth.canAccess(page)) {
+    navigateTo(page, param = null) {
+        // Skip auth check for cliente_detail as it inherits from clientes
+        const authPage = page === 'cliente_detail' ? 'clientes' : page;
+        if (!Auth.canAccess(authPage)) {
             console.warn(`Intento de acceso denegado a la página: ${page}`);
             showToast('No tienes permisos para acceder a esta sección.', 'danger');
             if (this.currentPage !== 'dashboard') {
@@ -365,7 +367,8 @@ const App = {
 
         // Update sidebar active state
         document.querySelectorAll('.sidebar-nav .nav-item').forEach(item => {
-            item.classList.toggle('active', item.dataset.page === page);
+            const isActive = item.dataset.page === page || (page === 'cliente_detail' && item.dataset.page === 'clientes');
+            item.classList.toggle('active', isActive);
         });
 
         // Update page title
@@ -386,7 +389,8 @@ const App = {
             reportes: 'Análisis y Reportes',
             integraciones: 'Integraciones',
             usuarios: 'Usuarios',
-            vendedores: 'Vendedores'
+            vendedores: 'Vendedores',
+            cliente_detail: 'Detalle de Contacto'
         };
         document.getElementById('pageTitle').textContent = titles[page] || page;
 
@@ -394,7 +398,7 @@ const App = {
         const content = document.getElementById('contentArea');
         try {
             if (Pages[page]) {
-                content.innerHTML = Pages[page]();
+                content.innerHTML = Pages[page](param);
             } else {
                 content.innerHTML = `<div class="p-4 text-center text-muted"><i class="bi bi-exclamation-circle me-1"></i> La página "${page}" no está implementada aún.</div>`;
             }
@@ -411,6 +415,10 @@ const App = {
         }
         if (page === 'movimientos') {
             setTimeout(() => this.filterKardex(), 100);
+        }
+        if (page === 'cliente_detail') {
+            // Lazy load the first tab dynamically
+            setTimeout(() => this.loadClientPageTab(param, 'transacciones', 1), 50);
         }
 
         // Close sidebar on mobile
@@ -506,119 +514,190 @@ const App = {
     },
 
     viewCliente(id) {
-        const client = DB.getClient(id);
-        if (!client) return;
+        // En lugar de abrir el modal, navegamos a la vista completa de la página
+        this.navigateTo('cliente_detail', id);
+    },
+
+    loadClientPageTab(id, tabName, page = 1) {
         const fmt = (n) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n);
+        const fmtDate = (d) => d ? new Date(d).toLocaleDateString('es-CO') : '-';
+        const container = document.getElementById(`cp-tab-content`);
+        if (!container) return;
 
-        // Populate modal headers
-        document.getElementById('clienteDetailModalTitle').innerHTML = `<i class="bi bi-person-vcard me-2 text-primary"></i>${client.nombre}`;
+        let records = [];
 
-        // 1. General Tab
-        let generalHtml = `
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="row mb-3">
-                        <div class="col-sm-4 text-muted small">ID Sistema</div>
-                        <div class="col-sm-8 fw-bold">${client.id}</div>
-                    </div>
-                    <div class="row mb-3">
-                        <div class="col-sm-4 text-muted small">Tipo Contacto</div>
-                        <div class="col-sm-8"><span class="badge badge-status badge-${client.tipo === 'Proveedor' ? 'credito' : 'contado'}">${client.tipo || 'Cliente'}</span></div>
-                    </div>
-                    <div class="row mb-3">
-                        <div class="col-sm-4 text-muted small">Nombre</div>
-                        <div class="col-sm-8 fw-bold">${client.nombre}</div>
-                    </div>
-                    <div class="row mb-3">
-                        <div class="col-sm-4 text-muted small">Documento</div>
-                        <div class="col-sm-8"><strong>${client.tipo_doc || 'NIT'}:</strong> ${client.documento || 'N/A'}</div>
-                    </div>
-                    <div class="row mb-3">
-                        <div class="col-sm-4 text-muted small">Correo Electrónico</div>
-                        <div class="col-sm-8">${client.email || 'N/A'}</div>
-                    </div>
-                    <div class="row mb-3">
-                        <div class="col-sm-4 text-muted small">Teléfono</div>
-                        <div class="col-sm-8">${client.telefono || 'N/A'}</div>
-                    </div>
-                    <div class="row mb-3">
-                        <div class="col-sm-4 text-muted small">Persona de Contacto</div>
-                        <div class="col-sm-8">${client.persona_contacto || 'N/A'}</div>
+        if (tabName === 'transacciones') {
+            const movements = DB.getAll(DB.KEYS.BANK_MOVEMENTS) || [];
+            const sales = DB.getSales();
+            const compras = DB.getCompras();
+            const recibos = DB.getAll(DB.KEYS.RECIBOS_CAJA) || [];
+            const pagosProv = DB.getPagosProveedores() || [];
+            
+            records = movements.filter(m => {
+                if (!m.referencia_id) return false;
+                const refId = String(m.referencia_id);
+                
+                const sale = sales.find(s => String(s.id) === String(refId));
+                if (sale && String(sale.cliente_id) === String(id)) return true;
+                
+                const compra = compras.find(c => String(c.id) === String(refId));
+                if (compra && String(compra.proveedor_id) === String(id)) return true;
+                
+                const recibo = recibos.find(r => String(r.id) === String(refId));
+                if (recibo && String(recibo.cliente_id) === String(id)) return true;
+                
+                const pago = pagosProv.find(p => String(p.id) === String(refId));
+                if (pago && String(pago.proveedor_id) === String(id)) return true;
+                
+                return false;
+            }).sort((a, b) => new Date(b.fecha || a.created_at) - new Date(a.fecha || b.created_at));
+        } else if (tabName === 'facturas-venta') {
+            records = DB.getSales().filter(s => String(s.cliente_id) === String(id))
+                .sort((a, b) => new Date(b.fecha || a.created_at) - new Date(a.fecha || b.created_at));
+        } else if (tabName === 'facturas-proveedor') {
+            records = DB.getCompras().filter(s => String(s.proveedor_id) === String(id))
+                .sort((a, b) => new Date(b.fecha || a.created_at) - new Date(a.fecha || b.created_at));
+        } else if (tabName === 'cotizaciones') {
+            records = DB.getCotizaciones().filter(c => String(c.cliente_id) === String(id))
+                .sort((a, b) => new Date(b.fecha || a.created_at) - new Date(a.fecha || b.created_at));
+        } else if (tabName === 'devoluciones') {
+            const dev = DB.getAll(DB.KEYS.DEVOLUCIONES) || [];
+            records = dev.filter(d => {
+                const sale = DB.getSale(d.venta_id);
+                return sale && String(sale.cliente_id) === String(id);
+            }).sort((a, b) => new Date(b.fecha || a.created_at) - new Date(a.fecha || b.created_at));
+        } else if (tabName === 'cuentas-cobrar') {
+            records = DB.getCartera().filter(c => String(c.cliente_id) === String(id) && c.estado !== 'pagada')
+                .sort((a, b) => new Date(b.fecha_vencimiento) - new Date(a.fecha_vencimiento));
+        } else if (tabName === 'pagos') {
+            records = DB.getAll(DB.KEYS.RECIBOS_CAJA).filter(r => String(r.cliente_id) === String(id))
+                .sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+        }
+
+        const limit = 10;
+        const total = records.length;
+        const totalPages = Math.ceil(total / limit) || 1;
+        const currentPage = Math.max(1, Math.min(page, totalPages));
+        const start = (currentPage - 1) * limit;
+        const end = Math.min(start + limit, total);
+        const paginated = records.slice(start, end);
+
+        let tableHtml = '';
+        if (total === 0) {
+            tableHtml = `<div class="text-center text-muted p-5 bg-white rounded shadow-sm">
+                <i class="bi bi-inbox fs-1 text-light"></i>
+                <p class="mt-2 mb-0">No hay registros para mostrar en esta pestaña.</p>
+            </div>`;
+        } else {
+            let thead = `<tr>
+                <th style="width: 15%">Fecha <i class="bi bi-arrow-down-short"></i></th>
+                <th style="width: 35%">Detalle</th>
+                <th style="width: 15%">Estado</th>
+                <th class="text-end" style="width: 17.5%">Gastos</th>
+                <th class="text-end" style="width: 17.5%">Ingresos</th>
+            </tr>`;
+            
+            let rows = paginated.map(item => {
+                let fecha = item.fecha || item.fecha_emision || item.created_at;
+                let detalle = '';
+                let estado = item.estado || 'completado';
+                let gasto = 0;
+                let ingreso = 0;
+                
+                // Mapear lógica por pestaña para homologar columnas
+                if (tabName === 'transacciones') {
+                    let desc = item.descripcion || 'Movimiento de saldo';
+                    const match = desc.match(/#(?:Factura |Venta |[a-zA-Z\s]+)?([a-zA-Z0-9]+)/);
+                    if (match && item.referencia_id) {
+                        const clickCall = item.tipo === 'ingreso' ? `App.viewVenta('${item.referencia_id}')` : `App.editCompra('${item.referencia_id}')`;
+                        desc = desc.replace(match[0], `<a href="#" onclick="event.preventDefault(); ${clickCall}" class="text-primary fw-medium">${match[0]}</a>`);
+                    }
+                    detalle = desc;
+                    if (item.tipo === 'ingreso') ingreso = item.monto;
+                    else gasto = item.monto;
+                } else if (tabName === 'facturas-venta') {
+                    const num = item.numero || item.id.toString().substr(-6).toUpperCase();
+                    detalle = `Factura de venta: <a href="#" onclick="event.preventDefault(); App.viewVenta('${item.id}')" class="text-primary fw-medium">#${num.replace('#', '')}</a>`;
+                    ingreso = item.total;
+                } else if (tabName === 'facturas-proveedor') {
+                    const num = item.numero_factura || item.id.toString().substr(-6).toUpperCase();
+                    detalle = `Factura de proveedor: <a href="#" onclick="event.preventDefault(); App.editCompra('${item.id}')" class="text-primary fw-medium">#${num.replace('#', '')}</a>`;
+                    gasto = item.total;
+                } else if (tabName === 'cotizaciones') {
+                    const num = item.numero || item.id.toString().substr(-6).toUpperCase();
+                    detalle = `Cotización: <a href="#" onclick="event.preventDefault(); App.editCotizacion('${item.id}')" class="text-primary fw-medium">#${num.replace('#', '')}</a>`;
+                    ingreso = item.total;
+                } else if (tabName === 'devoluciones') {
+                    const ref = item.id.toString().substr(-6).toUpperCase();
+                    detalle = `Devolución en venta: <strong>#${ref}</strong>`;
+                    gasto = item.total;
+                } else if (tabName === 'cuentas-cobrar') {
+                    const num = item.venta_numero || item.id.toString().substr(-6).toUpperCase();
+                    detalle = `Cuenta por cobrar (Factura <a href="#" onclick="event.preventDefault(); App.viewVenta('${item.venta_id}')" class="text-primary fw-medium">#${num}</a>)`;
+                    ingreso = item.saldo; // lo que entra
+                } else if (tabName === 'pagos') {
+                    const num = item.numero || item.id.toString().substr(-6).toUpperCase();
+                    detalle = `Pago recibido: <a href="#" onclick="event.preventDefault(); App.printReciboCaja('${item.id}')" class="text-primary fw-medium">RC-${num}</a>`;
+                    ingreso = item.monto;
+                }
+
+                // Render badge for estado
+                let badgeClass = 'secondary';
+                const lowerStatus = String(estado).toLowerCase();
+                if (['pagada', 'completado', 'aceptada', 'activo'].includes(lowerStatus)) badgeClass = 'success';
+                if (['pendiente', 'enviada', 'borrador'].includes(lowerStatus)) badgeClass = 'warning text-dark';
+                if (['anulada', 'rechazada', 'vencida'].includes(lowerStatus)) badgeClass = 'danger';
+                if (['convertida'].includes(lowerStatus)) badgeClass = 'primary';
+
+                return `<tr>
+                    <td class="align-middle">${fmtDate(fecha)}</td>
+                    <td class="align-middle text-muted">${detalle}</td>
+                    <td class="align-middle"><span class="badge bg-${badgeClass} text-uppercase" style="font-size: 0.75rem;">${estado}</span></td>
+                    <td class="align-middle text-end text-danger">${gasto > 0 ? fmt(gasto) : '-'}</td>
+                    <td class="align-middle text-end text-success">${ingreso > 0 ? fmt(ingreso) : '-'}</td>
+                </tr>`;
+            }).join('');
+
+            tableHtml = `
+                <div class="table-responsive bg-white rounded shadow-sm">
+                    <table class="table table-hover mb-0 align-middle">
+                        <thead class="table-light">
+                            ${thead}
+                        </thead>
+                        <tbody>
+                            ${rows}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+        
+        // Paginación UI (esquina inferior derecha)
+        let paginationHtml = '';
+        if (total > 0) {
+            paginationHtml = `
+                <div class="d-flex justify-content-end align-items-center mt-3 mb-4">
+                    <span class="text-muted me-3" style="font-size: 0.85rem;">${start + 1}-${end} de ${total}</span>
+                    <div class="btn-group">
+                        <button class="btn btn-sm btn-outline-secondary" ${currentPage === 1 ? 'disabled' : ''} onclick="App.loadClientPageTab('${id}', '${tabName}', ${currentPage - 1})">
+                            <i class="bi bi-chevron-left"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary" ${currentPage === totalPages ? 'disabled' : ''} onclick="App.loadClientPageTab('${id}', '${tabName}', ${currentPage + 1})">
+                            <i class="bi bi-chevron-right"></i>
+                        </button>
                     </div>
                 </div>
-                <div class="col-md-6">
-                    <div class="row mb-3">
-                        <div class="col-sm-4 text-muted small">Dirección</div>
-                        <div class="col-sm-8">${client.direccion || 'N/A'}</div>
-                    </div>
-                    <div class="row mb-3">
-                        <div class="col-sm-4 text-muted small">Barrio</div>
-                        <div class="col-sm-8">${client.barrio || 'N/A'}</div>
-                    </div>
-                    <div class="row mb-3">
-                        <div class="col-sm-4 text-muted small">Ciudad</div>
-                        <div class="col-sm-8">${client.ciudad || 'N/A'} - ${client.departamento || 'N/A'}</div>
-                    </div>
-                    <div class="row mb-3">
-                        <div class="col-sm-4 text-muted small">País / C. Postal</div>
-                        <div class="col-sm-8">${client.pais || 'N/A'} ${client.codigo_postal ? '(' + client.codigo_postal + ')' : ''}</div>
-                    </div>
-                    <div class="row mb-3">
-                        <div class="col-sm-4 text-muted small">Cupo de Crédito</div>
-                        <div class="col-sm-8">${fmt(client.cupo_credito || 0)}</div>
-                    </div>
-                    <div class="row mb-3">
-                        <div class="col-sm-4 text-muted small">Plazo</div>
-                        <div class="col-sm-8">${client.plazo_dias || 30} días</div>
-                    </div>
-                    <div class="row mb-3">
-                        <div class="col-sm-4 text-muted small">Régimen</div>
-                        <div class="col-sm-8">${client.regimen || 'Simplificado'}</div>
-                    </div>
-                    <div class="row mb-3">
-                        <div class="col-sm-4 text-muted small">ID Alegra</div>
-                        <div class="col-sm-8"><code>${client.id_alegra || 'N/A'}</code></div>
-                    </div>
-                    <div class="row mb-3">
-                        <div class="col-sm-4 text-muted small">Estado</div>
-                        <div class="col-sm-8"><span class="badge ${client.estado === 'Inactivo' ? 'bg-secondary' : 'bg-success'}">${client.estado || 'Activo'}</span></div>
-                    </div>
-                </div>
-            </div>
-            <div class="row mt-2">
-                <div class="col-md-12">
-                    <div class="p-2 bg-light rounded" style="font-size: 13px;">
-                        <strong>Observaciones:</strong> ${client.observaciones || 'Sin observaciones.'}
-                    </div>
-                </div>
-            </div>
-        `;
-        document.getElementById('c-general').innerHTML = generalHtml;
+            `;
+        }
 
-        // Reset and show dynamic Loading placeholders
-        const tabs = ['transacciones', 'facturas-venta', 'cotizaciones', 'devoluciones', 'cuentas-cobrar', 'pagos'];
-        tabs.forEach(tab => {
-            document.getElementById(`c-${tab}`).innerHTML = `<div class="text-center text-muted p-4"><i class="bi bi-arrow-repeat spin me-1"></i> Cargando datos...</div>`;
-        });
-
-        // Set Tab Click Lazy Loading Events
-        document.getElementById('c-transacciones-tab').onclick = () => this.loadClientTab(id, 'transacciones', 1);
-        document.getElementById('c-facturas-venta-tab').onclick = () => this.loadClientTab(id, 'facturas-venta', 1);
-        document.getElementById('c-cotizaciones-tab').onclick = () => this.loadClientTab(id, 'cotizaciones', 1);
-        document.getElementById('c-devoluciones-tab').onclick = () => this.loadClientTab(id, 'devoluciones', 1);
-        document.getElementById('c-cuentas-cobrar-tab').onclick = () => this.loadClientTab(id, 'cuentas-cobrar', 1);
-        document.getElementById('c-pagos-tab').onclick = () => this.loadClientTab(id, 'pagos', 1);
-
-        // Setup Edit Button
-        const btnEdit = document.getElementById('btnEditClienteFromDetail');
-        btnEdit.onclick = () => {
-            bootstrap.Modal.getInstance(document.getElementById('clienteDetailModal')).hide();
-            this.editCliente(id);
-        };
-
-        // Default click General Tab
-        document.getElementById('c-general-tab').click();
-        new bootstrap.Modal(document.getElementById('clienteDetailModal')).show();
+        container.innerHTML = tableHtml + paginationHtml;
+        
+        // Actualizar visualmente la pestaña activa
+        document.querySelectorAll('#client-tabs-menu .nav-link').forEach(el => el.classList.remove('active', 'border-primary', 'text-primary'));
+        const activeTab = document.getElementById(`cptab-${tabName}`);
+        if (activeTab) {
+            activeTab.classList.add('active', 'border-primary', 'text-primary');
+        }
     },
 
     loadClientTab(id, tabName, page = 1) {
