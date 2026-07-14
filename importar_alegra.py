@@ -40,9 +40,9 @@ def consultar_alegra(endpoint, params=None):
 
         intentos = 0
         datos = []
-        while intentos < 5:
+        while intentos < 8:
             try:
-                response = requests.get(url, headers=headers, params=params)
+                response = requests.get(url, headers=headers, params=params, timeout=30)
 
                 is_rate_limited = False
                 body = None
@@ -54,16 +54,16 @@ def consultar_alegra(endpoint, params=None):
                     pass
 
                 if response.status_code == 429 or is_rate_limited:
-                    reset_time = 15
+                    reset_time = 30
                     try:
                         if body and isinstance(body, dict) and "headers" in body:
-                            reset_time = int(body["headers"].get("x-rate-limit-reset", 15))
+                            reset_time = max(30, int(body["headers"].get("x-rate-limit-reset", 30)))
                         elif 'x-rate-limit-reset' in response.headers:
-                            reset_time = int(response.headers.get('x-rate-limit-reset', 15))
+                            reset_time = max(30, int(response.headers.get('x-rate-limit-reset', 30)))
                     except Exception:
                         pass
                     print(f"  [RATE LIMIT] {endpoint} (start={inicio}). Esperando {reset_time}s...")
-                    time.sleep(reset_time + 1)
+                    time.sleep(reset_time + 2)
                     intentos += 1
                     continue
 
@@ -79,7 +79,7 @@ def consultar_alegra(endpoint, params=None):
                 time.sleep(5)
                 intentos += 1
 
-        if intentos >= 5:
+        if intentos >= 8:
             print(f"  [FALLO] Superado el maximo de intentos para {endpoint}.")
             break
 
@@ -87,11 +87,14 @@ def consultar_alegra(endpoint, params=None):
             break
 
         todos_los_registros.extend(datos)
+        print(f"    Pagina descargada: start={inicio} -> {len(datos)} registros (total acumulado: {len(todos_los_registros)})")
 
         if len(datos) < limite_paginacion:
             break
 
         inicio += limite_paginacion
+        # Pausa preventiva anti-rate-limit entre cada pagina
+        time.sleep(1.5)
 
     return todos_los_registros
 

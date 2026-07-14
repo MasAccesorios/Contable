@@ -1,0 +1,5 @@
+importacion_log.txt
+dashboard.png
+*.log
+.gemini/
+__pycache__/
