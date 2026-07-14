@@ -2451,10 +2451,21 @@ const App = {
         } else if (type === 'cartera') {
             const clients = DB.getClients();
             filtersArea.innerHTML = `
-                <select class="form-select" id="reportClienteFilter">
-                    <option value="">Todos los clientes</option>
-                    ${clients.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('')}
-                </select>`;
+                <div>
+                    <label class="form-label" style="font-size:12px;font-weight:600">Cliente</label>
+                    <select class="form-select" id="reportClienteFilter">
+                        <option value="">Todos los clientes</option>
+                        ${clients.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('')}
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label" style="font-size:12px;font-weight:600">Desde</label>
+                    <input type="date" class="form-control" id="reportDesde" value="2000-01-01">
+                </div>
+                <div>
+                    <label class="form-label" style="font-size:12px;font-weight:600">Hasta</label>
+                    <input type="date" class="form-control" id="reportHasta" value="${today}">
+                </div>`;
         } else {
             filtersArea.innerHTML = `
                 <div>
@@ -2514,15 +2525,98 @@ const App = {
                 });
                 html += `<tr class="fw-bold"><td>TOTAL</td><td>${fmt(data.reduce((s, r) => s + parseFloat(r.total), 0))}</td><td>${fmt(data.reduce((s, r) => s + parseFloat(r.costo), 0))}</td><td class="text-success">${fmt(data.reduce((s, r) => s + parseFloat(r.utilidad), 0))}</td></tr>`;
                 break;
-            case 'cartera':
-                html += '<th>Cliente</th><th>Total</th><th>Saldo</th><th>Vencimiento</th><th>Estado</th>';
-                html += '</tr></thead><tbody>';
+            case 'cartera': {
+                let vencidas30 = 0;
+                let vencidas60 = 0;
+                let vencidas90 = 0;
+                let vencidas91 = 0;
+                let noVencidas = 0;
+
+                const todayStr = new Date().toISOString().split('T')[0];
+                const todayDate = new Date(todayStr + 'T00:00:00');
+
                 data.forEach(r => {
-                    html += `<tr><td>${r.cliente_nombre}</td><td>${fmt(r.total)}</td><td>${fmt(r.saldo)}</td>
-                        <td>${r.fecha_vencimiento}</td><td><span class="badge-status badge-${r.estado}">${r.estado}</span></td></tr>`;
+                    const saldo = parseFloat(r.saldo || 0);
+                    if (r.fecha_vencimiento && r.fecha_vencimiento < todayStr) {
+                        const vencDate = new Date(r.fecha_vencimiento + 'T00:00:00');
+                        const diffTime = todayDate - vencDate;
+                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                        
+                        if (diffDays <= 30) {
+                            vencidas30 += saldo;
+                        } else if (diffDays >= 31 && diffDays <= 60) {
+                            vencidas60 += saldo;
+                        } else if (diffDays >= 61 && diffDays <= 90) {
+                            vencidas90 += saldo;
+                        } else {
+                            vencidas91 += saldo;
+                        }
+                    } else {
+                        noVencidas += saldo;
+                    }
                 });
-                html += `<tr class="fw-bold"><td>TOTAL</td><td></td><td>${fmt(data.reduce((s, r) => s + parseFloat(r.saldo), 0))}</td><td></td><td></td></tr>`;
-                break;
+
+                const kpiHtml = `
+                <div class="row g-3 mb-4 text-center">
+                    <div class="col-md col-6">
+                        <div class="kpi-card p-3 shadow-sm" style="background:#ffffff; border-radius:12px; border:1px solid #e9ecef;">
+                            <div class="text-muted mb-1" style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Vencidas 30 días o menos</div>
+                            <div class="fw-bold fs-5 text-danger">${fmt(vencidas30)}</div>
+                        </div>
+                    </div>
+                    <div class="col-md col-6">
+                        <div class="kpi-card p-3 shadow-sm" style="background:#ffffff; border-radius:12px; border:1px solid #e9ecef;">
+                            <div class="text-muted mb-1" style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Vencidas 31 días a 60 días</div>
+                            <div class="fw-bold fs-5 text-danger">${fmt(vencidas60)}</div>
+                        </div>
+                    </div>
+                    <div class="col-md col-6">
+                        <div class="kpi-card p-3 shadow-sm" style="background:#ffffff; border-radius:12px; border:1px solid #e9ecef;">
+                            <div class="text-muted mb-1" style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Vencidas 61 días a 90 días</div>
+                            <div class="fw-bold fs-5 text-danger">${fmt(vencidas90)}</div>
+                        </div>
+                    </div>
+                    <div class="col-md col-6">
+                        <div class="kpi-card p-3 shadow-sm" style="background:#ffffff; border-radius:12px; border:1px solid #e9ecef;">
+                            <div class="text-muted mb-1" style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Vencidas 91+</div>
+                            <div class="fw-bold fs-5 text-danger">${fmt(vencidas91)}</div>
+                        </div>
+                    </div>
+                    <div class="col-md col-12">
+                        <div class="kpi-card p-3 shadow-sm" style="background:#ffffff; border-radius:12px; border:1px solid #e9ecef;">
+                            <div class="text-muted mb-1" style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">No vencidas</div>
+                            <div class="fw-bold fs-5 text-success">${fmt(noVencidas)}</div>
+                        </div>
+                    </div>
+                </div>`;
+
+                html = kpiHtml + '<div class="table-responsive"><table class="table-modern"><thead><tr>';
+                html += '<th>Número</th><th>Tipo de documento</th><th>Cliente</th><th>Creación</th><th>Vencimiento</th><th>Total</th><th>Cobrado</th><th>Por cobrar</th>';
+                html += '</tr></thead><tbody>';
+                
+                data.forEach(r => {
+                    const cobrado = parseFloat(r.total || 0) - parseFloat(r.saldo || 0);
+                    html += `<tr>
+                        <td><code>#${r.numero || r.id_alegra_factura || '-'}</code></td>
+                        <td>Factura de venta</td>
+                        <td><strong>${r.cliente_nombre}</strong></td>
+                        <td>${r.fecha_emision || r.fecha || '-'}</td>
+                        <td class="${r.fecha_vencimiento < todayStr ? 'text-danger fw-bold' : ''}">${r.fecha_vencimiento || '-'}</td>
+                        <td>${fmt(r.total)}</td>
+                        <td>${fmt(cobrado)}</td>
+                        <td class="fw-bold text-primary">${fmt(r.saldo)}</td>
+                    </tr>`;
+                });
+                
+                const totalSaldo = data.reduce((s, r) => s + parseFloat(r.saldo || 0), 0);
+                const totalOriginal = data.reduce((s, r) => s + parseFloat(r.total || 0), 0);
+                const totalCobrado = totalOriginal - totalSaldo;
+                html += `<tr class="fw-bold"><td colspan="5">TOTALES</td><td>${fmt(totalOriginal)}</td><td>${fmt(totalCobrado)}</td><td class="text-primary">${fmt(totalSaldo)}</td></tr>`;
+                html += '</tbody></table></div>';
+                
+                results.innerHTML = html;
+                return;
+            }
             case 'inventario':
                 html += '<th>Código</th><th>Nombre</th><th>Stock</th><th>Mín.</th><th>P. Compra</th><th>P. Venta</th><th>Valor Inv.</th>';
                 html += '</tr></thead><tbody>';
@@ -2693,11 +2787,14 @@ const App = {
             }));
         } else if (this.currentReportType === 'cartera') {
             exportData = this.currentReportData.map(r => ({
+                'Número': r.numero || r.id_alegra_factura || '-',
+                'Tipo de documento': 'Factura de venta',
                 'Cliente': r.cliente_nombre,
+                'Creación': r.fecha_emision || r.fecha || '-',
+                'Vencimiento': r.fecha_vencimiento || '-',
                 'Total': r.total,
-                'Saldo': r.saldo,
-                'Fecha Vencimiento': r.fecha_vencimiento,
-                'Estado': r.estado
+                'Cobrado': parseFloat(r.total || 0) - parseFloat(r.saldo || 0),
+                'Por cobrar': r.saldo
             }));
         } else if (this.currentReportType === 'inventario') {
             exportData = this.currentReportData.map(r => ({

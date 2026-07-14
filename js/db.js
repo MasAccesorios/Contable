@@ -1903,8 +1903,20 @@ const DB = {
                 }));
             }
             case 'cartera': {
-                let cartera = this.getCartera();
+                let cartera = this.getCartera().filter(c => parseFloat(c.saldo || 0) > 0 && c.estado !== 'draft' && c.estado !== 'void');
                 if (clienteId) cartera = cartera.filter(c => c.cliente_id === clienteId);
+                if (desde) {
+                    cartera = cartera.filter(c => {
+                        const date = c.fecha_emision || c.fecha || '';
+                        return date >= desde;
+                    });
+                }
+                if (hasta) {
+                    cartera = cartera.filter(c => {
+                        const date = c.fecha_emision || c.fecha || '';
+                        return date <= hasta;
+                    });
+                }
                 return cartera.map(c => {
                     const client = this.getClient(c.cliente_id);
                     return { ...c, cliente_nombre: client ? client.nombre : 'N/A' };
