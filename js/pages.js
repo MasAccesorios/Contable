@@ -2041,10 +2041,40 @@ const Pages = {
         const vencimientoDate = isCotizacion ? doc.validez : doc.fecha_vencimiento;
 
         return `
+        <style>
+            @media print {
+                /* Ocultar el layout general del software */
+                body * {
+                    visibility: hidden;
+                }
+                /* Mostrar UNICAMENTE el contenedor de la hoja de la factura */
+                #invoice-print-container, #invoice-print-container * {
+                    visibility: visible;
+                }
+                #invoice-print-container {
+                    position: absolute;
+                    left: 0;
+                    top: 0;
+                    width: 100%;
+                    margin: 0;
+                    padding: 0;
+                    box-shadow: none;
+                    background: white;
+                }
+                /* Evitar saltos de página huérfanos */
+                html, body {
+                    height: auto;
+                    overflow: visible;
+                }
+                .print\\:hidden {
+                    display: none !important;
+                }
+            }
+        </style>
         <div class="bg-light p-3 p-md-5 d-flex justify-content-center" style="min-height: 100vh;">
-            <div class="invoice-paper bg-white p-4 p-md-5 shadow-lg rounded position-relative" style="width: 100%; max-width: 800px; margin: 2rem auto;">
+            <div id="invoice-print-container" class="invoice-paper bg-white p-4 p-md-5 shadow-lg rounded position-relative" style="width: 100%; max-width: 800px; margin: 2rem auto;">
                 
-                <div class="d-print-none mb-4 d-flex justify-content-between align-items-center">
+                <div class="d-print-none print:hidden mb-4 d-flex justify-content-between align-items-center">
                     <button class="btn btn-outline-secondary" onclick="App.navigateTo('${isCotizacion ? 'cotizaciones' : 'ventas'}')">
                         <i class="bi bi-arrow-left me-1"></i> Volver
                     </button>
@@ -2055,8 +2085,8 @@ const Pages = {
 
                 <div class="row border-bottom pb-4 mb-4 mt-2">
                     <div class="col-sm-6">
-                        <h2 class="fw-bold text-primary mb-1">Mi Empresa</h2>
-                        <p class="text-muted mb-0 small">NIT: 900.123.456-7<br>Tel: +57 300 123 4567<br>contacto@miempresa.com</p>
+                        <h2 class="fw-bold text-primary mb-1">MAS Accesorios</h2>
+                        <p class="text-muted mb-0 small">NIT: 900.123.456-7<br>Tel: +57 300 123 4567<br>contacto@masaccesorios.com</p>
                     </div>
                     <div class="col-sm-6 text-sm-end mt-3 mt-sm-0">
                         <h3 class="fw-bold text-dark mb-1">${title}</h3>

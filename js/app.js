@@ -663,7 +663,7 @@ const App = {
                     const saldoColorClass = (saldo > 0 && esVencido) ? "text-danger fw-bold" : (saldo === 0 ? "text-muted" : "text-success fw-bold");
 
                     return `<tr>
-                        <td class="p-3 align-middle"><a href="#" onclick="event.preventDefault(); App.viewInvoice('${doc.id}', 'venta')" class="text-primary fw-medium text-decoration-none">${num.toString().replace('#', '')}</a></td>
+                        <td class="p-3 align-middle"><a href="#" onclick="event.preventDefault(); const modal = bootstrap.Modal.getInstance(document.getElementById('clienteDetailModal')); if(modal) modal.hide(); App.viewInvoice('${doc.id}', 'venta');" class="text-primary fw-medium text-decoration-none">${num.toString().replace('#', '')}</a></td>
                         <td class="p-3 align-middle">${fmtDate(doc.fecha)}</td>
                         <td class="p-3 align-middle"><span class="${badgeClass}">${fmtDate(doc.fecha_vencimiento)}</span></td>
                         <td class="p-3 align-middle">Factura de venta</td>
