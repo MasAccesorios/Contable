@@ -2686,23 +2686,33 @@ const App = {
         }
 
         const saldoBancario = parseFloat(extractoStr || 0);
-        const diferencia = saldoBancario - saldoTotal;
+        const diferenciaOriginal = saldoBancario - saldoTotal;
+        const diferenciaNumerica = Math.abs(parseFloat(diferenciaOriginal.toFixed(2)));
 
-        if (concDiferenciaEl) concDiferenciaEl.textContent = fmt(diferencia);
+        if (concDiferenciaEl) concDiferenciaEl.textContent = fmt(diferenciaOriginal);
         
-        if (Math.abs(diferencia) < 0.01) { // is zero
+        const estaEnCeros = diferenciaNumerica < 0.01;
+        
+        if (estaEnCeros) {
             if (concDiferenciaEl) concDiferenciaEl.className = 'mb-0 fw-bold text-success';
             if (concDifIcon) concDifIcon.className = 'bi bi-check-circle-fill text-success fs-3';
-            if (btnConciliar) btnConciliar.classList.remove('disabled');
+            if (btnConciliar) {
+                btnConciliar.classList.remove('disabled');
+                btnConciliar.disabled = false;
+            }
         } else {
             if (concDiferenciaEl) concDiferenciaEl.className = 'mb-0 fw-bold text-danger';
             if (concDifIcon) concDifIcon.className = 'bi bi-exclamation-triangle-fill text-danger fs-3';
-            if (btnConciliar) btnConciliar.classList.add('disabled');
+            if (btnConciliar) {
+                btnConciliar.classList.add('disabled');
+                btnConciliar.disabled = true;
+            }
         }
     },
 
     execConciliacion(bankId) {
-        if (document.getElementById('btnConciliar')?.classList.contains('disabled')) return;
+        const btnConciliar = document.getElementById('btnConciliar');
+        if (btnConciliar && (btnConciliar.disabled || btnConciliar.classList.contains('disabled'))) return;
         
         const selectedIds = Array.from(document.querySelectorAll('#concTable .mov-checkbox:checked')).map(cb => cb.value);
         if (selectedIds.length === 0) {
