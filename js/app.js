@@ -2556,36 +2556,64 @@ const App = {
                     }
                 });
 
+                const totalSaldo = data.reduce((s, r) => s + parseFloat(r.saldo || 0), 0);
+                const totalOriginal = data.reduce((s, r) => s + parseFloat(r.total || 0), 0);
+                const totalCobrado = totalOriginal - totalSaldo;
+
+                const fmtDecimal = (n) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+
                 const kpiHtml = `
-                <div class="row g-3 mb-4 text-center">
-                    <div class="col-md col-6">
-                        <div class="kpi-card p-3 shadow-sm" style="background:#ffffff; border-radius:12px; border:1px solid #e9ecef;">
-                            <div class="text-muted mb-1" style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Vencidas 30 días o menos</div>
-                            <div class="fw-bold fs-5 text-danger">${fmt(vencidas30)}</div>
+                <div class="row g-3 mb-4">
+                    <div class="col-md-4 col-12">
+                        <div class="kpi-card p-3 shadow-sm d-flex justify-content-between align-items-center" style="background:#ffffff; border-radius:12px; border:1px solid #e9ecef; border-left: 5px solid #ff5722; height: 100%;">
+                            <div>
+                                <div class="text-muted" style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Total por cobrar</div>
+                                <div class="fw-bold mt-1" style="font-size:24px; color:#ff5722;">${fmtDecimal(totalSaldo)}</div>
+                            </div>
+                            <div style="font-size:28px; color:#ff5722; opacity:0.8;">
+                                <i class="bi bi-wallet2"></i>
+                            </div>
                         </div>
                     </div>
-                    <div class="col-md col-6">
-                        <div class="kpi-card p-3 shadow-sm" style="background:#ffffff; border-radius:12px; border:1px solid #e9ecef;">
-                            <div class="text-muted mb-1" style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Vencidas 31 días a 60 días</div>
-                            <div class="fw-bold fs-5 text-danger">${fmt(vencidas60)}</div>
+                    <div class="col-md-8 col-12">
+                        <div class="row g-2 text-center" style="height: 100%;">
+                            <div class="col-6 col-md-3">
+                                <div class="kpi-card p-2 shadow-sm d-flex flex-column justify-content-center" style="background:#ffffff; border-radius:12px; border:1px solid #e9ecef; height: 100%;">
+                                    <div class="text-muted mb-1" style="font-size:9px; font-weight:600; text-transform:uppercase; letter-spacing:0.3px; line-height:1.2;">Vencidas ≤30 días</div>
+                                    <div class="fw-bold fs-6 text-danger">${fmt(vencidas30)}</div>
+                                </div>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <div class="kpi-card p-2 shadow-sm d-flex flex-column justify-content-center" style="background:#ffffff; border-radius:12px; border:1px solid #e9ecef; height: 100%;">
+                                    <div class="text-muted mb-1" style="font-size:9px; font-weight:600; text-transform:uppercase; letter-spacing:0.3px; line-height:1.2;">Vencidas 31-60</div>
+                                    <div class="fw-bold fs-6 text-danger">${fmt(vencidas60)}</div>
+                                </div>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <div class="kpi-card p-2 shadow-sm d-flex flex-column justify-content-center" style="background:#ffffff; border-radius:12px; border:1px solid #e9ecef; height: 100%;">
+                                    <div class="text-muted mb-1" style="font-size:9px; font-weight:600; text-transform:uppercase; letter-spacing:0.3px; line-height:1.2;">Vencidas 61-90</div>
+                                    <div class="fw-bold fs-6 text-danger">${fmt(vencidas90)}</div>
+                                </div>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <div class="kpi-card p-2 shadow-sm d-flex flex-column justify-content-center" style="background:#ffffff; border-radius:12px; border:1px solid #e9ecef; height: 100%;">
+                                    <div class="text-muted mb-1" style="font-size:9px; font-weight:600; text-transform:uppercase; letter-spacing:0.3px; line-height:1.2;">Vencidas 91+</div>
+                                    <div class="fw-bold fs-6 text-danger">${fmt(vencidas91)}</div>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <div class="col-md col-6">
-                        <div class="kpi-card p-3 shadow-sm" style="background:#ffffff; border-radius:12px; border:1px solid #e9ecef;">
-                            <div class="text-muted mb-1" style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Vencidas 61 días a 90 días</div>
-                            <div class="fw-bold fs-5 text-danger">${fmt(vencidas90)}</div>
-                        </div>
-                    </div>
-                    <div class="col-md col-6">
-                        <div class="kpi-card p-3 shadow-sm" style="background:#ffffff; border-radius:12px; border:1px solid #e9ecef;">
-                            <div class="text-muted mb-1" style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Vencidas 91+</div>
-                            <div class="fw-bold fs-5 text-danger">${fmt(vencidas91)}</div>
-                        </div>
-                    </div>
-                    <div class="col-md col-12">
-                        <div class="kpi-card p-3 shadow-sm" style="background:#ffffff; border-radius:12px; border:1px solid #e9ecef;">
-                            <div class="text-muted mb-1" style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">No vencidas</div>
-                            <div class="fw-bold fs-5 text-success">${fmt(noVencidas)}</div>
+                </div>
+                <div class="row g-3 mb-4">
+                    <div class="col-12">
+                        <div class="kpi-card p-3 shadow-sm d-flex justify-content-between align-items-center" style="background:#ffffff; border-radius:12px; border:1px solid #e9ecef; border-left: 5px solid #198754;">
+                            <div>
+                                <div class="text-muted" style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">No vencidas</div>
+                                <div class="fw-bold mt-1 text-success" style="font-size:20px;">${fmt(noVencidas)}</div>
+                            </div>
+                            <div style="font-size:24px; color:#198754; opacity:0.8;">
+                                <i class="bi bi-shield-check"></i>
+                            </div>
                         </div>
                     </div>
                 </div>`;
@@ -2608,9 +2636,6 @@ const App = {
                     </tr>`;
                 });
                 
-                const totalSaldo = data.reduce((s, r) => s + parseFloat(r.saldo || 0), 0);
-                const totalOriginal = data.reduce((s, r) => s + parseFloat(r.total || 0), 0);
-                const totalCobrado = totalOriginal - totalSaldo;
                 html += `<tr class="fw-bold"><td colspan="5">TOTALES</td><td>${fmt(totalOriginal)}</td><td>${fmt(totalCobrado)}</td><td class="text-primary">${fmt(totalSaldo)}</td></tr>`;
                 html += '</tbody></table></div>';
                 
