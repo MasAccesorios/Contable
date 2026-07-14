@@ -463,6 +463,11 @@ const App = {
         document.getElementById('clienteTipo').value = 'Cliente';
         document.getElementById('clienteCupo').value = '0';
         document.getElementById('clientePlazo').value = '30';
+        
+        document.getElementById('clienteTipoDoc').value = 'NIT';
+        document.getElementById('clienteRegimen').value = 'Simplificado';
+        document.getElementById('clienteIdAlegra').value = '';
+        
         new bootstrap.Modal(document.getElementById('clienteModal')).show();
     },
 
@@ -486,6 +491,11 @@ const App = {
         document.getElementById('clienteDepartamento').value = client.departamento || '';
         document.getElementById('clientePais').value = client.pais || 'Colombia';
         document.getElementById('clienteCodigoPostal').value = client.codigo_postal || '';
+        
+        document.getElementById('clienteTipoDoc').value = client.tipo_doc || 'NIT';
+        document.getElementById('clienteRegimen').value = client.regimen || 'Simplificado';
+        document.getElementById('clienteIdAlegra').value = client.id_alegra || '';
+        
         document.getElementById('clienteEstado').value = client.estado || 'Activo';
         document.getElementById('clienteObservaciones').value = client.observaciones || '';
         
@@ -519,7 +529,7 @@ const App = {
                     </div>
                     <div class="row mb-3">
                         <div class="col-sm-4 text-muted small">Documento</div>
-                        <div class="col-sm-8">${client.documento || 'N/A'}</div>
+                        <div class="col-sm-8"><strong>${client.tipo_doc || 'NIT'}:</strong> ${client.documento || 'N/A'}</div>
                     </div>
                     <div class="row mb-3">
                         <div class="col-sm-4 text-muted small">Correo Electrónico</div>
@@ -558,6 +568,14 @@ const App = {
                     <div class="row mb-3">
                         <div class="col-sm-4 text-muted small">Plazo</div>
                         <div class="col-sm-8">${client.plazo_dias || 30} días</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-4 text-muted small">Régimen</div>
+                        <div class="col-sm-8">${client.regimen || 'Simplificado'}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-4 text-muted small">ID Alegra</div>
+                        <div class="col-sm-8"><code>${client.id_alegra || 'N/A'}</code></div>
                     </div>
                     <div class="row mb-3">
                         <div class="col-sm-4 text-muted small">Estado</div>
@@ -676,6 +694,9 @@ const App = {
             tipo: document.getElementById('clienteTipo').value,
             nombre,
             documento,
+            tipo_doc: document.getElementById('clienteTipoDoc').value,
+            regimen: document.getElementById('clienteRegimen').value,
+            id_alegra: document.getElementById('clienteIdAlegra').value || '',
             telefono: document.getElementById('clienteTelefono').value.trim(),
             cupo_credito: parseFloat(this.unformatNumber(document.getElementById('clienteCupo').value)) || 0,
             plazo_dias: parseInt(this.unformatNumber(document.getElementById('clientePlazo').value)) || 30,
@@ -789,6 +810,7 @@ const App = {
         document.getElementById('productoForm').reset();
         document.getElementById('productoStockActual').value = '0';
         document.getElementById('productoStockMinimo').value = '5';
+        document.getElementById('productoIdAlegra').value = '';
         new bootstrap.Modal(document.getElementById('productoModal')).show();
     },
 
@@ -807,6 +829,7 @@ const App = {
         document.getElementById('productoCategoria').value = p.categoria || '';
         document.getElementById('productoUnidadMedida').value = p.unidad_medida || 'Unidad';
         document.getElementById('productoUbicacion').value = p.ubicacion_bodega || '';
+        document.getElementById('productoIdAlegra').value = p.id_alegra || '';
         document.getElementById('productoEstado').value = p.estado || 'Activo';
         document.getElementById('productoObservaciones').value = p.observaciones || '';
         
@@ -863,6 +886,10 @@ const App = {
                     <div class="row mb-3">
                         <div class="col-sm-4 text-muted small">Ubicación / Bodega</div>
                         <div class="col-sm-8">${p.ubicacion_bodega || 'N/A'}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-4 text-muted small">ID Alegra</div>
+                        <div class="col-sm-8"><code>${p.id_alegra || 'N/A'}</code></div>
                     </div>
                     <div class="row mb-3">
                         <div class="col-sm-4 text-muted small">Estado</div>
@@ -995,6 +1022,7 @@ const App = {
             categoria: document.getElementById('productoCategoria').value.trim(),
             unidad_medida: document.getElementById('productoUnidadMedida').value,
             ubicacion_bodega: document.getElementById('productoUbicacion').value.trim(),
+            id_alegra: document.getElementById('productoIdAlegra').value || '',
             estado: document.getElementById('productoEstado').value,
             observaciones: document.getElementById('productoObservaciones').value.trim()
         };
@@ -2906,6 +2934,195 @@ const App = {
             }
         } finally {
             btn.innerHTML = '<i class="bi bi-arrow-clockwise me-1"></i> Sincronizar Ahora';
+            btn.disabled = false;
+        }
+    },
+
+    async importFromLocalJSON() {
+        const btn = document.getElementById('importJsonBtn');
+        btn.innerHTML = '<i class="bi bi-arrow-repeat spin"></i> Importando...';
+        btn.disabled = true;
+
+        try {
+            const res = await fetch('datos_alegra.json');
+            if (!res.ok) throw new Error('No se pudo encontrar o leer el archivo datos_alegra.json. Asegúrese de haber ejecutado los scripts de Python.');
+            const data = await res.json();
+
+            // 1. Importar Clientes
+            const importedClients = data.clientes || [];
+            let clients = DB.getAll(DB.KEYS.CLIENTS) || [];
+            let cCount = 0;
+            importedClients.forEach(c => {
+                const existingIdx = clients.findIndex(cli => 
+                    (cli.id_alegra && String(cli.id_alegra) === String(c.id_alegra)) || 
+                    (c.nit_rut && String(cli.documento) === String(c.nit_rut))
+                );
+
+                const clientData = {
+                    nombre: c.nombre,
+                    documento: c.nit_rut,
+                    tipo_doc: c.tipo_documento || 'NIT',
+                    email: c.email || '',
+                    telefono: c.telefono || '',
+                    direccion: c.direccion || '',
+                    ciudad: c.ciudad || '',
+                    departamento: c.departamento || '',
+                    pais: c.pais || 'Colombia',
+                    barrio: c.barrio || '',
+                    codigo_postal: c.codigo_postal || '',
+                    regimen: c.regimen_tributario || 'Simplificado',
+                    id_alegra: String(c.id_alegra),
+                    tipo: 'ambos',
+                    estado: c.estado || 'Activo',
+                    cupo_credito: parseFloat(c.cupo_credito || 0),
+                    plazo_pago: parseInt(c.plazo_pago || 30),
+                    observaciones: c.observaciones || '',
+                    updated_at: new Date().toISOString()
+                };
+
+                if (existingIdx >= 0) {
+                    clients[existingIdx] = { ...clients[existingIdx], ...clientData };
+                } else {
+                    clients.push({ id: DB.genId(), created_at: new Date().toISOString(), ...clientData });
+                }
+                cCount++;
+            });
+            DB._persist(DB.KEYS.CLIENTS, clients);
+
+            // 2. Importar Productos
+            const importedProducts = data.productos_y_inventario || [];
+            let products = DB.getAll(DB.KEYS.PRODUCTS) || [];
+            let pCount = 0;
+            importedProducts.forEach(p => {
+                const existingIdx = products.findIndex(prod => 
+                    (prod.id_alegra && String(prod.id_alegra) === String(p.id_alegra)) ||
+                    (p.referencia_sku && String(prod.codigo) === String(p.referencia_sku))
+                );
+
+                const productData = {
+                    codigo: String(p.referencia_sku || p.id_alegra),
+                    nombre: p.nombre,
+                    precio_compra: parseFloat(p.costo_unitario || 0),
+                    precio_venta: parseFloat(p.precio_venta || 0),
+                    stock_actual: p.stock_actual === 'No aplica' ? 0 : parseFloat(p.stock_actual || 0),
+                    stock_minimo: 5,
+                    categoria: p.categoria || '',
+                    unidad_medida: p.unidad_medida || 'Unidad',
+                    ubicacion_bodega: p.ubicacion_bodega || '',
+                    id_alegra: String(p.id_alegra),
+                    estado: p.estado || 'Activo',
+                    observaciones: p.observaciones || '',
+                    updated_at: new Date().toISOString()
+                };
+
+                if (existingIdx >= 0) {
+                    products[existingIdx] = { ...products[existingIdx], ...productData };
+                } else {
+                    products.push({ id: DB.genId(), created_at: new Date().toISOString(), ...productData });
+                }
+                pCount++;
+            });
+            DB._persist(DB.KEYS.PRODUCTS, products);
+
+            // 3. Importar Cuentas Bancarias
+            const importedBanks = data.cuentas_bancarias || [];
+            if (importedBanks.length > 0) {
+                let banks = DB.getAll(DB.KEYS.BANKS) || [];
+                importedBanks.forEach(b => {
+                    const existingIdx = banks.findIndex(bank => 
+                        (bank.id_alegra && String(bank.id_alegra) === String(b.id)) ||
+                        (b.name && bank.nombre.toLowerCase().trim() === b.name.toLowerCase().trim())
+                    );
+                    const bankData = {
+                        nombre: b.name,
+                        id_alegra: String(b.id),
+                        saldo_actual: parseFloat(b.initialBalance || 0),
+                        tipo: b.type,
+                        updated_at: new Date().toISOString()
+                    };
+                    if (existingIdx >= 0) {
+                        banks[existingIdx] = { ...banks[existingIdx], ...bankData };
+                    } else {
+                        banks.push({ id: DB.genId(), ...bankData });
+                    }
+                });
+                DB._persist(DB.KEYS.BANKS, banks);
+            }
+
+            // 4. Importar Movimientos Bancarios
+            const importedMovements = data.movimientos_bancarios || [];
+            if (importedMovements.length > 0) {
+                let dbMovements = DB.getAll(DB.KEYS.BANK_MOVEMENTS) || [];
+                importedMovements.forEach(m => {
+                    const existingIdx = dbMovements.findIndex(mov => String(mov.id_alegra) === String(m.id));
+                    const bankAccountName = m.bankAccount ? m.bankAccount.name : 'Caja/Banco';
+                    const movData = {
+                        id_alegra: String(m.id),
+                        fecha: m.date,
+                        tipo: m.type === 'in' ? 'ingreso' : 'egreso',
+                        monto: parseFloat(m.amount || 0),
+                        cuenta: bankAccountName,
+                        descripcion: m.observations || 'Importado desde Alegra',
+                        referencia: m.paymentMethod || 'Transferencia',
+                        updated_at: new Date().toISOString()
+                    };
+                    if (existingIdx >= 0) {
+                        dbMovements[existingIdx] = { ...dbMovements[existingIdx], ...movData };
+                    } else {
+                        dbMovements.push({ id: DB.genId(), ...movData });
+                    }
+                });
+                DB._persist(DB.KEYS.BANK_MOVEMENTS, dbMovements);
+            }
+
+            // 5. Importar Cuentas por Cobrar (Cartera)
+            const importedCartera = data.cuentas_por_cobrar || [];
+            if (importedCartera.length > 0) {
+                let dbCartera = DB.getAll(DB.KEYS.CARTERA) || [];
+                importedCartera.forEach(c => {
+                    const existingIdx = dbCartera.findIndex(car => String(car.id_alegra_factura) === String(c.id_factura));
+                    
+                    const clients = DB.getAll(DB.KEYS.CLIENTS) || [];
+                    const localClient = clients.find(cli => 
+                        (cli.id_alegra && String(cli.id_alegra) === String(c.cliente_id)) ||
+                        (cli.documento && String(cli.documento) === String(c.nit_rut))
+                    );
+
+                    const carteraData = {
+                        id_alegra_factura: String(c.id_factura),
+                        numero: c.numero,
+                        cliente_id: localClient ? localClient.id : DB.genId(),
+                        fecha_emision: c.fecha_emision,
+                        fecha_vencimiento: c.fecha_vencimiento,
+                        total: parseFloat(c.total || 0),
+                        saldo: parseFloat(c.saldo || 0),
+                        estado: c.status || 'abierta',
+                        updated_at: new Date().toISOString()
+                    };
+
+                    if (existingIdx >= 0) {
+                        dbCartera[existingIdx] = { ...dbCartera[existingIdx], ...carteraData };
+                    } else {
+                        dbCartera.push({ id: DB.genId(), ...carteraData });
+                    }
+                });
+                DB._persist(DB.KEYS.CARTERA, dbCartera);
+            }
+
+            const logsDiv = document.getElementById('integrationLogs');
+            if (logsDiv) {
+                logsDiv.innerHTML = `<div class="alert alert-success py-2 mb-2"><i class="bi bi-check-circle me-1"></i> Éxito Importación Local: ${cCount} contactos, ${pCount} productos, ${importedBanks.length} bancos, ${importedMovements.length} movimientos, ${importedCartera.length} cuentas x cobrar. (${new Date().toLocaleString()})</div>` + (logsDiv.innerHTML.includes('No hay') ? '' : logsDiv.innerHTML);
+            }
+            this.showToast('Importación completada con éxito.', 'Éxito', 'success');
+        } catch (error) {
+            console.error(error);
+            this.showToast(error.message, 'Error de Importación', 'danger');
+            const logsDiv = document.getElementById('integrationLogs');
+            if (logsDiv) {
+                logsDiv.innerHTML = `<div class="alert alert-danger py-2 mb-2"><i class="bi bi-x-circle me-1"></i> Error Importación Local: ${error.message} (${new Date().toLocaleString()})</div>` + (logsDiv.innerHTML.includes('No hay') ? '' : logsDiv.innerHTML);
+            }
+        } finally {
+            btn.innerHTML = '<i class="bi bi-file-earmark-arrow-up me-1"></i> Importar desde datos_alegra.json';
             btn.disabled = false;
         }
     },

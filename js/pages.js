@@ -1008,6 +1008,9 @@ const Pages = {
                                 <button class="btn btn-outline-primary mt-3" onclick="App.syncAlegra()" id="syncBtn">
                                     <i class="bi bi-arrow-clockwise me-1"></i> Sincronizar Ahora
                                 </button>
+                                <button class="btn btn-outline-success mt-3 ms-2" onclick="App.importFromLocalJSON()" id="importJsonBtn">
+                                    <i class="bi bi-file-earmark-arrow-up me-1"></i> Importar desde datos_alegra.json
+                                </button>
                             </div>
 
                             <div class="alert alert-info">

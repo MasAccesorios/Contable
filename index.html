@@ -208,11 +208,21 @@
                             </div>
                         </div>
                         <div class="row">
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Tipo Documento</label>
+                                <select class="form-select" id="clienteTipoDoc">
+                                    <option value="NIT">NIT (Persona Jurídica)</option>
+                                    <option value="CC">Cédula de Ciudadanía</option>
+                                    <option value="CE">Cédula de Extranjería</option>
+                                    <option value="RUT">RUT</option>
+                                    <option value="Pasaporte">Pasaporte</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4 mb-3">
                                 <label class="form-label">Documento *</label>
                                 <input type="text" class="form-control" id="clienteDocumento" required>
                             </div>
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-4 mb-3">
                                 <label class="form-label">Correo electrónico</label>
                                 <input type="email" class="form-control" id="clienteEmail">
                             </div>
@@ -268,14 +278,27 @@
                             </div>
                         </div>
                         <div class="row">
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Régimen Tributario</label>
+                                <select class="form-select" id="clienteRegimen">
+                                    <option value="Simplificado">Simplificado (No Responsable)</option>
+                                    <option value="Comun">Común (Responsable de IVA)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">ID Alegra (Ref)</label>
+                                <input type="text" class="form-control" id="clienteIdAlegra" readonly placeholder="Mapeado automáticamente">
+                            </div>
+                            <div class="col-md-4 mb-3">
                                 <label class="form-label">Estado</label>
                                 <select class="form-select" id="clienteEstado">
                                     <option value="Activo">Activo</option>
                                     <option value="Inactivo">Inactivo</option>
                                 </select>
                             </div>
-                            <div class="col-md-6 mb-3">
+                        </div>
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
                                 <label class="form-label">Observaciones</label>
                                 <input type="text" class="form-control" id="clienteObservaciones">
                             </div>
@@ -352,11 +375,15 @@
                             </div>
                         </div>
                         <div class="row">
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-4 mb-3">
                                 <label class="form-label">Ubicación / Bodega</label>
                                 <input type="text" class="form-control" id="productoUbicacion" placeholder="Ej: Bodega Principal, Estante A1">
                             </div>
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">ID Alegra (Ref)</label>
+                                <input type="text" class="form-control" id="productoIdAlegra" readonly placeholder="Mapeado automáticamente">
+                            </div>
+                            <div class="col-md-4 mb-3">
                                 <label class="form-label">Estado</label>
                                 <select class="form-select" id="productoEstado">
                                     <option value="Activo">Activo</option>
