@@ -2543,15 +2543,20 @@ const App = {
                         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
                         
                         if (diffDays <= 30) {
+                            r.agingCategory = 'vencidas30';
                             vencidas30 += saldo;
                         } else if (diffDays >= 31 && diffDays <= 60) {
+                            r.agingCategory = 'vencidas60';
                             vencidas60 += saldo;
                         } else if (diffDays >= 61 && diffDays <= 90) {
+                            r.agingCategory = 'vencidas90';
                             vencidas90 += saldo;
                         } else {
+                            r.agingCategory = 'vencidas91';
                             vencidas91 += saldo;
                         }
                     } else {
+                        r.agingCategory = 'noVencidas';
                         noVencidas += saldo;
                     }
                 });
@@ -2560,86 +2565,11 @@ const App = {
                 const totalOriginal = data.reduce((s, r) => s + parseFloat(r.total || 0), 0);
                 const totalCobrado = totalOriginal - totalSaldo;
 
-                const fmtDecimal = (n) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+                this.carteraTotals = { totalOriginal, totalCobrado, totalSaldo };
+                this.carteraAgingBuckets = { vencidas30, vencidas60, vencidas90, vencidas91, noVencidas };
+                this.activeAgingFilter = null;
 
-                const kpiHtml = `
-                <div class="row g-3 mb-4">
-                    <div class="col-md-4 col-12">
-                        <div class="kpi-card p-3 shadow-sm d-flex justify-content-between align-items-center" style="background:#ffffff; border-radius:12px; border:1px solid #e9ecef; border-left: 5px solid #ff5722; height: 100%;">
-                            <div>
-                                <div class="text-muted" style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Total por cobrar</div>
-                                <div class="fw-bold mt-1" style="font-size:24px; color:#ff5722;">${fmtDecimal(totalSaldo)}</div>
-                            </div>
-                            <div style="font-size:28px; color:#ff5722; opacity:0.8;">
-                                <i class="bi bi-wallet2"></i>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-8 col-12">
-                        <div class="row g-2 text-center" style="height: 100%;">
-                            <div class="col-6 col-md-3">
-                                <div class="kpi-card p-2 shadow-sm d-flex flex-column justify-content-center" style="background:#ffffff; border-radius:12px; border:1px solid #e9ecef; height: 100%;">
-                                    <div class="text-muted mb-1" style="font-size:9px; font-weight:600; text-transform:uppercase; letter-spacing:0.3px; line-height:1.2;">Vencidas ≤30 días</div>
-                                    <div class="fw-bold fs-6 text-danger">${fmt(vencidas30)}</div>
-                                </div>
-                            </div>
-                            <div class="col-6 col-md-3">
-                                <div class="kpi-card p-2 shadow-sm d-flex flex-column justify-content-center" style="background:#ffffff; border-radius:12px; border:1px solid #e9ecef; height: 100%;">
-                                    <div class="text-muted mb-1" style="font-size:9px; font-weight:600; text-transform:uppercase; letter-spacing:0.3px; line-height:1.2;">Vencidas 31-60</div>
-                                    <div class="fw-bold fs-6 text-danger">${fmt(vencidas60)}</div>
-                                </div>
-                            </div>
-                            <div class="col-6 col-md-3">
-                                <div class="kpi-card p-2 shadow-sm d-flex flex-column justify-content-center" style="background:#ffffff; border-radius:12px; border:1px solid #e9ecef; height: 100%;">
-                                    <div class="text-muted mb-1" style="font-size:9px; font-weight:600; text-transform:uppercase; letter-spacing:0.3px; line-height:1.2;">Vencidas 61-90</div>
-                                    <div class="fw-bold fs-6 text-danger">${fmt(vencidas90)}</div>
-                                </div>
-                            </div>
-                            <div class="col-6 col-md-3">
-                                <div class="kpi-card p-2 shadow-sm d-flex flex-column justify-content-center" style="background:#ffffff; border-radius:12px; border:1px solid #e9ecef; height: 100%;">
-                                    <div class="text-muted mb-1" style="font-size:9px; font-weight:600; text-transform:uppercase; letter-spacing:0.3px; line-height:1.2;">Vencidas 91+</div>
-                                    <div class="fw-bold fs-6 text-danger">${fmt(vencidas91)}</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="row g-3 mb-4">
-                    <div class="col-12">
-                        <div class="kpi-card p-3 shadow-sm d-flex justify-content-between align-items-center" style="background:#ffffff; border-radius:12px; border:1px solid #e9ecef; border-left: 5px solid #198754;">
-                            <div>
-                                <div class="text-muted" style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">No vencidas</div>
-                                <div class="fw-bold mt-1 text-success" style="font-size:20px;">${fmt(noVencidas)}</div>
-                            </div>
-                            <div style="font-size:24px; color:#198754; opacity:0.8;">
-                                <i class="bi bi-shield-check"></i>
-                            </div>
-                        </div>
-                    </div>
-                </div>`;
-
-                html = kpiHtml + '<div class="table-responsive"><table class="table-modern"><thead><tr>';
-                html += '<th>Número</th><th>Tipo de documento</th><th>Cliente</th><th>Creación</th><th>Vencimiento</th><th>Total</th><th>Cobrado</th><th>Por cobrar</th>';
-                html += '</tr></thead><tbody>';
-                
-                data.forEach(r => {
-                    const cobrado = parseFloat(r.total || 0) - parseFloat(r.saldo || 0);
-                    html += `<tr>
-                        <td><code>#${r.numero || r.id_alegra_factura || '-'}</code></td>
-                        <td>Factura de venta</td>
-                        <td><strong>${r.cliente_nombre}</strong></td>
-                        <td>${r.fecha_emision || r.fecha || '-'}</td>
-                        <td class="${r.fecha_vencimiento < todayStr ? 'text-danger fw-bold' : ''}">${r.fecha_vencimiento || '-'}</td>
-                        <td>${fmt(r.total)}</td>
-                        <td>${fmt(cobrado)}</td>
-                        <td class="fw-bold text-primary">${fmt(r.saldo)}</td>
-                    </tr>`;
-                });
-                
-                html += `<tr class="fw-bold"><td colspan="5">TOTALES</td><td>${fmt(totalOriginal)}</td><td>${fmt(totalCobrado)}</td><td class="text-primary">${fmt(totalSaldo)}</td></tr>`;
-                html += '</tbody></table></div>';
-                
-                results.innerHTML = html;
+                this.renderCarteraReportView(data);
                 return;
             }
             case 'inventario':
@@ -2788,6 +2718,158 @@ const App = {
 
         html += '</tbody></table>';
         results.innerHTML = html;
+    },
+
+    renderCarteraReportView(data) {
+        const results = document.getElementById('reportResults');
+        const fmt = (n) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n);
+        const fmtDecimal = (n) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+
+        const { vencidas30, vencidas60, vencidas90, vencidas91, noVencidas } = this.carteraAgingBuckets;
+        const { totalOriginal, totalCobrado, totalSaldo } = this.carteraTotals;
+
+        // Dynamic style for active filters
+        const activeStyle = 'background: rgba(255, 87, 34, 0.05); border: 2px solid #ff5722 !important; font-weight: bold;';
+        const normalStyle = 'background: #ffffff; border: 1px solid #e9ecef;';
+        const activeGreenStyle = 'background: rgba(25, 135, 84, 0.05); border: 2px solid #198754 !important; font-weight: bold;';
+        const normalGreenStyle = 'background: #ffffff; border: 1px solid #e9ecef;';
+
+        const kpiHtml = `
+        <style>
+            .interactive-kpi-card {
+                cursor: pointer;
+                transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+            }
+            .interactive-kpi-card:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(0,0,0,0.08) !important;
+            }
+        </style>
+        <div class="row g-3 mb-4">
+            <div class="col-md-4 col-12">
+                <div class="kpi-card interactive-kpi-card p-3 shadow-sm d-flex justify-content-between align-items-center" 
+                     onclick="App.filterCarteraByAging(null)"
+                     style="${!this.activeAgingFilter ? activeStyle : normalStyle} border-left: 5px solid #ff5722; height: 100%;">
+                    <div>
+                        <div class="text-muted" style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Total por cobrar</div>
+                        <div class="fw-bold mt-1" style="font-size:24px; color:#ff5722;">${fmtDecimal(totalSaldo)}</div>
+                    </div>
+                    <div style="font-size:28px; color:#ff5722; opacity:0.8;">
+                        <i class="bi bi-wallet2"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-8 col-12">
+                <div class="row g-2 text-center" style="height: 100%;">
+                    <div class="col-6 col-md-3">
+                        <div class="kpi-card interactive-kpi-card p-2 shadow-sm d-flex flex-column justify-content-center" 
+                             onclick="App.filterCarteraByAging('vencidas30')"
+                             style="${this.activeAgingFilter === 'vencidas30' ? activeStyle : normalStyle} height: 100%;">
+                            <div class="text-muted mb-1" style="font-size:9px; font-weight:600; text-transform:uppercase; letter-spacing:0.3px; line-height:1.2;">Vencidas ≤30 días</div>
+                            <div class="fw-bold fs-6 text-danger">${fmt(vencidas30)}</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="kpi-card interactive-kpi-card p-2 shadow-sm d-flex flex-column justify-content-center" 
+                             onclick="App.filterCarteraByAging('vencidas60')"
+                             style="${this.activeAgingFilter === 'vencidas60' ? activeStyle : normalStyle} height: 100%;">
+                            <div class="text-muted mb-1" style="font-size:9px; font-weight:600; text-transform:uppercase; letter-spacing:0.3px; line-height:1.2;">Vencidas 31-60</div>
+                            <div class="fw-bold fs-6 text-danger">${fmt(vencidas60)}</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="kpi-card interactive-kpi-card p-2 shadow-sm d-flex flex-column justify-content-center" 
+                             onclick="App.filterCarteraByAging('vencidas90')"
+                             style="${this.activeAgingFilter === 'vencidas90' ? activeStyle : normalStyle} height: 100%;">
+                            <div class="text-muted mb-1" style="font-size:9px; font-weight:600; text-transform:uppercase; letter-spacing:0.3px; line-height:1.2;">Vencidas 61-90</div>
+                            <div class="fw-bold fs-6 text-danger">${fmt(vencidas90)}</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="kpi-card interactive-kpi-card p-2 shadow-sm d-flex flex-column justify-content-center" 
+                             onclick="App.filterCarteraByAging('vencidas91')"
+                             style="${this.activeAgingFilter === 'vencidas91' ? activeStyle : normalStyle} height: 100%;">
+                            <div class="text-muted mb-1" style="font-size:9px; font-weight:600; text-transform:uppercase; letter-spacing:0.3px; line-height:1.2;">Vencidas 91+</div>
+                            <div class="fw-bold fs-6 text-danger">${fmt(vencidas91)}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row g-3 mb-4">
+            <div class="col-12">
+                <div class="kpi-card interactive-kpi-card p-3 shadow-sm d-flex justify-content-between align-items-center" 
+                     onclick="App.filterCarteraByAging('noVencidas')"
+                     style="${this.activeAgingFilter === 'noVencidas' ? activeGreenStyle : normalGreenStyle} border-left: 5px solid #198754;">
+                    <div>
+                        <div class="text-muted" style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">No vencidas</div>
+                        <div class="fw-bold mt-1 text-success" style="font-size:20px;">${fmt(noVencidas)}</div>
+                    </div>
+                    <div style="font-size:24px; color:#198754; opacity:0.8;">
+                        <i class="bi bi-shield-check"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="carteraTableContainer"></div>`;
+
+        results.innerHTML = kpiHtml;
+        this.renderCarteraTable(data);
+    },
+
+    filterCarteraByAging(range) {
+        if (this.activeAgingFilter === range) {
+            this.activeAgingFilter = null;
+        } else {
+            this.activeAgingFilter = range;
+        }
+        this.renderCarteraReportView(this.currentReportData);
+    },
+
+    renderCarteraTable(data) {
+        const tableContainer = document.getElementById('carteraTableContainer');
+        if (!tableContainer) return;
+
+        const fmt = (n) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n);
+        const todayStr = new Date().toISOString().split('T')[0];
+
+        let filteredData = data;
+        if (this.activeAgingFilter) {
+            filteredData = data.filter(r => r.agingCategory === this.activeAgingFilter);
+        }
+
+        if (filteredData.length === 0) {
+            tableContainer.innerHTML = '<p class="text-muted text-center py-4">No se encontraron facturas para este rango de vencimiento</p>';
+            return;
+        }
+
+        let html = '<div class="table-responsive"><table class="table-modern"><thead><tr>';
+        html += '<th>Número</th><th>Tipo de documento</th><th>Cliente</th><th>Creación</th><th>Vencimiento</th><th>Total</th><th>Cobrado</th><th>Por cobrar</th>';
+        html += '</tr></thead><tbody>';
+
+        filteredData.forEach(r => {
+            const cobrado = parseFloat(r.total || 0) - parseFloat(r.saldo || 0);
+            html += `<tr>
+                <td><code>#${r.numero || r.id_alegra_factura || '-'}</code></td>
+                <td>Factura de venta</td>
+                <td><strong>${r.cliente_nombre}</strong></td>
+                <td>${r.fecha_emision || r.fecha || '-'}</td>
+                <td class="${r.fecha_vencimiento < todayStr ? 'text-danger fw-bold' : ''}">${r.fecha_vencimiento || '-'}</td>
+                <td>${fmt(r.total)}</td>
+                <td>${fmt(cobrado)}</td>
+                <td class="fw-bold text-primary">${fmt(r.saldo)}</td>
+            </tr>`;
+        });
+
+        const totalSaldoFiltered = filteredData.reduce((s, r) => s + parseFloat(r.saldo || 0), 0);
+        const totalOriginalFiltered = filteredData.reduce((s, r) => s + parseFloat(r.total || 0), 0);
+        const totalCobradoFiltered = totalOriginalFiltered - totalSaldoFiltered;
+
+        const totalText = this.activeAgingFilter ? 'TOTAL FILTRADO' : 'TOTALES';
+        html += `<tr class="fw-bold"><td colspan="5">${totalText}</td><td>${fmt(totalOriginalFiltered)}</td><td>${fmt(totalCobradoFiltered)}</td><td class="text-primary">${fmt(totalSaldoFiltered)}</td></tr>`;
+        html += '</tbody></table></div>';
+
+        tableContainer.innerHTML = html;
     },
 
     exportReport() {
