@@ -2686,14 +2686,16 @@ const App = {
         }
 
         const saldoBancario = parseFloat(extractoStr || 0);
-        const diferenciaOriginal = saldoBancario - saldoTotal;
-        const diferenciaNumerica = Math.abs(parseFloat(diferenciaOriginal.toFixed(2)));
+        let diferencia = saldoBancario - saldoTotal;
 
-        if (concDiferenciaEl) concDiferenciaEl.textContent = fmt(diferenciaOriginal);
+        // Si la diferencia es extremadamente pequeña (menor a 1), la forzamos a 0 absoluto
+        if (Math.abs(diferencia) < 1) {
+            diferencia = 0;
+        }
+
+        if (concDiferenciaEl) concDiferenciaEl.textContent = fmt(diferencia);
         
-        const estaEnCeros = diferenciaNumerica < 0.01;
-        
-        if (estaEnCeros) {
+        if (diferencia === 0) {
             if (concDiferenciaEl) concDiferenciaEl.className = 'mb-0 fw-bold text-success';
             if (concDifIcon) concDifIcon.className = 'bi bi-check-circle-fill text-success fs-3';
             if (btnConciliar) {

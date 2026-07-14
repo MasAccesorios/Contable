@@ -1285,9 +1285,9 @@ const Pages = {
             </div>
 
             <!-- Footer fijo para acciones -->
-            <div class="d-flex justify-content-end gap-3 mt-4 mb-2">
-                <button class="btn btn-outline-secondary px-4 fw-medium bg-white" onclick="App.navigateTo('bancos')">Posponer</button>
-                <button class="btn btn-primary px-4 fw-bold shadow-sm disabled" id="btnConciliar" onclick="App.execConciliacion('${bankId}')">
+            <div class="d-flex justify-content-end gap-3 mt-4 p-4 border-top bg-white rounded-bottom shadow-sm">
+                <button id="btn-posponer" class="btn btn-outline-secondary px-5 py-2 fw-medium" onclick="App.navigateTo('bancos')">Posponer</button>
+                <button id="btnConciliar" class="btn btn-primary px-5 py-2 fw-bold shadow-sm disabled" onclick="App.execConciliacion('${bankId}')">
                     <i class="bi bi-check-circle me-1"></i> Conciliar
                 </button>
             </div>
