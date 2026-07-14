@@ -1276,14 +1276,29 @@ const DB = {
     getCartera(filter) {
         let items = this.getAll(this.KEYS.CARTERA);
         const today = new Date().toISOString().split('T')[0];
+        let changed = false;
 
-        // Update status of overdue items
+        // Normalizar y actualizar estados dinámicamente según saldo y fecha de vencimiento
         items.forEach(item => {
-            if (item.estado === 'vigente' && item.fecha_vencimiento < today) {
-                item.estado = 'vencida';
+            let nuevoEstado = item.estado;
+            if (parseFloat(item.saldo || 0) <= 0) {
+                nuevoEstado = 'pagada';
+            } else {
+                if (item.fecha_vencimiento && item.fecha_vencimiento < today) {
+                    nuevoEstado = 'vencida';
+                } else {
+                    nuevoEstado = 'vigente';
+                }
+            }
+            if (item.estado !== nuevoEstado) {
+                item.estado = nuevoEstado;
+                changed = true;
             }
         });
-        this._persist(this.KEYS.CARTERA, items);
+
+        if (changed) {
+            this._persist(this.KEYS.CARTERA, items);
+        }
 
         if (filter && filter !== 'todas') {
             items = items.filter(c => c.estado === filter);
