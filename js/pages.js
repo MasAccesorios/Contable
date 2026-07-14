@@ -152,7 +152,7 @@ const Pages = {
             return `<tr>
                 <td>
                     <div style="font-weight:600;font-size:13px">${client ? client.nombre : 'N/A'}</div>
-                    <div style="font-size:11px;color:var(--gray-400)">#${ref} - ${dateStr}</div>
+                    <div style="font-size:11px;color:var(--gray-400)">${ref} - ${dateStr}</div>
                 </td>
                 <td class="text-end">
                     <div style="font-weight:700;font-size:14px">${fmt(s.total)}</div>
@@ -174,10 +174,10 @@ const Pages = {
             const client = DB.getClient(c.cliente_id);
             const dateStr = c.fecha ? (c.fecha.includes('T') ? new Date(c.fecha).toLocaleString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : c.fecha) : 'Sin fecha';
             const ref = c.numero || (c.id ? (c.id.toString().length > 6 ? c.id.toString().substr(-6).toUpperCase() : c.id.toString().toUpperCase()) : 'N/A');
-            return `<tr style="cursor:pointer" onclick="App.editCotizacion('${c.id}')">
+            return `<tr style="cursor:pointer" onclick="App.viewInvoice('${c.id}', 'cotizacion')">
                 <td>
                     <div style="font-weight:600;font-size:13px">${DB.getClientName(c.cliente_id, c.cliente_nombre_alegra)}</div>
-                    <div style="font-size:11px;color:var(--gray-400)">#${ref} - ${dateStr}</div>
+                    <div style="font-size:11px;color:var(--gray-400)">${ref} - ${dateStr}</div>
                 </td>
                 <td class="text-end">
                     <div style="font-weight:700;font-size:14px">${fmt(c.total)}</div>
@@ -699,7 +699,7 @@ const Pages = {
                     const fechaStr = s.fecha ? (s.fecha.includes('T') ? new Date(s.fecha).toLocaleDateString('es-CO') : s.fecha) : '-';
 
                     return `<tr>
-                        <td><a href="#" onclick="event.preventDefault(); App.viewVenta('${s.id}')" class="text-decoration-none fw-bold">${ref.replace('#', '')}</a></td>
+                        <td><a href="#" onclick="event.preventDefault(); App.viewInvoice('${s.id}', 'venta')" class="text-decoration-none fw-bold">${ref.replace('#', '')}</a></td>
                         <td>${fechaStr}</td>
                         <td><a href="#" onclick="event.preventDefault(); App.viewCliente('${s.cliente_id}')" class="text-decoration-none fw-bold">${clientName}</a></td>
                         <td><span class="badge-status badge-${s.tipo_venta}">${s.tipo_venta}</span></td>
@@ -708,7 +708,7 @@ const Pages = {
                         <td class="text-end text-success">${fmt(abono)}</td>
                         <td class="text-end text-danger fw-bold">${fmt(saldo)}</td>
                         <td>
-                            <button class="btn-action btn-view" onclick="App.viewVenta('${s.id}')" title="Ver detalle"><i class="bi bi-eye"></i></button>
+                            <button class="btn-action btn-view" onclick="App.viewInvoice('${s.id}', 'venta')" title="Ver detalle"><i class="bi bi-eye"></i></button>
                             ${s.estado !== 'pagada' && s.estado !== 'anulada' ? `<button class="btn-action btn-edit" onclick="App.editVenta('${s.id}')" title="Editar Venta"><i class="bi bi-pencil"></i></button>` : ''}
                             <button class="btn-action" style="color:#6c757d" onclick="App.printVenta('${s.id}')" title="Imprimir Factura"><i class="bi bi-printer"></i></button>
                             ${carteraItem && carteraItem.saldo > 0 ? `<button class="btn-action btn-view" style="color: #2e7d32;" onclick="App.registrarAbono('${carteraItem.id}')" title="Registrar Pago"><i class="bi bi-cash-coin"></i></button>` : ''}
@@ -787,9 +787,9 @@ const Pages = {
                 const sale = DB.getSale(d.venta_id);
                 const client = sale ? DB.getClient(sale.cliente_id) : null;
                 return `<tr>
-                    <td><strong>#${d.id.toString().substr(-6).toUpperCase()}</strong></td>
+                    <td><strong>${d.id.toString().substr(-6).toUpperCase()}</strong></td>
                     <td>${d.fecha}</td>
-                    <td>Factura #${sale ? (sale.numero || sale.id.toString().substr(-6).toUpperCase()) : 'N/A'}</td>
+                    <td>Factura ${sale ? (sale.numero || sale.id.toString().substr(-6).toUpperCase()) : 'N/A'}</td>
                     <td>${client ? client.nombre : 'N/A'}</td>
                     <td class="text-end"><strong>${fmt(d.total)}</strong></td>
                     <td>
@@ -845,7 +845,7 @@ const Pages = {
                 if (c.estado === 'cancelada') badgeClass = 'danger';
 
                 return `<tr>
-                    <td><strong>#${c.numero || c.id.toString().slice(-6).toUpperCase()}</strong></td>
+                    <td><strong>${c.numero || c.id.toString().slice(-6).toUpperCase()}</strong></td>
                     <td>${c.fecha}</td>
                     <td><a href="#" onclick="event.preventDefault(); App.viewCliente('${c.proveedor_id || DB.getClients().find(cl => cl.nombre === c.proveedor)?.id || ''}')" class="text-decoration-none fw-bold">${c.proveedor || 'N/A'}</a></td>
                     <td><span class="badge bg-${badgeClass} text-uppercase" style="font-size:0.75rem">${c.estado || 'borrador'}</span></td>
@@ -911,7 +911,10 @@ const Pages = {
         } else {
             rows = displayedItems.map(c => {
                 const client = DB.getClient(c.cliente_id);
+                const sale = DB.getSale(c.venta_id);
+                const ref = sale ? (sale.numero || sale.id.toString().substr(-6).toUpperCase()) : c.venta_id || '-';
                 return `<tr>
+                    <td><a href="#" onclick="event.preventDefault(); App.viewInvoice('${c.venta_id}', 'venta')" class="text-decoration-none fw-bold">${ref}</a></td>
                     <td><strong>${client ? client.nombre : 'N/A'}</strong></td>
                     <td class="text-end">${fmt(c.total)}</td>
                     <td class="text-end">${fmt(c.saldo)}</td>
@@ -961,6 +964,7 @@ const Pages = {
                     <table class="table-modern">
                         <thead>
                             <tr>
+                                <th>Referencia</th>
                                 ${TableSort.renderSortTh('Cliente', 'cliente_nombre', 'cartera')}
                                 <th class="text-end">Total</th>
                                 <th class="text-end">Saldo</th>
@@ -1990,6 +1994,141 @@ const Pages = {
                         <tbody>${historyRows}</tbody>
                     </table>
                 </div>
+            </div>
+        </div>`;
+    },
+
+    renderInvoicePrintView(id, type = 'venta') {
+        const isCotizacion = type === 'cotizacion';
+        const doc = isCotizacion ? DB.getCotizacion(id) : DB.getSale(id);
+        if (!doc) return `<div class="p-5 text-center text-danger">Documento no encontrado.</div>`;
+
+        const details = isCotizacion ? DB.getCotizacionDetails(id) : DB.getSaleDetails(id);
+        const client = DB.getClient(doc.cliente_id);
+        
+        const fmt = (n) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n);
+        const fmtDate = (d) => d ? new Date(d).toLocaleDateString('es-CO') : '-';
+        
+        const refNum = doc.numero ? doc.numero.toString().replace('#', '') : doc.id.toString().substr(-6).toUpperCase();
+
+        let saldo = 0;
+        if (!isCotizacion && doc.tipo_venta !== 'contado') {
+            const allCartera = DB.getAll(DB.KEYS.CARTERA);
+            const carteraItem = allCartera.find(c => c.venta_id === doc.id);
+            if (carteraItem) saldo = parseFloat(carteraItem.saldo);
+        }
+
+        let detailRows = '';
+        if (details.length === 0) {
+            detailRows = `<tr><td colspan="4" class="text-center text-muted">No hay items</td></tr>`;
+        } else {
+            detailRows = details.map(d => {
+                const product = DB.getProduct(d.producto_id);
+                return `<tr>
+                    <td style="padding: 8px; border-bottom: 1px solid #eee;">${d.descripcion || (product ? product.nombre : '-')}</td>
+                    <td class="text-center" style="padding: 8px; border-bottom: 1px solid #eee;">${d.cantidad}</td>
+                    <td class="text-end" style="padding: 8px; border-bottom: 1px solid #eee;">${fmt(d.precio_unitario)}</td>
+                    <td class="text-end" style="padding: 8px; border-bottom: 1px solid #eee;">${fmt(d.subtotal)}</td>
+                </tr>`;
+            }).join('');
+        }
+
+        const title = isCotizacion ? 'COTIZACIÓN' : 'FACTURA DE VENTA';
+        const badgeState = doc.estado || (isCotizacion ? 'PENDIENTE' : 'OK');
+        const badgeColor = ['pagada', 'aprobada', 'facturada'].includes(badgeState) ? 'success' : (['anulada', 'rechazada'].includes(badgeState) ? 'danger' : 'warning text-dark');
+        
+        const vencimientoStyle = isCotizacion ? App.getVencimientoStyle(doc.validez, doc.estado) : App.getVencimientoStyle(doc.fecha_vencimiento, doc.estado);
+        const vencimientoDate = isCotizacion ? doc.validez : doc.fecha_vencimiento;
+
+        return `
+        <div class="bg-light p-3 p-md-5 d-flex justify-content-center" style="min-height: 100vh;">
+            <div class="invoice-paper bg-white p-4 p-md-5 shadow-lg rounded position-relative" style="width: 100%; max-width: 800px; margin: 2rem auto;">
+                
+                <div class="d-print-none mb-4 d-flex justify-content-between align-items-center">
+                    <button class="btn btn-outline-secondary" onclick="App.navigateTo('${isCotizacion ? 'cotizaciones' : 'ventas'}')">
+                        <i class="bi bi-arrow-left me-1"></i> Volver
+                    </button>
+                    <button class="btn btn-primary" onclick="window.print()">
+                        <i class="bi bi-printer me-2"></i>Imprimir
+                    </button>
+                </div>
+
+                <div class="row border-bottom pb-4 mb-4 mt-2">
+                    <div class="col-sm-6">
+                        <h2 class="fw-bold text-primary mb-1">Mi Empresa</h2>
+                        <p class="text-muted mb-0 small">NIT: 900.123.456-7<br>Tel: +57 300 123 4567<br>contacto@miempresa.com</p>
+                    </div>
+                    <div class="col-sm-6 text-sm-end mt-3 mt-sm-0">
+                        <h3 class="fw-bold text-dark mb-1">${title}</h3>
+                        <p class="fs-5 fw-bold text-primary mb-0">${refNum}</p>
+                        <span class="badge bg-${badgeColor} text-uppercase mt-2">${badgeState}</span>
+                    </div>
+                </div>
+
+                <div class="row mb-4">
+                    <div class="col-sm-7">
+                        <h6 class="text-uppercase text-muted fw-bold mb-2" style="font-size: 0.75rem;">${isCotizacion ? 'Cotizado' : 'Facturado'} a:</h6>
+                        <h5 class="fw-bold mb-1">${client ? client.nombre : 'Consumidor Final'}</h5>
+                        <p class="mb-0 text-muted small">
+                            ${client && client.documento ? `NIT/CC: ${client.documento}<br>` : ''}
+                            ${client && client.telefono ? `Tel: ${client.telefono}<br>` : ''}
+                            ${client && client.direccion ? `Dir: ${client.direccion}` : ''}
+                        </p>
+                    </div>
+                    <div class="col-sm-5 text-sm-end mt-3 mt-sm-0">
+                        <h6 class="text-uppercase text-muted fw-bold mb-2" style="font-size: 0.75rem;">Detalles:</h6>
+                        <p class="mb-1 small"><strong>Fecha Creación:</strong> ${fmtDate(doc.fecha)}</p>
+                        <p class="mb-1 small"><strong>Vencimiento:</strong> <span class="${vencimientoStyle}">${fmtDate(vencimientoDate) || '-'}</span></p>
+                        ${!isCotizacion && doc.tipo_venta ? `<p class="mb-0 small"><strong>Tipo:</strong> ${doc.tipo_venta.toUpperCase()}</p>` : ''}
+                    </div>
+                </div>
+
+                <div class="table-responsive mb-4">
+                    <table class="table table-borderless mb-0">
+                        <thead class="border-bottom border-dark">
+                            <tr>
+                                <th class="py-2 text-uppercase text-muted" style="font-size: 0.8rem;">Descripción</th>
+                                <th class="py-2 text-uppercase text-muted text-center" style="font-size: 0.8rem; width: 10%;">Cant.</th>
+                                <th class="py-2 text-uppercase text-muted text-end" style="font-size: 0.8rem; width: 20%;">Precio Unit.</th>
+                                <th class="py-2 text-uppercase text-muted text-end" style="font-size: 0.8rem; width: 20%;">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${detailRows}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="row">
+                    <div class="col-sm-7">
+                        ${doc.observacion ? `<p class="small text-muted"><strong>Notas:</strong><br>${doc.observacion}</p>` : ''}
+                    </div>
+                    <div class="col-sm-5">
+                        <div class="d-flex justify-content-between mb-2 small">
+                            <span>Subtotal</span>
+                            <span>${fmt(doc.subtotal || doc.total)}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-3 small">
+                            <span>Descuento</span>
+                            <span>${fmt(doc.descuento || 0)}</span>
+                        </div>
+                        <div class="d-flex justify-content-between py-3 border-top border-dark border-2">
+                            <strong class="fs-5">TOTAL A PAGAR</strong>
+                            <strong class="fs-5 text-primary">${fmt(doc.total)}</strong>
+                        </div>
+                        ${!isCotizacion && doc.tipo_venta === 'credito' ? `
+                        <div class="d-flex justify-content-between mt-2 pt-2 border-top small text-muted">
+                            <span>Saldo Pendiente</span>
+                            <strong class="text-danger">${fmt(saldo)}</strong>
+                        </div>` : ''}
+                    </div>
+                </div>
+                
+                <div class="mt-5 pt-4 border-top text-center text-muted small">
+                    ${isCotizacion ? '<p class="mt-2 mb-0">Esta cotización no constituye una factura de venta.</p>' : '<p class="mb-0">Firma de Aceptación ___________________________</p>'}
+                    <p class="mt-2 mb-0">Documento generado por MAS Accesorios.</p>
+                </div>
+
             </div>
         </div>`;
     }

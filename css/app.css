@@ -1317,3 +1317,43 @@ body {
         max-width: 900px;
     }
 }
+
+/* =====================================================
+   Impresión (Print View)
+   ===================================================== */
+@media print {
+    body * {
+        visibility: hidden;
+    }
+    
+    .invoice-paper, .invoice-paper * {
+        visibility: visible;
+    }
+    
+    .invoice-paper {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+        box-shadow: none !important;
+    }
+    
+    .d-print-none {
+        display: none !important;
+    }
+    
+    .modal-backdrop {
+        display: none !important;
+    }
+    
+    .modal {
+        position: absolute;
+        left: 0;
+        top: 0;
+        margin: 0;
+        padding: 0;
+        background: white;
+    }
+}
