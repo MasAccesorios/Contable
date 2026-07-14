@@ -179,7 +179,7 @@ for inv in facturas_crudas:
         client = inv.get("client") or {}
         cartera_procesada.append({
             "id_factura": inv.get("id"),
-            "numero": inv.get("number"),
+            "numero": inv.get("numberTemplate", {}).get("number") or inv.get("number") or inv.get("id"),
             "fecha_emision": inv.get("date"),
             "fecha_vencimiento": inv.get("dueDate"),
             "cliente_id": client.get("id"),

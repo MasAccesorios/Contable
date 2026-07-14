@@ -14,6 +14,9 @@ const App = {
        INIT
        ================================================= */
     async init() {
+        if (DB.initPromise) {
+            await DB.initPromise;
+        }
         this.setupGlobals();
         
         console.log("Iniciando app, sincronizando con Google Sheets...");

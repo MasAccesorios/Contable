@@ -40,8 +40,128 @@ const DB = {
 
     // In-memory cache to avoid repeated JSON.parse (PERF-01)
     _cache: {},
+
+    // IndexedDB constants
+    DB_NAME: 'ContableDB',
+    STORE_NAME: 'kv_store',
+    _db: null,
+    initPromise: null,
+
+    // Initialize IndexedDB connection and load cache
+    init() {
+        return new Promise((resolve, reject) => {
+            const request = indexedDB.open(this.DB_NAME, 1);
+            
+            request.onupgradeneeded = (e) => {
+                const db = e.target.result;
+                if (!db.objectStoreNames.contains(this.STORE_NAME)) {
+                    db.createObjectStore(this.STORE_NAME);
+                }
+            };
+            
+            request.onsuccess = (e) => {
+                this._db = e.target.result;
+                
+                // Read all keys from IndexedDB to populate _cache
+                const transaction = this._db.transaction(this.STORE_NAME, 'readonly');
+                const store = transaction.objectStore(this.STORE_NAME);
+                const allKeysRequest = store.getAllKeys();
+                
+                allKeysRequest.onsuccess = () => {
+                    const keys = allKeysRequest.result;
+                    if (keys.length === 0) {
+                        // Migrate existing localStorage data to IndexedDB if first time
+                        this._migrateFromLocalStorage().then(() => {
+                            this.initialize();
+                            this._checkClearTestData().then(resolve);
+                        }).catch((err) => {
+                            console.error("Error migrating localStorage data:", err);
+                            this.initialize();
+                            this._checkClearTestData().then(resolve);
+                        });
+                        return;
+                    }
+                    
+                    let loaded = 0;
+                    keys.forEach(key => {
+                        const getReq = store.get(key);
+                        getReq.onsuccess = () => {
+                            this._cache[key] = getReq.result;
+                            loaded++;
+                            if (loaded === keys.length) {
+                                this.initialize();
+                                this._checkClearTestData().then(resolve);
+                            }
+                        };
+                        getReq.onerror = () => {
+                            loaded++;
+                            if (loaded === keys.length) {
+                                this.initialize();
+                                this._checkClearTestData().then(resolve);
+                            }
+                        };
+                    });
+                };
+                
+                allKeysRequest.onerror = () => {
+                    this.initialize();
+                    this._checkClearTestData().then(resolve);
+                };
+            };
+            
+            request.onerror = (e) => {
+                console.error("IndexedDB open error:", e);
+                this.initialize();
+                this._checkClearTestData().then(resolve);
+            };
+        });
+    },
+
+    async _migrateFromLocalStorage() {
+        if (!this._db) return;
+        const transaction = this._db.transaction(this.STORE_NAME, 'readwrite');
+        const store = transaction.objectStore(this.STORE_NAME);
+        
+        for (const key of Object.values(this.KEYS)) {
+            const val = localStorage.getItem(key);
+            if (val !== null) {
+                try {
+                    const parsed = JSON.parse(val);
+                    store.put(parsed, key);
+                    this._cache[key] = parsed;
+                } catch(e) {
+                    console.error("Error migrating key:", key, e);
+                }
+            }
+        }
+        
+        const initVal = localStorage.getItem('cg_initialized');
+        if (initVal) {
+            store.put(initVal, 'cg_initialized');
+        }
+        
+        return new Promise((resolve) => {
+            transaction.oncomplete = () => {
+                console.log("Migration from localStorage to IndexedDB completed successfully.");
+                resolve();
+            };
+            transaction.onerror = () => {
+                resolve();
+            };
+        });
+    },
+
+    async _checkClearTestData() {
+        if (!localStorage.getItem('cg_test_cleared_v1')) {
+            this.clearTestData();
+            localStorage.setItem('cg_test_cleared_v1', 'true');
+            alert('Se han borrado todos los datos de compras, ventas, contactos, facturas y bancos para comenzar pruebas desde cero. Los productos y usuarios se mantuvieron (con stock 0).');
+            location.reload();
+            return new Promise(() => {}); // Wait forever for reload
+        }
+    },
     
-    // Sync all data from Google Sheets to localStorage on startup
+    // Sync all data from Google Sheets to IndexedDB/cache on startup
     async syncFromCloud() {
         try {
             console.log("Sincronizando con Google Sheets...");
@@ -53,15 +173,14 @@ const DB = {
                 return false;
             }
             
-            // Overwrite localStorage with Cloud Data
+            // Overwrite IndexedDB/cache with Cloud Data
             for (const key in data) {
                 try {
                     let parsedValue = data[key];
                     if(typeof parsedValue === 'string') {
                          parsedValue = JSON.parse(parsedValue);
                     }
-                    localStorage.setItem(key, JSON.stringify(parsedValue));
-                    this._cache[key] = parsedValue;
+                    this._persist(key, parsedValue);
                 } catch(e) {
                     console.error("Error parseando llave", key, e);
                 }
@@ -90,8 +209,7 @@ const DB = {
                     created_at: new Date().toISOString()
                 });
             }
-            localStorage.setItem(this.KEYS.USERS, JSON.stringify(users));
-            this._cache[this.KEYS.USERS] = users;
+            this._persist(this.KEYS.USERS, users);
             await this.pushToCloud(this.KEYS.USERS, users);
 
             console.log("Sincronización completa.");
@@ -148,27 +266,35 @@ const DB = {
 
     // Generic CRUD operations
     getAll(key) {
+        if (key === this.KEYS.CURRENT_USER) {
+            const data = localStorage.getItem(key);
+            return data ? JSON.parse(data) : null;
+        }
         if (this._cache[key]) return this._cache[key];
-        const data = localStorage.getItem(key);
-        const parsed = data ? JSON.parse(data) : [];
-        this._cache[key] = parsed;
-        return parsed;
+        return [];
     },
 
-    // Persist to localStorage and update cache
+    // Persist to IndexedDB and update cache
     _persist(key, data) {
         try {
-            localStorage.setItem(key, JSON.stringify(data));
+            if (key === this.KEYS.CURRENT_USER) {
+                localStorage.setItem(key, JSON.stringify(data));
+                return;
+            }
             this._cache[key] = data;
+            
+            // Asynchronously save to IndexedDB
+            if (this._db) {
+                const transaction = this._db.transaction(this.STORE_NAME, 'readwrite');
+                const store = transaction.objectStore(this.STORE_NAME);
+                store.put(data, key);
+            }
             
             // Sync with Google Sheets asynchronously (fire and forget)
             this.pushToCloud(key, data);
             
         } catch (e) {
-            if (e.name === 'QuotaExceededError') {
-                throw new Error('Almacenamiento lleno. Exporte sus datos o elimine registros antiguos antes de continuar.');
-            }
-            throw e;
+            console.error("Error write to database:", key, e);
         }
     },
 
@@ -2038,12 +2164,12 @@ const DB = {
         this._persist(this.KEYS.USERS, users);
 
         // Limpiar sesión anterior si el usuario logueado no es el nuevo administrador
-        const sessionUser = JSON.parse(localStorage.getItem(this.KEYS.CURRENT_USER) || 'null');
+        const sessionUser = this.getAll(this.KEYS.CURRENT_USER);
         if (sessionUser && sessionUser.email !== targetEmail) {
             localStorage.removeItem(this.KEYS.CURRENT_USER);
         }
 
-        if (localStorage.getItem(this.KEYS.INITIALIZED)) return;
+        if (this._cache[this.KEYS.INITIALIZED]) return;
 
         // Seed banks only
         const banks = [
@@ -2052,7 +2178,7 @@ const DB = {
         ];
         banks.forEach(b => this.save(this.KEYS.BANKS, b));
 
-        localStorage.setItem(this.KEYS.INITIALIZED, 'true');
+        this._persist(this.KEYS.INITIALIZED, 'true');
     },
 
     // =========================================================
@@ -2064,8 +2190,13 @@ const DB = {
             return;
         }
         if (confirm('¿Está seguro de que desea BLANQUEAR toda la base de datos y reiniciar los contadores? Esta acción no se puede deshacer.')) {
-            Object.values(this.KEYS).forEach(k => localStorage.removeItem(k));
-            localStorage.removeItem('cg_counters');
+            if (this._db) {
+                const transaction = this._db.transaction(this.STORE_NAME, 'readwrite');
+                const store = transaction.objectStore(this.STORE_NAME);
+                store.clear();
+            }
+            localStorage.clear();
+            this._cache = {};
             alert('Base de datos reiniciada. La página se recargará.');
             location.reload();
         }
@@ -2094,6 +2225,11 @@ const DB = {
         ];
 
         keysToClear.forEach(k => {
+            if (this._db) {
+                const transaction = this._db.transaction(this.STORE_NAME, 'readwrite');
+                const store = transaction.objectStore(this.STORE_NAME);
+                store.delete(k);
+            }
             localStorage.removeItem(k);
             delete this._cache[k];
         });
@@ -2109,19 +2245,17 @@ const DB = {
         this._persist(this.KEYS.PRODUCTS, products);
 
         // Reset counters
+        if (this._db) {
+            const transaction = this._db.transaction(this.STORE_NAME, 'readwrite');
+            const store = transaction.objectStore(this.STORE_NAME);
+            store.delete(this.KEYS.COUNTERS);
+        }
         localStorage.removeItem(this.KEYS.COUNTERS);
+        delete this._cache[this.KEYS.COUNTERS];
 
         console.log('Datos de prueba borrados.');
     }
 };
 
-// Initialize on load
-DB.initialize();
-
-// Auto-run clear specific data ONCE based on user request
-if (!localStorage.getItem('cg_test_cleared_v1')) {
-    DB.clearTestData();
-    localStorage.setItem('cg_test_cleared_v1', 'true');
-    alert('Se han borrado todos los datos de compras, ventas, contactos, facturas y bancos para comenzar pruebas desde cero. Los productos y usuarios se mantuvieron (con stock 0).');
-    location.reload();
-}
+// Start IndexedDB initialization
+DB.initPromise = DB.init();
