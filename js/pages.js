@@ -259,6 +259,77 @@ const Pages = {
         });
     },
 
+    initBancosChart() {
+        const ctx = document.getElementById('bancosChart');
+        if (!ctx) return;
+        
+        const movements = DB.getAll(DB.KEYS.BANK_MOVEMENTS) || [];
+        
+        // Agrupar por mes los últimos 6 meses
+        const monthsData = {};
+        for (let i = 5; i >= 0; i--) {
+            const d = new Date();
+            d.setMonth(d.getMonth() - i);
+            const key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+            const label = d.toLocaleString('es-CO', { month: 'short' }).charAt(0).toUpperCase() + d.toLocaleString('es-CO', { month: 'short' }).slice(1) + ' ' + d.getFullYear();
+            monthsData[key] = { label, in: 0, out: 0 };
+        }
+        
+        movements.forEach(m => {
+            const d = new Date(m.fecha || m.created_at);
+            const key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+            if (monthsData[key]) {
+                const amount = parseFloat(m.monto || 0);
+                if (m.tipo === 'ingreso') monthsData[key].in += amount;
+                else monthsData[key].out += amount;
+            }
+        });
+        
+        const labels = Object.values(monthsData).map(v => v.label);
+        const dataIn = Object.values(monthsData).map(v => v.in);
+        const dataOut = Object.values(monthsData).map(v => v.out);
+
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Ingresos',
+                        data: dataIn,
+                        backgroundColor: '#10B981', // Verde Alegra
+                        borderRadius: 4,
+                        barPercentage: 0.6
+                    },
+                    {
+                        label: 'Gastos',
+                        data: dataOut,
+                        backgroundColor: '#EF4444', // Rojo
+                        borderRadius: 4,
+                        barPercentage: 0.6
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { 
+                        beginAtZero: true, 
+                        grid: { borderDash: [2, 2], drawBorder: false },
+                        ticks: { callback: (val) => '$' + val.toLocaleString('es-CO') } 
+                    },
+                    x: {
+                        grid: { display: false, drawBorder: false }
+                    }
+                },
+                plugins: {
+                    legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8 } }
+                }
+            }
+        });
+    },
+
     /* =================================================
        CLIENTES
        ================================================= */
@@ -907,88 +978,147 @@ const Pages = {
        ================================================= */
     bancos() {
         const banks = DB.getBanks();
-        const clients = DB.getClients();
         const movements = DB.getAll(DB.KEYS.BANK_MOVEMENTS) || [];
         const fmt = (n) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n);
 
-        let bankCards = '';
-        if (banks.length === 0) {
-            bankCards = `<div class="empty-state"><i class="bi bi-bank2"></i><h5>Sin bancos</h5><p>Agrega tu primer banco para comenzar</p></div>`;
-        } else {
-            bankCards = `<div class="kpi-grid" style="margin-bottom:24px">` + banks.map(b => {
-                // Calcular saldo dinámicamente
-                let saldoReal = parseFloat(b.saldo_inicial || 0);
-                movements.forEach(m => {
-                    if (String(m.banco_id) === String(b.id)) {
-                        const amount = parseFloat(m.monto || 0);
-                        if (m.tipo === 'ingreso') saldoReal += amount;
-                        else saldoReal -= amount;
-                    }
-                });
+        let saldoBancosEfectivo = 0;
+        let deudaTarjetas = 0;
+        let saldoTotal = 0;
+        
+        // Calcular saldos
+        const bankData = banks.map(b => {
+            let saldoReal = parseFloat(b.saldo_inicial || 0);
+            movements.forEach(m => {
+                if (String(m.banco_id) === String(b.id)) {
+                    const amount = parseFloat(m.monto || 0);
+                    if (m.tipo === 'ingreso') saldoReal += amount;
+                    else saldoReal -= amount;
+                }
+            });
+            if (saldoReal > 0) saldoBancosEfectivo += saldoReal;
+            if (saldoReal < 0) deudaTarjetas += saldoReal;
+            saldoTotal += saldoReal;
+            return { ...b, saldoReal };
+        });
 
-                return `
-                <div class="kpi-card card-info" style="cursor:pointer" onclick="document.getElementById('bancoFilter').value='${b.id}'; App.loadAllBankMovements(document.getElementById('bancoFilter').value, document.getElementById('bancoClienteFilter').value, 1);">
-                    <div class="kpi-label">
-                        <div class="icon-circle"><i class="bi bi-bank2"></i></div>
-                        ${b.nombre}
-                        <button class="btn-action btn-delete ms-auto" onclick="event.stopPropagation();App.deleteBank('${b.id}')" title="Eliminar" style="width:28px;height:28px">
-                            <i class="bi bi-trash" style="font-size:12px"></i>
-                        </button>
-                    </div>
-                    <div class="kpi-value">${fmt(saldoReal)}</div>
-                    <div class="kpi-sub">Click para filtrar movimientos</div>
-                </div>
-                `;
-            }).join('') + `</div>`;
-        }
-
-        const bankOptions = banks.map(b => `<option value="${b.id}">${b.nombre}</option>`).join('');
-        const clientOptions = clients.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
-
-        return `
-        <div class="fade-in">
-            <div class="section-card">
-                <div class="section-header">
-                    <div class="section-title"><i class="bi bi-bank2"></i> Bancos y Movimientos</div>
-                    <div class="d-flex gap-2">
-                        <button class="btn btn-outline-primary" onclick="App.recalibrateBanks()">
-                            <i class="bi bi-arrow-repeat me-1"></i> Recalcular Saldos
-                        </button>
-                        <button class="btn btn-primary-gradient" onclick="App.newBanco()">
-                            <i class="bi bi-plus-lg me-1"></i> Nuevo Banco
-                        </button>
-                    </div>
-                </div>
-                <div class="section-body">
-                    <!-- Tarjetas de Saldos -->
-                    ${bankCards}
-
-                    <!-- Contenedor Maestro de Movimientos -->
-                    <div class="bg-white rounded shadow-sm border p-3">
-                        <div class="row mb-3">
-                            <div class="col-md-6 d-flex align-items-center">
-                                <h5 class="mb-0 fw-bold"><i class="bi bi-list-ul me-2 text-primary"></i>Listado de Movimientos</h5>
-                            </div>
-                            <div class="col-md-3">
-                                <select class="form-select" id="bancoFilter" onchange="App.loadAllBankMovements(this.value, document.getElementById('bancoClienteFilter').value, 1)">
-                                    <option value="all">Todas las Cuentas</option>
-                                    ${bankOptions}
-                                </select>
-                            </div>
-                            <div class="col-md-3">
-                                <select class="form-select" id="bancoClienteFilter" onchange="App.loadAllBankMovements(document.getElementById('bancoFilter').value, this.value, 1)">
-                                    <option value="all">Todos los Clientes/Proveedores</option>
-                                    ${clientOptions}
-                                </select>
-                            </div>
-                        </div>
-                        <div id="bankMovementsTableArea">
-                            <div class="text-center text-muted p-4"><i class="bi bi-arrow-repeat spin me-1"></i> Cargando movimientos...</div>
-                        </div>
+        // HTML del Gráfico
+        const chartHTML = `
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <h6 class="text-muted fw-semibold mb-3">Ingresos y gastos</h6>
+                    <div style="height: 250px;">
+                        <canvas id="bancosChart"></canvas>
                     </div>
                 </div>
             </div>
-        </div>`;
+        `;
+
+        // HTML de Tarjetas
+        const cardsHTML = `
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body p-4 d-flex flex-column justify-content-center">
+                    <div class="mb-4">
+                        <div class="text-muted small fw-semibold text-uppercase mb-1">Saldo en bancos y efectivo</div>
+                        <h4 class="mb-0 text-success fw-bold">${fmt(saldoBancosEfectivo)}</h4>
+                    </div>
+                    <div class="mb-4">
+                        <div class="text-muted small fw-semibold text-uppercase mb-1">Deuda en tarjetas de crédito</div>
+                        <h4 class="mb-0 ${deudaTarjetas < 0 ? 'text-danger' : 'text-dark'} fw-bold">${fmt(deudaTarjetas)}</h4>
+                    </div>
+                    <hr class="border-secondary opacity-25">
+                    <div class="mt-2">
+                        <div class="text-muted small fw-semibold text-uppercase mb-1">Saldo total</div>
+                        <h3 class="mb-0 fw-bold text-dark">${fmt(saldoTotal)}</h3>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // HTML de la Tabla de Bancos
+        let tableRows = '';
+        if (bankData.length === 0) {
+            tableRows = `<tr><td colspan="5" class="text-center text-muted p-5">No hay bancos registrados</td></tr>`;
+        } else {
+            tableRows = bankData.map(b => {
+                const isNegative = b.saldoReal < 0;
+                const displaySaldo = isNegative ? 0 : b.saldoReal;
+                const rowStyle = isNegative ? 'opacity: 0.6; background-color: #fcfcfc;' : '';
+                const saldoStyle = isNegative ? 'text-muted' : 'text-success fw-bold';
+                
+                return `
+                <tr style="${rowStyle}">
+                    <td class="align-middle fw-medium">${b.nombre}</td>
+                    <td class="align-middle text-muted">${b.tipo || 'Efectivo / Banco'}</td>
+                    <td class="align-middle text-muted">${b.numero_cuenta || 'N/A'}</td>
+                    <td class="align-middle text-end ${saldoStyle}">${fmt(displaySaldo)}</td>
+                    <td class="align-middle text-end">
+                        <div class="d-flex justify-content-end align-items-center gap-2">
+                            <button class="btn btn-sm btn-outline-secondary rounded-pill px-3 fw-medium">Conciliar</button>
+                            <button class="btn btn-sm btn-light text-primary" onclick="App.viewBankMovements('${b.id}')" title="Ver movimientos">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-light" data-bs-toggle="dropdown"><i class="bi bi-three-dots-vertical"></i></button>
+                                <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0">
+                                    <li><a class="dropdown-item" href="#" onclick="App.editBank('${b.id}')"><i class="bi bi-pencil me-2 text-muted"></i>Editar</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item text-danger" href="#" onclick="App.deleteBank('${b.id}')"><i class="bi bi-trash me-2"></i>Eliminar</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+                `;
+            }).join('');
+        }
+
+        return `
+        <div class="fade-in">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h3 class="fw-bold mb-0 text-dark"><i class="bi bi-bank2 me-2 text-primary"></i>Bancos</h3>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-outline-secondary fw-medium shadow-sm bg-white" onclick="App.recalibrateBanks()">
+                        <i class="bi bi-arrow-repeat me-1"></i> Recalcular Saldos
+                    </button>
+                    <button class="btn btn-primary fw-medium shadow-sm" onclick="App.newBanco()">
+                        <i class="bi bi-plus-lg me-1"></i> Nuevo Banco
+                    </button>
+                </div>
+            </div>
+
+            <!-- Fila Superior: Gráfico y Resumen -->
+            <div class="row g-4 mb-4">
+                <div class="col-lg-8">
+                    ${chartHTML}
+                </div>
+                <div class="col-lg-4">
+                    ${cardsHTML}
+                </div>
+            </div>
+
+            <!-- Fila Inferior: Listado de Cuentas -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="bg-light text-uppercase text-muted" style="font-size: 0.75rem;">
+                                <tr>
+                                    <th class="ps-4 border-0 py-3">Nombre</th>
+                                    <th class="border-0 py-3">Tipo de cuenta</th>
+                                    <th class="border-0 py-3">Número de cuenta</th>
+                                    <th class="text-end border-0 py-3">Saldo</th>
+                                    <th class="text-end pe-4 border-0 py-3">Conciliación</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${tableRows}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        `;
     },
 
     /* =================================================

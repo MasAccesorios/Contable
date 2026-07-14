@@ -417,7 +417,7 @@ const App = {
             setTimeout(() => this.filterKardex(), 100);
         }
         if (page === 'bancos') {
-            setTimeout(() => this.loadAllBankMovements('all', 'all', 1), 50);
+            setTimeout(() => Pages.initBancosChart(), 100);
         }
         if (page === 'cliente_detail') {
             // Lazy load the first tab dynamically
@@ -2588,6 +2588,37 @@ const App = {
                 this.navigateTo('bancos');
             }
         }
+    },
+
+    viewBankMovements(bankId) {
+        let modalEl = document.getElementById('bankMovementsModal');
+        if (!modalEl) {
+            const html = `
+                <div class="modal fade" id="bankMovementsModal" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+                        <div class="modal-content">
+                            <div class="modal-header bg-light">
+                                <h5 class="modal-title fw-bold text-dark"><i class="bi bi-list-ul me-2 text-primary"></i>Movimientos de la Cuenta</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body p-0">
+                                <div id="bankMovementsTableArea" class="p-3">
+                                    <div class="text-center p-5 text-muted"><i class="bi bi-arrow-repeat spin"></i> Cargando...</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', html);
+            modalEl = document.getElementById('bankMovementsModal');
+        }
+        
+        const modal = new bootstrap.Modal(modalEl);
+        modal.show();
+        
+        // Re-mapear el paginador para que mantenga el filtro de este banco en el modal
+        setTimeout(() => this.loadAllBankMovements(bankId, 'all', 1), 150);
     },
 
     loadAllBankMovements(bankIdFilter = 'all', clientIdFilter = 'all', page = 1) {
