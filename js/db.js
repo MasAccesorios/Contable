@@ -719,7 +719,17 @@ const DB = {
     // =========================================================
     // Sales (Facturas de Venta)
     // =========================================================
-    getSales() { return this.getAll(this.KEYS.SALES); },
+    getSales() {
+        let data = this.getAll(this.KEYS.SALES);
+        if (!Array.isArray(data)) return [];
+        if (data.includes(null) || data.some(d => !d || !d.id)) {
+            console.warn('DB: Corrupt sales data detected. Running auto-fix...');
+            const cleaned = data.filter(item => item !== null && typeof item === 'object' && item.id);
+            this._persist(this.KEYS.SALES, cleaned);
+            return cleaned;
+        }
+        return data;
+    },
     getSale(id) { return this.getById(this.KEYS.SALES, id); },
 
     getSaleDetails(saleId) {

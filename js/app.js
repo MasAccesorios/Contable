@@ -1947,6 +1947,123 @@ const App = {
         }
     },
 
+    filterCotizaciones(query) {
+        const tbody = document.getElementById('cotizacionesTableBody');
+        if (!tbody) { this.navigateTo('cotizaciones'); return; }
+        const allItems = DB.getCotizaciones();
+        const fmt = (n) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n);
+        const q = (query || '').toLowerCase().trim();
+        const sorted = [...allItems].sort((a, b) => new Date(b.fecha || 0) - new Date(a.fecha || 0));
+        const items = q ? sorted.filter(c => {
+            if (!c) return false;
+            const client = DB.getClient(c.cliente_id);
+            const ref = (c.numero || (c.id ? c.id.substr(-6) : '')).toString().toLowerCase();
+            return ref.includes(q) || (client ? client.nombre.toLowerCase().includes(q) : false);
+        }) : sorted;
+
+        if (items.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-4">${q ? `Sin resultados para "<strong>${q}</strong>"` : 'No hay cotizaciones registradas'}</td></tr>`;
+            return;
+        }
+        tbody.innerHTML = items.map(c => {
+            if (!c || !c.id) return '';
+            const client = DB.getClient(c.cliente_id);
+            let badgeClass = 'secondary';
+            if (c.estado === 'enviada') badgeClass = 'info';
+            if (c.estado === 'aceptada') badgeClass = 'success';
+            if (c.estado === 'rechazada') badgeClass = 'danger';
+            if (c.estado === 'vencida') badgeClass = 'warning';
+            if (c.estado === 'convertida') badgeClass = 'primary';
+            const ref = c.numero || c.id.substr(-6).toUpperCase();
+            const fechaStr = c.fecha ? (c.fecha.includes('T') ? new Date(c.fecha).toLocaleDateString('es-CO') : c.fecha) : 'Sin fecha';
+            const validezStr = c.validez ? (c.validez.includes('T') ? new Date(c.validez).toLocaleDateString('es-CO') : c.validez) : '-';
+            const yaConvertida = c.estado === 'convertida' || !!c.factura_id;
+            return `<tr>
+                <td><strong>#${ref}</strong></td>
+                <td>${fechaStr}</td>
+                <td><a href="#" onclick="event.preventDefault(); App.viewCliente('${c.cliente_id}')" class="text-decoration-none fw-bold">${client ? client.nombre : 'Desconocido'}</a></td>
+                <td>${validezStr}</td>
+                <td><span class="badge bg-${badgeClass} text-uppercase" style="font-size:0.75rem">${c.estado || 'borrador'}</span></td>
+                <td><strong>${fmt(c.total || 0)}</strong></td>
+                <td>
+                    <button class="btn-action btn-edit" onclick="App.editCotizacion('${c.id}')" title="Ver / Editar"><i class="bi bi-pencil"></i></button>
+                    ${!yaConvertida ? `<button class="btn-action" style="color:#0d6efd" onclick="App.convertFactura('${c.id}')" title="Convertir a Factura"><i class="bi bi-arrow-right-circle"></i></button>` : `<button class="btn-action" style="color:#6c757d; opacity:0.5; cursor:default" title="Ya convertida"><i class="bi bi-check-circle"></i></button>`}
+                    <button class="btn-action" style="color:#6c757d" onclick="App.printCotizacion('${c.id}')" title="Imprimir"><i class="bi bi-printer"></i></button>
+                    ${!yaConvertida ? `<button class="btn-action btn-delete" onclick="App.deleteCotizacion('${c.id}')" title="Eliminar"><i class="bi bi-trash"></i></button>` : ''}
+                </td>
+            </tr>`;
+        }).join('');
+    },
+
+    filterVentas(query) {
+        const tbody = document.getElementById('ventasTableBody');
+        if (!tbody) { this.navigateTo('ventas'); return; }
+        const allSales = DB.getSales().sort((a, b) => new Date(b.fecha || 0) - new Date(a.fecha || 0));
+        const allCartera = DB.getAll(DB.KEYS.CARTERA);
+        const fmt = (n) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n);
+        const q = (query || '').toLowerCase().trim();
+        const sales = q ? allSales.filter(s => {
+            if (!s) return false;
+            const client = DB.getClient(s.cliente_id);
+            const ref = (s.numero || (s.id ? s.id.substr(-6) : '')).toString().toLowerCase();
+            return ref.includes(q) || (client ? client.nombre.toLowerCase().includes(q) : false);
+        }) : allSales;
+
+        if (sales.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="9" class="text-center text-muted py-4">${q ? `Sin resultados para "<strong>${q}</strong>"` : 'No hay facturas de venta registradas'}</td></tr>`;
+            return;
+        }
+        tbody.innerHTML = sales.map(s => {
+            if (!s || !s.id) return '';
+            const client = DB.getClient(s.cliente_id);
+            const carteraItem = s.tipo_venta === 'credito' ? allCartera.find(c => c.venta_id === s.id) : null;
+            let stateBadge = 'secondary';
+            if (s.estado === 'pagada') stateBadge = 'success';
+            if (s.estado === 'pendiente') stateBadge = 'warning text-dark';
+            if (s.estado === 'parcial') stateBadge = 'info';
+            if (s.estado === 'anulada') stateBadge = 'danger';
+            let abono = 0, saldo = 0;
+            if (s.tipo_venta === 'contado') { abono = s.total; }
+            else if (carteraItem) { saldo = parseFloat(carteraItem.saldo); abono = s.total - saldo; }
+            else { abono = s.total; }
+            const ref = s.numero || s.id.substr(-6).toUpperCase();
+            const fechaStr = s.fecha ? (s.fecha.includes('T') ? new Date(s.fecha).toLocaleDateString('es-CO') : s.fecha) : '-';
+            return `<tr>
+                <td><strong>#${ref}</strong></td>
+                <td>${fechaStr}</td>
+                <td><a href="#" onclick="event.preventDefault(); App.viewCliente('${s.cliente_id}')" class="text-decoration-none fw-bold">${client ? client.nombre : 'N/A'}</a></td>
+                <td><span class="badge-status badge-${s.tipo_venta}">${s.tipo_venta}</span></td>
+                <td><span class="badge bg-${stateBadge} text-uppercase" style="font-size:0.75rem">${s.estado || 'OK'}</span></td>
+                <td><strong class="text-primary">${fmt(s.total)}</strong></td>
+                <td class="text-success">${fmt(abono)}</td>
+                <td class="text-danger fw-bold">${fmt(saldo)}</td>
+                <td>
+                    <button class="btn-action btn-view" onclick="App.viewVenta('${s.id}')" title="Ver detalle"><i class="bi bi-eye"></i></button>
+                    ${s.estado !== 'pagada' && s.estado !== 'anulada' ? `<button class="btn-action btn-edit" onclick="App.editVenta('${s.id}')" title="Editar"><i class="bi bi-pencil"></i></button>` : ''}
+                    <button class="btn-action" style="color:#6c757d" onclick="App.printVenta('${s.id}')" title="Imprimir"><i class="bi bi-printer"></i></button>
+                    ${carteraItem && carteraItem.saldo > 0 ? `<button class="btn-action btn-view" style="color:#2e7d32;" onclick="App.registrarAbono('${carteraItem.id}')" title="Registrar Pago"><i class="bi bi-cash-coin"></i></button>` : ''}
+                    ${s.estado !== 'anulada' ? `<button class="btn-action btn-delete" onclick="App.promptAnularVenta('${s.id}')" title="Anular"><i class="bi bi-x-circle"></i></button>` : ''}
+                </td>
+            </tr>`;
+        }).join('');
+    },
+
+    deleteCotizacion(id) {
+        const c = DB.getCotizacion(id);
+        if (!c) return;
+        if (c.estado === 'convertida' || c.factura_id) {
+            this.showToast('No se puede eliminar una cotización ya convertida en factura.', 'Operación no permitida', 'danger');
+            return;
+        }
+        if (!confirm(`¿Está seguro de eliminar la Cotización #${c.numero || id.substr(-6).toUpperCase()}? Esta acción no se puede deshacer.`)) return;
+        // Delete header and details
+        DB.delete(DB.KEYS.COTIZACIONES, id);
+        const allDetails = DB.getAll(DB.KEYS.COTIZACION_DETAILS).filter(d => d.cotizacion_id !== id);
+        DB._persist(DB.KEYS.COTIZACION_DETAILS, allDetails);
+        this.showToast('Cotización eliminada correctamente.', 'Eliminado', 'success');
+        this.navigateTo('cotizaciones');
+    },
+
     /* =================================================
        VENDEDORES CRUD
        ================================================= */

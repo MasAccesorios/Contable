@@ -433,56 +433,75 @@ const Pages = {
     /* =================================================
        FACTURAS DE VENTA
        ================================================= */
-    ventas() {
-        const sales = DB.getSales().sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+    ventas(searchQuery = '') {
+        const allSales = DB.getSales().sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
         const allCartera = DB.getAll(DB.KEYS.CARTERA);
         const fmt = (n) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n);
 
+        // Apply search filter
+        const q = (searchQuery || '').toLowerCase().trim();
+        const sales = q ? allSales.filter(s => {
+            if (!s) return false;
+            const client = DB.getClient(s.cliente_id);
+            const ref = (s.numero || (s.id ? s.id.substr(-6) : '')).toString().toLowerCase();
+            const clientName = (client ? client.nombre : '').toLowerCase();
+            return ref.includes(q) || clientName.includes(q);
+        }) : allSales;
+
         let rows = '';
         if (sales.length === 0) {
-            rows = `<tr><td colspan="8" class="text-center text-muted py-4">No hay facturas de venta registradas</td></tr>`;
+            rows = `<tr><td colspan="9" class="text-center text-muted py-4">${q ? `No se encontraron resultados para "<strong>${q}</strong>"` : 'No hay facturas de venta registradas'}</td></tr>`;
         } else {
             rows = sales.map(s => {
-                const client = DB.getClient(s.cliente_id);
-                const carteraItem = s.tipo_venta === 'credito' ? allCartera.find(c => c.venta_id === s.id) : null;
+                try {
+                    if (!s || !s.id) return '';
+                    const client = DB.getClient(s.cliente_id);
+                    const carteraItem = s.tipo_venta === 'credito' ? allCartera.find(c => c.venta_id === s.id) : null;
 
-                let stateBadge = 'secondary';
-                if (s.estado === 'pagada') stateBadge = 'success';
-                if (s.estado === 'pendiente') stateBadge = 'warning text-dark';
-                if (s.estado === 'parcial') stateBadge = 'info';
-                if (s.estado === 'anulada') stateBadge = 'danger';
+                    let stateBadge = 'secondary';
+                    if (s.estado === 'pagada') stateBadge = 'success';
+                    if (s.estado === 'pendiente') stateBadge = 'warning text-dark';
+                    if (s.estado === 'parcial') stateBadge = 'info';
+                    if (s.estado === 'anulada') stateBadge = 'danger';
 
-                let abono = 0;
-                let saldo = 0;
+                    let abono = 0;
+                    let saldo = 0;
 
-                if (s.tipo_venta === 'contado') {
-                    abono = s.total;
-                    saldo = 0;
-                } else if (carteraItem) {
-                    saldo = parseFloat(carteraItem.saldo);
-                    abono = s.total - saldo;
-                } else {
-                    abono = s.total;
-                    saldo = 0;
+                    if (s.tipo_venta === 'contado') {
+                        abono = s.total;
+                        saldo = 0;
+                    } else if (carteraItem) {
+                        saldo = parseFloat(carteraItem.saldo);
+                        abono = s.total - saldo;
+                    } else {
+                        abono = s.total;
+                        saldo = 0;
+                    }
+
+                    const ref = s.numero || s.id.substr(-6).toUpperCase();
+                    const fechaStr = s.fecha ? (s.fecha.includes('T') ? new Date(s.fecha).toLocaleDateString('es-CO') : s.fecha) : '-';
+
+                    return `<tr>
+                        <td><strong>#${ref}</strong></td>
+                        <td>${fechaStr}</td>
+                        <td><a href="#" onclick="event.preventDefault(); App.viewCliente('${s.cliente_id}')" class="text-decoration-none fw-bold">${client ? client.nombre : 'N/A'}</a></td>
+                        <td><span class="badge-status badge-${s.tipo_venta}">${s.tipo_venta}</span></td>
+                        <td><span class="badge bg-${stateBadge} text-uppercase" style="font-size:0.75rem">${s.estado || 'OK'}</span></td>
+                        <td><strong class="text-primary">${fmt(s.total)}</strong></td>
+                        <td class="text-success">${fmt(abono)}</td>
+                        <td class="text-danger fw-bold">${fmt(saldo)}</td>
+                        <td>
+                            <button class="btn-action btn-view" onclick="App.viewVenta('${s.id}')" title="Ver detalle"><i class="bi bi-eye"></i></button>
+                            ${s.estado !== 'pagada' && s.estado !== 'anulada' ? `<button class="btn-action btn-edit" onclick="App.editVenta('${s.id}')" title="Editar Venta"><i class="bi bi-pencil"></i></button>` : ''}
+                            <button class="btn-action" style="color:#6c757d" onclick="App.printVenta('${s.id}')" title="Imprimir Factura"><i class="bi bi-printer"></i></button>
+                            ${carteraItem && carteraItem.saldo > 0 ? `<button class="btn-action btn-view" style="color: #2e7d32;" onclick="App.registrarAbono('${carteraItem.id}')" title="Registrar Pago"><i class="bi bi-cash-coin"></i></button>` : ''}
+                            ${s.estado !== 'anulada' ? `<button class="btn-action btn-delete" onclick="App.promptAnularVenta('${s.id}')" title="Anular Factura"><i class="bi bi-x-circle"></i></button>` : ''}
+                        </td>
+                    </tr>`;
+                } catch(e) {
+                    console.error('Error rendering venta row:', s, e);
+                    return `<tr><td colspan="9" class="text-danger small"><i class="bi bi-exclamation-triangle"></i> Error en registro #${s?.id || '?'}: ${e.message}</td></tr>`;
                 }
-
-                return `<tr>
-                    <td><strong>#${s.numero || s.id.substr(-6).toUpperCase()}</strong></td>
-                    <td>${s.fecha}</td>
-                    <td><a href="#" onclick="event.preventDefault(); App.viewCliente('${s.cliente_id}')" class="text-decoration-none fw-bold">${client ? client.nombre : 'N/A'}</a></td>
-                    <td><span class="badge-status badge-${s.tipo_venta}">${s.tipo_venta}</span></td>
-                    <td><span class="badge bg-${stateBadge} text-uppercase" style="font-size:0.75rem">${s.estado || 'OK'}</span></td>
-                    <td><strong class="text-primary">${fmt(s.total)}</strong></td>
-                    <td class="text-success">${fmt(abono)}</td>
-                    <td class="text-danger fw-bold">${fmt(saldo)}</td>
-                    <td>
-                        <button class="btn-action btn-view" onclick="App.viewVenta('${s.id}')" title="Ver detalle"><i class="bi bi-eye"></i></button>
-                        ${s.estado !== 'pagada' && s.estado !== 'anulada' ? `<button class="btn-action btn-edit" onclick="App.editVenta('${s.id}')" title="Editar Venta"><i class="bi bi-pencil"></i></button>` : ''}
-                        <button class="btn-action" style="color:#6c757d" onclick="App.printVenta('${s.id}')" title="Imprimir Factura"><i class="bi bi-printer"></i></button>
-                        ${carteraItem && carteraItem.saldo > 0 ? `<button class="btn-action btn-view" style="color: #2e7d32;" onclick="App.registrarAbono('${carteraItem.id}')" title="Registrar Pago"><i class="bi bi-cash-coin"></i></button>` : ''}
-                        ${s.estado !== 'anulada' ? `<button class="btn-action btn-delete" onclick="App.promptAnularVenta('${s.id}')" title="Anular Factura"><i class="bi bi-x-circle"></i></button>` : ''}
-                    </td>
-                </tr>`;
             }).join('');
         }
 
@@ -490,10 +509,18 @@ const Pages = {
         <div class="fade-in">
             <div class="section-card">
                 <div class="section-header">
-                    <div class="section-title"><i class="bi bi-receipt"></i> Facturas de Venta</div>
-                    <button class="btn btn-primary-gradient" onclick="App.newVenta()">
-                        <i class="bi bi-plus-lg me-1"></i> Nueva Factura
-                    </button>
+                    <div class="section-title"><i class="bi bi-receipt"></i> Facturas de Venta
+                        <span class="badge bg-light text-dark ms-2" style="font-size: 0.7rem; font-weight: 500;">${allSales.length} documentos</span>
+                    </div>
+                    <div class="d-flex gap-2 align-items-center">
+                        <div class="input-group input-group-sm" style="width:220px;">
+                            <span class="input-group-text"><i class="bi bi-search"></i></span>
+                            <input type="text" id="ventasSearchInput" class="form-control" placeholder="Buscar por cliente o #..." value="${searchQuery}" oninput="App.filterVentas(this.value)">
+                        </div>
+                        <button class="btn btn-primary-gradient" onclick="App.newVenta()">
+                            <i class="bi bi-plus-lg me-1"></i> Nueva Factura
+                        </button>
+                    </div>
                 </div>
                 <div class="section-body" style="padding:0; overflow-x:auto;">
                     <table class="table-modern">
@@ -510,12 +537,13 @@ const Pages = {
                                 <th>Acciones</th>
                             </tr>
                         </thead>
-                        <tbody>${rows}</tbody>
+                        <tbody id="ventasTableBody">${rows}</tbody>
                     </table>
                 </div>
             </div>
         </div>`;
     },
+
 
     /* =================================================
        DEVOLUCIONES DE VENTA
@@ -1229,25 +1257,35 @@ const Pages = {
         </div>`;
     },
 
-    cotizaciones() {
-        const items = DB.getCotizaciones();
+    cotizaciones(searchQuery = '') {
+        const allItems = DB.getCotizaciones();
         const fmt = (n) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n);
+
+        // Sort: most recent first
+        const sorted = [...allItems].sort((a, b) => {
+            const dateA = a && a.fecha ? new Date(a.fecha) : 0;
+            const dateB = b && b.fecha ? new Date(b.fecha) : 0;
+            return dateB - dateA;
+        });
+
+        // Apply search
+        const q = (searchQuery || '').toLowerCase().trim();
+        const items = q ? sorted.filter(c => {
+            if (!c) return false;
+            const client = DB.getClient(c.cliente_id);
+            const ref = (c.numero || (c.id ? c.id.substr(-6) : '')).toString().toLowerCase();
+            const clientName = (client ? client.nombre : '').toLowerCase();
+            return ref.includes(q) || clientName.includes(q);
+        }) : sorted;
 
         let rows = '';
 
         if (!Array.isArray(items) || items.length === 0) {
-            rows = `<tr><td colspan="7" class="text-center text-muted py-4">No hay cotizaciones registradas ${!Array.isArray(items) ? '(Error: No es un arreglo)' : ''}</td></tr>`;
+            rows = `<tr><td colspan="7" class="text-center text-muted py-4">${q ? `No se encontraron resultados para "<strong>${q}</strong>"` : 'No hay cotizaciones registradas'}</td></tr>`;
         } else {
-            // Sort with safety
-            const sortedItems = [...items].sort((a, b) => {
-                const dateA = a && a.fecha ? new Date(a.fecha) : 0;
-                const dateB = b && b.fecha ? new Date(b.fecha) : 0;
-                return dateB - dateA;
-            });
-
-            rows = sortedItems.map(c => {
+            rows = items.map(c => {
                 try {
-                    if (!c || !c.id) return ''; // Skip empty records
+                    if (!c || !c.id) return '';
                     const client = DB.getClient(c.cliente_id);
                     let badgeClass = 'secondary';
                     if (c.estado === 'enviada') badgeClass = 'info';
@@ -1256,17 +1294,23 @@ const Pages = {
                     if (c.estado === 'vencida') badgeClass = 'warning';
                     if (c.estado === 'convertida') badgeClass = 'primary';
 
-                    const ref = c.numero || (c.id.toString().length > 6 ? c.id.toString().substr(-6).toUpperCase() : c.id.toString().toUpperCase());
+                    const ref = c.numero || (c.id.length > 6 ? c.id.substr(-6).toUpperCase() : c.id.toUpperCase());
+                    const fechaStr = c.fecha ? (c.fecha.includes('T') ? new Date(c.fecha).toLocaleDateString('es-CO') : c.fecha) : 'Sin fecha';
+                    const validezStr = c.validez ? (c.validez.includes('T') ? new Date(c.validez).toLocaleDateString('es-CO') : c.validez) : '-';
+                    const yaConvertida = c.estado === 'convertida' || !!c.factura_id;
+
                     return `<tr>
                         <td><strong>#${ref}</strong></td>
-                        <td>${c.fecha || 'Sin fecha'}</td>
+                        <td>${fechaStr}</td>
                         <td><a href="#" onclick="event.preventDefault(); App.viewCliente('${c.cliente_id}')" class="text-decoration-none fw-bold">${client ? client.nombre : 'Desconocido'}</a></td>
-                        <td>${c.validez || '-'}</td>
+                        <td>${validezStr}</td>
                         <td><span class="badge bg-${badgeClass} text-uppercase" style="font-size:0.75rem">${c.estado || 'borrador'}</span></td>
                         <td><strong>${fmt(c.total || 0)}</strong></td>
                         <td>
                             <button class="btn-action btn-edit" onclick="App.editCotizacion('${c.id}')" title="Ver / Editar"><i class="bi bi-pencil"></i></button>
+                            ${!yaConvertida ? `<button class="btn-action" style="color:#0d6efd" onclick="App.convertFactura('${c.id}')" title="Convertir a Factura"><i class="bi bi-arrow-right-circle"></i></button>` : `<button class="btn-action" style="color:#6c757d; opacity:0.5; cursor:default" title="Ya convertida - Factura #${c.factura_id ? c.factura_id.substr(-6).toUpperCase() : ''}"><i class="bi bi-check-circle"></i></button>`}
                             <button class="btn-action" style="color:#6c757d" onclick="App.printCotizacion('${c.id}')" title="Imprimir Cotización"><i class="bi bi-printer"></i></button>
+                            ${!yaConvertida ? `<button class="btn-action btn-delete" onclick="App.deleteCotizacion('${c.id}')" title="Eliminar"><i class="bi bi-trash"></i></button>` : ''}
                         </td>
                     </tr>`;
                 } catch (e) {
@@ -1281,10 +1325,14 @@ const Pages = {
             <div class="section-card">
                 <div class="section-header">
                     <div class="section-title">
-                        <i class="bi bi-file-earmark-text"></i> Cotizaciones 
-                        <span class="badge bg-light text-dark ms-2" style="font-size: 0.7rem; font-weight: 500;">${items.length} documentos</span>
+                        <i class="bi bi-file-earmark-text"></i> Cotizaciones
+                        <span class="badge bg-light text-dark ms-2" style="font-size: 0.7rem; font-weight: 500;">${allItems.length} documentos</span>
                     </div>
-                    <div class="d-flex gap-2">
+                    <div class="d-flex gap-2 align-items-center">
+                        <div class="input-group input-group-sm" style="width:220px;">
+                            <span class="input-group-text"><i class="bi bi-search"></i></span>
+                            <input type="text" id="cotizacionesSearchInput" class="form-control" placeholder="Buscar por cliente o #..." value="${searchQuery}" oninput="App.filterCotizaciones(this.value)">
+                        </div>
                         <button class="btn btn-primary-gradient" onclick="App.newCotizacion()">
                             <i class="bi bi-plus-lg me-1"></i> Nueva Cotización
                         </button>
@@ -1303,12 +1351,13 @@ const Pages = {
                                 <th>Acciones</th>
                             </tr>
                         </thead>
-                        <tbody>${rows}</tbody>
+                        <tbody id="cotizacionesTableBody">${rows}</tbody>
                     </table>
                 </div>
             </div>
         </div>`;
     },
+
     facturas_compra() {
         // Firm purchase invoices are orders with state 'received'
         const items = DB.getCompras().filter(c => c.estado === 'recibida');
