@@ -533,7 +533,7 @@ body {
     box-shadow: var(--shadow);
     border: 1px solid var(--gray-100);
     margin-bottom: 24px;
-    overflow: hidden;
+    overflow: visible;
 }
 
 .section-header {

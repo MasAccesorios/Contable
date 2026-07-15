@@ -120,8 +120,8 @@ class SearchableSelect {
         const textMatches = [];
 
         this.data.forEach(item => {
-            const ref = (item.reference || '').toLowerCase();
-            const text = (item.text || '').toLowerCase();
+            const ref = String(item.reference || '').toLowerCase();
+            const text = String(item.text || '').toLowerCase();
 
             if (ref.startsWith(term)) {
                 referenceMatches.push(item);
