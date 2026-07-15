@@ -60,7 +60,7 @@ const Pages = {
                                 <div style="border-left: 2px solid #EF4444; padding-left: 8px;">
                                     <div class="text-muted" style="font-size: 0.75rem;">Vencidas</div>
                                     <div class="fw-semibold" style="font-size: 0.85rem; color: #1F2937;" id="kpi-carteraVencida">${fmt(m.carteraVencida)}</div>
-                                    <div class="text-muted" style="font-size: 0.75rem;" id="kpi-carteraVencidaCount">${m.carteraVencidaCount} documentos
+                                    <div class="text-muted" style="font-size: 0.75rem;" id="kpi-carteraVencidaCount">${m.carteraVencidaCount} documentos</div>
                                 </div>
                             </div>
                         </div>
@@ -89,7 +89,7 @@ const Pages = {
                                 <div style="border-left: 2px solid #EF4444; padding-left: 8px;">
                                     <div class="text-muted" style="font-size: 0.75rem;">Vencidas</div>
                                     <div class="fw-semibold" style="font-size: 0.85rem; color: #1F2937;" id="kpi-cxpVencida">${fmt(m.cxpVencida)}</div>
-                                    <div class="text-muted" style="font-size: 0.75rem;" id="kpi-cxpVencidaCount">${m.cxpVencidaCount} documentos
+                                    <div class="text-muted" style="font-size: 0.75rem;" id="kpi-cxpVencidaCount">${m.cxpVencidaCount} documentos</div>
                                 </div>
                             </div>
                         </div>
