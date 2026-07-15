@@ -663,6 +663,7 @@ const App = {
                     <th class="p-3 text-end">Total</th>
                     <th class="p-3 text-end">Abono</th>
                     <th class="p-3 text-end">Saldo</th>
+                    <th class="p-3 text-center">Acciones</th>
                 </tr>`;
                 
                 rows = paginated.map(doc => {
@@ -709,6 +710,13 @@ const App = {
                         <td class="p-3 align-middle text-end text-dark">${fmt(total)}</td>
                         <td class="p-3 align-middle text-end text-muted">${fmt(abono)}</td>
                         <td class="p-3 align-middle text-end ${saldoColorClass}">${fmt(saldo)}</td>
+                        <td class="p-3 align-middle text-center" style="white-space: nowrap;">
+                            <button class="btn-action btn-view" onclick="App.viewInvoice('${doc.id}', 'venta')" title="Ver detalle"><i class="bi bi-eye"></i></button>
+                            ${(estado !== 'pagada' && estado !== 'anulada') ? `<button class="btn-action btn-edit" onclick="App.editVenta('${doc.id}')" title="Editar Venta"><i class="bi bi-pencil"></i></button>` : ''}
+                            <button class="btn-action" style="color:#6c757d" onclick="App.printVenta('${doc.id}')" title="Imprimir Factura"><i class="bi bi-printer"></i></button>
+                            ${carteraItem && carteraItem.saldo > 0 ? `<button class="btn-action btn-view" style="color: #2e7d32;" onclick="App.registrarAbono('${carteraItem.id}')" title="Registrar Pago"><i class="bi bi-cash-coin"></i></button>` : ''}
+                            ${estado !== 'anulada' ? `<button class="btn-action btn-delete" onclick="App.promptAnularVenta('${doc.id}')" title="Anular Factura"><i class="bi bi-x-circle"></i></button>` : ''}
+                        </td>
                     </tr>`;
                 }).join('');
             } else {
