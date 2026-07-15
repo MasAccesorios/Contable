@@ -313,22 +313,28 @@ const DB = {
     _syncPending: {},
     _syncRunning: {},
 
+    _syncQueue: Promise.resolve(),
+
     // Push specific key to Google Sheets immediately to guarantee persistence
     async pushToCloud(key, data) {
-        try {
-            await fetch(this.API_URL, {
-                method: 'POST',
-                mode: 'no-cors', // Evita errores de CORS en navegador y fuerza envio opaco
-                body: JSON.stringify({
-                    key: key,
-                    value: JSON.stringify(data)
-                })
+        return new Promise((resolve) => {
+            this._syncQueue = this._syncQueue.then(async () => {
+                try {
+                    await fetch(this.API_URL, {
+                        method: 'POST',
+                        mode: 'no-cors', // Evita errores de CORS en navegador y fuerza envio opaco
+                        body: JSON.stringify({
+                            key: key,
+                            value: JSON.stringify(data)
+                        })
+                    });
+                    resolve(true);
+                } catch(error) {
+                    console.error("No se pudo guardar en el servidor central:", error);
+                    resolve(false);
+                }
             });
-            return true;
-        } catch(error) {
-            console.error("No se pudo guardar en el servidor central:", error);
-            return false;
-        }
+        });
     },
 
     // Generate unique ID
