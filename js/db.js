@@ -730,8 +730,23 @@ const DB = {
     // =========================================================
     // Products
     // =========================================================
-    getProducts() { return this.getAllActive(this.KEYS.PRODUCTS); },
-    getProduct(id) { return this.getById(this.KEYS.PRODUCTS, id); },
+    getProducts() { 
+        return this.getAllActive(this.KEYS.PRODUCTS).map(p => {
+            if (!p.codigo && p.referencia) p.codigo = p.referencia;
+            if (!p.referencia && p.codigo) p.referencia = p.codigo;
+            if (p.stock_minimo === undefined) p.stock_minimo = 0;
+            return p;
+        }); 
+    },
+    getProduct(id) { 
+        const p = this.getById(this.KEYS.PRODUCTS, id);
+        if (p) {
+            if (!p.codigo && p.referencia) p.codigo = p.referencia;
+            if (!p.referencia && p.codigo) p.referencia = p.codigo;
+            if (p.stock_minimo === undefined) p.stock_minimo = 0;
+        }
+        return p;
+    },
     saveProduct(product) {
         if (!product.codigo || product.codigo.trim() === '') {
             throw new Error('La referencia del producto es obligatoria.');
