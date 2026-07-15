@@ -648,6 +648,9 @@ const Pages = {
                                 { value: 'proveedor', label: 'Solo Proveedores' }
                             ]
                         })}
+                        <button class="btn btn-outline-danger" onclick="localStorage.removeItem('fb_secret'); location.reload();" title="Borrar Secret">
+                             🔑 Reset
+                        </button>
                         <button class="btn btn-outline-warning" onclick="App.forzarMigracionContactos(this)">
                              🔄 Cargar Copia de Alegra a Firebase
                         </button>
