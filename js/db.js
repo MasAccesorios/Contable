@@ -934,9 +934,9 @@ const DB = {
             };
         });
 
-        // Avoid duplicates by number
-        const filteredLocal = data.filter(ls => !mappedAlegra.some(as => String(as.numero) === String(ls.numero)));
-        return [...filteredLocal, ...mappedAlegra];
+        // Prefer local records over Alegra to show updated details and totals after an edit
+        const filteredAlegra = mappedAlegra.filter(as => !data.some(ls => String(ls.numero) === String(as.numero)));
+        return [...data, ...filteredAlegra];
     },
     
     getSale(id) {
@@ -1055,6 +1055,7 @@ const DB = {
             total: total,
             total_costo: totalCosto,
             utilidad: totalNeto - totalCosto,
+            items: details,
             vendedor_id: saleData.vendedor_id || null,
             comision_monto: saleData.vendedor_id ? (total * (parseFloat(this.getSeller(saleData.vendedor_id)?.comision_porcentaje || 0) / 100)) : 0,
             fecha: (saleData.fecha && saleData.fecha !== new Date().toISOString().split('T')[0]) ? (saleData.fecha + (saleData.fecha.includes('T') ? '' : 'T00:00:00')) : new Date().toISOString()
