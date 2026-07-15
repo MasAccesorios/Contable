@@ -1850,7 +1850,7 @@ const App = {
         this.selectors.compraProducto.setData(DB.getProducts().map(p => ({
             id: p.id,
             text: p.nombre,
-            reference: p.codigo,
+            reference: p.codigo || p.referencia,
             stock: p.stock_actual
         })));
         this.selectors.compraProducto.clear();
@@ -1895,7 +1895,7 @@ const App = {
         this.selectors.compraProducto.setData(DB.getProducts().map(p => ({
             id: p.id,
             text: p.nombre,
-            reference: p.codigo,
+            reference: p.codigo || p.referencia,
             stock: p.stock_actual
         })));
         this.selectors.compraProducto.clear();
@@ -5048,7 +5048,7 @@ const App = {
         const productsData = DB.getProducts().map(p => ({
             id: p.id,
             text: p.nombre,
-            reference: p.codigo
+            reference: p.codigo || p.referencia
         }));
         
         const selectContainerId = `cot-row-product-container-${rowId}`;
@@ -5157,7 +5157,7 @@ const App = {
         const productsData = DB.getProducts().map(p => ({
             id: p.id,
             text: p.nombre,
-            reference: p.codigo
+            reference: p.codigo || p.referencia
         }));
         
         const selectContainerId = `vta-row-product-container-${rowId}`;
