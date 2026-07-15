@@ -218,38 +218,43 @@ $rawPagosProv = Get-AllPages -BaseUrl "https://api.alegra.com/api/v1/provider-pa
 $pagosList = @()
 foreach ($p in $rawPagos) {
     $pagosList += @{
-        id_alegra   = [string]$p.id
-        date        = [string]$p.date
-        bankAccount = if ($p.bankAccount) { [string]$p.bankAccount.id } else { "" }
-        bankName    = if ($p.bankAccount) { [string]$p.bankAccount.name } else { "" }
-        client      = if ($p.client) { [string]$p.client.id } else { "" }
-        amount      = if ($p.amount) { [double]$p.amount } else { 0 }
-        tipo        = "ingreso"
+        id_alegra      = [string]$p.id
+        date           = [string]$p.date
+        bankAccount    = if ($p.bankAccount) { [string]$p.bankAccount.id } else { "" }
+        bankName       = if ($p.bankAccount) { [string]$p.bankAccount.name } else { "" }
+        client         = if ($p.client) { [string]$p.client.id } else { "" }
+        client_name    = if ($p.client -and $p.client.name) { [string]$p.client.name } else { "" }
+        amount         = if ($p.amount) { [double]$p.amount } else { 0 }
+        description    = if ($p.observations) { [string]$p.observations } elseif ($p.numberTemplate -and $p.numberTemplate.number) { [string]$p.numberTemplate.number } else { "Pago recibido" }
+        tipo           = "ingreso"
     }
 }
 foreach ($p in $rawPagosProv) {
     $pagosList += @{
-        id_alegra   = [string]$p.id
-        date        = [string]$p.date
-        bankAccount = if ($p.bankAccount) { [string]$p.bankAccount.id } else { "" }
-        bankName    = if ($p.bankAccount) { [string]$p.bankAccount.name } else { "" }
-        provider    = if ($p.provider) { [string]$p.provider.id } else { "" }
-        amount      = if ($p.amount) { [double]$p.amount } else { 0 }
-        tipo        = "egreso"
+        id_alegra      = [string]$p.id
+        date           = [string]$p.date
+        bankAccount    = if ($p.bankAccount) { [string]$p.bankAccount.id } else { "" }
+        bankName       = if ($p.bankAccount) { [string]$p.bankAccount.name } else { "" }
+        provider       = if ($p.provider) { [string]$p.provider.id } else { "" }
+        provider_name  = if ($p.provider -and $p.provider.name) { [string]$p.provider.name } else { "" }
+        amount         = if ($p.amount) { [double]$p.amount } else { 0 }
+        description    = if ($p.observations) { [string]$p.observations } elseif ($p.numberTemplate -and $p.numberTemplate.number) { [string]$p.numberTemplate.number } else { "Pago a proveedor" }
+        tipo           = "egreso"
     }
 }
 
 # Guardar JSON Masivo
 $resultado = [ordered]@{
-    timestamp    = (Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ")
-    version      = "v3_offline_mirror"
-    clientes     = $contactos
-    bancos       = $bancos
-    facturas     = $facturas
-    cotizaciones = $cotizaciones
-    pagos        = $pagosList
-    productos    = $productos
-    compras      = $compras
+    timestamp         = (Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ")
+    version           = "v4_offline_mirror_bancos"
+    clientes          = $contactos
+    bancos            = $bancos
+    facturas          = $facturas
+    cotizaciones      = $cotizaciones
+    pagos             = $pagosList
+    bank_movements    = $pagosList   # Alias para el cargador de movimientos bancarios
+    productos         = $productos
+    compras           = $compras
 }
 
 $utf8NoBom = New-Object System.Text.UTF8Encoding $False

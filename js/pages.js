@@ -1136,16 +1136,18 @@ const Pages = {
                 
                 return `
                 <tr style="${rowStyle}">
-                    <td class="align-middle fw-medium">${b.nombre}</td>
+                    <td class="align-middle fw-medium"
+                        style="cursor:pointer;"
+                        onclick="Pages.toggleBankMovements('${b.id}')">
+                        <i class="bi bi-chevron-right text-muted me-2" id="chevron-${b.id}" style="font-size:0.75rem;transition:transform .2s"></i>
+                        ${b.nombre}
+                    </td>
                     <td class="align-middle text-muted">${b.tipo || 'Efectivo / Banco'}</td>
                     <td class="align-middle text-muted">${b.numero_cuenta || 'N/A'}</td>
                     <td class="align-middle text-end ${saldoStyle}">${fmt(displaySaldo)}</td>
                     <td class="align-middle text-end">
                         <div class="d-flex justify-content-end align-items-center gap-2">
                             <button class="btn btn-sm btn-outline-secondary rounded-pill px-3 fw-medium" onclick="App.navigateTo('conciliacion', '${b.id}')">Conciliar</button>
-                            <button class="btn btn-sm btn-light text-primary" onclick="App.viewBankMovements('${b.id}')" title="Ver movimientos">
-                                <i class="bi bi-eye"></i>
-                            </button>
                             <div class="dropdown">
                                 <button class="btn btn-sm btn-light" data-bs-toggle="dropdown"><i class="bi bi-three-dots-vertical"></i></button>
                                 <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0">
@@ -1155,6 +1157,11 @@ const Pages = {
                                 </ul>
                             </div>
                         </div>
+                    </td>
+                </tr>
+                <tr id="movements-panel-${b.id}" style="display:none;">
+                    <td colspan="5" class="p-0">
+                        <div id="movements-content-${b.id}" class="p-3" style="background:#f8fafc;"></div>
                     </td>
                 </tr>
                 `;
@@ -1208,6 +1215,105 @@ const Pages = {
             </div>
         </div>
         `;
+    },
+
+    // ─── Movimientos bancarios inline ─────────────────────────────────────────
+    _bankMovPage: {},   // Almacena pagina actual por bankId
+    _bankMovSort: {},   // 'desc' o 'asc' por bankId
+
+    toggleBankMovements(bankId) {
+        const panel    = document.getElementById(`movements-panel-${bankId}`);
+        const content  = document.getElementById(`movements-content-${bankId}`);
+        const chevron  = document.getElementById(`chevron-${bankId}`);
+        if (!panel) return;
+        const isOpen = panel.style.display !== 'none';
+        if (isOpen) {
+            panel.style.display = 'none';
+            chevron && (chevron.style.transform = '');
+        } else {
+            panel.style.display = '';
+            chevron && (chevron.style.transform = 'rotate(90deg)');
+            if (!this._bankMovPage[bankId]) this._bankMovPage[bankId] = 1;
+            if (!this._bankMovSort[bankId]) this._bankMovSort[bankId] = 'desc';
+            content.innerHTML = this._renderMovementsTable(bankId);
+        }
+    },
+
+    _renderMovementsTable(bankId, page, sort) {
+        page = page || this._bankMovPage[bankId] || 1;
+        sort = sort || this._bankMovSort[bankId] || 'desc';
+        this._bankMovPage[bankId] = page;
+        this._bankMovSort[bankId] = sort;
+
+        const fmt = (n) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n);
+        const PER_PAGE = 25;
+        let movs = DB.getBankMovements(bankId);
+
+        if (sort === 'asc') movs = movs.slice().reverse();
+
+        const total = movs.length;
+        const pages = Math.max(1, Math.ceil(total / PER_PAGE));
+        const slice = movs.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+
+        if (total === 0) {
+            return `<div class="text-center text-muted py-4"><i class="bi bi-inbox fs-2 d-block mb-2"></i>Sin movimientos registrados para esta cuenta.</div>`;
+        }
+
+        const rows = slice.map(m => {
+            const isIngreso = m.tipo === 'ingreso';
+            const color     = isIngreso ? '#10B981' : '#EF4444';
+            const prefix    = isIngreso ? '+' : '-';
+            const tipoLabel = isIngreso ? 'Ingreso' : 'Egreso';
+            const fecha     = m.fecha ? new Date(m.fecha + 'T00:00:00').toLocaleDateString('es-CO', {day:'2-digit', month:'short', year:'numeric'}) : '-';
+            const concepto  = m.concepto || m.descripcion || '-';
+            return `<tr>
+                <td class="text-muted small">${fecha}</td>
+                <td><span class="badge rounded-pill" style="background:${isIngreso?'#D1FAE5':'#FEE2E2'};color:${color};font-size:0.72rem;">${tipoLabel}</span></td>
+                <td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${concepto}</td>
+                <td class="text-end fw-bold" style="color:${color};">${prefix}${fmt(parseFloat(m.monto||0))}</td>
+            </tr>`;
+        }).join('');
+
+        const pagerBtns = [];
+        if (pages > 1) {
+            if (page > 1) pagerBtns.push(`<button class="btn btn-sm btn-outline-secondary" onclick="Pages._goMovPage('${bankId}',${page-1})">«</button>`);
+            pagerBtns.push(`<span class="btn btn-sm disabled">Pág ${page}/${pages} (${total} mov.)</span>`);
+            if (page < pages) pagerBtns.push(`<button class="btn btn-sm btn-outline-secondary" onclick="Pages._goMovPage('${bankId}',${page+1})">»</button>`);
+        }
+
+        const sortIcon = sort === 'desc' ? '↓' : '↑';
+
+        return `
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="text-muted small fw-semibold">${total} movimientos en historial</span>
+            <button class="btn btn-sm btn-light" onclick="Pages._toggleSort('${bankId}')">${sortIcon} Fecha</button>
+        </div>
+        <div class="table-responsive" style="max-height:400px;overflow-y:auto;">
+            <table class="table table-sm table-hover mb-0" style="font-size:0.85rem;">
+                <thead class="table-light sticky-top">
+                    <tr>
+                        <th style="width:110px;">Fecha</th>
+                        <th style="width:90px;">Tipo</th>
+                        <th>Concepto</th>
+                        <th class="text-end" style="width:140px;">Valor</th>
+                    </tr>
+                </thead>
+                <tbody>${rows}</tbody>
+            </table>
+        </div>
+        ${pagerBtns.length ? `<div class="d-flex gap-2 mt-2">${pagerBtns.join('')}</div>` : ''}
+        `;
+    },
+
+    _goMovPage(bankId, page) {
+        const content = document.getElementById(`movements-content-${bankId}`);
+        if (content) content.innerHTML = this._renderMovementsTable(bankId, page);
+    },
+
+    _toggleSort(bankId) {
+        this._bankMovSort[bankId] = this._bankMovSort[bankId] === 'desc' ? 'asc' : 'desc';
+        const content = document.getElementById(`movements-content-${bankId}`);
+        if (content) content.innerHTML = this._renderMovementsTable(bankId, 1);
     },
 
     conciliacion(bankId) {

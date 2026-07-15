@@ -1702,6 +1702,41 @@ const DB = {
         return movement;
     },
 
+    // UPSERT movimientos bancarios desde JSON de sync de Alegra (slim: solo campos necesarios para UI)
+    upsertBankMovementsFromAlegra(pagosAlegra) {
+        if (!pagosAlegra || !pagosAlegra.length) return 0;
+        let movements = this.getAll(this.KEYS.BANK_MOVEMENTS) || [];
+        const existingIds = new Set(movements.filter(m => m.id_alegra).map(m => m.id_alegra));
+        let inserted = 0;
+
+        // Find bank accounts to map bankAccount.id (Alegra) -> local bank.id
+        const banks = this.getBanks();
+        const bankMap = {};
+        banks.forEach(b => { if (b.id_alegra) bankMap[b.id_alegra] = b.id; });
+
+        pagosAlegra.forEach(p => {
+            if (!p.id_alegra || existingIds.has(p.id_alegra)) return; // Skip duplicates
+            const localBankId = bankMap[p.bankAccount] || p.bankAccount || null;
+            const concepto = p.client_name || p.provider_name || p.description || '-';
+            movements.push({
+                id:          this.genId(),
+                id_alegra:   p.id_alegra,
+                banco_id:    localBankId,
+                fecha:       p.date || new Date().toISOString().split('T')[0],
+                tipo:        p.tipo || 'ingreso',
+                monto:       parseFloat(p.amount || 0),
+                descripcion: p.description || '-',
+                concepto:    concepto,
+                created_at:  new Date().toISOString()
+            });
+            existingIds.add(p.id_alegra);
+            inserted++;
+        });
+
+        this._persist(this.KEYS.BANK_MOVEMENTS, movements);
+        return inserted;
+    },
+
     recalcBankBalance(bankId) {
         if (!bankId) return;
 
