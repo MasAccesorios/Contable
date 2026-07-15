@@ -37,30 +37,30 @@ const DB = {
         COTIZACIONES_ALEGRA: 'cg_cotizaciones_alegra'
     },
 
-    // Obtiene el secreto de Firebase desde localStorage (lo pide hasta que el usuario lo ingrese)
+    // Obtiene el secreto de Firebase desde localStorage de manera silenciosa
     getFirebaseSecret() {
-        let secret = localStorage.getItem('fb_secret');
-        while (!secret || secret.trim() === '') {
-            secret = prompt('Introduce el Secreto de la Base de Datos de Firebase para conectar:');
-            if (secret && secret.trim() !== '') {
-                localStorage.setItem('fb_secret', secret.trim());
-            }
-        }
-        return secret.trim();
+        const secret = localStorage.getItem('fb_secret');
+        return (secret && secret.trim() !== '') ? secret.trim() : null;
     },
 
     API_URL: 'https://masaccesorios-contable-default-rtdb.firebaseio.com/contable',
 
-    // URL de lectura (GET): formato ?auth=TOKEN&t=TIMESTAMP
+    // URL de lectura (GET): formato ?auth=TOKEN&t=TIMESTAMP (opcional)
     _readUrl() {
         const token = this.getFirebaseSecret();
-        return `${this.API_URL}.json?auth=${token}&t=${Date.now()}`;
+        if (token) {
+            return `${this.API_URL}.json?auth=${token}&t=${Date.now()}`;
+        }
+        return `${this.API_URL}.json?t=${Date.now()}`;
     },
 
-    // URL de escritura (PUT): formato /KEY.json?auth=TOKEN
+    // URL de escritura (PUT): formato /KEY.json?auth=TOKEN (opcional)
     _writeUrl(key) {
         const token = this.getFirebaseSecret();
-        return `${this.API_URL}/${key}.json?auth=${token}`;
+        if (token) {
+            return `${this.API_URL}/${key}.json?auth=${token}`;
+        }
+        return `${this.API_URL}/${key}.json`;
     },
 
     // In-memory cache to avoid repeated JSON.parse (PERF-01)
@@ -400,25 +400,27 @@ const DB = {
                 return;
             }
             
-            // REGLA CENTRALIZADA: Sync with Google Sheets synchronously to guarantee persistence FIRST
-            const success = await this.pushToCloud(key, data);
-            if (!success) {
-                throw new Error("El servidor rechazó la operación o falló la conexión.");
-            }
-
-            // Si el servidor confirma, guardamos en el caché local
+            // Guardamos localmente de inmediato para que la UI responda fluidamente
             this._cache[key] = data;
             
-            // Asynchronously save to IndexedDB
             if (this._db) {
                 const transaction = this._db.transaction(this.STORE_NAME, 'readwrite');
                 const store = transaction.objectStore(this.STORE_NAME);
                 store.put(data, key);
             }
+
+            // Sincronización con Firebase en segundo plano sin interrumpir al usuario
+            this.pushToCloud(key, data).then(success => {
+                if (!success) {
+                    console.warn(`[SYNC WARNING] No se pudo guardar la clave ${key} en Firebase. Los datos locales están a salvo.`);
+                }
+            }).catch(err => {
+                console.error(`[SYNC ERROR] Error de conexión al sincronizar clave ${key}:`, err);
+            });
             
         } catch (e) {
             console.error("Error write to database:", key, e);
-            throw e; // Propagate error upwards to trigger UI rollback
+            throw e; // Propagate error upwards only if local save fails
         }
     },
 
