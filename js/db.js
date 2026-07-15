@@ -312,32 +312,21 @@ const DB = {
     _syncPending: {},
     _syncRunning: {},
 
-    // Push specific key to Google Sheets with LIFO queue optimization
+    // Push specific key to Google Sheets immediately to guarantee persistence
     async pushToCloud(key, data) {
-        this._syncPending[key] = data;
-        if (!this._syncRunning[key]) {
-            this._runPushToCloud(key);
+        try {
+            const response = await fetch(this.API_URL, {
+                method: 'POST',
+                body: JSON.stringify({
+                    key: key,
+                    value: JSON.stringify(data)
+                })
+            });
+            return response.ok;
+        } catch(error) {
+            console.error("No se pudo guardar en la nube en este momento:", error);
+            return false;
         }
-    },
-
-    async _runPushToCloud(key) {
-        this._syncRunning[key] = true;
-        while (this._syncPending[key] !== undefined) {
-            const data = this._syncPending[key];
-            delete this._syncPending[key];
-            try {
-                await fetch(this.API_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        key: key,
-                        value: JSON.stringify(data)
-                    })
-                });
-            } catch(error) {
-                console.error("No se pudo guardar en la nube en este momento:", error);
-            }
-        }
-        delete this._syncRunning[key];
     },
 
     // Generate unique ID
@@ -364,7 +353,7 @@ const DB = {
     },
 
     // Persist to IndexedDB and update cache
-    _persist(key, data) {
+    async _persist(key, data) {
         try {
             if (key === this.KEYS.CURRENT_USER) {
                 localStorage.setItem(key, JSON.stringify(data));
@@ -379,8 +368,8 @@ const DB = {
                 store.put(data, key);
             }
             
-            // Sync with Google Sheets asynchronously (fire and forget)
-            this.pushToCloud(key, data);
+            // Sync with Google Sheets synchronously to guarantee persistence
+            await this.pushToCloud(key, data);
             
         } catch (e) {
             console.error("Error write to database:", key, e);
@@ -397,8 +386,8 @@ const DB = {
         return items.find(item => item && (String(item.id) === String(id) || (item.id_alegra && String(item.id_alegra) === String(id))));
     },
 
-    save(key, item) {
-        const items = this.getAll(key);
+    async save(key, item) {
+        const items = this.getAll(key) || [];
         if (item.id) {
             const idx = items.findIndex(i => i && String(i.id) === String(item.id));
             if (idx !== -1) {
@@ -416,7 +405,7 @@ const DB = {
             items.push(item);
         }
 
-        this._persist(key, items);
+        await this._persist(key, items);
         return item;
     },
 
@@ -1277,7 +1266,7 @@ const DB = {
         return savedSale;
     },
 
-    anularSale(saleId) {
+    async anularSale(saleId) {
         let isAlegra = false;
         let rawAlegra = null;
         let sale = this.getById(this.KEYS.SALES, saleId);
@@ -1311,7 +1300,7 @@ const DB = {
         if (sale.tipo_venta === 'contado') {
             const targetBankId = sale.banco_id || (this.getBanks()[0] ? this.getBanks()[0].id : null);
             if (targetBankId) {
-                this.addBankMovement({
+                await this.addBankMovement({
                     banco_id: targetBankId,
                     tipo: 'egreso',
                     monto: sale.total,
@@ -1329,7 +1318,7 @@ const DB = {
                 }
                 return c;
             });
-            this._persist(this.KEYS.CARTERA, cartera);
+            await this._persist(this.KEYS.CARTERA, cartera);
         }
 
         // 3. Mark as annulled
@@ -1338,9 +1327,9 @@ const DB = {
         
         if (isAlegra && rawAlegra) {
             rawAlegra.estado = 'void'; // Alegra's term for annulled
-            this.save(this.KEYS.FACTURAS_ALEGRA, rawAlegra);
+            await this.save(this.KEYS.FACTURAS_ALEGRA, rawAlegra);
         } else {
-            this.save(this.KEYS.SALES, sale);
+            await this.save(this.KEYS.SALES, sale);
         }
 
         return { success: true, message: 'Factura anulada correctamente' };
@@ -1726,12 +1715,12 @@ const DB = {
         return movements.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
     },
 
-    addBankMovement(movement) {
+    async addBankMovement(movement) {
         movement.id = this.genId();
         movement.created_at = new Date().toISOString();
-        const movements = this.getAll(this.KEYS.BANK_MOVEMENTS);
+        const movements = this.getAll(this.KEYS.BANK_MOVEMENTS) || [];
         movements.push(movement);
-        this._persist(this.KEYS.BANK_MOVEMENTS, movements);
+        await this._persist(this.KEYS.BANK_MOVEMENTS, movements);
 
         // Recalculate bank balance
         this.recalcBankBalance(movement.banco_id);
@@ -1979,13 +1968,13 @@ const DB = {
     getExpenses() { return this.getAll(this.KEYS.EXPENSES); },
     getExpense(id) { return this.getById(this.KEYS.EXPENSES, id); },
 
-    saveExpense(expense, isNew = true) {
-        const saved = this.save(this.KEYS.EXPENSES, expense);
+    async saveExpense(expense, isNew = true) {
+        const saved = await this.save(this.KEYS.EXPENSES, expense);
         const fechaVal = (expense.fecha && expense.fecha !== new Date().toISOString().split('T')[0]) ? (expense.fecha + (expense.fecha.includes('T') ? '' : 'T00:00:00')) : new Date().toISOString();
 
         if (isNew && expense.banco_id) {
             // Generate bank egress
-            this.addBankMovement({
+            await this.addBankMovement({
                 banco_id: expense.banco_id,
                 tipo: 'egreso',
                 monto: parseFloat(expense.monto),
@@ -2005,7 +1994,7 @@ const DB = {
                 movs[movIdx].fecha = fechaVal;
                 movs[movIdx].banco_id = expense.banco_id;
                 movs[movIdx].cliente_nombre = expense.proveedor || '';
-                this._persist(this.KEYS.BANK_MOVEMENTS, movs);
+                await this._persist(this.KEYS.BANK_MOVEMENTS, movs);
                 
                 this.recalcBankBalance(oldBancoId);
                 if (String(oldBancoId) !== String(expense.banco_id)) {

@@ -382,7 +382,7 @@ const App = {
     /* =================================================
        NAVIGATION
        ================================================= */
-    navigateTo(page, param = null) {
+    async navigateTo(page, param = null) {
         // Skip auth check for cliente_detail as it inherits from clientes
         const authPage = page === 'cliente_detail' ? 'clientes' : page;
         if (!Auth.canAccess(authPage)) {
@@ -427,6 +427,13 @@ const App = {
 
         // Render page
         const content = document.getElementById('contentArea');
+        
+        // REGLA: Forzar lectura al servidor para Ventas y Dashboard
+        if (page === 'dashboard' || page === 'ventas') {
+            content.innerHTML = '<div class="p-5 text-center"><div class="spinner-border text-primary" role="status"></div><div class="mt-2 text-muted">Sincronizando con el servidor...</div></div>';
+            await DB.syncFromCloud();
+        }
+
         try {
             if (Pages[page]) {
                 content.innerHTML = Pages[page](param);
@@ -1764,16 +1771,23 @@ const App = {
         }
     },
 
-    anularVenta(id) {
+    async anularVenta(id) {
         if (!Auth.isAdmin()) {
             this.showToast('Solo los administradores pueden anular ventas.', 'Acceso Denegado', 'danger');
             return;
         }
-        const result = DB.anularSale(id);
+        
+        // REGLA: Bloquear UI mientras confirmamos persistencia real
+        const btn = event ? event.target.closest('button') : null;
+        if (btn) btn.disabled = true;
+
+        const result = await DB.anularSale(id);
+        
         if (result.success) {
             this.showToast(result.message, 'Éxito', 'success');
-            this.navigateTo('ventas');
+            await this.navigateTo('ventas');
         } else {
+            if (btn) btn.disabled = false;
             this.showToast(result.message, 'Error', 'danger');
         }
     },
@@ -3205,7 +3219,7 @@ const App = {
         new bootstrap.Modal(document.getElementById('gastoModal')).show();
     },
 
-    saveGasto() {
+    async saveGasto() {
         const descripcion = document.getElementById('gastoDescripcion').value.trim();
         const monto = parseFloat(this.unformatNumber(document.getElementById('gastoMonto').value));
         const bancoId = this.selectors.gastoBanco.getValue();
@@ -3215,6 +3229,12 @@ const App = {
         if (!descripcion || isNaN(monto) || !bancoId || !fecha || !proveedor) {
             this.showToast('Complete todos los campos obligatorios', 'Error', 'danger');
             return;
+        }
+
+        const btnGuardar = document.querySelector('#gastoModal .btn-primary');
+        if (btnGuardar) {
+            btnGuardar.disabled = true;
+            btnGuardar.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Guardando...';
         }
 
         const isNew = !document.getElementById('gastoId').value;
@@ -3227,10 +3247,16 @@ const App = {
             fecha,
             proveedor
         };
-
-        DB.saveExpense(expense, isNew);
+        
+        await DB.saveExpense(expense, isNew);
+        
+        if (btnGuardar) {
+            btnGuardar.disabled = false;
+            btnGuardar.textContent = 'Guardar';
+        }
+        
         bootstrap.Modal.getInstance(document.getElementById('gastoModal')).hide();
-        this.showToast('Gasto guardado correctamente');
+        this.showToast('Gasto guardado correctamente', 'Éxito', 'success');
         this.navigateTo('gastos');
     },
 
