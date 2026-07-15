@@ -930,9 +930,23 @@ const DB = {
             };
         });
 
-        // Prefer local records over Alegra to show updated details and totals after an edit
+        // Prefer local records over Alegra to show updated details and totals after an edit.
+        // Enrich local records with Alegra metadata (fallback name, type) if missing.
+        const enrichedData = data.map(ls => {
+            const as = mappedAlegra.find(a => String(a.numero) === String(ls.numero));
+            if (as) {
+                return {
+                    ...ls,
+                    cliente_id: ls.cliente_id || as.cliente_id,
+                    cliente_nombre_alegra: ls.cliente_nombre_alegra || as.cliente_nombre_alegra,
+                    tipo_venta: ls.tipo_venta || as.tipo_venta
+                };
+            }
+            return ls;
+        });
+
         const filteredAlegra = mappedAlegra.filter(as => !data.some(ls => String(ls.numero) === String(as.numero)));
-        return [...data, ...filteredAlegra];
+        return [...enrichedData, ...filteredAlegra];
     },
     
     getSale(id) {
