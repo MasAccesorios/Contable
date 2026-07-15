@@ -315,16 +315,17 @@ const DB = {
     // Push specific key to Google Sheets immediately to guarantee persistence
     async pushToCloud(key, data) {
         try {
-            const response = await fetch(this.API_URL, {
+            await fetch(this.API_URL, {
                 method: 'POST',
+                mode: 'no-cors', // Evita errores de CORS en navegador y fuerza envio opaco
                 body: JSON.stringify({
                     key: key,
                     value: JSON.stringify(data)
                 })
             });
-            return response.ok;
+            return true;
         } catch(error) {
-            console.error("No se pudo guardar en la nube en este momento:", error);
+            console.error("No se pudo guardar en el servidor central:", error);
             return false;
         }
     },
@@ -359,6 +360,14 @@ const DB = {
                 localStorage.setItem(key, JSON.stringify(data));
                 return;
             }
+            
+            // REGLA CENTRALIZADA: Sync with Google Sheets synchronously to guarantee persistence FIRST
+            const success = await this.pushToCloud(key, data);
+            if (!success) {
+                throw new Error("El servidor rechazó la operación o falló la conexión.");
+            }
+
+            // Si el servidor confirma, guardamos en el caché local
             this._cache[key] = data;
             
             // Asynchronously save to IndexedDB
@@ -368,11 +377,9 @@ const DB = {
                 store.put(data, key);
             }
             
-            // Sync with Google Sheets synchronously to guarantee persistence
-            await this.pushToCloud(key, data);
-            
         } catch (e) {
             console.error("Error write to database:", key, e);
+            throw e; // Propagate error upwards to trigger UI rollback
         }
     },
 

@@ -428,9 +428,10 @@ const App = {
         // Render page
         const content = document.getElementById('contentArea');
         
-        // REGLA: Forzar lectura al servidor para Ventas y Dashboard
-        if (page === 'dashboard' || page === 'ventas') {
-            content.innerHTML = '<div class="p-5 text-center"><div class="spinner-border text-primary" role="status"></div><div class="mt-2 text-muted">Sincronizando con el servidor...</div></div>';
+        // REGLA: Forzar lectura al servidor para asegurar "Única fuente de la verdad"
+        const needsSync = ['dashboard', 'ventas', 'gastos', 'movimientos', 'cotizaciones', 'facturas_compra', 'bancos'];
+        if (needsSync.includes(page)) {
+            content.innerHTML = '<div class="p-5 text-center"><div class="spinner-border text-primary" role="status"></div><div class="mt-2 text-muted">Conectando con el servidor central...</div></div>';
             await DB.syncFromCloud();
         }
 
