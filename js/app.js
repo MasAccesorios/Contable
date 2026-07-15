@@ -5449,24 +5449,3 @@ const App = {
 
 // Initialize app when DOM is ready
 document.addEventListener('DOMContentLoaded', () => App.init());
-
-DB.initPromise.then(() => {
-    const clientes = DB.getAll(DB.KEYS.CLIENTS) || [];
-    if (!clientes.some(c => c.id_alegra === '595')) {
-        const cedula = prompt('PARCHE AUTOM��TICO: Por favor ingresa el n��mero de c��dula o NIT de Helver Izquierdo para restaurar sus facturas:');
-        if (cedula) {
-            clientes.push({
-                id: DB.genId(),
-                id_alegra: '595',
-                nombre: 'helver Izquierdo',
-                documento: cedula,
-                tipo_documento: cedula.length > 10 ? 'NIT' : 'CC',
-                estado: 'activo',
-                created_at: new Date().toISOString()
-            });
-            DB._persist(DB.KEYS.CLIENTS, clientes);
-            alert('? Cliente restaurado con ��xito. El sistema recargar�� la p��gina.');
-            location.reload();
-        }
-    }
-});
