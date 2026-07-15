@@ -3,7 +3,6 @@
  * Puede ejecutarse en la consola del navegador usando: await window.syncAlegraToday()
  */
 window.syncAlegraToday = async function() {
-    console.log("Iniciando sincronización con Alegra (Día: 14/07/2026)...");
     const targetDate = "2026-07-14";
 
     const configList = DB.getAll(DB.KEYS.INTEGRATIONS) || [];
@@ -22,7 +21,6 @@ window.syncAlegraToday = async function() {
 
     try {
         // 1. Sincronizar Facturas
-        console.log("Descargando facturas de Alegra...");
         // Alegra usa limit/start o filters param. Para garantizar resultados traemos los recientes y filtramos.
         // Si la API acepta params de fecha, se puede enviar en el query. Por seguridad enviamos el filtro y también filtramos en local.
         const invRes = await fetch(`https://api.alegra.com/api/v1/invoices?limit=50&order_direction=DESC&date=${targetDate}`, { headers });
@@ -68,10 +66,8 @@ window.syncAlegraToday = async function() {
         });
         
         DB._persist(DB.KEYS.FACTURAS_ALEGRA, facturasLocales);
-        console.log(`✓ Sincronizadas ${todayInvoices.length} facturas de venta.`);
 
         // 2. Sincronizar Pagos / Recibos de Caja (Abonos)
-        console.log("Descargando pagos/recibos de Alegra...");
         const payRes = await fetch(`https://api.alegra.com/api/v1/payments?limit=50&order_direction=DESC&date=${targetDate}`, { headers });
         if (!payRes.ok) throw new Error("Error obteniendo pagos");
         const payments = await payRes.json();
@@ -106,10 +102,8 @@ window.syncAlegraToday = async function() {
         });
         
         DB._persist(DB.KEYS.FACTURAS_ALEGRA, facturasLocales);
-        console.log(`✓ Sincronizados y aplicados ${todayPayments.length} pagos.`);
 
         // 3. Sincronizar Cotizaciones
-        console.log("Descargando cotizaciones de Alegra...");
         const estRes = await fetch(`https://api.alegra.com/api/v1/estimates?limit=50&order_direction=DESC&date=${targetDate}`, { headers });
         if (!estRes.ok) throw new Error("Error obteniendo cotizaciones");
         const estimates = await estRes.json();
@@ -145,9 +139,7 @@ window.syncAlegraToday = async function() {
         });
         
         DB._persist(DB.KEYS.COTIZACIONES_ALEGRA, cotiLocales);
-        console.log(`✓ Sincronizadas ${todayEstimates.length} cotizaciones.`);
         
-        console.log("Sincronización del día completada exitosamente.");
         if (typeof App !== 'undefined' && App.showToast) {
             App.showToast('Sincronización de facturas, pagos y cotizaciones completada', 'Éxito', 'success');
         }

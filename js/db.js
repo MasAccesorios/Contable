@@ -284,89 +284,7 @@ const DB = {
         }
     },
 
-    async forzarSubidaManualDeContactos() {
-        try {
-            // Fuente de verdad: js/alegra_data.js ya cargado como window.ALEGRA_SYNC_DATA
-            let alegraClients = (window.ALEGRA_SYNC_DATA && window.ALEGRA_SYNC_DATA.clientes) || [];
-            
-            // 1. Reconstruir contactos faltantes a partir de facturas y cotizaciones
-            const allInvoices = (window.ALEGRA_SYNC_DATA && window.ALEGRA_SYNC_DATA.facturas) || [];
-            const allQuotes = (window.ALEGRA_SYNC_DATA && window.ALEGRA_SYNC_DATA.cotizaciones) || [];
-            
-            const extraClientsMap = {};
-            [...allInvoices, ...allQuotes].forEach(doc => {
-                if (doc.cliente_id_alegra && doc.cliente_nombre) {
-                    // Si el cliente no existe en el array principal y no lo hemos agregado al mapa
-                    if (!alegraClients.some(c => c.id_alegra == doc.cliente_id_alegra) && !extraClientsMap[doc.cliente_id_alegra]) {
-                        extraClientsMap[doc.cliente_id_alegra] = {
-                            id_alegra: doc.cliente_id_alegra,
-                            name: doc.cliente_nombre,
-                            identification: doc.cliente_nit || '',
-                            phone: '',
-                            email: '',
-                            address: ''
-                        };
-                    }
-                }
-            });
-            
-            alegraClients = [...alegraClients, ...Object.values(extraClientsMap)];
 
-            if (alegraClients.length === 0) {
-                throw new Error('window.ALEGRA_SYNC_DATA no está disponible o no contiene clientes.');
-            }
-
-            // Normalizar todos al formato interno correcto (sobrescritura completa)
-            const normalized = alegraClients.map(c => ({
-                id: c.id_alegra ? `alegra_${c.id_alegra}` : `gen_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-                id_alegra: c.id_alegra || null,
-                nombre: c.name || c.nombre || '',
-                documento: c.identification || c.documento || '',
-                telefono: c.phone || c.telefono || '',
-                email: c.email || '',
-                direccion: c.address || c.direccion || '',
-                tipo: 'Cliente',
-                cupo_credito: 0,
-                plazo_dias: 30,
-                estado: 'activo',
-                created_at: new Date().toISOString()
-            }));
-
-            // Obtener clientes manuales en Firebase (sin id_alegra) para preservarlos
-            const response = await fetch(this._readUrl(), { cache: 'no-store' });
-            if (!response.ok) throw new Error(`Firebase respondió HTTP ${response.status}`);
-            const data = await response.json();
-
-            let manualClients = [];
-            if (data && data[this.KEYS.CLIENTS]) {
-                let raw = data[this.KEYS.CLIENTS];
-                if (typeof raw === 'string') raw = JSON.parse(raw);
-                const cloudArr = Array.isArray(raw) ? raw : Object.values(raw);
-                // Conservar solo clientes creados manualmente (sin id_alegra)
-                manualClients = cloudArr.filter(c => c && !c.id_alegra);
-            }
-
-            // Lista final: clientes de Alegra re-normalizados + manuales sin id_alegra
-            const final = [...normalized, ...manualClients];
-
-            // Sobrescribir Firebase con datos corregidos
-            const success = await this.pushToCloud(this.KEYS.CLIENTS, final);
-            if (!success) {
-                throw new Error("Firebase rechazó la operación. Revisa si tu 'Secret' de Firebase es correcto y está vigente.");
-            }
-
-            this._cache[this.KEYS.CLIENTS] = final;
-            if (this._db) {
-                const tx = this._db.transaction(this.STORE_NAME, 'readwrite');
-                tx.objectStore(this.STORE_NAME).put(final, this.KEYS.CLIENTS);
-            }
-
-            return normalized.length;
-        } catch (e) {
-            console.error('[MIGRACIÓN ALEGRA] Error:', e);
-            throw e;
-        }
-    },
 
     // Sync all local keys to Firebase, preventing duplicates
     async sincronizarTodoHaciaFirebase() {
@@ -1883,13 +1801,8 @@ const DB = {
             }
             if (item.estado !== nuevoEstado) {
                 item.estado = nuevoEstado;
-                changed = true;
             }
         });
-
-        if (changed) {
-            this._persist(this.KEYS.CARTERA, items);
-        }
 
         if (filter && filter !== 'todas') {
             items = items.filter(c => c.estado === filter);
@@ -2368,14 +2281,9 @@ const DB = {
                     }
                     if (matchedClient) {
                         item.proveedor_id = matchedClient.id;
-                        changed = true;
                     }
                 }
         });
-        
-        if (changed) {
-            this._persist(this.KEYS.CARTERA_PROVEEDORES, items);
-        }
 
         if (filter === 'vencida') {
             items = items.filter(i => i.saldo > 0 && i.fecha_vencimiento < today);
