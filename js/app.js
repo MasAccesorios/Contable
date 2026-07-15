@@ -3,6 +3,17 @@
    ===================================================== */
 
 const App = {
+    translateState(st) {
+        if (!st) return 'BORRADOR';
+        const s = String(st).toLowerCase();
+        if (s === 'billed' || s === 'pagada' || s === 'closed') return 'FACTURADA';
+        if (s === 'open' || s === 'pendiente') return 'PENDIENTE';
+        if (s === 'void' || s === 'anulada') return 'ANULADA';
+        if (s === 'draft' || s === 'borrador') return 'BORRADOR';
+        if (s === 'accepted') return 'ACEPTADA';
+        if (s === 'rejected') return 'RECHAZADA';
+        return st.toUpperCase();
+    },
     currentPage: 'dashboard',
     currentReportType: null,
     currentReportData: null,
@@ -1627,6 +1638,9 @@ const App = {
         }
 
         const refNum = sale.numero || sale.id.toString().slice(-6).toUpperCase();
+                const alegraDoc = DB.getAll(DB.KEYS.FACTURAS_ALEGRA).find(a => String(a.numero) === String(sale.numero)) || {};
+        const fallbackName = sale.cliente_nombre_alegra || sale.cliente_nombre || alegraDoc.cliente_nombre || 'N/A';
+        const fallbackDoc = sale.cliente_nit || sale.cliente_documento || alegraDoc.cliente_nit || '-';
         const printWindow = window.open('', '_blank');
         
         let subtotalAccum = 0;
@@ -1667,8 +1681,8 @@ const App = {
             <div class="info-grid">
                 <div class="info-block">
                     <h3>Información del Cliente</h3>
-                    <p><strong>Nombre:</strong> ${client ? client.nombre : 'N/A'}</p>
-                    <p><strong>Documento:</strong> ${client ? (client.documento || '-') : '-'}</p>
+                    <p><strong>Nombre:</strong> ${client ? client.nombre : fallbackName}</p>
+                    <p><strong>Documento:</strong> ${client ? (client.documento || '-') : fallbackDoc}</p>
                     <p><strong>Teléfono:</strong> ${client ? (client.telefono || '-') : '-'}</p>
                     <p><strong>Dirección:</strong> ${client ? (client.direccion || '-') : '-'}</p>
                 </div>
@@ -1676,7 +1690,7 @@ const App = {
                     <h3>Detalles del Documento</h3>
                     <p><strong>Fecha:</strong> ${sale.fecha ? sale.fecha.split('T')[0] : '-'}</p>
                     <p><strong>Tipo:</strong> ${sale.tipo_venta ? sale.tipo_venta.toUpperCase() : '-'}</p>
-                    <p><strong>Estado:</strong> <span class="estado-badge ${sale.estado}">${sale.estado || 'OK'}</span></p>
+                    <p><strong>Estado:</strong> <span class="estado-badge ${sale.estado}">${App.translateState(sale.estado)}</span></p>
                     ${seller ? `<p><strong>Vendedor:</strong> ${seller.nombre}</p>` : ''}
                     ${sale.observacion ? `<p><strong>Notas:</strong> ${sale.observacion}</p>` : ''}
                 </div>
@@ -2512,6 +2526,9 @@ const App = {
         const fmt = (n) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n);
         const refNum = c.numero || c.id.toString().slice(-6).toUpperCase();
 
+                const alegraDoc = DB.getAll('cg_cotizaciones_alegra').find(a => String(a.numero) === String(c.numero)) || {};
+        const fallbackName = c.cliente_nombre_alegra || c.cliente_nombre || alegraDoc.cliente_nombre || (alegraDoc.client ? alegraDoc.client.name : 'N/A');
+        const fallbackDoc = c.cliente_nit || c.cliente_documento || alegraDoc.cliente_nit || (alegraDoc.client ? alegraDoc.client.identification : '-');
         const printWindow = window.open('', '_blank');
         
         let subtotalAccum = 0;
@@ -2552,8 +2569,8 @@ const App = {
             <div class="info-grid">
                 <div class="info-block">
                     <h3>Información del Cliente</h3>
-                    <p><strong>Nombre:</strong> ${client ? client.nombre : 'N/A'}</p>
-                    <p><strong>Documento:</strong> ${client ? (client.documento || '-') : '-'}</p>
+                    <p><strong>Nombre:</strong> ${client ? client.nombre : fallbackName}</p>
+                    <p><strong>Documento:</strong> ${client ? (client.documento || '-') : fallbackDoc}</p>
                     <p><strong>Teléfono:</strong> ${client ? (client.telefono || '-') : '-'}</p>
                     <p><strong>Dirección:</strong> ${client ? (client.direccion || '-') : '-'}</p>
                 </div>
@@ -2561,7 +2578,7 @@ const App = {
                     <h3>Detalles del Documento</h3>
                     <p><strong>Fecha:</strong> ${c.fecha || '-'}</p>
                     <p><strong>Válida hasta:</strong> ${c.validez || '-'}</p>
-                    <p><strong>Estado:</strong> <span class="estado-badge ${c.estado}">${c.estado || 'borrador'}</span></p>
+                    <p><strong>Estado:</strong> <span class="estado-badge ${c.estado}">${App.translateState(c.estado)}</span></p>
                     ${seller ? `<p><strong>Asesor:</strong> ${seller.nombre}</p>` : ''}
                     ${c.observacion ? `<p><strong>Observaciones:</strong> ${c.observacion}</p>` : ''}
                 </div>
