@@ -329,7 +329,7 @@ const DB = {
                 });
             }
             this._persist(this.KEYS.USERS, users);
-            await this.pushToCloud(this.KEYS.USERS, users);
+            // pushToCloud de USERS eliminado: causaba HTTP 405 al final de cada sincronización
 
             console.log('[DIAGNÓSTICO] Sincronización completa. Llaves recibidas:', cloudKeys.join(', '));
             return true;
