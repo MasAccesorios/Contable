@@ -157,7 +157,65 @@ const DB = {
         if (!localStorage.getItem('cg_test_cleared_v1')) {
             this.clearTestData();
             localStorage.setItem('cg_test_cleared_v1', 'true');
-            alert('Se han borrado todos los datos de compras, ventas, contactos, facturas y bancos para comenzar pruebas desde cero. Los productos y usuarios se mantuvieron (con stock 0).');
+        }
+
+        if (window.ALEGRA_SYNC_DATA && !localStorage.getItem('alegra_imported_v3')) {
+            const DATA = window.ALEGRA_SYNC_DATA;
+            const mergeById = (existing, newItems, idField) => {
+                const map = {};
+                existing.forEach(e => map[e.id] = e);
+                newItems.forEach(n => {
+                    const match = Object.values(map).find(e => e[idField] && String(e[idField]) === String(n[idField]));
+                    if (match) map[match.id] = { ...match, ...n };
+                    else { const id = this.genId(); map[id] = { id, created_at: new Date().toISOString(), ...n }; }
+                });
+                return Object.values(map);
+            };
+
+            const cMap = DATA.clientes.map(c => ({ id_alegra: c.id_alegra, nombre: c.name, identificacion: c.identification, email: c.email, telefono: c.phone, direccion: c.address }));
+            const cFinal = mergeById(this.getAll('cg_clients') || [], cMap, 'id_alegra');
+            await this._persist('cg_clients', cFinal);
+
+            const bMap = DATA.bancos.map(b => ({ id_alegra: b.id_alegra, nombre: b.name, tipo: b.type, balance: b.balance, saldo_actual: parseFloat(b.balance) || 0 }));
+            await this._persist('cg_banks', mergeById(this.getAll('cg_banks') || [], bMap, 'id_alegra'));
+
+            await this._persist('cg_facturas_alegra', mergeById(this.getAll('cg_facturas_alegra') || [], DATA.facturas, 'id_alegra'));
+
+            const vMap = {}, carMap = {};
+            (this.getAll('cg_sales') || []).forEach(v => { if (v.id_alegra) vMap[v.id_alegra] = v; });
+            (this.getAll('cg_cartera') || []).forEach(c => { if (c.id_alegra) carMap[c.id_alegra] = c; });
+
+            DATA.facturas.forEach(inv => {
+                const cl = cFinal.find(c => c.id_alegra === inv.cliente_id_alegra);
+                const localClientId = cl ? cl.id : '';
+                const est = parseFloat(inv.saldo) <= 0 ? 'pagada' : (inv.fecha_vencimiento && inv.fecha_vencimiento < new Date().toISOString().split('T')[0] ? 'vencida' : 'abierta');
+                
+                if (vMap[inv.id_alegra]) Object.assign(vMap[inv.id_alegra], { ...inv, cliente_id: localClientId, fecha: inv.fecha_emision, estado: est });
+                else vMap[inv.id_alegra] = { id: this.genId(), created_at: new Date().toISOString(), ...inv, cliente_id: localClientId, fecha: inv.fecha_emision, estado: est };
+
+                if (parseFloat(inv.saldo) > 0) {
+                    const d = { id_alegra: inv.id_alegra, venta_id: vMap[inv.id_alegra].id, numero: inv.numero, cliente_id: localClientId, cliente_nombre: inv.cliente_nombre, fecha_emision: inv.fecha_emision, fecha_vencimiento: inv.fecha_vencimiento, total: parseFloat(inv.total), abono: parseFloat(inv.abono), saldo: parseFloat(inv.saldo), estado: est };
+                    if (carMap[inv.id_alegra]) Object.assign(carMap[inv.id_alegra], d);
+                    else carMap[inv.id_alegra] = { id: this.genId(), created_at: new Date().toISOString(), ...d };
+                }
+            });
+            await this._persist('cg_sales', Object.values(vMap));
+            await this._persist('cg_cartera', Object.values(carMap));
+
+            await this._persist('cg_cotizaciones_alegra', mergeById(this.getAll('cg_cotizaciones_alegra') || [], DATA.cotizaciones, 'id_alegra'));
+            const cotiMap = DATA.cotizaciones.map(c => ({ id_alegra: c.id_alegra, numero: c.numero, fecha: c.fecha_emision, validez: c.validez, cliente_nombre: c.cliente_nombre, total: parseFloat(c.total), estado: c.estado }));
+            await this._persist('cg_cotizaciones', mergeById(this.getAll('cg_cotizaciones') || [], cotiMap, 'id_alegra'));
+
+            if (DATA.productos) {
+                const pMap = DATA.productos.map(p => ({ id_alegra: p.id_alegra, nombre: p.name, referencia: p.reference, precio_venta: parseFloat(p.price) || 0, precio_compra: parseFloat(p.cost) || 0, stock_actual: parseFloat(p.inventory) || 0 }));
+                await this._persist('cg_products', mergeById(this.getAll('cg_products') || [], pMap, 'id_alegra'));
+            }
+
+            console.log("DIAGNOSTICO cg_banks:", this.getAll('cg_banks'));
+            console.log("DIAGNOSTICO total bancos:", this.getTotalBankBalance());
+            console.log("DIAGNOSTICO cg_sales[0]:", this.getAll('cg_sales')[0]);
+
+            localStorage.setItem('alegra_imported_v3', 'true');
             location.reload();
             return new Promise(() => {}); // Wait forever for reload
         }
@@ -1655,7 +1713,8 @@ const DB = {
         
         let saldo = 0;
         if (idx !== -1) {
-            saldo = parseFloat(banks[idx].saldo_inicial || 0);
+            // Prioritize the hardcoded injected balance from Alegra, fallback to saldo_inicial
+            saldo = banks[idx].balance !== undefined ? parseFloat(banks[idx].balance) : parseFloat(banks[idx].saldo_inicial || 0);
         }
 
         movements.forEach(m => {
@@ -1949,8 +2008,8 @@ const DB = {
             return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
         });
 
-        const ventasMes = monthSales.reduce((sum, s) => sum + parseFloat(s.total), 0);
-        const utilidadMes = monthSales.reduce((sum, s) => sum + parseFloat(s.utilidad), 0);
+        const ventasMes = monthSales.reduce((sum, s) => sum + parseFloat(s.total || 0), 0);
+        const utilidadMes = monthSales.reduce((sum, s) => sum + parseFloat(s.utilidad || 0), 0);
 
         const cartera = this.getCartera();
         const totalCartera = cartera.filter(c => c.estado !== 'pagada')
@@ -2506,3 +2565,6 @@ const DB = {
 
 // Start IndexedDB initialization
 DB.initPromise = DB.init();
+
+
+

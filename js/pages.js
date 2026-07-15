@@ -147,11 +147,12 @@ const Pages = {
         if (sales.length === 0) return '<tr><td class="text-center text-muted py-3">Sin ventas recientes</td></tr>';
         return sales.map(s => {
             const client = DB.getClient(s.cliente_id);
+            const clientName = client ? client.nombre : (s.cliente_nombre || 'N/A');
             const dateStr = s.fecha ? (s.fecha.includes('T') ? new Date(s.fecha).toLocaleString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : s.fecha) : 'Sin fecha';
             const ref = s.numero || (s.id ? (s.id.toString().length > 6 ? s.id.toString().substr(-6).toUpperCase() : s.id.toString().toUpperCase()) : 'N/A');
             return `<tr>
                 <td>
-                    <div style="font-weight:600;font-size:13px">${client ? client.nombre : 'N/A'}</div>
+                    <div style="font-weight:600;font-size:13px">${clientName}</div>
                     <div style="font-size:11px;color:var(--gray-400)">${ref} - ${dateStr}</div>
                 </td>
                 <td class="text-end">
@@ -995,7 +996,8 @@ const Pages = {
         
         // Calcular saldos
         const bankData = banks.map(b => {
-            let saldoReal = parseFloat(b.saldo_inicial || 0);
+            let baseBalance = b.balance !== undefined ? parseFloat(b.balance) : parseFloat(b.saldo_inicial || 0);
+            let saldoReal = baseBalance;
             movements.forEach(m => {
                 if (String(m.banco_id) === String(b.id)) {
                     const amount = parseFloat(m.monto || 0);
@@ -1139,7 +1141,7 @@ const Pages = {
         const fmt = (n) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n);
         
         // El saldo anterior es el saldo_inicial (o 0) más la sumatoria de todos los movimientos ya conciliados
-        let saldoAnterior = parseFloat(bank.saldo_inicial || 0);
+        let saldoAnterior = bank.balance !== undefined ? parseFloat(bank.balance) : parseFloat(bank.saldo_inicial || 0);
         const conciled = allMovements.filter(m => String(m.banco_id) === String(bankId) && m.estado === 'conciliado');
         conciled.forEach(m => {
             const amt = parseFloat(m.monto || 0);
