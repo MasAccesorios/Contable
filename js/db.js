@@ -250,6 +250,40 @@ const DB = {
         }
     },
     
+    async syncLocalContactsToFirebase(cloudClients) {
+        try {
+            const localClients = this.getAll(this.KEYS.CLIENTS) || [];
+            if (localClients.length === 0) return cloudClients;
+
+            const cloudClientsArray = Array.isArray(cloudClients) ? cloudClients : [];
+            let mergedClients = [...cloudClientsArray];
+            let modified = false;
+
+            localClients.forEach(localCli => {
+                if (!localCli) return;
+                const exists = cloudClientsArray.some(cloudCli => 
+                    (localCli.id && cloudCli && cloudCli.id === localCli.id) ||
+                    (localCli.documento && cloudCli && cloudCli.documento === localCli.documento) ||
+                    (localCli.id_alegra && cloudCli && cloudCli.id_alegra === localCli.id_alegra)
+                );
+
+                if (!exists) {
+                    mergedClients.push(localCli);
+                    modified = true;
+                }
+            });
+
+            if (modified) {
+                console.log("[CONTACTS SYNC] Migrando contactos locales faltantes a Firebase...");
+                await this.pushToCloud(this.KEYS.CLIENTS, mergedClients);
+            }
+            return mergedClients;
+        } catch (e) {
+            console.error("[CONTACTS SYNC ERROR] Error al migrar contactos locales:", e);
+            return cloudClients;
+        }
+    },
+
     // Sync all data from Google Sheets to IndexedDB/cache on startup
     async syncFromCloud() {
         try {
@@ -299,6 +333,9 @@ const DB = {
                     let parsedValue = data[key];
                     if(typeof parsedValue === 'string') {
                          parsedValue = JSON.parse(parsedValue);
+                    }
+                    if (key === this.KEYS.CLIENTS) {
+                        parsedValue = await this.syncLocalContactsToFirebase(parsedValue);
                     }
                     this._cache[key] = parsedValue;
                     if (this._db) {
