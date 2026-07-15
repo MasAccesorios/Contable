@@ -656,7 +656,14 @@ const DB = {
     // Clients
     // =========================================================
     getClients() { return this.getAllActive(this.KEYS.CLIENTS); },
-    getClient(id) { return this.getById(this.KEYS.CLIENTS, id); },
+    getClient(id) { 
+        let client = this.getById(this.KEYS.CLIENTS, id);
+        if (!client && id) {
+            const clients = this.getAll(this.KEYS.CLIENTS) || [];
+            client = clients.find(c => c.id_alegra && String(c.id_alegra) === String(id));
+        }
+        return client;
+    },
 
     // Devuelve el nombre del cliente resolviendo primero en CLIENTS locales,
     // y como segundo recurso devuelve el campo ya guardado en el objeto raw (cliente_nombre_alegra).

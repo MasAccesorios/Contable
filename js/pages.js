@@ -818,11 +818,10 @@ const Pages = {
         const q = (searchQuery || '').toLowerCase().trim();
         const sales = q ? allSales.filter(s => {
             if (!s) return false;
-            const client = DB.getClient(s.cliente_id);
-        const ref = (s.numero || (s.id ? s.id.toString().substr(-6) : '')).toString().replace('#', '').toLowerCase();
-        const clientName = (client ? client.nombre : '').toLowerCase();
-        return ref.includes(q) || clientName.includes(q);
-    }) : allSales;
+            const ref = (s.numero || (s.id ? s.id.toString().substr(-6) : '')).toString().replace('#', '').toLowerCase();
+            const clientName = DB.getClientName(s.cliente_id, s.cliente_nombre_alegra).toLowerCase();
+            return ref.includes(q) || clientName.includes(q);
+        }) : allSales;
 
         let rows = '';
         if (sales.length === 0) {
@@ -1991,14 +1990,14 @@ const Pages = {
         } else {
             const sorted = [...items].sort((a, b) => new Date(b.created_at || b.fecha) - new Date(a.created_at || a.fecha));
             rows = sorted.map(r => {
-                const client = DB.getClient(r.cliente_id);
+                const clientName = DB.getClientName(r.cliente_id);
                 const bank = DB.getBank(r.banco_id);
                 const badgeClass = r.estado === 'activo' ? 'success' : 'danger';
                 const ref = r.id.toString().length > 6 ? r.id.toString().substr(-6).toUpperCase() : r.id.toString().toUpperCase();
                 return `<tr>
                     <td><strong>#${ref}</strong></td>
                     <td>${r.fecha || '-'}</td>
-                    <td>${client ? client.nombre : 'Consumidor Final'}</td>
+                    <td>${r.cliente_id ? clientName : 'Consumidor Final'}</td>
                     <td>${bank ? bank.nombre : '-'}</td>
                     <td class="text-end"><strong>${fmt(r.monto_total || 0)}</strong></td>
                     <td><span class="badge bg-${badgeClass} text-uppercase" style="font-size:0.75rem">${r.estado || 'activo'}</span></td>
@@ -2059,9 +2058,8 @@ const Pages = {
         const q = (searchQuery || '').toLowerCase().trim();
         const items = q ? sorted.filter(c => {
             if (!c) return false;
-            const client = DB.getClient(c.cliente_id);
             const ref = (c.numero || (c.id ? c.id.toString().substr(-6) : '')).toString().replace('#', '').toLowerCase();
-            const clientName = (client ? client.nombre : '').toLowerCase();
+            const clientName = DB.getClientName(c.cliente_id, c.cliente_nombre_alegra).toLowerCase();
             return ref.includes(q) || clientName.includes(q);
         }) : sorted;
 
