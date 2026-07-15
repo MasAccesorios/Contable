@@ -37,9 +37,15 @@ const DB = {
         COTIZACIONES_ALEGRA: 'cg_cotizaciones_alegra'
     },
 
-    // Google Sheets Web App URL
-    // REEMPLAZA "tu-proyecto" con el ID de tu proyecto en Firebase
+    // Token de autenticación de Firebase RTDB (Database Secret)
+    // Obtén el token desde: Firebase Console → Configuración del proyecto → Cuentas de servicio → Secrets
+    FIREBASE_SECRET: 'REEMPLAZA_CON_TU_DATABASE_SECRET',
     API_URL: 'https://masaccesorios-contable-default-rtdb.firebaseio.com/contable',
+
+    // Construye la URL autenticada para cada request
+    _url(path) {
+        return `${this.API_URL}${path}?auth=${this.FIREBASE_SECRET}`;
+    },
 
     // In-memory cache to avoid repeated JSON.parse (PERF-01)
     _cache: {},
@@ -227,7 +233,7 @@ const DB = {
             const controller = new AbortController();
             const timeout = setTimeout(() => controller.abort(), 5000);
             
-            const response = await fetch(`${this.API_URL}.json?t=${Date.now()}`, { 
+            const response = await fetch(this._url(`.json?t=${Date.now()}`), { 
                 signal: controller.signal,
                 cache: 'no-store'
             });
@@ -321,7 +327,7 @@ const DB = {
         return new Promise((resolve) => {
             this._syncQueue = this._syncQueue.then(async () => {
                 try {
-                    await fetch(`${this.API_URL}/${key}.json`, {
+                    await fetch(this._url(`/${key}.json`), {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(data)
