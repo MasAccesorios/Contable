@@ -242,19 +242,14 @@ const DB = {
     
     // Sync all data from Google Sheets to IndexedDB/cache on startup
     async syncFromCloud() {
-        alert('[DIAGNÓSTICO ENTRADA] syncFromCloud() fue llamada. Iniciando diagnóstico...');
         try {
-            // === DIAGNÓSTICO: verificar token antes de fetch ===
             const _diagToken = localStorage.getItem('fb_secret');
             if (!_diagToken || _diagToken.trim() === '') {
-                alert('[DIAGNÓSTICO] fb_secret está vacío o nulo en localStorage. El fetch no se ejecutará autenticado.');
+                console.warn('fb_secret está vacío o nulo en localStorage. El fetch no se ejecutará autenticado.');
                 return false;
             }
 
-            console.log('[DIAGNÓSTICO] Token leído OK, primeros 6 chars:', _diagToken.substring(0, 6));
             const _diagUrl = this._readUrl();
-            console.log('[DIAGNÓSTICO] URL de lectura:', _diagUrl);
-
             const controller = new AbortController();
             const timeout = setTimeout(() => controller.abort(), 8000);
             
@@ -264,11 +259,9 @@ const DB = {
             });
             clearTimeout(timeout);
 
-            // === DIAGNÓSTICO: mostrar HTTP status en pantalla ===
-            console.log('[DIAGNÓSTICO] HTTP status:', response.status, response.statusText);
             if (!response.ok) {
                 const body = await response.text();
-                alert(`[DIAGNÓSTICO] Firebase rechazó la petición.\nHTTP ${response.status} ${response.statusText}\nRespuesta: ${body.substring(0, 200)}`);
+                console.error(`Firebase rechazó la petición. HTTP ${response.status} ${response.statusText}`, body);
                 return false;
             }
             
@@ -281,13 +274,13 @@ const DB = {
             const data = await response.json();
             
             if (!data || data.error || typeof data !== 'object') {
-                alert(`[DIAGNÓSTICO] Firebase devolvió datos inválidos: ${JSON.stringify(data).substring(0, 200)}`);
+                console.error("Firebase devolvió datos inválidos:", data);
                 return false;
             }
 
             const cloudKeys = Object.keys(data);
             if (cloudKeys.length === 0) {
-                alert('[DIAGNÓSTICO] Firebase devolvió un objeto vacío {}. La base de datos en la nube está vacía.');
+                console.warn("Firebase devolvió un objeto vacío {}. La base de datos en la nube está vacía.");
                 return false;
             }
             
@@ -333,13 +326,12 @@ const DB = {
             this._persist(this.KEYS.USERS, users);
             // pushToCloud de USERS eliminado: causaba HTTP 405 al final de cada sincronización
 
-            console.log('[DIAGNÓSTICO] Sincronización completa. Llaves recibidas:', cloudKeys.join(', '));
             return true;
         } catch (error) {
             if (error.name === 'AbortError') {
-                alert('[DIAGNÓSTICO] Timeout: Firebase no respondió en 8 segundos. Verifica conexión o URL.');
+                console.warn("Timeout: Firebase no respondió en 8 segundos.");
             } else {
-                alert(`[DIAGNÓSTICO] Error de red/CORS en syncFromCloud:\n${error.name}: ${error.message}`);
+                console.error("Error de red/CORS en syncFromCloud:", error);
             }
             return false;
         }
@@ -357,7 +349,6 @@ const DB = {
             this._syncQueue = this._syncQueue.then(async () => {
                 try {
                     const _writeUrl = this._writeUrl(key);
-                    console.log('[DIAGNÓSTICO] Escribiendo en Firebase:', _writeUrl.split('?')[0]);
                     const res = await fetch(_writeUrl, {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
@@ -365,14 +356,13 @@ const DB = {
                     });
                     if (!res.ok) {
                         const body = await res.text();
-                        alert(`[DIAGNÓSTICO] Error al escribir en Firebase (clave: ${key})\nHTTP ${res.status} ${res.statusText}\n${body.substring(0, 200)}`);
+                        console.error(`Error al escribir en Firebase (clave: ${key}) HTTP ${res.status} ${res.statusText}`, body);
                         resolve(false);
                     } else {
-                        console.log(`[DIAGNÓSTICO] Firebase escribió OK: ${key} (HTTP ${res.status})`);
                         resolve(true);
                     }
                 } catch(error) {
-                    alert(`[DIAGNÓSTICO] Error de red/CORS en pushToCloud (${key}):\n${error.name}: ${error.message}`);
+                    console.error(`Error de red/CORS en pushToCloud (${key}):`, error);
                     resolve(false);
                 }
             });

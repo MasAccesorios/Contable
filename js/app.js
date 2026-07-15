@@ -31,7 +31,7 @@ const App = {
         this.setupGlobals();
         
         // Sync with cloud in background - does NOT block app startup
-        DB.syncFromCloud().catch(e => alert(`[DIAGNÓSTICO] syncFromCloud lanzó excepción antes de llegar al try:\n${e.name}: ${e.message}`));
+        DB.syncFromCloud().catch(e => console.warn('Cloud sync skipped:', e.message));
         
         this.setupAuth();
         this.setupNavigation();
