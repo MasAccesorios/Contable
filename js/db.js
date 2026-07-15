@@ -1801,7 +1801,6 @@ const DB = {
                         changed = true;
                     }
                 }
-            }
             
             let nuevoEstado = item.estado;
             if (parseFloat(item.saldo || 0) <= 0) {
@@ -2302,7 +2301,6 @@ const DB = {
                         changed = true;
                     }
                 }
-            }
         });
         
         if (changed) {
