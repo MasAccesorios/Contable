@@ -1,4 +1,4 @@
-/* =====================================================
+ï»¿/* =====================================================
    MAS Accesorios - Main Application Controller
    ===================================================== */
 
@@ -5319,7 +5319,7 @@ document.addEventListener('DOMContentLoaded', () => App.init());
 DB.initPromise.then(() => {
     const clientes = DB.getAll(DB.KEYS.CLIENTS) || [];
     if (!clientes.some(c => c.id_alegra === '595')) {
-        const cedula = prompt('PARCHE AUTOM¨¢TICO: Por favor ingresa el n¨²mero de c¨¦dula o NIT de Helver Izquierdo para restaurar sus facturas:');
+        const cedula = prompt('PARCHE AUTOMï¿½ï¿½TICO: Por favor ingresa el nï¿½ï¿½mero de cï¿½ï¿½dula o NIT de Helver Izquierdo para restaurar sus facturas:');
         if (cedula) {
             clientes.push({
                 id: DB.genId(),
@@ -5331,7 +5331,7 @@ DB.initPromise.then(() => {
                 created_at: new Date().toISOString()
             });
             DB._persist(DB.KEYS.CLIENTS, clientes);
-            alert('? Cliente restaurado con ¨¦xito. El sistema recargar¨¢ la p¨¢gina.');
+            alert('? Cliente restaurado con ï¿½ï¿½xito. El sistema recargarï¿½ï¿½ la pï¿½ï¿½gina.');
             location.reload();
         }
     }
