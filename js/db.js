@@ -264,7 +264,12 @@ const DB = {
                     if(typeof parsedValue === 'string') {
                          parsedValue = JSON.parse(parsedValue);
                     }
-                    this._persist(key, parsedValue);
+                    this._cache[key] = parsedValue;
+                    if (this._db) {
+                        const transaction = this._db.transaction(this.STORE_NAME, 'readwrite');
+                        const store = transaction.objectStore(this.STORE_NAME);
+                        store.put(parsedValue, key);
+                    }
                 } catch(e) {
                     console.error("Error parseando llave", key, e);
                 }
