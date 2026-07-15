@@ -4867,19 +4867,20 @@ const App = {
        ================================================= */
     addCotizacionRow(data = {}) {
         const body = document.getElementById('cotizacionDetalleBody');
-        const rowIndex = body.querySelectorAll('tr.detalle-row').length;
+        const rowCount = body.querySelectorAll('tr.detalle-row').length;
+        const rowId = Date.now() + '_' + Math.floor(Math.random() * 1000);
         
         const row = document.createElement('tr');
         row.className = 'detalle-row';
-        row.dataset.rowIndex = rowIndex;
+        row.dataset.rowIndex = rowId;
         
         row.innerHTML = `
             <td class="align-middle text-center" style="width: 40px;">
                 <input type="checkbox" class="form-check-input select-row-chk">
-                <span class="row-num ms-1">${rowIndex + 1}</span>
+                <span class="row-num ms-1">${rowCount + 1}</span>
             </td>
             <td class="align-middle" style="min-width: 250px;">
-                <div id="cot-row-product-container-${rowIndex}"></div>
+                <div id="cot-row-product-container-${rowId}"></div>
                 <div class="row-sku-description mt-1 d-flex align-items-center gap-2" style="font-size: 11px;">
                     <span class="product-sku text-muted">SKU: -</span>
                     <a href="#" class="add-desc-link text-decoration-none" onclick="event.preventDefault(); App.showRowDescriptionModal(this)">
@@ -4928,7 +4929,7 @@ const App = {
             reference: p.codigo
         }));
         
-        const selectContainerId = `cot-row-product-container-${rowIndex}`;
+        const selectContainerId = `cot-row-product-container-${rowId}`;
         const select = new SearchableSelect(selectContainerId, {
             data: productsData,
             placeholder: 'Selecciona un producto',
@@ -4975,19 +4976,20 @@ const App = {
 
     addVentaRow(data = {}) {
         const body = document.getElementById('ventaDetalleBody');
-        const rowIndex = body.querySelectorAll('tr.detalle-row').length;
+        const rowCount = body.querySelectorAll('tr.detalle-row').length;
+        const rowId = Date.now() + '_' + Math.floor(Math.random() * 1000);
         
         const row = document.createElement('tr');
         row.className = 'detalle-row';
-        row.dataset.rowIndex = rowIndex;
+        row.dataset.rowIndex = rowId;
         
         row.innerHTML = `
             <td class="align-middle text-center" style="width: 40px;">
                 <input type="checkbox" class="form-check-input select-row-chk">
-                <span class="row-num ms-1">${rowIndex + 1}</span>
+                <span class="row-num ms-1">${rowCount + 1}</span>
             </td>
             <td class="align-middle" style="min-width: 250px;">
-                <div id="vta-row-product-container-${rowIndex}"></div>
+                <div id="vta-row-product-container-${rowId}"></div>
                 <div class="row-sku-description mt-1 d-flex align-items-center gap-2" style="font-size: 11px;">
                     <span class="product-sku text-muted">SKU: -</span>
                     <a href="#" class="add-desc-link text-decoration-none" onclick="event.preventDefault(); App.showRowDescriptionModal(this)">
@@ -5036,7 +5038,7 @@ const App = {
             reference: p.codigo
         }));
         
-        const selectContainerId = `vta-row-product-container-${rowIndex}`;
+        const selectContainerId = `vta-row-product-container-${rowId}`;
         const select = new SearchableSelect(selectContainerId, {
             data: productsData,
             placeholder: 'Selecciona un producto',
