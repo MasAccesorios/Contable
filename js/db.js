@@ -921,7 +921,7 @@ const DB = {
                 // Preserve Alegra client name so getClientName() can use it when local record missing
                 cliente_nombre_alegra: f.cliente_nombre || null,
                 tipo_venta: f.saldo > 0 ? 'credito' : 'contado',
-                estado: f.estado === 'open' ? 'pendiente' : (f.estado === 'void' ? 'anulada' : 'pagada'),
+                estado: f.estado === 'open' ? 'pendiente' : (f.estado === 'void' ? 'anulada' : (f.estado === 'draft' ? 'borrador' : 'pagada')),
                 total: parseFloat(f.total || 0),
                 subtotal: parseFloat(f.subtotal || 0),
                 descuento: parseFloat(f.descuento || 0),
@@ -2051,12 +2051,24 @@ const DB = {
             return d >= from && d <= to;
         };
 
-        const sales = this.getSales();
+        const allSales = this.getSales();
+        const sales = allSales.filter(s => s.estado !== 'borrador' && s.estado !== 'anulada' && s.estado !== 'plantilla');
+        const devoluciones = this.getDevoluciones() || [];
+
         const periodSales     = sales.filter(s => inRange(s.fecha || s.created_at, dateFrom, now));
         const prevPeriodSales = sales.filter(s => inRange(s.fecha || s.created_at, prevFrom, prevTo));
 
-        const ventasMes         = periodSales.reduce((sum, s) => sum + parseFloat(s.total || 0), 0);
-        const ventasMesAnterior = prevPeriodSales.reduce((sum, s) => sum + parseFloat(s.total || 0), 0);
+        const devPeriod       = devoluciones.filter(d => inRange(d.fecha || d.created_at, dateFrom, now));
+        const devPrevPeriod   = devoluciones.filter(d => inRange(d.fecha || d.created_at, prevFrom, prevTo));
+
+        const ventasBrutasMes = periodSales.reduce((sum, s) => sum + parseFloat(s.total || 0), 0);
+        const devolucionesMes = devPeriod.reduce((sum, d) => sum + parseFloat(d.total || 0), 0);
+        const ventasMes       = ventasBrutasMes - devolucionesMes;
+
+        const ventasBrutasMesAnterior = prevPeriodSales.reduce((sum, s) => sum + parseFloat(s.total || 0), 0);
+        const devolucionesMesAnterior = devPrevPeriod.reduce((sum, d) => sum + parseFloat(d.total || 0), 0);
+        const ventasMesAnterior       = ventasBrutasMesAnterior - devolucionesMesAnterior;
+
         const cambioVentas = ventasMesAnterior > 0
             ? ((ventasMes - ventasMesAnterior) / ventasMesAnterior * 100).toFixed(1)
             : 0;
@@ -2099,7 +2111,7 @@ const DB = {
 
         // ── Otros KPIs ───────────────────────────────────────────────────────
         const impuestosVenta  = periodSales.reduce((sum, s) => sum + parseFloat(s.impuestos || 0), 0);
-        const devolucionesVenta = 0;
+        const devolucionesVenta = devolucionesMes;
 
         const saleDetails = this.getAllActive(this.KEYS.SALE_DETAILS) || [];
         let productosVendidosMes  = 0;
@@ -2132,8 +2144,15 @@ const DB = {
                 const ds = cursor.toISOString().split('T')[0];
                 const ds2 = `${cursor.getFullYear()-1}-${ds.slice(5)}`;
                 chartLabels.push(`${cursor.getDate()} de ${fmtMon(cursor)}`);
-                chartDataCurrent.push(sales.filter(s => s.fecha && s.fecha.startsWith(ds)).reduce((a, s) => a + parseFloat(s.total||0), 0));
-                chartDataPrevYear.push(sales.filter(s => s.fecha && s.fecha.startsWith(ds2)).reduce((a, s) => a + parseFloat(s.total||0), 0));
+                
+                const sCurr = sales.filter(s => s.fecha && s.fecha.startsWith(ds)).reduce((a, s) => a + parseFloat(s.total||0), 0);
+                const dCurr = devoluciones.filter(d => d.fecha && d.fecha.startsWith(ds)).reduce((a, d) => a + parseFloat(d.total||0), 0);
+                chartDataCurrent.push(sCurr - dCurr);
+                
+                const sPrev = sales.filter(s => s.fecha && s.fecha.startsWith(ds2)).reduce((a, s) => a + parseFloat(s.total||0), 0);
+                const dPrev = devoluciones.filter(d => d.fecha && d.fecha.startsWith(ds2)).reduce((a, d) => a + parseFloat(d.total||0), 0);
+                chartDataPrevYear.push(sPrev - dPrev);
+                
                 cursor.setDate(cursor.getDate() + 1);
             }
         } else if (meses <= 6) {
@@ -2151,8 +2170,14 @@ const DB = {
                 while (d <= weekEnd) {
                     const ds  = d.toISOString().split('T')[0];
                     const ds2 = `${d.getFullYear()-1}-${ds.slice(5)}`;
-                    curr += sales.filter(s => s.fecha && s.fecha.startsWith(ds)).reduce((a, s) => a + parseFloat(s.total||0), 0);
-                    prev += sales.filter(s => s.fecha && s.fecha.startsWith(ds2)).reduce((a, s) => a + parseFloat(s.total||0), 0);
+                    const sCurr = sales.filter(s => s.fecha && s.fecha.startsWith(ds)).reduce((a, s) => a + parseFloat(s.total||0), 0);
+                    const dCurr = devoluciones.filter(dev => dev.fecha && dev.fecha.startsWith(ds)).reduce((a, dev) => a + parseFloat(dev.total||0), 0);
+                    curr += (sCurr - dCurr);
+                    
+                    const sPrev = sales.filter(s => s.fecha && s.fecha.startsWith(ds2)).reduce((a, s) => a + parseFloat(s.total||0), 0);
+                    const dPrev = devoluciones.filter(dev => dev.fecha && dev.fecha.startsWith(ds2)).reduce((a, dev) => a + parseFloat(dev.total||0), 0);
+                    prev += (sPrev - dPrev);
+                    
                     d.setDate(d.getDate() + 1);
                 }
                 chartLabels.push(`Sem ${wIdx} ${fmtMon(weekStart)}`);
