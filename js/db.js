@@ -226,7 +226,14 @@ const DB = {
             const controller = new AbortController();
             const timeout = setTimeout(() => controller.abort(), 5000);
             
-            const response = await fetch(this.API_URL, { signal: controller.signal });
+            const response = await fetch(`${this.API_URL}?t=${Date.now()}`, { 
+                signal: controller.signal,
+                headers: {
+                    'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+                    'Pragma': 'no-cache',
+                    'Expires': '0'
+                }
+            });
             clearTimeout(timeout);
             
             // Check content-type - if it's HTML (Google login page), abort safely
