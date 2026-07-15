@@ -964,47 +964,50 @@ const DB = {
             if (f) {
                 const clients = this.getAll(this.KEYS.CLIENTS) || [];
                 const localClient = clients.find(cli => 
-                    (cli.id_alegra && String(cli.id_alegra) === String(f.cliente_id_alegra)) ||
-                    (cli.documento && String(cli.documento) === String(f.cliente_nit))
+                    (cli?.id_alegra && String(cli.id_alegra) === String(f?.cliente_id_alegra)) ||
+                    (cli?.documento && String(cli.documento) === String(f?.cliente_nit))
                 );
                 sale = {
-                    id: f.id_alegra || f.id,
-                    numero: f.numero,
-                    fecha: f.fecha_emision,
-                    fecha_vencimiento: f.fecha_vencimiento || f.dueDate || f.datetime_vencimiento || f.fecha_emision,
-                    cliente_id: localClient ? localClient.id : f.cliente_id_alegra,
-                    tipo_venta: f.saldo > 0 ? 'credito' : 'contado',
-                    estado: f.estado === 'open' ? 'pendiente' : (f.estado === 'void' ? 'anulada' : 'pagada'),
-                    total: parseFloat(f.total || 0),
-                    subtotal: parseFloat(f.subtotal || 0),
-                    descuento: parseFloat(f.descuento || 0),
-                    impuesto: parseFloat(f.impuesto || 0),
-                    is_alegra: true
-                };
-            }
-        }
+                    id: f?.id_alegra || f?.id || this.genId(),
+                    numero: f?.numero || '',
+                    fecha: f?.fecha_emision || new Date().toISOString().split('T')[0],
+                    fecha_vencimiento: f?.fecha_vencimiento || f?.dueDate || f?.datetime_vencimiento || f?.fecha_emision || new Date().toISOString().split('T')[0],
+                    cliente_id: localClient?.id || f?.cliente_id_alegra || 'N/A',
+                    tipo_venta: f?.saldo > 0 ? 'credito' : 'contado',
+                    estado: f?.estado === 'open' ? 'pendiente' : (f?.estado === 'void' ? 'anulada' : 'pagada'),
+                    total: parseFloat(f?.total || 0),
+                    subtotal: parseFloat(f?.subtotal || 0),
+                    descuento: parseFloat(f?.descuento || 0),
         return sale;
     },
 
     getSaleDetails(saleId) {
-        let details = this.getAll(this.KEYS.SALE_DETAILS).filter(d => String(d.venta_id) === String(saleId));
+        let details = this.getAll(this.KEYS.SALE_DETAILS).filter(d => String(d?.venta_id) === String(saleId));
         if (details.length === 0) {
             const f = this.getById(this.KEYS.FACTURAS_ALEGRA, saleId);
             if (f && Array.isArray(f.items)) {
+                const products = this.getAll(this.KEYS.PRODUCTS) || [];
                 details = f.items.map(item => {
-                    const products = this.getAll(this.KEYS.PRODUCTS) || [];
-                    const localProduct = products.find(p => String(p.id_alegra) === String(item.id_item_alegra));
+                    let pId = null;
+                    if (item?.reference) {
+                        const product = products.find(p => p?.sku === item.reference);
+                        if (product) pId = product.id;
+                    }
+                    if (!pId && item?.id_item_alegra) {
+                        const localProduct = products.find(p => p?.id_alegra && String(p.id_alegra) === String(item.id_item_alegra));
+                        if (localProduct) pId = localProduct.id;
+                    }
                     return {
                         id: this.genId(),
-                        venta_id: saleId,
-                        producto_id: localProduct ? localProduct.id : item.id_item_alegra,
-                        cantidad: parseFloat(item.cantidad || 0),
-                        precio_unitario: parseFloat(item.precio_unitario || 0),
-                        descuento: parseFloat(item.descuento || 0),
-                        impuesto: item.impuesto ? item.impuesto[0] || 'Ninguno' : 'Ninguno',
-                        subtotal: parseFloat(item.total || 0),
-                        nombre_producto: item.nombre,
-                        descripcion: item.descripcion
+                        venta_id: f?.id_alegra || f?.id || saleId,
+                        producto_id: pId || 'N/A',
+                        cantidad: parseFloat(item?.cantidad || item?.quantity || 0),
+                        precio_unitario: parseFloat(item?.precio_unitario || item?.price || 0),
+                        descuento: parseFloat(item?.descuento || 0),
+                        impuesto: item?.impuesto ? item.impuesto[0] || 'Ninguno' : 'Ninguno',
+                        subtotal: parseFloat(item?.total || (item?.price * item?.quantity) || 0),
+                        nombre_producto: item?.nombre || item?.name || 'Item sin nombre',
+                        descripcion: item?.descripcion || ''
                     };
                 });
             }
