@@ -978,6 +978,11 @@ const DB = {
                     total: parseFloat(f?.total || 0),
                     subtotal: parseFloat(f?.subtotal || 0),
                     descuento: parseFloat(f?.descuento || 0),
+                    impuesto: parseFloat(f?.impuesto || 0),
+                    is_alegra: true
+                };
+            }
+        }
         return sale;
     },
 
