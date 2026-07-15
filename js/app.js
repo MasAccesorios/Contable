@@ -1546,9 +1546,23 @@ const App = {
 
         try {
             DB.registerSale(saleData, details, bancoId);
-            bootstrap.Modal.getInstance(document.getElementById('ventaModal')).hide();
-            this.showToast('Venta registrada correctamente');
-            this.navigateTo('ventas');
+            
+            // Wait for physical write to complete before closing (UPSERT confirmation)
+            if (DB._db) {
+                const tx = DB._db.transaction(DB.STORE_NAME, 'readwrite');
+                tx.oncomplete = () => {
+                    bootstrap.Modal.getInstance(document.getElementById('ventaModal')).hide();
+                    this.showToast('Venta registrada correctamente');
+                    this.navigateTo('ventas');
+                };
+                tx.onerror = () => {
+                    this.showToast('Error al confirmar escritura en disco local', 'Error', 'danger');
+                };
+            } else {
+                bootstrap.Modal.getInstance(document.getElementById('ventaModal')).hide();
+                this.showToast('Venta registrada correctamente');
+                this.navigateTo('ventas');
+            }
         } catch(error) {
             this.showToast(error.message, 'Error', 'danger');
         }
