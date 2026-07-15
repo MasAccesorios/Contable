@@ -17,9 +17,18 @@ const Pages = {
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h2 class="mb-0 fw-bold" style="color: #1F2937; font-size: 1.5rem;">Resumen del negocio</h2>
                 <div class="d-flex gap-2">
-                    <button class="btn bg-white border shadow-sm text-dark d-flex align-items-center" style="border-radius: 8px;">
-                        Mes actual <i class="bi bi-chevron-down ms-2 text-muted" style="font-size: 12px;"></i>
-                    </button>
+                    <div class="dropdown">
+                        <button class="btn bg-white border shadow-sm text-dark d-flex align-items-center" id="dashPeriodBtn" data-bs-toggle="dropdown" aria-expanded="false" style="border-radius: 8px;">
+                            <span id="dashPeriodLabel">Mes actual</span>
+                            <i class="bi bi-chevron-down ms-2 text-muted" style="font-size: 12px;"></i>
+                        </button>
+                        <ul class="dropdown-menu shadow border-0" style="min-width:170px;border-radius:10px;">
+                            <li><a class="dropdown-item" href="#" onclick="Pages.filtrarPorPeriodo(1,'Mes actual');return false;">Mes actual (1 mes)</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="Pages.filtrarPorPeriodo(3,'Últimos 3 meses');return false;">Últimos 3 meses</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="Pages.filtrarPorPeriodo(6,'Últimos 6 meses');return false;">Últimos 6 meses</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="Pages.filtrarPorPeriodo(12,'Últimos 12 meses');return false;">Últimos 12 meses</a></li>
+                        </ul>
+                    </div>
                     <button class="btn d-flex align-items-center" style="background-color: #38B2AC; color: white; border-radius: 8px;">
                         Agregar gráfica <i class="bi bi-chevron-down ms-2" style="font-size: 12px;"></i>
                     </button>
@@ -34,24 +43,24 @@ const Pages = {
                     <div class="card border-0 shadow-sm h-100" style="border-radius: 12px;">
                         <div class="card-body p-4">
                             <h6 class="text-muted fw-semibold mb-2" style="font-size: 0.85rem; text-decoration: underline; text-underline-offset: 4px;">Cuentas por cobrar</h6>
-                            <h3 class="fw-bold mb-3" style="color: #1F2937;">${fmt(m.totalCartera)}</h3>
+                            <h3 class="fw-bold mb-3" style="color: #1F2937;" id="kpi-totalCartera">${fmt(m.totalCartera)}</h3>
                             
                             <!-- Progress Bar -->
                             <div class="d-flex w-100 mb-3" style="height: 6px; border-radius: 3px; overflow: hidden;">
-                                <div style="width: ${m.totalCartera > 0 ? (m.carteraVigente / m.totalCartera) * 100 : 50}%; background-color: #10B981;"></div>
-                                <div style="width: ${m.totalCartera > 0 ? (m.carteraVencida / m.totalCartera) * 100 : 50}%; background-color: #EF4444;"></div>
+                                <div id="kpi-bar-vigente" style="width: ${m.totalCartera > 0 ? (m.carteraVigente / m.totalCartera) * 100 : 50}%; background-color: #10B981;"></div>
+                                <div id="kpi-bar-vencida" style="width: ${m.totalCartera > 0 ? (m.carteraVencida / m.totalCartera) * 100 : 50}%; background-color: #EF4444;"></div>
                             </div>
                             
                             <div class="d-flex justify-content-between mt-2">
                                 <div style="border-left: 2px solid #10B981; padding-left: 8px;">
                                     <div class="text-muted" style="font-size: 0.75rem;">Vigentes</div>
-                                    <div class="fw-semibold" style="font-size: 0.85rem; color: #1F2937;">${fmt(m.carteraVigente)}</div>
-                                    <div class="text-muted" style="font-size: 0.75rem;">${m.carteraVigenteCount} documentos</div>
+                                    <div class="fw-semibold" style="font-size: 0.85rem; color: #1F2937;" id="kpi-carteraVigente">${fmt(m.carteraVigente)}</div>
+                                    <div class="text-muted" style="font-size: 0.75rem;" id="kpi-carteraVigenteCount">${m.carteraVigenteCount} documentos</div>
                                 </div>
                                 <div style="border-left: 2px solid #EF4444; padding-left: 8px;">
                                     <div class="text-muted" style="font-size: 0.75rem;">Vencidas</div>
-                                    <div class="fw-semibold" style="font-size: 0.85rem; color: #1F2937;">${fmt(m.carteraVencida)}</div>
-                                    <div class="text-muted" style="font-size: 0.75rem;">${m.carteraVencidaCount} documentos</div>
+                                    <div class="fw-semibold" style="font-size: 0.85rem; color: #1F2937;" id="kpi-carteraVencida">${fmt(m.carteraVencida)}</div>
+                                    <div class="text-muted" style="font-size: 0.75rem;" id="kpi-carteraVencidaCount">${m.carteraVencidaCount} documentos
                                 </div>
                             </div>
                         </div>
@@ -63,7 +72,7 @@ const Pages = {
                     <div class="card border-0 shadow-sm h-100" style="border-radius: 12px;">
                         <div class="card-body p-4">
                             <h6 class="text-muted fw-semibold mb-2" style="font-size: 0.85rem; text-decoration: underline; text-underline-offset: 4px;">Cuentas por pagar</h6>
-                            <h3 class="fw-bold mb-3" style="color: #1F2937;">${fmt(m.totalCXP)}</h3>
+                            <h3 class="fw-bold mb-3" style="color: #1F2937;" id="kpi-totalCXP">${fmt(m.totalCXP)}</h3>
                             
                             <!-- Progress Bar -->
                             <div class="d-flex w-100 mb-3" style="height: 6px; border-radius: 3px; overflow: hidden; background-color: #E5E7EB;">
@@ -74,13 +83,13 @@ const Pages = {
                             <div class="d-flex justify-content-between mt-2">
                                 <div style="border-left: 2px solid #10B981; padding-left: 8px;">
                                     <div class="text-muted" style="font-size: 0.75rem;">Vigentes</div>
-                                    <div class="fw-semibold" style="font-size: 0.85rem; color: #1F2937;">${fmt(m.cxpVigente)}</div>
-                                    <div class="text-muted" style="font-size: 0.75rem;">${m.cxpVigenteCount} documentos</div>
+                                    <div class="fw-semibold" style="font-size: 0.85rem; color: #1F2937;" id="kpi-cxpVigente">${fmt(m.cxpVigente)}</div>
+                                    <div class="text-muted" style="font-size: 0.75rem;" id="kpi-cxpVigenteCount">${m.cxpVigenteCount} documentos</div>
                                 </div>
                                 <div style="border-left: 2px solid #EF4444; padding-left: 8px;">
                                     <div class="text-muted" style="font-size: 0.75rem;">Vencidas</div>
-                                    <div class="fw-semibold" style="font-size: 0.85rem; color: #1F2937;">${fmt(m.cxpVencida)}</div>
-                                    <div class="text-muted" style="font-size: 0.75rem;">${m.cxpVencidaCount} documentos</div>
+                                    <div class="fw-semibold" style="font-size: 0.85rem; color: #1F2937;" id="kpi-cxpVencida">${fmt(m.cxpVencida)}</div>
+                                    <div class="text-muted" style="font-size: 0.75rem;" id="kpi-cxpVencidaCount">${m.cxpVencidaCount} documentos
                                 </div>
                             </div>
                         </div>
@@ -94,7 +103,7 @@ const Pages = {
                             <div class="card border-0 shadow-sm h-100" style="border-radius: 12px;">
                                 <div class="card-body p-3 d-flex flex-column justify-content-center">
                                     <h6 class="text-muted fw-semibold mb-2" style="font-size: 0.75rem;">Impuestos en venta</h6>
-                                    <div class="fw-semibold" style="font-size: 1.1rem; color: #1F2937;">${fmt(m.impuestosVenta)}</div>
+                                    <div class="fw-semibold" style="font-size: 1.1rem; color: #1F2937;" id="kpi-impuestosVenta">${fmt(m.impuestosVenta)}</div>
                                 </div>
                             </div>
                         </div>
@@ -103,8 +112,8 @@ const Pages = {
                                 <div class="card-body p-3 d-flex flex-column justify-content-center">
                                     <h6 class="text-muted fw-semibold mb-2" style="font-size: 0.75rem;">Productos vendidos</h6>
                                     <div class="d-flex align-items-baseline justify-content-between">
-                                        <div class="fw-semibold" style="font-size: 1.1rem; color: #1F2937;">${fmtN(m.productosVendidosMes)}</div>
-                                        <span style="font-size: 0.75rem; color: ${m.cambioProductos >= 0 ? '#10B981' : '#EF4444'};">
+                                        <div class="fw-semibold" style="font-size: 1.1rem; color: #1F2937;" id="kpi-productosVendidos">${fmtN(m.productosVendidosMes)}</div>
+                                        <span id="kpi-cambioProductos" style="font-size: 0.75rem; color: ${m.cambioProductos >= 0 ? '#10B981' : '#EF4444'};">
                                             <i class="bi bi-arrow-${m.cambioProductos >= 0 ? 'up' : 'down'}"></i> ${Math.abs(m.cambioProductos)}%
                                         </span>
                                     </div>
@@ -116,7 +125,7 @@ const Pages = {
                                 <div class="card-body p-3 d-flex flex-column justify-content-center">
                                     <h6 class="text-muted fw-semibold mb-0" style="font-size: 0.75rem;">Devoluciones de clientes</h6>
                                     <div class="text-muted mb-2" style="font-size: 0.65rem;">Incluye impuestos</div>
-                                    <div class="fw-semibold" style="font-size: 1.1rem; color: #1F2937;">${fmt(m.devolucionesVenta)}</div>
+                                    <div class="fw-semibold" style="font-size: 1.1rem; color: #1F2937;" id="kpi-devoluciones">${fmt(m.devolucionesVenta)}</div>
                                 </div>
                             </div>
                         </div>
@@ -124,7 +133,7 @@ const Pages = {
                             <div class="card border-0 shadow-sm h-100" style="border-radius: 12px;">
                                 <div class="card-body p-3 d-flex flex-column justify-content-center">
                                     <h6 class="text-muted fw-semibold mb-2" style="font-size: 0.75rem; text-decoration: underline; text-underline-offset: 4px;">Clientes con ventas</h6>
-                                    <div class="fw-semibold" style="font-size: 1.1rem; color: #1F2937;">${fmtN(m.clientesUnicos)}</div>
+                                    <div class="fw-semibold" style="font-size: 1.1rem; color: #1F2937;" id="kpi-clientesUnicos">${fmtN(m.clientesUnicos)}</div>
                                 </div>
                             </div>
                         </div>
@@ -145,8 +154,8 @@ const Pages = {
                         </div>
                         <div class="text-end">
                             <div class="d-flex align-items-baseline">
-                                <h3 class="fw-bold mb-0 me-3" style="color: #1F2937;">${fmt(m.ventasMes)}</h3>
-                                <span style="font-size: 0.9rem; color: ${m.cambioVentas >= 0 ? '#10B981' : '#EF4444'}; font-weight: 500;">
+                                <h3 class="fw-bold mb-0 me-3" style="color: #1F2937;" id="kpi-ventasMes">${fmt(m.ventasMes)}</h3>
+                                <span id="kpi-cambioVentas" style="font-size: 0.9rem; color: ${m.cambioVentas >= 0 ? '#10B981' : '#EF4444'}; font-weight: 500;">
                                     <i class="bi bi-arrow-${m.cambioVentas >= 0 ? 'up' : 'down'}"></i> ${Math.abs(m.cambioVentas)}%
                                 </span>
                             </div>
@@ -161,16 +170,81 @@ const Pages = {
                     <div class="d-flex justify-content-center align-items-center mt-3 gap-4" style="font-size: 0.85rem; color: #4B5563;">
                         <div class="d-flex align-items-center">
                             <div style="width: 12px; height: 12px; border-radius: 50%; background-color: #3B82F6; margin-right: 8px;"></div>
-                            1 de ${m.chart.monthName} de ${m.chart.currYear} - ${m.chart.days} de ${m.chart.monthName} de ${m.chart.currYear}
+                            <span id="kpi-legend-current">1 de ${m.chart.monthName} de ${m.chart.currYear} - ${m.chart.days} de ${m.chart.monthName} de ${m.chart.currYear}</span>
                         </div>
                         <div class="d-flex align-items-center">
                             <div style="width: 12px; height: 12px; border-radius: 50%; background-color: #34D399; margin-right: 8px;"></div>
-                            1 de ${m.chart.monthName} de ${m.chart.prevYearNum} - ${m.chart.days} de ${m.chart.monthName} de ${m.chart.prevYearNum}
+                            <span id="kpi-legend-prev">1 de ${m.chart.monthName} de ${m.chart.prevYearNum} - ${m.chart.days} de ${m.chart.monthName} de ${m.chart.prevYearNum}</span>
                         </div>
                     </div>
                 </div>
             </div>
         </div>`;
+    },
+
+    // ─── Filtro de período del Dashboard ─────────────────────────────────────
+    _dashPeriodMonths: 1, // estado actual
+
+    filtrarPorPeriodo(meses, label) {
+        this._dashPeriodMonths = meses;
+        // Actualizar label del botón
+        const lbl = document.getElementById('dashPeriodLabel');
+        if (lbl) lbl.textContent = label || 'Mes actual';
+
+        // Recalcular métricas con el período seleccionado
+        const m = DB.getDashboardMetrics(meses);
+        const fmt  = (n) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 2 }).format(n);
+        const fmtN = (n) => new Intl.NumberFormat('es-CO').format(n);
+        const setTxt = (id, val) => { const el = document.getElementById(id); if (el) el.innerHTML = val; };
+        const setPct = (id, val) => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            const color = val >= 0 ? '#10B981' : '#EF4444';
+            const arrow = val >= 0 ? 'up' : 'down';
+            el.style.color = color;
+            el.innerHTML = `<i class="bi bi-arrow-${arrow}"></i> ${Math.abs(val)}%`;
+        };
+
+        // KPIs CxC
+        setTxt('kpi-totalCartera', fmt(m.totalCartera));
+        setTxt('kpi-carteraVigente', fmt(m.carteraVigente));
+        setTxt('kpi-carteraVigenteCount', m.carteraVigenteCount + ' documentos');
+        setTxt('kpi-carteraVencida', fmt(m.carteraVencida));
+        setTxt('kpi-carteraVencidaCount', m.carteraVencidaCount + ' documentos');
+        const bv = document.getElementById('kpi-bar-vigente');
+        const bx = document.getElementById('kpi-bar-vencida');
+        if (bv) bv.style.width = (m.totalCartera > 0 ? (m.carteraVigente / m.totalCartera) * 100 : 0) + '%';
+        if (bx) bx.style.width = (m.totalCartera > 0 ? (m.carteraVencida / m.totalCartera) * 100 : 0) + '%';
+
+        // KPIs CxP
+        setTxt('kpi-totalCXP', fmt(m.totalCXP));
+        setTxt('kpi-cxpVigente', fmt(m.cxpVigente));
+        setTxt('kpi-cxpVigenteCount', m.cxpVigenteCount + ' documentos');
+        setTxt('kpi-cxpVencida', fmt(m.cxpVencida));
+        setTxt('kpi-cxpVencidaCount', m.cxpVencidaCount + ' documentos');
+
+        // KPIs métricas
+        setTxt('kpi-impuestosVenta', fmt(m.impuestosVenta));
+        setTxt('kpi-productosVendidos', fmtN(m.productosVendidosMes));
+        setTxt('kpi-devoluciones', fmt(m.devolucionesVenta));
+        setTxt('kpi-clientesUnicos', fmtN(m.clientesUnicos));
+        setPct('kpi-cambioProductos', parseFloat(m.cambioProductos));
+
+        // Ventas totales y comparativo
+        setTxt('kpi-ventasMes', fmt(m.ventasMes));
+        setPct('kpi-cambioVentas', parseFloat(m.cambioVentas));
+
+        // Leyenda del gráfico
+        setTxt('kpi-legend-current', m.chart.legendCurrent);
+        setTxt('kpi-legend-prev', m.chart.legendPrev);
+
+        // Actualizar gráfico
+        if (window.dashboardChart) {
+            window.dashboardChart.data.labels = m.chart.labels;
+            window.dashboardChart.data.datasets[0].data = m.chart.current;
+            window.dashboardChart.data.datasets[1].data = m.chart.prevYear;
+            window.dashboardChart.update();
+        }
     },
 
     _recentSalesRows() {

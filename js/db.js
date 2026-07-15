@@ -2032,37 +2032,46 @@ const DB = {
     // =========================================================
     // Dashboard Metrics
     // =========================================================
-    getDashboardMetrics() {
+    getDashboardMetrics(meses) {
+        meses = meses || 1;
         const now = new Date();
-        const currentMonth = now.getMonth();
         const currentYear = now.getFullYear();
 
+        // ── Rango del período seleccionado ──────────────────────────────────
+        const dateFrom = new Date(now);
+        dateFrom.setMonth(dateFrom.getMonth() - meses);
+        dateFrom.setHours(0, 0, 0, 0);
+
+        // ── Rango del período comparativo (mismo lapso, año anterior) ────────
+        const prevFrom = new Date(dateFrom);
+        prevFrom.setFullYear(prevFrom.getFullYear() - 1);
+        const prevTo = new Date(now);
+        prevTo.setFullYear(prevTo.getFullYear() - 1);
+
+        const inRange = (fechaStr, from, to) => {
+            if (!fechaStr) return false;
+            const d = new Date(fechaStr.length === 10 ? fechaStr + 'T00:00:00' : fechaStr);
+            return d >= from && d <= to;
+        };
+
         const sales = this.getSales();
-        const monthSales = sales.filter(s => {
-            const d = new Date(s.fecha || s.created_at || now);
-            return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
-        });
+        const periodSales     = sales.filter(s => inRange(s.fecha || s.created_at, dateFrom, now));
+        const prevPeriodSales = sales.filter(s => inRange(s.fecha || s.created_at, prevFrom, prevTo));
 
-        // Previous month comparison
-        const prevMonth = currentMonth === 0 ? 11 : currentMonth - 1;
-        const prevYear = currentMonth === 0 ? currentYear - 1 : currentYear;
-        const prevMonthSales = sales.filter(s => {
-            const d = new Date(s.fecha || s.created_at || now);
-            return d.getMonth() === prevMonth && d.getFullYear() === prevYear;
-        });
-
-        const ventasMes = monthSales.reduce((sum, s) => sum + parseFloat(s.total || 0), 0);
-        const ventasMesAnterior = prevMonthSales.reduce((sum, s) => sum + parseFloat(s.total || 0), 0);
+        const ventasMes         = periodSales.reduce((sum, s) => sum + parseFloat(s.total || 0), 0);
+        const ventasMesAnterior = prevPeriodSales.reduce((sum, s) => sum + parseFloat(s.total || 0), 0);
         const cambioVentas = ventasMesAnterior > 0
             ? ((ventasMes - ventasMesAnterior) / ventasMesAnterior * 100).toFixed(1)
             : 0;
 
-        // Cuentas por cobrar (Cartera)
+        // ── Cuentas por cobrar ───────────────────────────────────────────────
         const cartera = this.getCartera();
         let carteraVigente = 0, carteraVigenteCount = 0;
         let carteraVencida = 0, carteraVencidaCount = 0;
         cartera.forEach(c => {
-            if (c.estado !== 'pagada' && c.saldo > 0) {
+            if (c.estado !== 'pagada' && parseFloat(c.saldo) > 0) {
+                const fechaEmision = c.fecha_emision || c.fecha || c.created_at;
+                if (!inRange(fechaEmision, dateFrom, now) && meses < 12) return; // filtrar por período solo si no es anual
                 if (c.estado === 'vencida' || (c.fecha_vencimiento && new Date(c.fecha_vencimiento) < now)) {
                     carteraVencida += parseFloat(c.saldo);
                     carteraVencidaCount++;
@@ -2074,72 +2083,105 @@ const DB = {
         });
         const totalCartera = carteraVigente + carteraVencida;
 
-        // Cuentas por pagar (Compras/Gastos)
+        // ── Cuentas por pagar ────────────────────────────────────────────────
         const compras = this.getAllActive(this.KEYS.COMPRAS) || [];
         let cxpVigente = 0, cxpVigenteCount = 0;
         let cxpVencida = 0, cxpVencidaCount = 0;
         compras.forEach(c => {
-            const saldo = parseFloat(c.saldo || c.total || 0); // fallback if saldo is missing but unpaid
-            const status = c.estado || 'open';
-            if (status !== 'closed' && saldo > 0) {
-                if (c.fecha_vencimiento && new Date(c.fecha_vencimiento) < now) {
-                    cxpVencida += saldo;
-                    cxpVencidaCount++;
-                } else {
-                    cxpVigente += saldo;
-                    cxpVigenteCount++;
-                }
+            const saldo = parseFloat(c.saldo || c.total || 0);
+            if ((c.estado || 'open') === 'closed' || saldo <= 0) return;
+            const fechaC = c.fecha || c.created_at;
+            if (!inRange(fechaC, dateFrom, now) && meses < 12) return;
+            if (c.fecha_vencimiento && new Date(c.fecha_vencimiento) < now) {
+                cxpVencida += saldo; cxpVencidaCount++;
+            } else {
+                cxpVigente += saldo; cxpVigenteCount++;
             }
         });
         const totalCXP = cxpVigente + cxpVencida;
 
-        // Otros KPIs
-        const impuestosVenta = monthSales.reduce((sum, s) => sum + parseFloat(s.impuestos || 0), 0);
-        const devolucionesVenta = 0; // Not fully implemented in core DB yet
-        
-        // Productos vendidos
+        // ── Otros KPIs ───────────────────────────────────────────────────────
+        const impuestosVenta  = periodSales.reduce((sum, s) => sum + parseFloat(s.impuestos || 0), 0);
+        const devolucionesVenta = 0;
+
         const saleDetails = this.getAllActive(this.KEYS.SALE_DETAILS) || [];
-        let productosVendidosMes = 0;
+        let productosVendidosMes  = 0;
         let productosVendidosPrev = 0;
         saleDetails.forEach(d => {
             const sale = this.getSale(d.venta_id);
-            if (sale) {
-                const sDate = new Date(sale.fecha || sale.created_at || now);
-                if (sDate.getMonth() === currentMonth && sDate.getFullYear() === currentYear) {
-                    productosVendidosMes += parseInt(d.cantidad || 0);
-                } else if (sDate.getMonth() === prevMonth && sDate.getFullYear() === prevYear) {
-                    productosVendidosPrev += parseInt(d.cantidad || 0);
-                }
-            }
+            if (!sale) return;
+            if (inRange(sale.fecha || sale.created_at, dateFrom, now))
+                productosVendidosMes  += parseInt(d.cantidad || 0);
+            else if (inRange(sale.fecha || sale.created_at, prevFrom, prevTo))
+                productosVendidosPrev += parseInt(d.cantidad || 0);
         });
-        
         const cambioProductos = productosVendidosPrev > 0
             ? ((productosVendidosMes - productosVendidosPrev) / productosVendidosPrev * 100).toFixed(1)
             : 0;
 
-        // Clientes únicos
         const uniqueClients = new Set();
-        monthSales.forEach(s => {
-            if (s.cliente_id) uniqueClients.add(s.cliente_id);
-        });
+        periodSales.forEach(s => { if (s.cliente_id) uniqueClients.add(s.cliente_id); });
 
-        // Chart: Sales 1 to current day of month (compare with previous year)
-        const daysInMonth = now.getDate(); // Up to today
-        const chartDataCurrent = [];
-        const chartDataPrevYear = [];
-        const chartLabels = [];
-        
-        for (let i = 1; i <= daysInMonth; i++) {
-            const currDateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
-            const prevYearStr = `${currentYear - 1}-${String(currentMonth + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
-            
-            const daySales = sales.filter(s => s.fecha && s.fecha.startsWith(currDateStr));
-            const daySalesPrevYear = sales.filter(s => s.fecha && s.fecha.startsWith(prevYearStr));
-            
-            chartLabels.push(`${i} de ${now.toLocaleString('es-CO', {month:'short'})}`);
-            chartDataCurrent.push(daySales.reduce((sum, s) => sum + parseFloat(s.total || 0), 0));
-            chartDataPrevYear.push(daySalesPrevYear.reduce((sum, s) => sum + parseFloat(s.total || 0), 0));
+        // ── Gráfico agrupado según período ───────────────────────────────────
+        // 1 mes → días | 3-6 meses → semanas | 12 meses → meses
+        const chartLabels = [], chartDataCurrent = [], chartDataPrevYear = [];
+        const fmtMon = (d) => d.toLocaleString('es-CO', {month:'short'});
+
+        if (meses === 1) {
+            // Daily: desde dateFrom hasta hoy
+            const cursor = new Date(dateFrom);
+            cursor.setDate(cursor.getDate() + 1);
+            while (cursor <= now) {
+                const ds = cursor.toISOString().split('T')[0];
+                const ds2 = `${cursor.getFullYear()-1}-${ds.slice(5)}`;
+                chartLabels.push(`${cursor.getDate()} de ${fmtMon(cursor)}`);
+                chartDataCurrent.push(sales.filter(s => s.fecha && s.fecha.startsWith(ds)).reduce((a, s) => a + parseFloat(s.total||0), 0));
+                chartDataPrevYear.push(sales.filter(s => s.fecha && s.fecha.startsWith(ds2)).reduce((a, s) => a + parseFloat(s.total||0), 0));
+                cursor.setDate(cursor.getDate() + 1);
+            }
+        } else if (meses <= 6) {
+            // Weekly buckets
+            const cursor = new Date(dateFrom);
+            cursor.setDate(cursor.getDate() + 1);
+            let weekStart = new Date(cursor);
+            let wIdx = 1;
+            while (cursor <= now) {
+                const weekEnd = new Date(weekStart);
+                weekEnd.setDate(weekEnd.getDate() + 6);
+                if (weekEnd > now) weekEnd.setTime(now.getTime());
+                let curr = 0, prev = 0;
+                const d = new Date(weekStart);
+                while (d <= weekEnd) {
+                    const ds  = d.toISOString().split('T')[0];
+                    const ds2 = `${d.getFullYear()-1}-${ds.slice(5)}`;
+                    curr += sales.filter(s => s.fecha && s.fecha.startsWith(ds)).reduce((a, s) => a + parseFloat(s.total||0), 0);
+                    prev += sales.filter(s => s.fecha && s.fecha.startsWith(ds2)).reduce((a, s) => a + parseFloat(s.total||0), 0);
+                    d.setDate(d.getDate() + 1);
+                }
+                chartLabels.push(`Sem ${wIdx} ${fmtMon(weekStart)}`);
+                chartDataCurrent.push(curr);
+                chartDataPrevYear.push(prev);
+                weekStart.setDate(weekStart.getDate() + 7);
+                cursor.setDate(cursor.getDate() + 7);
+                wIdx++;
+            }
+        } else {
+            // Monthly buckets
+            for (let i = meses - 1; i >= 0; i--) {
+                const md = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                const me = new Date(md.getFullYear(), md.getMonth() + 1, 0);
+                const mdPrev = new Date(md.getFullYear() - 1, md.getMonth(), 1);
+                const mePrev = new Date(mdPrev.getFullYear(), mdPrev.getMonth() + 1, 0);
+                chartLabels.push(md.toLocaleString('es-CO', {month:'short', year:'2-digit'}));
+                chartDataCurrent.push(sales.filter(s => inRange(s.fecha, md, me)).reduce((a, s) => a + parseFloat(s.total||0), 0));
+                chartDataPrevYear.push(sales.filter(s => inRange(s.fecha, mdPrev, mePrev)).reduce((a, s) => a + parseFloat(s.total||0), 0));
+            }
         }
+
+        // ── Leyendas del gráfico ─────────────────────────────────────────────
+        const fmtDate = (d) => `${d.getDate()} de ${fmtMon(d)} de ${d.getFullYear()}`;
+        const legendCurrent = `${fmtDate(dateFrom)} - ${fmtDate(now)}`;
+        const legendPrev    = `${fmtDate(prevFrom)} - ${fmtDate(prevTo)}`;
 
         return {
             ventasMes,
@@ -2163,10 +2205,13 @@ const DB = {
                 labels: chartLabels,
                 current: chartDataCurrent,
                 prevYear: chartDataPrevYear,
+                legendCurrent,
+                legendPrev,
+                // Backward compat for initial render (meses=1)
                 monthName: now.toLocaleString('es-CO', {month:'short'}),
                 currYear: currentYear,
                 prevYearNum: currentYear - 1,
-                days: daysInMonth
+                days: now.getDate()
             }
         };
     },
