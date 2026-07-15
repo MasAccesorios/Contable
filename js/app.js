@@ -524,22 +524,26 @@ const App = {
         new bootstrap.Modal(document.getElementById('clienteModal')).show();
     },
 
-    async forzarMigracionContactos(btn) {
-        if (btn) {
-            btn.disabled = true;
-            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Migrando...';
-        }
+    async sincronizarTodoHaciaFirebase(btn) {
+        if (!confirm('¿Deseas iniciar una sincronización maestra de TODOS los datos hacia Firebase? Esto fusionará clientes, vendedores, bancos, productos y demás.')) return;
+        
+        const originalText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Sincronizando...';
+        
         try {
-            const count = await DB.forzarSubidaManualDeContactos();
-            alert(`Migración completada: ${count} contactos subidos a Firebase.`);
-            this.navigateTo('clientes');
-        } catch (e) {
-            alert(`Error al forzar migración: ${e.message}`);
-        } finally {
-            if (btn) {
-                btn.disabled = false;
-                btn.innerHTML = '⚠️ Forzar Migración de Contactos';
+            const results = await DB.sincronizarTodoHaciaFirebase();
+            let msg = 'Sincronización exitosa. Resumen:\n\n';
+            for (const [key, stat] of Object.entries(results)) {
+                msg += `- ${key}: ${stat.added} subidos, ${stat.total} total\n`;
             }
+            alert(msg);
+            location.reload();
+        } catch (e) {
+            alert(`Error al sincronizar: ${e.message}`);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
         }
     },
 

@@ -368,9 +368,78 @@ const DB = {
         }
     },
 
-    // Alias explícito para claridad
-    importarCopiaAlegraAFirebase() {
-        return this.forzarSubidaManualDeContactos();
+    // Sync all local keys to Firebase, preventing duplicates
+    async sincronizarTodoHaciaFirebase() {
+        try {
+            console.log("[SYNC-MAESTRO] Iniciando sincronización maestra hacia Firebase...");
+            const response = await fetch(this._readUrl(), { cache: 'no-store' });
+            if (!response.ok) throw new Error(`Firebase respondió HTTP ${response.status}`);
+            const cloudData = await response.json() || {};
+            
+            const collectionsToSync = Object.values(this.KEYS);
+            const results = {};
+
+            for (const key of collectionsToSync) {
+                let cloudItems = [];
+                if (cloudData[key]) {
+                    let raw = cloudData[key];
+                    if (typeof raw === 'string') raw = JSON.parse(raw);
+                    cloudItems = Array.isArray(raw) ? raw : Object.values(raw);
+                }
+                
+                const localItems = this.getAll(key) || [];
+                
+                // Función de comparación para evitar duplicados
+                const isMatch = (a, b) => {
+                    if (a.id && b.id && String(a.id) === String(b.id)) return true;
+                    if (a.id_alegra && b.id_alegra && String(a.id_alegra) === String(b.id_alegra)) return true;
+                    if (a.documento && b.documento && String(a.documento).trim() === String(b.documento).trim()) return true;
+                    if (a.identificacion && b.identificacion && String(a.identificacion).trim() === String(b.identificacion).trim()) return true;
+                    // Nombres y similares
+                    const nameA = (a.nombre || a.name || a.proveedor_nombre || a.cliente_nombre || '').toLowerCase().trim();
+                    const nameB = (b.nombre || b.name || b.proveedor_nombre || b.cliente_nombre || '').toLowerCase().trim();
+                    if (nameA && nameB && nameA === nameB) return true;
+                    return false;
+                };
+
+                let addedCount = 0;
+                let mergedList = [...cloudItems];
+
+                // Fusionar lo local hacia la nube
+                for (const local of localItems) {
+                    if (!local) continue;
+                    const existsInCloud = mergedList.find(cloudItem => isMatch(cloudItem, local));
+                    if (!existsInCloud) {
+                        mergedList.push(local);
+                        addedCount++;
+                    }
+                }
+
+                // Subir a la nube
+                if (mergedList.length > 0) {
+                    const success = await this.pushToCloud(key, mergedList);
+                    if (success) {
+                        this._cache[key] = mergedList;
+                        if (this._db) {
+                            const tx = this._db.transaction(this.STORE_NAME, 'readwrite');
+                            tx.objectStore(this.STORE_NAME).put(mergedList, key);
+                        }
+                    } else {
+                        throw new Error(`Fallo al subir la colección: ${key}`);
+                    }
+                }
+                
+                results[key] = {
+                    total: mergedList.length,
+                    added: addedCount
+                };
+            }
+            console.log("[SYNC-MAESTRO] Sincronización completada exitosamente.", results);
+            return results;
+        } catch (e) {
+            console.error("[SYNC-MAESTRO] Error:", e);
+            throw e;
+        }
     },
 
     // Sync all data from Google Sheets to IndexedDB/cache on startup
