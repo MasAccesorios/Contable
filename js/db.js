@@ -38,7 +38,8 @@ const DB = {
     },
 
     // Google Sheets Web App URL
-    API_URL: 'https://script.google.com/macros/s/AKfycbxrhGrVogJxlZGkVMisyMad-4r-X5eMNl8BtcV2ORNLh4R46KSgYK5fSTrMYe2uozaF/exec',
+    // REEMPLAZA "tu-proyecto" con el ID de tu proyecto en Firebase
+    API_URL: 'https://tu-proyecto-default-rtdb.firebaseio.com/contable',
 
     // In-memory cache to avoid repeated JSON.parse (PERF-01)
     _cache: {},
@@ -226,7 +227,7 @@ const DB = {
             const controller = new AbortController();
             const timeout = setTimeout(() => controller.abort(), 5000);
             
-            const response = await fetch(`${this.API_URL}?t=${Date.now()}`, { 
+            const response = await fetch(`${this.API_URL}.json?t=${Date.now()}`, { 
                 signal: controller.signal,
                 cache: 'no-store'
             });
@@ -320,13 +321,10 @@ const DB = {
         return new Promise((resolve) => {
             this._syncQueue = this._syncQueue.then(async () => {
                 try {
-                    await fetch(this.API_URL, {
-                        method: 'POST',
-                        mode: 'no-cors', // Evita errores de CORS en navegador y fuerza envio opaco
-                        body: JSON.stringify({
-                            key: key,
-                            value: JSON.stringify(data)
-                        })
+                    await fetch(`${this.API_URL}/${key}.json`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data)
                     });
                     resolve(true);
                 } catch(error) {
