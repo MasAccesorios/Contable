@@ -287,7 +287,31 @@ const DB = {
     async forzarSubidaManualDeContactos() {
         try {
             // Fuente de verdad: js/alegra_data.js ya cargado como window.ALEGRA_SYNC_DATA
-            const alegraClients = (window.ALEGRA_SYNC_DATA && window.ALEGRA_SYNC_DATA.clientes) || [];
+            let alegraClients = (window.ALEGRA_SYNC_DATA && window.ALEGRA_SYNC_DATA.clientes) || [];
+            
+            // 1. Reconstruir contactos faltantes a partir de facturas y cotizaciones
+            const allInvoices = (window.ALEGRA_SYNC_DATA && window.ALEGRA_SYNC_DATA.facturas) || [];
+            const allQuotes = (window.ALEGRA_SYNC_DATA && window.ALEGRA_SYNC_DATA.cotizaciones) || [];
+            
+            const extraClientsMap = {};
+            [...allInvoices, ...allQuotes].forEach(doc => {
+                if (doc.cliente_id_alegra && doc.cliente_nombre) {
+                    // Si el cliente no existe en el array principal y no lo hemos agregado al mapa
+                    if (!alegraClients.some(c => c.id_alegra == doc.cliente_id_alegra) && !extraClientsMap[doc.cliente_id_alegra]) {
+                        extraClientsMap[doc.cliente_id_alegra] = {
+                            id_alegra: doc.cliente_id_alegra,
+                            name: doc.cliente_nombre,
+                            identification: doc.cliente_nit || '',
+                            phone: '',
+                            email: '',
+                            address: ''
+                        };
+                    }
+                }
+            });
+            
+            alegraClients = [...alegraClients, ...Object.values(extraClientsMap)];
+
             if (alegraClients.length === 0) {
                 throw new Error('window.ALEGRA_SYNC_DATA no está disponible o no contiene clientes.');
             }
