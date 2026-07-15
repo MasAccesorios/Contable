@@ -1780,10 +1780,9 @@ const DB = {
             }
             
             let resolvedId = item.cliente_id;
-            if (!resolvedId || resolvedId === 'N/A' || String(resolvedId).startsWith('client_') || String(resolvedId).startsWith('gen_')) {
-                const exists = clients.some(cl => String(cl.id) === String(resolvedId));
-                if (!exists) {
-                    let matchedClient = null;
+            const exists = resolvedId && resolvedId !== 'N/A' && clients.some(cl => String(cl.id) === String(resolvedId) || String(cl.id_alegra) === String(resolvedId));
+            if (!exists) {
+                let matchedClient = null;
                     // Check by sale first, prioritizing alegra ID
                     if (item.venta_id) {
                         const sale = this.getSale(item.venta_id);
@@ -2283,10 +2282,9 @@ const DB = {
         
         items.forEach(item => {
             let resolvedId = item.proveedor_id;
-            if (!resolvedId || resolvedId === 'N/A' || String(resolvedId).startsWith('client_') || String(resolvedId).startsWith('gen_')) {
-                const exists = clients.some(cl => String(cl.id) === String(resolvedId));
-                if (!exists) {
-                    let matchedClient = null;
+            const exists = resolvedId && resolvedId !== 'N/A' && clients.some(cl => String(cl.id) === String(resolvedId) || String(cl.id_alegra) === String(resolvedId));
+            if (!exists) {
+                let matchedClient = null;
                     // Check by compra first, prioritizing alegra ID
                     if (item.compra_id) {
                         const compra = this.getCompra(item.compra_id);
