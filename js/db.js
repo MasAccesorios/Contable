@@ -1974,7 +1974,8 @@ const DB = {
             monto: valMonto,
             descripcion: `Recibo de Caja #${recibo.numero} - Abono ${client ? client.nombre : 'Cliente'}`,
             referencia_id: recibo.id,
-            fecha: new Date().toISOString()
+            fecha: new Date().toISOString(),
+            cliente_id: resolvedClientId || ''
         });
 
         return true;
@@ -2423,7 +2424,8 @@ const DB = {
                 monto: parseFloat(pagoData.monto),
                 descripcion: `Pago a Proveedor #${pagoRepo.numero}: ${item.proveedor_nombre} (Ref. Compra #${item.compra_id.substr(-6).toUpperCase()})`,
                 referencia_id: pagoRepo.id,
-                fecha: fechaPrecisa
+                fecha: fechaPrecisa,
+                cliente_id: item.proveedor_id || ''
             });
 
             return true;

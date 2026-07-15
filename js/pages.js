@@ -1374,10 +1374,26 @@ const Pages = {
             if (m.cliente_id || m.cliente_id_alegra) {
                 clientName = DB.getClientName(m.cliente_id || m.cliente_id_alegra, m.cliente_nombre || m.cliente_nombre_alegra);
             } else if (m.referencia_id) {
-                clientName = m.extracted_client_name || 'No asignado';
+                if (m.tipo === 'ingreso') {
+                    const recibo = DB.getById(DB.KEYS.RECIBOS_CAJA, m.referencia_id);
+                    if (recibo && recibo.cliente_id) clientName = DB.getClientName(recibo.cliente_id);
+                } else {
+                    const pago = DB.getById(DB.KEYS.PAGOS_PROVEEDORES, m.referencia_id) || DB.getById(DB.KEYS.EXPENSES, m.referencia_id);
+                    if (pago && (pago.proveedor_id || pago.cliente_id)) clientName = DB.getClientName(pago.proveedor_id || pago.cliente_id);
+                    else if (pago && pago.proveedor_nombre) clientName = pago.proveedor_nombre;
+                }
             }
             if (clientName === 'N/A' || clientName === 'No asignado' || clientName === '[Sin cliente]') {
                 clientName = m.cliente_nombre_alegra || m.cliente_nombre || 'No asignado';
+            }
+            if (clientName === 'No asignado' && m.descripcion) {
+                const matchRecibo = m.descripcion.match(/Abono\s+(.+)$/i);
+                if (matchRecibo && matchRecibo[1]) {
+                    clientName = matchRecibo[1].trim();
+                } else {
+                    const matchGasto = m.descripcion.match(/Proveedor[^:]*:\s+([^(]+)/i);
+                    if (matchGasto && matchGasto[1]) clientName = matchGasto[1].trim();
+                }
             }
 
             const concepto  = m.concepto || m.descripcion || '-';
