@@ -1784,15 +1784,18 @@ const DB = {
                 const exists = clients.some(cl => String(cl.id) === String(resolvedId));
                 if (!exists) {
                     let matchedClient = null;
-                    if (item.cliente_nombre) {
-                        matchedClient = clients.find(cl => cl.nombre && cl.nombre.toLowerCase() === item.cliente_nombre.toLowerCase());
-                    }
-                    if (!matchedClient && item.venta_id) {
+                    // Check by sale first, prioritizing alegra ID
+                    if (item.venta_id) {
                         const sale = this.getSale(item.venta_id);
                         if (sale) {
-                            const tempId = sale.cliente_id || sale.cliente_id_alegra;
+                            const tempId = sale.cliente_id_alegra || sale.cliente_id;
                             matchedClient = clients.find(cl => String(cl.id) === String(tempId) || String(cl.id_alegra) === String(tempId) || `alegra_${cl.id_alegra}` === String(tempId));
                         }
+                    }
+                    // Fallback to name matching
+                    if (!matchedClient && item.cliente_nombre) {
+                        const cName = item.cliente_nombre.trim().toLowerCase();
+                        matchedClient = clients.find(cl => cl.nombre && cl.nombre.trim().toLowerCase() === cName);
                     }
                     if (matchedClient) {
                         item.cliente_id = matchedClient.id;
@@ -2284,8 +2287,17 @@ const DB = {
                 const exists = clients.some(cl => String(cl.id) === String(resolvedId));
                 if (!exists) {
                     let matchedClient = null;
-                    if (item.proveedor_nombre) {
-                        matchedClient = clients.find(cl => cl.nombre && cl.nombre.toLowerCase() === item.proveedor_nombre.toLowerCase());
+                    // Check by compra first, prioritizing alegra ID
+                    if (item.compra_id) {
+                        const compra = this.getCompra(item.compra_id);
+                        if (compra) {
+                            const tempId = compra.proveedor_id_alegra || compra.proveedor_id;
+                            matchedClient = clients.find(cl => String(cl.id) === String(tempId) || String(cl.id_alegra) === String(tempId) || `alegra_${cl.id_alegra}` === String(tempId));
+                        }
+                    }
+                    if (!matchedClient && item.proveedor_nombre) {
+                        const pName = item.proveedor_nombre.trim().toLowerCase();
+                        matchedClient = clients.find(cl => cl.nombre && cl.nombre.trim().toLowerCase() === pName);
                     }
                     if (matchedClient) {
                         item.proveedor_id = matchedClient.id;

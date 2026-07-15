@@ -12,3 +12,8 @@
 - Prioriza siempre la coherencia del estado financiero global. Las acciones de actualización (anular facturas, registrar gastos, actualizar inventario) deben impactar la base de datos de manera inmediata y global, no solo el estado local del navegador.
 - Al procesar datos migrados, valida minuciosamente que no existan conflictos entre los IDs locales y los IDs importados de la API de Alegra.
 - Asegúrate de que los endpoints de consulta de saldos o reportes utilicen políticas estrictas de invalidación de caché ('Cache-Control: no-store') para evitar desfases entre diferentes dispositivos (móvil y web).
+
+[REGLA DE ABSTRACCIÓN DE DOCUMENTOS (REUTILIZACIÓN DE INTERFAZ)]
+- ABSTRACCIÓN DE COMPORTAMIENTO: Queda estrictamente prohibido duplicar funciones de renderizado de acciones (ver, editar, imprimir, anular) en "js/pages.js" o componentes de vista. Las cotizaciones y facturas deben tratarse bajo una interfaz común de "Documento" utilizando un único controlador unificado para ambas.
+- PARÁMETRO DE TIPO: El motor de renderizado debe recibir el objeto del documento y un parámetro de tipo ('factura' | 'cotizacion'). Las URLs de API, los prefijos de almacenamiento local, los permisos de edición y los endpoints de Firebase deben derivarse dinámicamente a partir de este parámetro de tipo para evitar inconsistencias y redundancia de código.
+- UNIFICACIÓN DE ACCIONES: Los botones de acción deben llamar a métodos genéricos de manipulación ('accionesDocumento.ver()', 'accionesDocumento.editar()', etc.) que procesen la carga útil (payload) sin importar si se trata de un ingreso, gasto o cotización.
