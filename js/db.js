@@ -604,12 +604,51 @@ const DB = {
     },
 
     getNextNumber(type) {
+        let maxNum = 0;
+        
+        // Determinar base inicial dinámica para facturas y cotizaciones
+        if (type === 'venta' || type === 'cotizacion') {
+            const isVenta = type === 'venta';
+            const localKey = isVenta ? this.KEYS.SALES : this.KEYS.COTIZACIONES;
+            const alegraKey = isVenta ? this.KEYS.FACTURAS_ALEGRA : this.KEYS.COTIZACIONES_ALEGRA;
+            
+            const localItems = this.getAll(localKey) || [];
+            const alegraItems = this.getAll(alegraKey) || [];
+            
+            let globalItems = [];
+            if (typeof window !== 'undefined' && window.ALEGRA_SYNC_DATA) {
+                globalItems = isVenta ? (window.ALEGRA_SYNC_DATA.facturas || []) : (window.ALEGRA_SYNC_DATA.cotizaciones || []);
+            }
+
+            const allItems = [...localItems, ...alegraItems, ...globalItems];
+            
+            allItems.forEach(item => {
+                let n = 0;
+                if (item.numero && !isNaN(item.numero)) n = parseInt(item.numero);
+                else if (item.numberTemplate && item.numberTemplate.number) n = parseInt(item.numberTemplate.number);
+                else if (item.id_alegra && !isNaN(item.id_alegra)) n = parseInt(item.id_alegra);
+                else if (item.id && !isNaN(item.id)) n = parseInt(item.id);
+                
+                if (n > maxNum) maxNum = n;
+            });
+
+            // Si falla el cálculo o el máximo detectado es menor, usar el fallback exigido
+            if (maxNum < 6748) {
+                maxNum = 6748;
+            }
+        } else {
+            // Contadores normales (recibos, compras, etc)
+            const counters = JSON.parse(localStorage.getItem(this.KEYS.COUNTERS)) || {};
+            maxNum = counters[type] || 0;
+        }
+
+        const next = maxNum + 1;
         const counters = JSON.parse(localStorage.getItem(this.KEYS.COUNTERS)) || {};
-        const current = counters[type] || 0;
-        const next = current + 1;
         counters[type] = next;
+        
         localStorage.setItem(this.KEYS.COUNTERS, JSON.stringify(counters));
         this.pushToCloud(this.KEYS.COUNTERS, counters);
+        
         return next;
     },
 
