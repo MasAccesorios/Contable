@@ -3174,6 +3174,11 @@ const App = {
 
         this.selectors.gastoBanco.setData(DB.getBanks().map(b => ({ id: b.id, text: b.nombre })));
         this.selectors.gastoBanco.clear();
+        
+        const datalist = document.getElementById('gastoProveedoresList');
+        if (datalist) {
+            datalist.innerHTML = (DB.getAll(DB.KEYS.CLIENTS) || []).map(c => `<option value="${c.nombre}">`).join('');
+        }
 
         new bootstrap.Modal(document.getElementById('gastoModal')).show();
     },
@@ -3187,9 +3192,15 @@ const App = {
         document.getElementById('gastoDescripcion').value = e.descripcion;
         document.getElementById('gastoMonto').value = this.formatNumber(e.monto);
         document.getElementById('gastoFecha').value = e.fecha;
+        document.getElementById('gastoProveedor').value = e.proveedor || '';
 
         this.selectors.gastoBanco.setData(DB.getBanks().map(b => ({ id: b.id, text: b.nombre })));
         this.selectors.gastoBanco.setValue(e.banco_id);
+        
+        const datalist = document.getElementById('gastoProveedoresList');
+        if (datalist) {
+            datalist.innerHTML = (DB.getAll(DB.KEYS.CLIENTS) || []).map(c => `<option value="${c.nombre}">`).join('');
+        }
 
         new bootstrap.Modal(document.getElementById('gastoModal')).show();
     },
@@ -3199,8 +3210,9 @@ const App = {
         const monto = parseFloat(this.unformatNumber(document.getElementById('gastoMonto').value));
         const bancoId = this.selectors.gastoBanco.getValue();
         const fecha = document.getElementById('gastoFecha').value;
+        const proveedor = document.getElementById('gastoProveedor').value.trim();
 
-        if (!descripcion || isNaN(monto) || !bancoId || !fecha) {
+        if (!descripcion || isNaN(monto) || !bancoId || !fecha || !proveedor) {
             this.showToast('Complete todos los campos obligatorios', 'Error', 'danger');
             return;
         }
@@ -3212,7 +3224,8 @@ const App = {
             descripcion,
             monto,
             banco_id: bancoId,
-            fecha
+            fecha,
+            proveedor
         };
 
         DB.saveExpense(expense, isNew);

@@ -1984,7 +1984,8 @@ const DB = {
                 monto: parseFloat(expense.monto),
                 descripcion: `Gasto: ${expense.descripcion}`,
                 referencia_id: saved.id,
-                fecha: fechaVal
+                fecha: fechaVal,
+                cliente_nombre: expense.proveedor || ''
             });
         } else if (!isNew && expense.banco_id) {
             // Update existing bank egress
@@ -1996,6 +1997,7 @@ const DB = {
                 movs[movIdx].descripcion = `Gasto: ${expense.descripcion}`;
                 movs[movIdx].fecha = fechaVal;
                 movs[movIdx].banco_id = expense.banco_id;
+                movs[movIdx].cliente_nombre = expense.proveedor || '';
                 this._persist(this.KEYS.BANK_MOVEMENTS, movs);
                 
                 this.recalcBankBalance(oldBancoId);
