@@ -39,7 +39,7 @@ const DB = {
 
     // Google Sheets Web App URL
     // REEMPLAZA "tu-proyecto" con el ID de tu proyecto en Firebase
-    API_URL: 'https://tu-proyecto-default-rtdb.firebaseio.com/contable',
+    API_URL: 'https://masaccesorios-contable-default-rtdb.firebaseio.com/contable',
 
     // In-memory cache to avoid repeated JSON.parse (PERF-01)
     _cache: {},
