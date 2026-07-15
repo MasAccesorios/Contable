@@ -2050,7 +2050,11 @@ const DB = {
 
         // ── Rango del período seleccionado ──────────────────────────────────
         const dateFrom = new Date(now);
-        dateFrom.setMonth(dateFrom.getMonth() - meses);
+        if (meses === 1) {
+            dateFrom.setDate(1);
+        } else {
+            dateFrom.setMonth(dateFrom.getMonth() - meses);
+        }
         dateFrom.setHours(0, 0, 0, 0);
 
         // ── Rango del período comparativo (mismo lapso, año anterior) ────────
@@ -2167,7 +2171,6 @@ const DB = {
         if (meses === 1) {
             // Daily: desde dateFrom hasta hoy
             const cursor = new Date(dateFrom);
-            cursor.setDate(cursor.getDate() + 1);
             while (cursor <= now) {
                 const ds = cursor.toISOString().split('T')[0];
                 const ds2 = `${cursor.getFullYear()-1}-${ds.slice(5)}`;
