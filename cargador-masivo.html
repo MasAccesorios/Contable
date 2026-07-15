@@ -33,6 +33,16 @@ window.onerror = function(msg, url, lineNo, columnNo, error) {
 <div id="log"></div>
 
 <script>
+function log(msg, tipo) {
+    const el = document.getElementById('log');
+    el.innerHTML += '<div class="' + (tipo||'info') + '">' + msg + '</div>';
+    el.scrollTop = el.scrollHeight;
+}
+
+function genId() {
+    return 'id_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+}
+
 async function cargarDatos() {
     document.getElementById('btnCargar').disabled = true;
     log('Leyendo archivo JSON...', 'info');
