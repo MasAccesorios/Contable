@@ -37,15 +37,25 @@ const DB = {
         COTIZACIONES_ALEGRA: 'cg_cotizaciones_alegra'
     },
 
-    // Obtiene el secreto de Firebase desde localStorage de manera silenciosa
+    // Obtiene el secreto de Firebase desde localStorage o lo solicita si no existe
     getFirebaseSecret() {
-        const secret = localStorage.getItem('fb_secret');
-        return (secret && secret.trim() !== '') ? secret.trim() : null;
+        let secret = localStorage.getItem('fb_secret');
+        while (!secret || secret.trim() === '') {
+            secret = prompt('Introduce el Secreto de la Base de Datos de Firebase para conectar:');
+            if (secret === null) {
+                // Si el usuario cancela, rompemos el bucle para evitar bloqueo
+                break;
+            }
+            if (secret.trim() !== '') {
+                localStorage.setItem('fb_secret', secret.trim());
+            }
+        }
+        return secret ? secret.trim() : null;
     },
 
     API_URL: 'https://masaccesorios-contable-default-rtdb.firebaseio.com/contable',
 
-    // URL de lectura (GET): formato ?auth=TOKEN&t=TIMESTAMP (opcional)
+    // URL de lectura (GET): formato ?auth=TOKEN&t=TIMESTAMP
     _readUrl() {
         const token = this.getFirebaseSecret();
         if (token) {
@@ -54,7 +64,7 @@ const DB = {
         return `${this.API_URL}.json?t=${Date.now()}`;
     },
 
-    // URL de escritura (PUT): formato /KEY.json?auth=TOKEN (opcional)
+    // URL de escritura (PUT): formato /KEY.json?auth=TOKEN
     _writeUrl(key) {
         const token = this.getFirebaseSecret();
         if (token) {
