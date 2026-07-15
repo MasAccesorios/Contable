@@ -4933,8 +4933,8 @@ const App = {
         const select = new SearchableSelect(selectContainerId, {
             data: productsData,
             placeholder: 'Selecciona un producto',
-            onSelect: (val) => {
-                const product = DB.getProduct(val);
+            onSelect: (item) => {
+                const product = DB.getProduct(item.id);
                 if (product) {
                     row.querySelector('.product-sku').textContent = `SKU: ${product.codigo}`;
                     row.querySelector('.row-precio').value = this.formatNumber(product.precio_venta);
@@ -4943,7 +4943,7 @@ const App = {
                     stockVal.textContent = product.stock_actual;
                     row.querySelector('.row-stock').style.display = 'block';
                     
-                    document.getElementById(selectContainerId).dataset.productId = val;
+                    document.getElementById(selectContainerId).dataset.productId = item.id;
                     this.recalcRowSubtotal(row, 'cotizacion');
                 }
             }
@@ -5042,8 +5042,8 @@ const App = {
         const select = new SearchableSelect(selectContainerId, {
             data: productsData,
             placeholder: 'Selecciona un producto',
-            onSelect: (val) => {
-                const product = DB.getProduct(val);
+            onSelect: (item) => {
+                const product = DB.getProduct(item.id);
                 if (product) {
                     row.querySelector('.product-sku').textContent = `SKU: ${product.codigo}`;
                     row.querySelector('.row-precio').value = this.formatNumber(product.precio_venta);
@@ -5052,7 +5052,7 @@ const App = {
                     stockVal.textContent = product.stock_actual;
                     row.querySelector('.row-stock').style.display = 'block';
                     
-                    document.getElementById(selectContainerId).dataset.productId = val;
+                    document.getElementById(selectContainerId).dataset.productId = item.id;
                     this.recalcRowSubtotal(row, 'venta');
                 }
             }
