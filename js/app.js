@@ -3177,7 +3177,7 @@ const App = {
         
         const datalist = document.getElementById('gastoProveedoresList');
         if (datalist) {
-            datalist.innerHTML = (DB.getAll(DB.KEYS.CLIENTS) || []).map(c => `<option value="${c.nombre}">`).join('');
+            datalist.innerHTML = (DB.getClients() || []).map(c => `<option value="${(c.nombre || '').replace(/"/g, '&quot;')}"></option>`).join('');
         }
 
         new bootstrap.Modal(document.getElementById('gastoModal')).show();
