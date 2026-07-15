@@ -1272,11 +1272,18 @@ const DB = {
 
     anularSale(saleId) {
         let isAlegra = false;
+        let rawAlegra = null;
         let sale = this.getById(this.KEYS.SALES, saleId);
         if (!sale) {
-            sale = this.getById(this.KEYS.FACTURAS_ALEGRA, saleId);
-            if (sale) isAlegra = true;
+            rawAlegra = this.getById(this.KEYS.FACTURAS_ALEGRA, saleId);
+            if (rawAlegra) {
+                isAlegra = true;
+                sale = this.getSale(saleId); // Get mapped version for logic
+            }
+        } else {
+            sale = this.getSale(saleId);
         }
+        
         if (!sale) return { success: false, message: 'Factura no encontrada' };
         if (sale.estado === 'anulada') return { success: false, message: 'La factura ya está anulada' };
 
@@ -1322,8 +1329,9 @@ const DB = {
         sale.estado = 'anulada';
         sale.utilidad = 0;
         
-        if (isAlegra) {
-            this.save(this.KEYS.FACTURAS_ALEGRA, sale);
+        if (isAlegra && rawAlegra) {
+            rawAlegra.estado = 'void'; // Alegra's term for annulled
+            this.save(this.KEYS.FACTURAS_ALEGRA, rawAlegra);
         } else {
             this.save(this.KEYS.SALES, sale);
         }

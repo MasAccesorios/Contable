@@ -4265,7 +4265,7 @@ const App = {
                 importedFacturas.forEach(f => {
                     const existingIdx = dbFacturas.findIndex(r => String(r.id_alegra) === String(f.id_alegra));
                     if (existingIdx >= 0) {
-                        if (dbFacturas[existingIdx].estado === 'anulada') return; // PREVENCIÓN DE SOBRESCRITURA
+                        if (dbFacturas[existingIdx].estado === 'void') return; // PREVENCIÓN DE SOBRESCRITURA
                         dbFacturas[existingIdx] = { ...dbFacturas[existingIdx], ...f, updated_at: new Date().toISOString() };
                     } else {
                         dbFacturas.push({ id: DB.genId(), created_at: new Date().toISOString(), ...f });
