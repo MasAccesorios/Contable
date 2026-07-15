@@ -648,6 +648,9 @@ const Pages = {
                                 { value: 'proveedor', label: 'Solo Proveedores' }
                             ]
                         })}
+                        <button class="btn btn-outline-warning" onclick="App.forzarMigracionContactos(this)">
+                             ⚠️ Forzar Migración de Contactos
+                        </button>
                         <button class="btn btn-primary-gradient" onclick="App.newCliente()">
                              <i class="bi bi-plus-lg me-1"></i> Nuevo Contacto
                         </button>

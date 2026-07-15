@@ -524,6 +524,25 @@ const App = {
         new bootstrap.Modal(document.getElementById('clienteModal')).show();
     },
 
+    async forzarMigracionContactos(btn) {
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Migrando...';
+        }
+        try {
+            const count = await DB.forzarSubidaManualDeContactos();
+            alert(`Migración completada: ${count} contactos subidos a Firebase.`);
+            this.navigateTo('clientes');
+        } catch (e) {
+            alert(`Error al forzar migración: ${e.message}`);
+        } finally {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '⚠️ Forzar Migración de Contactos';
+            }
+        }
+    },
+
     editCliente(id) {
         const client = DB.getClient(id);
         if (!client) return;

@@ -284,6 +284,79 @@ const DB = {
         }
     },
 
+    async forzarSubidaManualDeContactos() {
+        try {
+            // 1. Obtener contactos locales desde IndexedDB crudo
+            let localClients = [];
+            if (this._db) {
+                localClients = await new Promise((resolve) => {
+                    const transaction = this._db.transaction(this.STORE_NAME, 'readonly');
+                    const store = transaction.objectStore(this.STORE_NAME);
+                    const req = store.get(this.KEYS.CLIENTS);
+                    req.onsuccess = () => resolve(req.result || []);
+                    req.onerror = () => resolve([]);
+                });
+            }
+            if (!localClients || localClients.length === 0) {
+                localClients = this.getAll(this.KEYS.CLIENTS) || [];
+            }
+
+            // 2. Fetch de datos actuales en la nube
+            const response = await fetch(this._readUrl(), { cache: 'no-store' });
+            if (!response.ok) {
+                throw new Error(`Error en fetch Firebase: ${response.status}`);
+            }
+            const data = await response.json();
+            
+            let cloudClients = [];
+            if (data && data[this.KEYS.CLIENTS]) {
+                let rawCloud = data[this.KEYS.CLIENTS];
+                if (typeof rawCloud === 'string') {
+                    rawCloud = JSON.parse(rawCloud);
+                }
+                if (Array.isArray(rawCloud)) {
+                    cloudClients = rawCloud;
+                } else if (typeof rawCloud === 'object') {
+                    cloudClients = Object.values(rawCloud);
+                }
+            }
+
+            // 3. Comparar y fusionar
+            let mergedClients = [...cloudClients];
+            let addedCount = 0;
+
+            localClients.forEach(localCli => {
+                if (!localCli) return;
+                const exists = cloudClients.some(cloudCli => 
+                    (localCli.id && cloudCli && cloudCli.id === localCli.id) ||
+                    (localCli.documento && cloudCli && cloudCli.documento === localCli.documento) ||
+                    (localCli.id_alegra && cloudCli && cloudCli.id_alegra === localCli.id_alegra)
+                );
+
+                if (!exists) {
+                    mergedClients.push(localCli);
+                    addedCount++;
+                }
+            });
+
+            // 4. Subir a Firebase si hay contactos nuevos
+            if (addedCount > 0) {
+                await this.pushToCloud(this.KEYS.CLIENTS, mergedClients);
+                this._cache[this.KEYS.CLIENTS] = mergedClients;
+                if (this._db) {
+                    const transaction = this._db.transaction(this.STORE_NAME, 'readwrite');
+                    const store = transaction.objectStore(this.STORE_NAME);
+                    store.put(mergedClients, this.KEYS.CLIENTS);
+                }
+            }
+
+            return addedCount;
+        } catch (e) {
+            console.error("[MIGRACIÓN MANUAL] Error:", e);
+            throw e;
+        }
+    },
+
     // Sync all data from Google Sheets to IndexedDB/cache on startup
     async syncFromCloud() {
         try {
