@@ -211,10 +211,6 @@ const DB = {
                 await this._persist('cg_products', mergeById(this.getAll('cg_products') || [], pMap, 'id_alegra'));
             }
 
-            console.log("DIAGNOSTICO cg_banks:", this.getAll('cg_banks'));
-            console.log("DIAGNOSTICO total bancos:", this.getTotalBankBalance());
-            console.log("DIAGNOSTICO cg_sales[0]:", this.getAll('cg_sales')[0]);
-
             localStorage.setItem('alegra_imported_v3', 'true');
             location.reload();
             return new Promise(() => {}); // Wait forever for reload
