@@ -585,7 +585,14 @@ const App = {
         const container = document.getElementById(`cp-tab-content`);
         if (!container) return;
 
-        let records = [];
+        const isClientMatch = (val, target) => {
+            if (!val || !target) return false;
+            const strVal = String(val);
+            const strTarget = String(target);
+            if (strVal === strTarget) return true;
+            if (strVal === `alegra_${strTarget}` || strTarget === `alegra_${strVal}`) return true;
+            return false;
+        };
 
         if (tabName === 'transacciones') {
             const movements = DB.getAll(DB.KEYS.BANK_MOVEMENTS) || [];
@@ -599,39 +606,39 @@ const App = {
                 const refId = String(m.referencia_id);
                 
                 const sale = sales.find(s => String(s.id) === String(refId));
-                if (sale && String(sale.cliente_id) === String(id)) return true;
+                if (sale && isClientMatch(sale.cliente_id, id)) return true;
                 
                 const compra = compras.find(c => String(c.id) === String(refId));
-                if (compra && String(compra.proveedor_id) === String(id)) return true;
+                if (compra && isClientMatch(compra.proveedor_id, id)) return true;
                 
                 const recibo = recibos.find(r => String(r.id) === String(refId));
-                if (recibo && String(recibo.cliente_id) === String(id)) return true;
+                if (recibo && isClientMatch(recibo.cliente_id, id)) return true;
                 
                 const pago = pagosProv.find(p => String(p.id) === String(refId));
-                if (pago && String(pago.proveedor_id) === String(id)) return true;
+                if (pago && isClientMatch(pago.proveedor_id, id)) return true;
                 
                 return false;
             }).sort((a, b) => new Date(b.fecha || a.created_at) - new Date(a.fecha || b.created_at));
         } else if (tabName === 'facturas-venta') {
-            records = DB.getSales().filter(s => String(s.cliente_id) === String(id))
+            records = DB.getSales().filter(s => isClientMatch(s.cliente_id, id) || isClientMatch(s.cliente_id_alegra, id))
                 .sort((a, b) => new Date(b.fecha || a.created_at) - new Date(a.fecha || b.created_at));
         } else if (tabName === 'facturas-proveedor') {
-            records = DB.getCompras().filter(s => String(s.proveedor_id) === String(id))
+            records = DB.getCompras().filter(s => isClientMatch(s.proveedor_id, id))
                 .sort((a, b) => new Date(b.fecha || a.created_at) - new Date(a.fecha || b.created_at));
         } else if (tabName === 'cotizaciones') {
-            records = DB.getCotizaciones().filter(c => String(c.cliente_id) === String(id))
+            records = DB.getCotizaciones().filter(c => isClientMatch(c.cliente_id, id))
                 .sort((a, b) => new Date(b.fecha || a.created_at) - new Date(a.fecha || b.created_at));
         } else if (tabName === 'devoluciones') {
             const dev = DB.getAll(DB.KEYS.DEVOLUCIONES) || [];
             records = dev.filter(d => {
                 const sale = DB.getSale(d.venta_id);
-                return sale && String(sale.cliente_id) === String(id);
+                return sale && isClientMatch(sale.cliente_id, id);
             }).sort((a, b) => new Date(b.fecha || a.created_at) - new Date(a.fecha || b.created_at));
         } else if (tabName === 'cuentas-cobrar') {
-            records = DB.getCartera().filter(c => String(c.cliente_id) === String(id) && c.estado !== 'pagada')
+            records = DB.getCartera().filter(c => isClientMatch(c.cliente_id, id) && c.estado !== 'pagada')
                 .sort((a, b) => new Date(b.fecha_vencimiento) - new Date(a.fecha_vencimiento));
         } else if (tabName === 'pagos') {
-            records = DB.getAll(DB.KEYS.RECIBOS_CAJA).filter(r => String(r.cliente_id) === String(id))
+            records = DB.getAll(DB.KEYS.RECIBOS_CAJA).filter(r => isClientMatch(r.cliente_id, id))
                 .sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
         }
 

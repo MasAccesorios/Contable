@@ -504,7 +504,15 @@ const Pages = {
         const fmt = (n) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n);
         
         // Calcular Saldo de Cartera
-        const carteras = DB.getCartera().filter(c => String(c.cliente_id) === String(id) && c.estado !== 'pagada');
+        const isClientMatch = (val, target) => {
+            if (!val || !target) return false;
+            const strVal = String(val);
+            const strTarget = String(target);
+            if (strVal === strTarget) return true;
+            if (strVal === `alegra_${strTarget}` || strTarget === `alegra_${strVal}`) return true;
+            return false;
+        };
+        const carteras = DB.getCartera().filter(c => isClientMatch(c.cliente_id, id) && c.estado !== 'pagada');
         const saldoCuentasPorCobrar = carteras.reduce((sum, c) => sum + (c.saldo || 0), 0);
 
         return `
