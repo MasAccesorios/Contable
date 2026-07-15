@@ -749,7 +749,7 @@ const App = {
                         ingreso = item.total;
                     } else if (tabName === 'devoluciones') {
                         const ref = item.id.toString().substr(-6).toUpperCase();
-                        docCell = `<span class="text-primary fw-medium">${ref.replace('#', '')}</span>`;
+                        docCell = `<span class="text-primary fw-medium">${ref.toString().replace('#', '')}</span>`;
                         detalle = `Devolución ${item.tipo === 'ingreso' ? 'de Venta' : 'a Proveedor'}`;
                         if (item.tipo === 'ingreso') {
                             gasto = item.total;
@@ -763,7 +763,7 @@ const App = {
                         ingreso = item.saldo; // lo que entra
                     } else if (tabName === 'pagos') {
                         const ref = item.numero || item.id.toString().substr(-6).toUpperCase();
-                        docCell = `<span class="text-primary fw-medium">${ref.replace('#', '')}</span>`;
+                        docCell = `<span class="text-primary fw-medium">${ref.toString().replace('#', '')}</span>`;
                         detalle = `Recibo de Caja`;
                         ingreso = item.total;
                     } else {
