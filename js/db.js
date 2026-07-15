@@ -49,6 +49,8 @@ const DB = {
         return secret.trim();
     },
 
+    API_URL: 'https://masaccesorios-contable-default-rtdb.firebaseio.com/contable',
+
     // URL de lectura (GET): formato ?auth=TOKEN&t=TIMESTAMP
     _readUrl() {
         const token = this.getFirebaseSecret();
