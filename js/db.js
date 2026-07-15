@@ -37,20 +37,28 @@ const DB = {
         COTIZACIONES_ALEGRA: 'cg_cotizaciones_alegra'
     },
 
-    // Obtiene el secreto de Firebase desde localStorage (lo pide una sola vez al usuario)
+    // Obtiene el secreto de Firebase desde localStorage (lo pide hasta que el usuario lo ingrese)
     getFirebaseSecret() {
         let secret = localStorage.getItem('fb_secret');
-        if (!secret) {
-            secret = prompt('Introduce el Secreto de la Base de Datos para conectar:');
-            if (secret) localStorage.setItem('fb_secret', secret);
+        while (!secret || secret.trim() === '') {
+            secret = prompt('Introduce el Secreto de la Base de Datos de Firebase para conectar:');
+            if (secret && secret.trim() !== '') {
+                localStorage.setItem('fb_secret', secret.trim());
+            }
         }
-        return secret;
+        return secret.trim();
     },
 
-    // Construye la URL autenticada para cada request
-    _url(path) {
-        const sep = path.includes('?') ? '&' : '?';
-        return `${this.API_URL}${path}${sep}auth=${this.getFirebaseSecret()}`;
+    // URL de lectura (GET): formato ?auth=TOKEN&t=TIMESTAMP
+    _readUrl() {
+        const token = this.getFirebaseSecret();
+        return `${this.API_URL}.json?auth=${token}&t=${Date.now()}`;
+    },
+
+    // URL de escritura (PUT): formato /KEY.json?auth=TOKEN
+    _writeUrl(key) {
+        const token = this.getFirebaseSecret();
+        return `${this.API_URL}/${key}.json?auth=${token}`;
     },
 
     // In-memory cache to avoid repeated JSON.parse (PERF-01)
@@ -239,7 +247,7 @@ const DB = {
             const controller = new AbortController();
             const timeout = setTimeout(() => controller.abort(), 5000);
             
-            const response = await fetch(this._url(`.json?t=${Date.now()}`), { 
+            const response = await fetch(this._readUrl(), { 
                 signal: controller.signal,
                 cache: 'no-store'
             });
@@ -333,7 +341,7 @@ const DB = {
         return new Promise((resolve) => {
             this._syncQueue = this._syncQueue.then(async () => {
                 try {
-                    await fetch(this._url(`/${key}.json`), {
+                    await fetch(this._writeUrl(key), {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(data)
