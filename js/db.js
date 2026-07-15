@@ -326,7 +326,11 @@ const DB = {
             const final = [...normalized, ...manualClients];
 
             // Sobrescribir Firebase con datos corregidos
-            await this.pushToCloud(this.KEYS.CLIENTS, final);
+            const success = await this.pushToCloud(this.KEYS.CLIENTS, final);
+            if (!success) {
+                throw new Error("Firebase rechazó la operación. Revisa si tu 'Secret' de Firebase es correcto y está vigente.");
+            }
+
             this._cache[this.KEYS.CLIENTS] = final;
             if (this._db) {
                 const tx = this._db.transaction(this.STORE_NAME, 'readwrite');
