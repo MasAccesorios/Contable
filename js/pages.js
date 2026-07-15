@@ -8,128 +8,164 @@ const Pages = {
        ================================================= */
     dashboard() {
         const m = DB.getDashboardMetrics();
-        const fmt = (n) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n);
+        const fmt = (n) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 2 }).format(n);
         const fmtN = (n) => new Intl.NumberFormat('es-CO').format(n);
 
         return `
-        <div class="fade-in">
-            <div class="kpi-grid">
-                <div class="kpi-card card-primary" onclick="App.navigateTo('ventas')" style="cursor:pointer">
-                    <div class="kpi-label">
-                        <div class="icon-circle"><i class="bi bi-cart-check-fill"></i></div>
-                        Ventas del Mes
-                    </div>
-                    <div class="kpi-value">${fmt(m.ventasMes)}</div>
-                    <div class="kpi-sub">
-                        <span class="kpi-badge ${parseFloat(m.cambioVentas) >= 0 ? 'up' : 'down'}">
-                            <i class="bi bi-arrow-${parseFloat(m.cambioVentas) >= 0 ? 'up' : 'down'}"></i>
-                            ${Math.abs(m.cambioVentas)}%
-                        </span>
-                        vs mes anterior
-                    </div>
-                </div>
-                <div class="kpi-card card-success" onclick="App.navigateTo('reportes')" style="cursor:pointer">
-                    <div class="kpi-label">
-                        <div class="icon-circle"><i class="bi bi-graph-up"></i></div>
-                        Utilidad del Mes
-                    </div>
-                    <div class="kpi-value">${fmt(m.utilidadMes)}</div>
-                    <div class="kpi-sub">${m.ventasCount} ventas realizadas</div>
-                </div>
-                <div class="kpi-card card-warning" onclick="App.navigateTo('pagos_recibidos')" style="cursor:pointer">
-                    <div class="kpi-label">
-                        <div class="icon-circle"><i class="bi bi-wallet2"></i></div>
-                        Total Cartera
-                    </div>
-                    <div class="kpi-value">${fmt(m.totalCartera)}</div>
-                    <div class="kpi-sub">Vencida: ${fmt(m.carteraVencida)}</div>
-                </div>
-                <div class="kpi-card card-info" onclick="App.navigateTo('bancos')" style="cursor:pointer">
-                    <div class="kpi-label">
-                        <div class="icon-circle"><i class="bi bi-bank2"></i></div>
-                        Saldo Bancos
-                    </div>
-                    <div class="kpi-value">${fmt(m.saldoBancos)}</div>
-                    <div class="kpi-sub">Total en cuentas</div>
-                </div>
-                <div class="kpi-card card-danger" onclick="App.navigateTo('productos')" style="cursor:pointer">
-                    <div class="kpi-label">
-                        <div class="icon-circle"><i class="bi bi-box-seam"></i></div>
-                        Inventario
-                    </div>
-                    <div class="kpi-value">${fmt(m.inventarioValorizado)}</div>
-                    <div class="kpi-sub">${m.productosStockBajo > 0 ? `<span class="stock-alert"><i class="bi bi-exclamation-triangle"></i> ${m.productosStockBajo} bajo stock</span>` : `${m.totalProductos} productos`}</div>
-                </div>
-                <div class="kpi-card card-primary" onclick="App.navigateTo('clientes')" style="cursor:pointer">
-                    <div class="kpi-label">
-                        <div class="icon-circle"><i class="bi bi-people-fill"></i></div>
-                        Clientes
-                    </div>
-                    <div class="kpi-value">${fmtN(m.totalClientes)}</div>
-                    <div class="kpi-sub">Registrados</div>
-                </div>
-                <div class="kpi-card card-info" onclick="App.navigateTo('cotizaciones')" style="cursor:pointer">
-                    <div class="kpi-label">
-                        <div class="icon-circle"><i class="bi bi-file-earmark-text"></i></div>
-                        Cotizaciones
-                    </div>
-                    <div class="kpi-value">${fmtN(m.cotizacionesCount)}</div>
-                    <div class="kpi-sub">Ver todas <i class="bi bi-arrow-right"></i></div>
+        <div class="fade-in px-4 py-4" style="background-color: #F4F6F9; min-height: calc(100vh - 60px);">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="mb-0 fw-bold" style="color: #1F2937; font-size: 1.5rem;">Resumen del negocio</h2>
+                <div class="d-flex gap-2">
+                    <button class="btn bg-white border shadow-sm text-dark d-flex align-items-center" style="border-radius: 8px;">
+                        Mes actual <i class="bi bi-chevron-down ms-2 text-muted" style="font-size: 12px;"></i>
+                    </button>
+                    <button class="btn d-flex align-items-center" style="background-color: #38B2AC; color: white; border-radius: 8px;">
+                        Agregar gráfica <i class="bi bi-chevron-down ms-2" style="font-size: 12px;"></i>
+                    </button>
                 </div>
             </div>
 
-            <div class="dashboard-grid">
-                <div class="section-card">
-                    <div class="section-header">
-                        <div class="section-title"><i class="bi bi-graph-up"></i> Ventas Últimos 7 Días</div>
-                    </div>
-                    <div class="section-body">
-                        <div class="chart-container">
-                            <canvas id="salesChart"></canvas>
+            <!-- Top Cards -->
+            <div class="row g-4 mb-4">
+                
+                <!-- Cuentas por cobrar -->
+                <div class="col-lg-4">
+                    <div class="card border-0 shadow-sm h-100" style="border-radius: 12px;">
+                        <div class="card-body p-4">
+                            <h6 class="text-muted fw-semibold mb-2" style="font-size: 0.85rem; text-decoration: underline; text-underline-offset: 4px;">Cuentas por cobrar</h6>
+                            <h3 class="fw-bold mb-3" style="color: #1F2937;">${fmt(m.totalCartera)}</h3>
+                            
+                            <!-- Progress Bar -->
+                            <div class="d-flex w-100 mb-3" style="height: 6px; border-radius: 3px; overflow: hidden;">
+                                <div style="width: ${m.totalCartera > 0 ? (m.carteraVigente / m.totalCartera) * 100 : 50}%; background-color: #10B981;"></div>
+                                <div style="width: ${m.totalCartera > 0 ? (m.carteraVencida / m.totalCartera) * 100 : 50}%; background-color: #EF4444;"></div>
+                            </div>
+                            
+                            <div class="d-flex justify-content-between mt-2">
+                                <div style="border-left: 2px solid #10B981; padding-left: 8px;">
+                                    <div class="text-muted" style="font-size: 0.75rem;">Vigentes</div>
+                                    <div class="fw-semibold" style="font-size: 0.85rem; color: #1F2937;">${fmt(m.carteraVigente)}</div>
+                                    <div class="text-muted" style="font-size: 0.75rem;">${m.carteraVigenteCount} documentos</div>
+                                </div>
+                                <div style="border-left: 2px solid #EF4444; padding-left: 8px;">
+                                    <div class="text-muted" style="font-size: 0.75rem;">Vencidas</div>
+                                    <div class="fw-semibold" style="font-size: 0.85rem; color: #1F2937;">${fmt(m.carteraVencida)}</div>
+                                    <div class="text-muted" style="font-size: 0.75rem;">${m.carteraVencidaCount} documentos</div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <div>
-                    <div class="section-card mb-4">
-                        <div class="section-header">
-                            <div class="section-title"><i class="bi bi-file-earmark-text"></i> Cotizaciones Recientes</div>
-                            <button class="btn btn-sm btn-outline-primary" onclick="App.navigateTo('cotizaciones')">Ver todas</button>
-                        </div>
-                        <div class="section-body" style="padding: 0;">
-                            <table class="table-modern">
-                                <tbody>
-                                    ${this._recentCotizacionesRows()}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    <div class="section-card">
-                        <div class="section-header">
-                            <div class="section-title"><i class="bi bi-clock-history"></i> Ventas Recientes</div>
-                        </div>
-                        <div class="section-body" style="padding: 0;">
-                            <table class="table-modern">
-                                <tbody>
-                                    ${this._recentSalesRows()}
-                                </tbody>
-                            </table>
+                <!-- Cuentas por pagar -->
+                <div class="col-lg-4">
+                    <div class="card border-0 shadow-sm h-100" style="border-radius: 12px;">
+                        <div class="card-body p-4">
+                            <h6 class="text-muted fw-semibold mb-2" style="font-size: 0.85rem; text-decoration: underline; text-underline-offset: 4px;">Cuentas por pagar</h6>
+                            <h3 class="fw-bold mb-3" style="color: #1F2937;">${fmt(m.totalCXP)}</h3>
+                            
+                            <!-- Progress Bar -->
+                            <div class="d-flex w-100 mb-3" style="height: 6px; border-radius: 3px; overflow: hidden; background-color: #E5E7EB;">
+                                <div style="width: ${m.totalCXP > 0 ? (m.cxpVigente / m.totalCXP) * 100 : 0}%; background-color: #10B981;"></div>
+                                <div style="width: ${m.totalCXP > 0 ? (m.cxpVencida / m.totalCXP) * 100 : 0}%; background-color: #EF4444;"></div>
+                            </div>
+                            
+                            <div class="d-flex justify-content-between mt-2">
+                                <div style="border-left: 2px solid #10B981; padding-left: 8px;">
+                                    <div class="text-muted" style="font-size: 0.75rem;">Vigentes</div>
+                                    <div class="fw-semibold" style="font-size: 0.85rem; color: #1F2937;">${fmt(m.cxpVigente)}</div>
+                                    <div class="text-muted" style="font-size: 0.75rem;">${m.cxpVigenteCount} documentos</div>
+                                </div>
+                                <div style="border-left: 2px solid #EF4444; padding-left: 8px;">
+                                    <div class="text-muted" style="font-size: 0.75rem;">Vencidas</div>
+                                    <div class="fw-semibold" style="font-size: 0.85rem; color: #1F2937;">${fmt(m.cxpVencida)}</div>
+                                    <div class="text-muted" style="font-size: 0.75rem;">${m.cxpVencidaCount} documentos</div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <div>
-                    <div class="section-card">
-                        <div class="section-header">
-                            <div class="section-title"><i class="bi bi-exclamation-triangle"></i> Stock Bajo</div>
+                <!-- Metrics Grid 2x2 -->
+                <div class="col-lg-4">
+                    <div class="row g-3 h-100">
+                        <div class="col-6">
+                            <div class="card border-0 shadow-sm h-100" style="border-radius: 12px;">
+                                <div class="card-body p-3 d-flex flex-column justify-content-center">
+                                    <h6 class="text-muted fw-semibold mb-2" style="font-size: 0.75rem;">Impuestos en venta</h6>
+                                    <div class="fw-semibold" style="font-size: 1.1rem; color: #1F2937;">${fmt(m.impuestosVenta)}</div>
+                                </div>
+                            </div>
                         </div>
-                        <div class="section-body" style="padding: 0;">
-                            <table class="table-modern">
-                                <tbody>
-                                    ${this._lowStockRows()}
-                                </tbody>
-                            </table>
+                        <div class="col-6">
+                            <div class="card border-0 shadow-sm h-100" style="border-radius: 12px;">
+                                <div class="card-body p-3 d-flex flex-column justify-content-center">
+                                    <h6 class="text-muted fw-semibold mb-2" style="font-size: 0.75rem;">Productos vendidos</h6>
+                                    <div class="d-flex align-items-baseline justify-content-between">
+                                        <div class="fw-semibold" style="font-size: 1.1rem; color: #1F2937;">${fmtN(m.productosVendidosMes)}</div>
+                                        <span style="font-size: 0.75rem; color: ${m.cambioProductos >= 0 ? '#10B981' : '#EF4444'};">
+                                            <i class="bi bi-arrow-${m.cambioProductos >= 0 ? 'up' : 'down'}"></i> ${Math.abs(m.cambioProductos)}%
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="card border-0 shadow-sm h-100" style="border-radius: 12px;">
+                                <div class="card-body p-3 d-flex flex-column justify-content-center">
+                                    <h6 class="text-muted fw-semibold mb-0" style="font-size: 0.75rem;">Devoluciones de clientes</h6>
+                                    <div class="text-muted mb-2" style="font-size: 0.65rem;">Incluye impuestos</div>
+                                    <div class="fw-semibold" style="font-size: 1.1rem; color: #1F2937;">${fmt(m.devolucionesVenta)}</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="card border-0 shadow-sm h-100" style="border-radius: 12px;">
+                                <div class="card-body p-3 d-flex flex-column justify-content-center">
+                                    <h6 class="text-muted fw-semibold mb-2" style="font-size: 0.75rem; text-decoration: underline; text-underline-offset: 4px;">Clientes con ventas</h6>
+                                    <div class="fw-semibold" style="font-size: 1.1rem; color: #1F2937;">${fmtN(m.clientesUnicos)}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chart Module -->
+            <div class="card border-0 shadow-sm" style="border-radius: 12px;">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-start mb-4">
+                        <div>
+                            <div class="d-flex align-items-center">
+                                <h6 class="fw-bold mb-0" style="color: #1F2937; text-decoration: underline; text-underline-offset: 4px;">Total de ventas</h6>
+                                <i class="bi bi-info-circle text-muted ms-2" style="font-size: 0.85rem;" title="Información de ventas"></i>
+                            </div>
+                            <div class="text-muted mt-1" style="font-size: 0.8rem;">La gráfica muestra el valor de tus ventas con impuestos incluidos.</div>
+                        </div>
+                        <div class="text-end">
+                            <div class="d-flex align-items-baseline">
+                                <h3 class="fw-bold mb-0 me-3" style="color: #1F2937;">${fmt(m.ventasMes)}</h3>
+                                <span style="font-size: 0.9rem; color: ${m.cambioVentas >= 0 ? '#10B981' : '#EF4444'}; font-weight: 500;">
+                                    <i class="bi bi-arrow-${m.cambioVentas >= 0 ? 'up' : 'down'}"></i> ${Math.abs(m.cambioVentas)}%
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="height: 350px; width: 100%;">
+                        <canvas id="salesChart"></canvas>
+                    </div>
+                    
+                    <!-- Chart Legend -->
+                    <div class="d-flex justify-content-center align-items-center mt-3 gap-4" style="font-size: 0.85rem; color: #4B5563;">
+                        <div class="d-flex align-items-center">
+                            <div style="width: 12px; height: 12px; border-radius: 50%; background-color: #3B82F6; margin-right: 8px;"></div>
+                            1 de ${m.chart.monthName} de ${m.chart.currYear} - ${m.chart.days} de ${m.chart.monthName} de ${m.chart.currYear}
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <div style="width: 12px; height: 12px; border-radius: 50%; background-color: #34D399; margin-right: 8px;"></div>
+                            1 de ${m.chart.monthName} de ${m.chart.prevYearNum} - ${m.chart.days} de ${m.chart.monthName} de ${m.chart.prevYearNum}
                         </div>
                     </div>
                 </div>
@@ -207,53 +243,96 @@ const Pages = {
         const ctx = document.getElementById('salesChart');
         if (!ctx) return;
 
-        new Chart(ctx, {
+        // Destroy existing chart if it exists
+        if (window.dashboardChart) {
+            window.dashboardChart.destroy();
+        }
+
+        window.dashboardChart = new Chart(ctx, {
             type: 'line',
             data: {
-                labels: m.last7Days.map(d => d.label),
-                datasets: [{
-                    label: 'Ventas',
-                    data: m.last7Days.map(d => d.total),
-                    borderColor: '#4F46E5',
-                    backgroundColor: 'rgba(79, 70, 229, 0.08)',
-                    fill: true,
-                    tension: 0.4,
-                    borderWidth: 3,
-                    pointRadius: 5,
-                    pointBackgroundColor: '#4F46E5',
-                    pointBorderColor: '#fff',
-                    pointBorderWidth: 2,
-                    pointHoverRadius: 7
-                }]
+                labels: m.chart.labels,
+                datasets: [
+                    {
+                        label: 'Ventas Actual',
+                        data: m.chart.current,
+                        borderColor: '#3B82F6', // LÍNEA AZUL CONTINUA
+                        backgroundColor: 'transparent',
+                        borderWidth: 2,
+                        tension: 0.1,
+                        pointRadius: 0, // Ocultar puntos por defecto
+                        pointHoverRadius: 4,
+                        pointBackgroundColor: '#3B82F6',
+                        borderDash: []
+                    },
+                    {
+                        label: 'Ventas Año Anterior',
+                        data: m.chart.prevYear,
+                        borderColor: '#34D399', // LÍNEA VERDE DISCONTINUA
+                        backgroundColor: 'transparent',
+                        borderWidth: 2,
+                        tension: 0.1,
+                        pointRadius: 0,
+                        pointHoverRadius: 4,
+                        pointBackgroundColor: '#34D399',
+                        borderDash: [5, 5] // Punteada / Dashed
+                    }
+                ]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false,
+                },
                 plugins: {
                     legend: { display: false },
                     tooltip: {
-                        backgroundColor: '#1F2937',
-                        titleFont: { family: 'Inter' },
+                        backgroundColor: 'white',
+                        titleColor: '#1F2937',
+                        bodyColor: '#4B5563',
+                        borderColor: '#E5E7EB',
+                        borderWidth: 1,
+                        titleFont: { family: 'Inter', weight: 'bold' },
                         bodyFont: { family: 'Inter' },
                         padding: 12,
                         cornerRadius: 8,
+                        boxPadding: 6,
+                        usePointStyle: true,
                         callbacks: {
-                            label: (ctx) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(ctx.raw)
+                            label: (ctx) => {
+                                const val = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(ctx.raw);
+                                return ` ${ctx.dataset.label}: ${val}`;
+                            }
                         }
                     }
                 },
                 scales: {
                     y: {
                         beginAtZero: true,
-                        grid: { color: 'rgba(0,0,0,0.04)' },
+                        grid: { 
+                            color: '#F3F4F6',
+                            drawBorder: false
+                        },
+                        border: { display: false },
                         ticks: {
-                            font: { family: 'Inter', size: 11 },
-                            callback: (v) => '$' + (v / 1000).toFixed(0) + 'K'
+                            font: { family: 'Inter', size: 11, color: '#6B7280' },
+                            callback: (v) => {
+                                if (v >= 1000000) return '$' + (v / 1000000).toFixed(0) + ' M';
+                                if (v >= 1000) return '$' + (v / 1000).toFixed(0) + ' K';
+                                return '$' + v;
+                            },
+                            maxTicksLimit: 5
                         }
                     },
                     x: {
-                        grid: { display: false },
-                        ticks: { font: { family: 'Inter', size: 11 } }
+                        grid: { display: false, drawBorder: true },
+                        border: { color: '#E5E7EB' },
+                        ticks: { 
+                            font: { family: 'Inter', size: 11, color: '#6B7280' },
+                            maxTicksLimit: 14 // Limit x-axis labels to avoid crowding
+                        }
                     }
                 }
             }

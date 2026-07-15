@@ -214,6 +214,65 @@ async function cargarDatos() {
             log('Productos cargados: ' + productosFinal.length + ' registros', 'ok');
         }
         
+        // 7. GASTOS Y FACTURAS DE COMPRA
+        if (DATA.compras && DATA.compras.length > 0) {
+            log('Cargando gastos y facturas de compra...', 'info');
+            const comprasExist = await getKey('cg_compras');
+            const comprasMapped = DATA.compras.map(c => ({
+                id_alegra: c.id_alegra,
+                numero: c.numero,
+                fecha: c.fecha,
+                fecha_vencimiento: c.fecha_vencimiento,
+                proveedor_id_alegra: c.proveedor_id_alegra,
+                proveedor_nombre: c.proveedor_nombre,
+                estado: c.estado,
+                total: parseFloat(c.total) || 0,
+                saldo: parseFloat(c.saldo) || 0,
+                pagado: parseFloat(c.pagado) || 0
+            }));
+            const comprasFinal = mergeById(Array.isArray(comprasExist) ? comprasExist : [], comprasMapped, 'id_alegra');
+            await putKey('cg_compras', comprasFinal);
+            log('Compras y Gastos cargados: ' + comprasFinal.length + ' registros', 'ok');
+        }
+
+        // 8. PAGOS Y MOVIMIENTOS BANCARIOS
+        if (DATA.pagos && DATA.pagos.length > 0) {
+            log('Cargando pagos y movimientos bancarios...', 'info');
+            const movsExist = await getKey('cg_bank_movements');
+            const movsMapped = DATA.pagos.map(p => ({
+                id_alegra: p.id_alegra,
+                fecha: p.date,
+                banco_id_alegra: p.bankAccount,
+                banco_nombre: p.bankName,
+                monto: parseFloat(p.amount) || 0,
+                tipo: p.tipo // "ingreso" o "egreso"
+            }));
+            const movsFinal = mergeById(Array.isArray(movsExist) ? movsExist : [], movsMapped, 'id_alegra');
+            await putKey('cg_bank_movements', movsFinal);
+            log('Movimientos bancarios cargados: ' + movsFinal.length + ' registros', 'ok');
+        }
+        
+        // 7. COMPRAS (Gastos)
+        if (DATA.compras && DATA.compras.length > 0) {
+            log('Cargando compras (gastos)...', 'info');
+            const comprasExist = await getKey('cg_compras');
+            const comprasMapped = DATA.compras.map(c => ({
+                id_alegra: c.id_alegra,
+                numero: c.numero,
+                fecha: c.fecha,
+                fecha_vencimiento: c.fecha_vencimiento,
+                proveedor_id_alegra: c.proveedor_id_alegra,
+                proveedor_nombre: c.proveedor_nombre,
+                estado: c.estado,
+                total: parseFloat(c.total) || 0,
+                saldo: parseFloat(c.saldo) || 0,
+                pagado: parseFloat(c.pagado) || 0
+            }));
+            const comprasFinal = mergeById(Array.isArray(comprasExist) ? comprasExist : [], comprasMapped, 'id_alegra');
+            await putKey('cg_compras', comprasFinal);
+            log('Compras cargadas: ' + comprasFinal.length + ' registros', 'ok');
+        }
+        
         log('', 'info');
         log('======================================', 'ok');
         log('隆CARGA MASIVA COMPLETADA CON EXITO!', 'ok');

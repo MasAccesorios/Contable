@@ -2004,66 +2004,135 @@ const DB = {
 
         const sales = this.getSales();
         const monthSales = sales.filter(s => {
-            const d = new Date(s.fecha);
+            const d = new Date(s.fecha || s.created_at || now);
             return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
         });
-
-        const ventasMes = monthSales.reduce((sum, s) => sum + parseFloat(s.total || 0), 0);
-        const utilidadMes = monthSales.reduce((sum, s) => sum + parseFloat(s.utilidad || 0), 0);
-
-        const cartera = this.getCartera();
-        const totalCartera = cartera.filter(c => c.estado !== 'pagada')
-            .reduce((sum, c) => sum + parseFloat(c.saldo), 0);
-        const carteraVencida = cartera.filter(c => c.estado === 'vencida')
-            .reduce((sum, c) => sum + parseFloat(c.saldo), 0);
-
-        const products = this.getProducts();
-        const inventarioValorizado = products.reduce((sum, p) =>
-            sum + (parseFloat(p.stock_actual) * parseFloat(p.precio_compra)), 0);
-
-        const saldoBancos = this.getTotalBankBalance();
-
-        // Sales last 7 days
-        const last7Days = [];
-        for (let i = 6; i >= 0; i--) {
-            const d = new Date();
-            d.setDate(d.getDate() - i);
-            const dateStr = d.toISOString().split('T')[0];
-            const daySales = sales.filter(s => s.fecha && s.fecha.startsWith(dateStr));
-            last7Days.push({
-                date: dateStr,
-                label: d.toLocaleDateString('es-CO', { weekday: 'short', day: 'numeric' }),
-                total: daySales.reduce((sum, s) => sum + parseFloat(s.total), 0),
-                count: daySales.length
-            });
-        }
 
         // Previous month comparison
         const prevMonth = currentMonth === 0 ? 11 : currentMonth - 1;
         const prevYear = currentMonth === 0 ? currentYear - 1 : currentYear;
         const prevMonthSales = sales.filter(s => {
-            const d = new Date(s.fecha);
+            const d = new Date(s.fecha || s.created_at || now);
             return d.getMonth() === prevMonth && d.getFullYear() === prevYear;
         });
-        const ventasMesAnterior = prevMonthSales.reduce((sum, s) => sum + parseFloat(s.total), 0);
+
+        const ventasMes = monthSales.reduce((sum, s) => sum + parseFloat(s.total || 0), 0);
+        const ventasMesAnterior = prevMonthSales.reduce((sum, s) => sum + parseFloat(s.total || 0), 0);
         const cambioVentas = ventasMesAnterior > 0
             ? ((ventasMes - ventasMesAnterior) / ventasMesAnterior * 100).toFixed(1)
             : 0;
 
+        // Cuentas por cobrar (Cartera)
+        const cartera = this.getCartera();
+        let carteraVigente = 0, carteraVigenteCount = 0;
+        let carteraVencida = 0, carteraVencidaCount = 0;
+        cartera.forEach(c => {
+            if (c.estado !== 'pagada' && c.saldo > 0) {
+                if (c.estado === 'vencida' || (c.fecha_vencimiento && new Date(c.fecha_vencimiento) < now)) {
+                    carteraVencida += parseFloat(c.saldo);
+                    carteraVencidaCount++;
+                } else {
+                    carteraVigente += parseFloat(c.saldo);
+                    carteraVigenteCount++;
+                }
+            }
+        });
+        const totalCartera = carteraVigente + carteraVencida;
+
+        // Cuentas por pagar (Compras/Gastos)
+        const compras = this.getAllActive(this.KEYS.COMPRAS) || [];
+        let cxpVigente = 0, cxpVigenteCount = 0;
+        let cxpVencida = 0, cxpVencidaCount = 0;
+        compras.forEach(c => {
+            const saldo = parseFloat(c.saldo || c.total || 0); // fallback if saldo is missing but unpaid
+            const status = c.estado || 'open';
+            if (status !== 'closed' && saldo > 0) {
+                if (c.fecha_vencimiento && new Date(c.fecha_vencimiento) < now) {
+                    cxpVencida += saldo;
+                    cxpVencidaCount++;
+                } else {
+                    cxpVigente += saldo;
+                    cxpVigenteCount++;
+                }
+            }
+        });
+        const totalCXP = cxpVigente + cxpVencida;
+
+        // Otros KPIs
+        const impuestosVenta = monthSales.reduce((sum, s) => sum + parseFloat(s.impuestos || 0), 0);
+        const devolucionesVenta = 0; // Not fully implemented in core DB yet
+        
+        // Productos vendidos
+        const saleDetails = this.getAllActive(this.KEYS.SALE_DETAILS) || [];
+        let productosVendidosMes = 0;
+        let productosVendidosPrev = 0;
+        saleDetails.forEach(d => {
+            const sale = this.getSale(d.venta_id);
+            if (sale) {
+                const sDate = new Date(sale.fecha || sale.created_at || now);
+                if (sDate.getMonth() === currentMonth && sDate.getFullYear() === currentYear) {
+                    productosVendidosMes += parseInt(d.cantidad || 0);
+                } else if (sDate.getMonth() === prevMonth && sDate.getFullYear() === prevYear) {
+                    productosVendidosPrev += parseInt(d.cantidad || 0);
+                }
+            }
+        });
+        
+        const cambioProductos = productosVendidosPrev > 0
+            ? ((productosVendidosMes - productosVendidosPrev) / productosVendidosPrev * 100).toFixed(1)
+            : 0;
+
+        // Clientes únicos
+        const uniqueClients = new Set();
+        monthSales.forEach(s => {
+            if (s.cliente_id) uniqueClients.add(s.cliente_id);
+        });
+
+        // Chart: Sales 1 to current day of month (compare with previous year)
+        const daysInMonth = now.getDate(); // Up to today
+        const chartDataCurrent = [];
+        const chartDataPrevYear = [];
+        const chartLabels = [];
+        
+        for (let i = 1; i <= daysInMonth; i++) {
+            const currDateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+            const prevYearStr = `${currentYear - 1}-${String(currentMonth + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+            
+            const daySales = sales.filter(s => s.fecha && s.fecha.startsWith(currDateStr));
+            const daySalesPrevYear = sales.filter(s => s.fecha && s.fecha.startsWith(prevYearStr));
+            
+            chartLabels.push(`${i} de ${now.toLocaleString('es-CO', {month:'short'})}`);
+            chartDataCurrent.push(daySales.reduce((sum, s) => sum + parseFloat(s.total || 0), 0));
+            chartDataPrevYear.push(daySalesPrevYear.reduce((sum, s) => sum + parseFloat(s.total || 0), 0));
+        }
+
         return {
             ventasMes,
-            utilidadMes,
-            totalCartera,
-            carteraVencida,
-            inventarioValorizado,
-            saldoBancos,
-            totalClientes: this.getClients().length,
-            totalProductos: products.length,
-            ventasCount: monthSales.length,
-            cotizacionesCount: this.getCotizaciones().length,
-            last7Days,
             cambioVentas,
-            productosStockBajo: products.filter(p => p.stock_actual <= p.stock_minimo).length
+            totalCartera,
+            carteraVigente,
+            carteraVigenteCount,
+            carteraVencida,
+            carteraVencidaCount,
+            totalCXP,
+            cxpVigente,
+            cxpVigenteCount,
+            cxpVencida,
+            cxpVencidaCount,
+            impuestosVenta,
+            devolucionesVenta,
+            productosVendidosMes,
+            cambioProductos,
+            clientesUnicos: uniqueClients.size,
+            chart: {
+                labels: chartLabels,
+                current: chartDataCurrent,
+                prevYear: chartDataPrevYear,
+                monthName: now.toLocaleString('es-CO', {month:'short'}),
+                currYear: currentYear,
+                prevYearNum: currentYear - 1,
+                days: daysInMonth
+            }
         };
     },
 

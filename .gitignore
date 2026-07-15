@@ -1,5 +1,108 @@
-importacion_log.txt
-dashboard.png
-*.log
+# =============================================
+# SISTEMA / ENTORNO
+# =============================================
+node_modules/
+.env
+.env.*
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# =============================================
+# ARCHIVOS DE CONFIGURACIÓN LOCAL (Antigravity)
+# =============================================
 .gemini/
+.agents/
+
+# =============================================
+# LOGS Y REPORTES DE DEPURACIÓN
+# =============================================
+*.log
+importacion_log.txt
+
+# =============================================
+# ARCHIVOS JSON MASIVOS DE RESPALDO / SYNC
+# =============================================
+datos_alegra.json
+test_sync_results.json
+
+# =============================================
+# SCRIPTS DE PRUEBA Y DEPURACIÓN
+# =============================================
+test-sync.js
+test-sync.py
+test_add_member.ps1
+test_add_member2.ps1
+test_add_member3.ps1
+test_alegra_error.ps1
+test_alegra_error2.ps1
+test_alegra_loop.ps1
+test_all_contacts.ps1
+test_bancos.ps1
+test_bank_statement.ps1
+test_bills.ps1
+test_clientes.ps1
+test_contacts.ps1
+test_conversion.js
+test_endpoint.txt
+test_err.ps1
+test_exact_sync.ps1
+test_limit.ps1
+test_loop.ps1
+test_metadata.ps1
+test_reports.ps1
+test_single_bank.ps1
+test_three.ps1
+test_two.ps1
+debug_bancos.js
+
+# =============================================
+# SCRIPTS DE UTILIDAD LOCAL / SYNC (SOLO USO LOCAL)
+# =============================================
+auditoria.ps1
+calc_bank_saldos.ps1
+check_contact_types.ps1
+check_error.ps1
+check_html_data.ps1
+check_json.ps1
+feed_app.ps1
+feed_app.py
+fetch_alegra.ps1
+generate_alegra_data.ps1
+importar_alegra.py
+importar_bancos.py
+importar_cartera.py
+inject.ps1
+inject_completo.ps1
+inject_safe.ps1
+inject_safe_nobom.ps1
+programar_tarea.ps1
+remove_block.ps1
+test_alegra_error.ps1
+
+# =============================================
+# IMÁGENES DE DISEÑO / REFERENCIA INTERNA
+# =============================================
+dashboard.png
+diseño.png
+"reporte CxC.png"
+
+# =============================================
+# ARCHIVOS EXCEL Y DOCUMENTOS DE TRABAJO
+# =============================================
+*.xlsx
+*.xls
+*.csv
+
+# =============================================
+# PYTHON
+# =============================================
 __pycache__/
+*.pyc
+*.pyo
+
+# =============================================
+# ARCHIVOS DE TEXTO DE TRABAJO INTERNO
+# =============================================
+Ahorros de Puntos.txt
+Esp. Tecnicas Contable.md
