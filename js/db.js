@@ -1769,6 +1769,8 @@ const DB = {
         let items = this.getAll(this.KEYS.CARTERA);
         const today = new Date().toISOString().split('T')[0];
         let changed = false;
+        
+        const clients = this.getAll(this.KEYS.CLIENTS) || [];
 
         // Normalizar y actualizar estados dinámicamente según saldo y fecha de vencimiento
         items.forEach(item => {
@@ -1776,6 +1778,29 @@ const DB = {
                 item.venta_id = item.id_alegra_factura;
                 changed = true;
             }
+            
+            let resolvedId = item.cliente_id;
+            if (!resolvedId || resolvedId === 'N/A' || String(resolvedId).startsWith('client_') || String(resolvedId).startsWith('gen_')) {
+                const exists = clients.some(cl => String(cl.id) === String(resolvedId));
+                if (!exists) {
+                    let matchedClient = null;
+                    if (item.cliente_nombre) {
+                        matchedClient = clients.find(cl => cl.nombre && cl.nombre.toLowerCase() === item.cliente_nombre.toLowerCase());
+                    }
+                    if (!matchedClient && item.venta_id) {
+                        const sale = this.getSale(item.venta_id);
+                        if (sale) {
+                            const tempId = sale.cliente_id || sale.cliente_id_alegra;
+                            matchedClient = clients.find(cl => String(cl.id) === String(tempId) || String(cl.id_alegra) === String(tempId) || `alegra_${cl.id_alegra}` === String(tempId));
+                        }
+                    }
+                    if (matchedClient) {
+                        item.cliente_id = matchedClient.id;
+                        changed = true;
+                    }
+                }
+            }
+            
             let nuevoEstado = item.estado;
             if (parseFloat(item.saldo || 0) <= 0) {
                 nuevoEstado = 'pagada';
@@ -2249,6 +2274,30 @@ const DB = {
     getCarteraProveedores(filter = 'todas') {
         let items = this.getAll(this.KEYS.CARTERA_PROVEEDORES);
         const today = new Date().toISOString().split('T')[0];
+        let changed = false;
+        
+        const clients = this.getAll(this.KEYS.CLIENTS) || [];
+        
+        items.forEach(item => {
+            let resolvedId = item.proveedor_id;
+            if (!resolvedId || resolvedId === 'N/A' || String(resolvedId).startsWith('client_') || String(resolvedId).startsWith('gen_')) {
+                const exists = clients.some(cl => String(cl.id) === String(resolvedId));
+                if (!exists) {
+                    let matchedClient = null;
+                    if (item.proveedor_nombre) {
+                        matchedClient = clients.find(cl => cl.nombre && cl.nombre.toLowerCase() === item.proveedor_nombre.toLowerCase());
+                    }
+                    if (matchedClient) {
+                        item.proveedor_id = matchedClient.id;
+                        changed = true;
+                    }
+                }
+            }
+        });
+        
+        if (changed) {
+            this._persist(this.KEYS.CARTERA_PROVEEDORES, items);
+        }
 
         if (filter === 'vencida') {
             items = items.filter(i => i.saldo > 0 && i.fecha_vencimiento < today);
