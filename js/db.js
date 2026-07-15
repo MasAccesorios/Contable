@@ -1807,15 +1807,25 @@ const DB = {
     registerAbono(carteraId, monto, bancoId) {
         const items = this.getAll(this.KEYS.CARTERA);
         const idx = items.findIndex(c => c.id === carteraId);
-        if (idx === -1) {
-            return false;
-        }
+        if (idx === -1) return false;
 
         const item = items[idx];
         const valMonto = parseFloat(monto);
+        if (isNaN(valMonto) || valMonto <= 0) return false;
 
-        if (isNaN(valMonto) || valMonto <= 0) {
-            return false;
+        // Determine correct cliente_id
+        let resolvedClientId = item.cliente_id;
+        if (!resolvedClientId) {
+            // Try to find client by name if ID is missing in Cartera item
+            if (item.cliente_nombre) {
+                const clients = this.getAll(this.KEYS.CLIENTS) || [];
+                const matched = clients.find(c => c.nombre && c.nombre.toLowerCase() === item.cliente_nombre.toLowerCase());
+                if (matched) resolvedClientId = matched.id || matched.id_alegra;
+            }
+            if (!resolvedClientId && item.venta_id) {
+                const sale = this.getSale(item.venta_id);
+                if (sale) resolvedClientId = sale.cliente_id || sale.cliente_id_alegra;
+            }
         }
 
         // 1. Update Cartera Balance
@@ -1828,12 +1838,11 @@ const DB = {
         items[idx] = item;
         this._persist(this.KEYS.CARTERA, items);
 
-        // 2. Generate Recibo de Caja (for history)
-        const client = this.getClient(item.cliente_id);
+        // 2. Generate Recibo de Caja
         const recibo = {
             id: this.genId(),
             numero: this.getNextNumber('recibo'),
-            cliente_id: item.cliente_id,
+            cliente_id: resolvedClientId || '',
             banco_id: bancoId,
             monto_total: valMonto,
             fecha: new Date().toISOString(),
@@ -2005,7 +2014,36 @@ const DB = {
     // =========================================================
     // Recibos de Caja (Pagos Recibidos)
     // =========================================================
-    getRecibosCaja() { return this.getAll(this.KEYS.RECIBOS_CAJA); },
+    getRecibosCaja() { 
+        const recibos = this.getAll(this.KEYS.RECIBOS_CAJA);
+        let modified = false;
+        recibos.forEach(r => {
+            if (!r.cliente_id || r.cliente_id === 'N/A') {
+                const details = this.getAll(this.KEYS.RECIBO_CAJA_DETALLE).filter(d => d.recibo_caja_id === r.id);
+                if (details.length > 0) {
+                    const carItem = this.getById(this.KEYS.CARTERA, details[0].cartera_id);
+                    if (carItem) {
+                        let resolvedId = carItem.cliente_id;
+                        if (!resolvedId && carItem.cliente_nombre) {
+                            const clients = this.getAll(this.KEYS.CLIENTS) || [];
+                            const matched = clients.find(c => c.nombre && c.nombre.toLowerCase() === carItem.cliente_nombre.toLowerCase());
+                            if (matched) resolvedId = matched.id || matched.id_alegra;
+                        }
+                        if (!resolvedId && carItem.venta_id) {
+                            const sale = this.getSale(carItem.venta_id);
+                            if (sale) resolvedId = sale.cliente_id || sale.cliente_id_alegra;
+                        }
+                        if (resolvedId) {
+                            r.cliente_id = resolvedId;
+                            modified = true;
+                        }
+                    }
+                }
+            }
+        });
+        if (modified) this._persist(this.KEYS.RECIBOS_CAJA, recibos);
+        return recibos;
+    },
     getReciboCaja(id) { return this.getById(this.KEYS.RECIBOS_CAJA, id); },
     getReciboCajaDetails(reciboId) {
         return this.getAll(this.KEYS.RECIBO_CAJA_DETALLE).filter(d => d.recibo_caja_id === reciboId);
