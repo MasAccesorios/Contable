@@ -1604,7 +1604,7 @@ const Pages = {
 
         let rows = '';
         if (expenses.length === 0) {
-            rows = `<tr><td colspan="6" class="text-center text-muted py-4">No hay gastos registrados</td></tr>`;
+            rows = `<tr><td colspan="7" class="text-center text-muted py-4">No hay gastos registrados</td></tr>`;
         } else {
             rows = expenses.map(e => {
                 const bank = DB.getBank(e.banco_id);
@@ -1612,6 +1612,7 @@ const Pages = {
                     <td>${e.fecha}</td>
                     <td><span class="badge-status badge-credito">${e.categoria}</span></td>
                     <td>${e.descripcion}</td>
+                    <td>${e.proveedor || '-'}</td>
                     <td class="text-end text-danger fw-bold">${fmt(e.monto)}</td>
                     <td>${bank ? bank.nombre : '-'}</td>
                     <td>
@@ -1638,6 +1639,7 @@ const Pages = {
                                 <th>Fecha</th>
                                 <th>Categoría</th>
                                 <th>Descripción</th>
+                                <th>Proveedor</th>
                                 <th class="text-end">Monto</th>
                                 <th>Banco</th>
                                 <th>Acciones</th>
