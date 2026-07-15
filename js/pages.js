@@ -503,7 +503,7 @@ const Pages = {
 
         const fmt = (n) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n);
         
-        // Calcular Saldo de Cartera
+        // Calcular Saldo de Cartera (Cuentas por Cobrar y por Pagar)
         const isClientMatch = (val, target) => {
             if (!val || !target) return false;
             const strVal = String(val);
@@ -512,8 +512,17 @@ const Pages = {
             if (strVal === `alegra_${strTarget}` || strTarget === `alegra_${strVal}`) return true;
             return false;
         };
+        
         const carteras = DB.getCartera().filter(c => isClientMatch(c.cliente_id, id) && c.estado !== 'pagada');
         const saldoCuentasPorCobrar = carteras.reduce((sum, c) => sum + (c.saldo || 0), 0);
+
+        const carteraProv = DB.getCarteraProveedores().filter(c => isClientMatch(c.proveedor_id, id) && c.estado !== 'pagada');
+        const saldoCuentasPorPagar = carteraProv.reduce((sum, c) => sum + (c.saldo || 0), 0);
+        
+        const isProveedor = client.tipo === 'Proveedor';
+        const displayLabel = isProveedor ? 'Cuentas por pagar' : 'Cuentas por cobrar';
+        const displayValue = isProveedor ? saldoCuentasPorPagar : saldoCuentasPorCobrar;
+        const displayColor = isProveedor ? 'bg-danger' : 'bg-primary';
 
         return `
         <div class="fade-in">
@@ -557,10 +566,10 @@ const Pages = {
                     </div>
                 </div>
                 <div class="col-md-3">
-                    <div class="card border-0 shadow-sm h-100 bg-primary text-white">
+                    <div class="card border-0 shadow-sm h-100 ${displayColor} text-white">
                         <div class="card-body d-flex flex-column justify-content-center">
-                            <p class="text-white-50 small mb-1">Cuentas por cobrar</p>
-                            <h5 class="mb-0 fw-bold">${fmt(saldoCuentasPorCobrar)}</h5>
+                            <p class="text-white-50 small mb-1">${displayLabel}</p>
+                            <h5 class="mb-0 fw-bold">${fmt(displayValue)}</h5>
                         </div>
                     </div>
                 </div>
