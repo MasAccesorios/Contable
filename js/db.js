@@ -228,11 +228,7 @@ const DB = {
             
             const response = await fetch(`${this.API_URL}?t=${Date.now()}`, { 
                 signal: controller.signal,
-                headers: {
-                    'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-                    'Pragma': 'no-cache',
-                    'Expires': '0'
-                }
+                cache: 'no-store'
             });
             clearTimeout(timeout);
             
