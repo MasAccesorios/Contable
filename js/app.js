@@ -5327,6 +5327,122 @@ const App = {
     unformatNumber(str) {
         if (!str) return '0';
         return str.toString().replace(/\./g, '').replace(/,/g, '.');
+    },
+    viewMovement(id) {
+        const m = DB.getAll(DB.KEYS.BANK_MOVEMENTS).find(x => x.id === id);
+        if (!m) return;
+        let clientName = m.cliente_nombre || m.cliente_nombre_alegra || m.extracted_client_name || 'No asignado';
+        const color = m.tipo === 'ingreso' ? 'text-success' : 'text-danger';
+        const isISO = m.fecha ? m.fecha.includes('T') : false;
+        const fecha = m.fecha ? new Date(isISO ? m.fecha : m.fecha+'T00:00:00').toLocaleDateString() : '-';
+        
+        const modalId = 'dynamicMovModal';
+        let modalEl = document.getElementById(modalId);
+        if (!modalEl) {
+            modalEl = document.createElement('div');
+            modalEl.id = modalId;
+            modalEl.className = 'modal fade';
+            modalEl.innerHTML = 
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Detalle de Movimiento</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body" id=" + modalId + -body"></div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                        </div>
+                    </div>
+                </div>;
+            document.body.appendChild(modalEl);
+        }
+        document.getElementById(modalId + '-body').innerHTML = 
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item"><strong>Tipo:</strong> <span class="text-capitalize  + color + "> + m.tipo + </span></li>
+                <li class="list-group-item"><strong>Fecha:</strong>  + fecha + </li>
+                <li class="list-group-item"><strong>Monto:</strong> <span class="fs-5  + color +  fw-bold"> + this.formatNumber(m.monto) + </span></li>
+                <li class="list-group-item"><strong>Tercero / Contacto:</strong>  + clientName + </li>
+                <li class="list-group-item"><strong>Concepto:</strong>  + (m.concepto || m.descripcion || '-') + </li>
+            </ul>;
+        new bootstrap.Modal(modalEl).show();
+    },
+
+    editMovement(id) {
+        const m = DB.getAll(DB.KEYS.BANK_MOVEMENTS).find(x => x.id === id);
+        if (!m) return;
+        if (m.tipo !== 'egreso') {
+            this.showToast('Solo se pueden editar movimientos de egreso', 'Aviso', 'warning');
+            return;
+        }
+        if (m.referencia_id && DB.getExpense(m.referencia_id)) {
+            this.editGasto(m.referencia_id);
+        } else {
+            this.showToast('Este movimiento no tiene un formulario de gasto asociado', 'Aviso', 'warning');
+        }
+    },
+
+    deleteMovement(id) {
+        if (!confirm('¿Está seguro de eliminar este movimiento? Esta acción recalculará el saldo de la cuenta.')) return;
+        
+        const movs = DB.getAll(DB.KEYS.BANK_MOVEMENTS) || [];
+        const idx = movs.findIndex(m => m.id === id);
+        if (idx !== -1) {
+            const m = movs[idx];
+            if (m.referencia_id && m.tipo === 'egreso') {
+                DB.deleteExpense(m.referencia_id);
+            } else {
+                movs.splice(idx, 1);
+                DB._persist(DB.KEYS.BANK_MOVEMENTS, movs);
+                DB.recalcBankBalance(m.banco_id);
+            }
+            this.showToast('Movimiento eliminado y saldo actualizado', 'Éxito', 'success');
+            if (document.getElementById('movements-content-' + m.banco_id)) {
+                Pages._goMovPage(m.banco_id, 1);
+            }
+        }
+    },
+
+    printMovement(id) {
+        const m = DB.getAll(DB.KEYS.BANK_MOVEMENTS).find(x => x.id === id);
+        if (!m) return;
+        let clientName = m.cliente_nombre || m.cliente_nombre_alegra || m.extracted_client_name || 'No asignado';
+        const color = m.tipo === 'ingreso' ? '#10B981' : '#EF4444';
+        const isISO = m.fecha ? m.fecha.includes('T') : false;
+        const fecha = m.fecha ? new Date(isISO ? m.fecha : m.fecha + 'T00:00:00').toLocaleDateString() : '-';
+        const bank = DB.getBank(m.banco_id) || {};
+        
+        const html = <!DOCTYPE html><html lang="es">
+        <head><meta charset="UTF-8"><title>Comprobante de Movimiento</title>
+        <style> + this._getPrintStyles() + </style></head>
+        <body><div class="doc-wrapper">
+            <div class="doc-header" style="border-bottom: 3px solid #0d9488; padding-bottom: 15px; margin-bottom: 25px;">
+                <h1 style="font-size: 22px; font-weight: 700; color: #1a1a2e; margin: 0; text-align: center;">COMPROBANTE DE  + m.tipo.toUpperCase() + </h1>
+                <div style="text-align: center; color: #666; margin-top: 5px;">ID:  + m.id + </div>
+            </div>
+            <div class="info-grid">
+                <div class="info-block">
+                    <h3>Detalles de la Transacción</h3>
+                    <p><strong>Fecha:</strong>  + fecha + </p>
+                    <p><strong>Tercero / Contacto:</strong>  + clientName + </p>
+                    <p><strong>Cuenta:</strong>  + (bank.nombre || 'Desconocida') + </p>
+                    <p><strong>Tipo:</strong> <span style="color:  + color + ; font-weight: bold;"> + m.tipo.toUpperCase() + </span></p>
+                </div>
+            </div>
+            <div class="info-block" style="margin-top: 20px;">
+                <h3>Concepto</h3>
+                <p style="padding: 10px; background: #f8f9fa; border-radius: 5px; border: 1px solid #e9ecef;"> + (m.concepto || m.descripcion || '-') + </p>
+            </div>
+            <div style="margin-top: 30px; text-align: right; font-size: 24px;">
+                <strong>Valor:</strong> <span style="color:  + color + ;"> + this.formatNumber(m.monto) + </span>
+            </div>
+        </div>
+        <script>window.onload = () => window.print();</script>
+        </body></html>;
+        
+        const win = window.open('', '_blank');
+        win.document.write(html);
+        win.document.close();
     }
 };
 

@@ -1956,6 +1956,7 @@ const DB = {
 
     saveExpense(expense, isNew = true) {
         const saved = this.save(this.KEYS.EXPENSES, expense);
+        const fechaVal = (expense.fecha && expense.fecha !== new Date().toISOString().split('T')[0]) ? (expense.fecha + (expense.fecha.includes('T') ? '' : 'T00:00:00')) : new Date().toISOString();
 
         if (isNew && expense.banco_id) {
             // Generate bank egress
@@ -1965,8 +1966,25 @@ const DB = {
                 monto: parseFloat(expense.monto),
                 descripcion: `Gasto: ${expense.descripcion}`,
                 referencia_id: saved.id,
-                fecha: (expense.fecha && expense.fecha !== new Date().toISOString().split('T')[0]) ? (expense.fecha + (expense.fecha.includes('T') ? '' : 'T00:00:00')) : new Date().toISOString()
+                fecha: fechaVal
             });
+        } else if (!isNew && expense.banco_id) {
+            // Update existing bank egress
+            const movs = this.getAll(this.KEYS.BANK_MOVEMENTS) || [];
+            const movIdx = movs.findIndex(m => m.referencia_id === saved.id && m.tipo === 'egreso');
+            if (movIdx !== -1) {
+                const oldBancoId = movs[movIdx].banco_id;
+                movs[movIdx].monto = parseFloat(expense.monto);
+                movs[movIdx].descripcion = `Gasto: ${expense.descripcion}`;
+                movs[movIdx].fecha = fechaVal;
+                movs[movIdx].banco_id = expense.banco_id;
+                this._persist(this.KEYS.BANK_MOVEMENTS, movs);
+                
+                this.recalcBankBalance(oldBancoId);
+                if (String(oldBancoId) !== String(expense.banco_id)) {
+                    this.recalcBankBalance(expense.banco_id);
+                }
+            }
         }
 
         return saved;
@@ -2038,7 +2056,20 @@ const DB = {
         return this.getAll(this.KEYS.PAGOS_PROVEEDORES);
     },
 
-    deleteExpense(id) { this.delete(this.KEYS.EXPENSES, id); },
+    deleteExpense(id) {
+        const e = this.getExpense(id);
+        this.delete(this.KEYS.EXPENSES, id);
+        
+        // Delete associated bank movement
+        const movs = this.getAll(this.KEYS.BANK_MOVEMENTS) || [];
+        const movIdx = movs.findIndex(m => m.referencia_id === id && m.tipo === 'egreso');
+        if (movIdx !== -1) {
+            const bancoId = movs[movIdx].banco_id;
+            movs.splice(movIdx, 1);
+            this._persist(this.KEYS.BANK_MOVEMENTS, movs);
+            this.recalcBankBalance(bancoId);
+        }
+    },
 
     // =========================================================
     // Dashboard Metrics

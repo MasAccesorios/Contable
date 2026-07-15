@@ -1338,13 +1338,42 @@ const Pages = {
             const color     = isIngreso ? '#10B981' : '#EF4444';
             const prefix    = isIngreso ? '+' : '-';
             const tipoLabel = isIngreso ? 'Ingreso' : 'Egreso';
-            const fecha     = m.fecha ? new Date(m.fecha + 'T00:00:00').toLocaleDateString('es-CO', {day:'2-digit', month:'short', year:'numeric'}) : '-';
+            
+            // Fix Invalid Date bug
+            const dateStr = m.fecha || m.created_at;
+            let fecha = '-';
+            if (dateStr) {
+                const isISO = dateStr.includes('T');
+                const d = new Date(isISO ? dateStr : dateStr + 'T00:00:00');
+                if (!isNaN(d.getTime())) {
+                    fecha = d.toLocaleDateString('es-CO', {day:'2-digit', month:'short', year:'numeric'});
+                }
+            }
+            
+            // Tercero / Contacto logic with fallback
+            let clientName = 'No asignado';
+            if (m.cliente_id || m.cliente_id_alegra) {
+                clientName = DB.getClientName(m.cliente_id || m.cliente_id_alegra, m.cliente_nombre || m.cliente_nombre_alegra);
+            } else if (m.referencia_id) {
+                clientName = m.extracted_client_name || 'No asignado';
+            }
+            if (clientName === 'N/A' || clientName === 'No asignado' || clientName === '[Sin cliente]') {
+                clientName = m.cliente_nombre_alegra || m.cliente_nombre || 'No asignado';
+            }
+
             const concepto  = m.concepto || m.descripcion || '-';
             return `<tr>
-                <td class="text-muted small">${fecha}</td>
-                <td><span class="badge rounded-pill" style="background:${isIngreso?'#D1FAE5':'#FEE2E2'};color:${color};font-size:0.72rem;">${tipoLabel}</span></td>
-                <td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${concepto}</td>
-                <td class="text-end fw-bold" style="color:${color};">${prefix}${fmt(parseFloat(m.monto||0))}</td>
+                <td class="text-muted small align-middle">${fecha}</td>
+                <td class="align-middle"><span class="badge rounded-pill" style="background:${isIngreso?'#D1FAE5':'#FEE2E2'};color:${color};font-size:0.72rem;">${tipoLabel}</span></td>
+                <td class="align-middle fw-medium" style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${clientName}">${clientName}</td>
+                <td class="align-middle text-muted" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${concepto}">${concepto}</td>
+                <td class="align-middle text-end fw-bold" style="color:${color};">${prefix}${fmt(parseFloat(m.monto||0))}</td>
+                <td class="align-middle text-end">
+                    <button class="btn btn-sm btn-light text-primary py-0 px-1" title="Ver detalle" onclick="App.viewMovement('${m.id}')"><i class="bi bi-eye"></i></button>
+                    ${!isIngreso ? `<button class="btn btn-sm btn-light text-warning py-0 px-1" title="Editar gasto" onclick="App.editMovement('${m.id}')"><i class="bi bi-pencil"></i></button>` : ''}
+                    <button class="btn btn-sm btn-light text-danger py-0 px-1" title="Eliminar" onclick="App.deleteMovement('${m.id}')"><i class="bi bi-trash"></i></button>
+                    <button class="btn btn-sm btn-light text-secondary py-0 px-1" title="Imprimir" onclick="App.printMovement('${m.id}')"><i class="bi bi-printer"></i></button>
+                </td>
             </tr>`;
         }).join('');
 
@@ -1366,10 +1395,12 @@ const Pages = {
             <table class="table table-sm table-hover mb-0" style="font-size:0.85rem;">
                 <thead class="table-light sticky-top">
                     <tr>
-                        <th style="width:110px;">Fecha</th>
-                        <th style="width:90px;">Tipo</th>
+                        <th style="width:100px;">Fecha</th>
+                        <th style="width:80px;">Tipo</th>
+                        <th>Tercero / Contacto</th>
                         <th>Concepto</th>
-                        <th class="text-end" style="width:140px;">Valor</th>
+                        <th class="text-end" style="width:110px;">Valor</th>
+                        <th class="text-end" style="width:130px;">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>${rows}</tbody>
