@@ -37,14 +37,20 @@ const DB = {
         COTIZACIONES_ALEGRA: 'cg_cotizaciones_alegra'
     },
 
-    // Token de autenticación de Firebase RTDB (Database Secret)
-    // Obtén el token desde: Firebase Console → Configuración del proyecto → Cuentas de servicio → Secrets
-    FIREBASE_SECRET: 'REEMPLAZA_CON_TU_DATABASE_SECRET',
-    API_URL: 'https://masaccesorios-contable-default-rtdb.firebaseio.com/contable',
+    // Obtiene el secreto de Firebase desde localStorage (lo pide una sola vez al usuario)
+    getFirebaseSecret() {
+        let secret = localStorage.getItem('fb_secret');
+        if (!secret) {
+            secret = prompt('Introduce el Secreto de la Base de Datos para conectar:');
+            if (secret) localStorage.setItem('fb_secret', secret);
+        }
+        return secret;
+    },
 
     // Construye la URL autenticada para cada request
     _url(path) {
-        return `${this.API_URL}${path}?auth=${this.FIREBASE_SECRET}`;
+        const sep = path.includes('?') ? '&' : '?';
+        return `${this.API_URL}${path}${sep}auth=${this.getFirebaseSecret()}`;
     },
 
     // In-memory cache to avoid repeated JSON.parse (PERF-01)
