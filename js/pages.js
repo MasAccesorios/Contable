@@ -649,7 +649,7 @@ const Pages = {
                             ]
                         })}
                         <button class="btn btn-outline-warning" onclick="App.forzarMigracionContactos(this)">
-                             ⚠️ Forzar Migración de Contactos
+                             🔄 Cargar Copia de Alegra a Firebase
                         </button>
                         <button class="btn btn-primary-gradient" onclick="App.newCliente()">
                              <i class="bi bi-plus-lg me-1"></i> Nuevo Contacto
