@@ -2066,7 +2066,21 @@ const DB = {
         };
 
         const allSales = this.getSales();
-        const sales = allSales.filter(s => s.estado !== 'borrador' && s.estado !== 'anulada' && s.estado !== 'plantilla');
+        
+        // 1. FÓRMULA ESTRICTA: Eliminar registros duplicados o recibos inyectados por error
+        const uniqueSalesMap = new Map();
+        allSales.forEach(s => {
+            if (s.tipo === 'ingreso' || String(s.numero).startsWith('RC')) return; // Ignorar abonos puros
+            uniqueSalesMap.set(String(s.numero), s);
+        });
+        
+        // 2. FILTRO DE CONSULTA: Multiplicar por 0 / excluir anuladas y borradores
+        const sales = Array.from(uniqueSalesMap.values()).filter(s => 
+            s.estado !== 'borrador' && 
+            s.estado !== 'anulada' && 
+            s.estado !== 'plantilla'
+        );
+        
         const devoluciones = this.getDevoluciones() || [];
 
         const periodSales     = sales.filter(s => inRange(s.fecha || s.created_at, dateFrom, now));
