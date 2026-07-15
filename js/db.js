@@ -240,6 +240,7 @@ const DB = {
     
     // Sync all data from Google Sheets to IndexedDB/cache on startup
     async syncFromCloud() {
+        alert('[DIAGNÓSTICO ENTRADA] syncFromCloud() fue llamada. Iniciando diagnóstico...');
         try {
             // === DIAGNÓSTICO: verificar token antes de fetch ===
             const _diagToken = localStorage.getItem('fb_secret');
