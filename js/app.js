@@ -1393,6 +1393,7 @@ const App = {
 
         document.getElementById('ventaTipo').value = 'contado';
         document.getElementById('ventaBancoContainer').style.display = 'block';
+        document.getElementById('alegraInfoBlock').style.display = 'none';
 
         // Clear body and add initial row
         document.getElementById('ventaDetalleBody').innerHTML = '';
@@ -1436,6 +1437,17 @@ const App = {
         } else {
             bancoContainer.style.display = 'none';
             this.selectors.ventaBanco.clear();
+        }
+        
+        // Render Alegra Info
+        const alegraBlock = document.getElementById('alegraInfoBlock');
+        if (v.total !== undefined) {
+            document.getElementById('ventaAlegraTotal').textContent = this.formatNumber(v.total || 0);
+            document.getElementById('ventaAlegraAbono').textContent = this.formatNumber(v.abono || 0);
+            document.getElementById('ventaAlegraSaldo').textContent = this.formatNumber(v.saldo || 0);
+            alegraBlock.style.display = 'block';
+        } else {
+            alegraBlock.style.display = 'none';
         }
 
         // Render detail rows
