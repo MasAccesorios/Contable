@@ -2427,7 +2427,7 @@ const App = {
             const validezStr = c.validez ? (c.validez.includes('T') ? new Date(c.validez).toLocaleDateString('es-CO') : c.validez) : '-';
             const yaConvertida = c.estado === 'convertida' || !!c.factura_id;
             return `<tr>
-                <td><a href="#" onclick="event.preventDefault(); App.viewCotizacion('${c.id}')" class="text-decoration-none fw-bold">${ref.replace('#', '')}</a></td>
+                <td><a href="#" onclick="event.preventDefault(); App.viewCotizacion('${c.id}')" class="text-decoration-none fw-bold">${String(ref).replace('#', '')}</a></td>
                 <td>${fechaStr}</td>
                 <td><a href="#" onclick="event.preventDefault(); App.viewCliente('${c.cliente_id}')" class="text-decoration-none fw-bold">${DB.getClientName(c.cliente_id, c.cliente_nombre_alegra)}</a></td>
                 <td>${validezStr}</td>
@@ -2480,7 +2480,7 @@ const App = {
             const ref = s.numero || s.id.toString().substr(-6).toUpperCase();
             const fechaStr = s.fecha ? (s.fecha.includes('T') ? new Date(s.fecha).toLocaleDateString('es-CO') : s.fecha) : '-';
             return `<tr>
-                <td><a href="#" onclick="event.preventDefault(); App.viewInvoice('${s.id}', 'venta')" class="text-decoration-none fw-bold">${ref.replace('#', '')}</a></td>
+                <td><a href="#" onclick="event.preventDefault(); App.viewInvoice('${s.id}', 'venta')" class="text-decoration-none fw-bold">${String(ref).replace('#', '')}</a></td>
                 <td>${fechaStr}</td>
                 <td><a href="#" onclick="event.preventDefault(); App.viewCliente('${s.cliente_id}')" class="text-decoration-none fw-bold">${DB.getClientName(s.cliente_id, s.cliente_nombre_alegra)}</a></td>
                 <td><span class="badge-status badge-${s.tipo_venta}">${s.tipo_venta}</span></td>
