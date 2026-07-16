@@ -193,8 +193,8 @@ const App = {
         const clients = DB.getClients();
 
         const matchedProducts = products.filter(p =>
-            (p.nombre && p.nombre.toLowerCase().includes(query)) ||
-            (p.codigo && p.codigo.toLowerCase().includes(query))
+            (p.nombre && String(p.nombre).toLowerCase().includes(query)) ||
+            (p.codigo && String(p.codigo).toLowerCase().includes(query))
         ).slice(0, 5); // Limit to 5
 
         const matchedClients = clients.filter(c =>

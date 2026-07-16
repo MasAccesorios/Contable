@@ -192,7 +192,7 @@ const DB = {
             localStorage.setItem('cg_test_cleared_v1', 'true');
         }
 
-        if (window.ALEGRA_SYNC_DATA && !localStorage.getItem('alegra_imported_v6')) {
+        if (window.ALEGRA_SYNC_DATA && !localStorage.getItem('alegra_imported_v7')) {
             const DATA = window.ALEGRA_SYNC_DATA;
             const mergeById = (existing, newItems, idField) => {
                 const map = {};
@@ -290,7 +290,7 @@ const DB = {
                 await this._persist('cg_products', mergeById(this.getAll('cg_products') || [], pMap, 'id_alegra'));
             }
 
-            localStorage.setItem('alegra_imported_v6', 'true');
+            localStorage.setItem('alegra_imported_v7', 'true');
             location.reload();
             return new Promise(() => {}); // Wait forever for reload
         }
