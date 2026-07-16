@@ -1,19 +1,26 @@
-[PERFIL DEL ASISTENTE - MODO ULTRA-AHORRO]
-- Eres un Ingeniero de Software Principal enfocado en desarrollo eficiente, rendimiento y reducción extrema de consumo de tokens/créditos.
-- Tu entorno de trabajo es "Antigravity", desarrollando una aplicación contable propia que integra datos migrados de "Alegra Contable".
 
-[REGLAS ESTRICTAS DE CONSUMO Y RESPUESTA]
-1. TRABAJO EN FRÍO: Queda estrictamente prohibido iniciar simulaciones en vivo, automatizaciones de navegador (Chrome/Puppeteer) o ejecución en entornos de prueba (sandbox) a menos que se te pida explícitamente. Realiza únicamente análisis estático del código.
-2. CÓDIGO MINIMALISTA (DIFFS): No generes archivos completos ni repitas código que ya funciona. Entrega únicamente las líneas exactas de código que se deben reemplazar, insertar o eliminar.
-3. CERO RELLENO: Elimina saludos, introducciones, explicaciones de teoría de programación y resúmenes finales. Ve directo al grano con la solución técnica.
-4. LENGUAJE: Responde siempre en español de forma técnica, clara y directa.
+[REGLAS GENERALES DE DESARROLLO - EVITAR REGRESIONES Y DESFASE DE DATOS]
 
-[REGLAS DE DOMINIO DE LA APP (CONTABILIDAD Y PERSISTENCIA)]
-- Prioriza siempre la coherencia del estado financiero global. Las acciones de actualización (anular facturas, registrar gastos, actualizar inventario) deben impactar la base de datos de manera inmediata y global, no solo el estado local del navegador.
-- Al procesar datos migrados, valida minuciosamente que no existan conflictos entre los IDs locales y los IDs importados de la API de Alegra.
-- Asegúrate de que los endpoints de consulta de saldos o reportes utilicen políticas estrictas de invalidación de caché ('Cache-Control: no-store') para evitar desfases entre diferentes dispositivos (móvil y web).
+1. PRESERVACIÓN DEL HISTORIAL Y CÓDIGO EXISTENTE (NO REGRESIONES):
+   - Queda estrictamente prohibido eliminar, alterar o simplificar funciones auxiliares, validaciones de campos, o lógicas de mapeo de datos existentes a menos que se solicite de forma explícita.
+   - Antes de modificar cualquier archivo, analiza el impacto de tu cambio en las demás vistas y procesos para garantizar que no se rompan funcionalidades colaterales (por ejemplo, asegurar que un cambio en la base de datos no oculte los botones de acción como ver, editar, anular o imprimir).
 
-[REGLA DE ABSTRACCIÓN DE DOCUMENTOS (REUTILIZACIÓN DE INTERFAZ)]
-- ABSTRACCIÓN DE COMPORTAMIENTO: Queda estrictamente prohibido duplicar funciones de renderizado de acciones (ver, editar, imprimir, anular) en "js/pages.js" o componentes de vista. Las cotizaciones y facturas deben tratarse bajo una interfaz común de "Documento" utilizando un único controlador unificado para ambas.
-- PARÁMETRO DE TIPO: El motor de renderizado debe recibir el objeto del documento y un parámetro de tipo ('factura' | 'cotizacion'). Las URLs de API, los prefijos de almacenamiento local, los permisos de edición y los endpoints de Firebase deben derivarse dinámicamente a partir de este parámetro de tipo para evitar inconsistencias y redundancia de código.
-- UNIFICACIÓN DE ACCIONES: Los botones de acción deben llamar a métodos genéricos de manipulación ('accionesDocumento.ver()', 'accionesDocumento.editar()', etc.) que procesen la carga útil (payload) sin importar si se trata de un ingreso, gasto o cotización.
+2. VERIFICACIÓN DE VARIABLES Y CONTEXTO GLOBAL:
+   - Toda integración con el historial importado de Alegra debe validar primero la existencia y estructura del objeto en memoria "window.ALEGRA_SYNC_DATA".
+   - Antes de asumir que un dato no existe en el sistema, verifica si está cargado en esta variable global para evitar consultas fallidas o re-creaciones redundantes.
+
+3. FUENTE ÚNICA DE VERDAD Y SINCRONIZACIÓN IDEMPOTENTE:
+   - El estado financiero global debe ser consistente en todos los dispositivos. Toda escritura o actualización local (IndexedDB) debe propagarse inmediatamente a Firebase y viceversa.
+   - Cualquier inserción o modificación de documentos (facturas, cotizaciones, recibos) o movimientos de banco debe utilizar IDs únicos deterministas generados antes de la transmisión de red, evitando duplicidad de registros en reintentos o fallos de conexión.
+
+4. CÓDIGO MINIMALISTA Y ENTREGAS EN FORMATO DIFF:
+   - Bajo ninguna circunstancia reescribas o generes archivos de código completos.
+   - Entrega única y exclusivamente las líneas exactas de código que deben ser insertadas, reemplazadas o eliminadas utilizando bloques de formato DIFF estándar de Git o indicando con absoluta precisión las líneas de código afectadas.
+
+5. TRABAJO EN FRÍO Y EFICIENCIA DE TOKENS:
+   - No inicies simulaciones de navegador, pruebas dinámicas automatizadas ni ejecuciones en entornos virtuales (sandboxes) a menos que se te indique explícitamente.
+   - Sé directo, técnico y elimina cualquier saludo, teoría innecesaria o resúmenes finales redundantes para maximizar el ahorro de créditos en cada interacción.
+
+6. PRIORIDAD DE PROCESAMIENTO LOCAL (SHELL & SCRIPTS EXTERNOS):
+   - Siempre que se requiera procesar, migrar o descargar grandes volúmenes de datos (como el historial completo de Alegra, sincronizaciones masivas o limpiezas de base de datos), prioriza la generación de scripts automatizados de ejecución local (ej. PowerShell, Node.js) en la computadora del usuario.
+   - Queda prohibido intentar procesar o parsear payloads de datos de más de 50 KB directamente en el chat de la IA. Esto previene el desperdicio innecesario de créditos de contexto y garantiza que el procesamiento pesado se realice de manera óptima en la máquina local.

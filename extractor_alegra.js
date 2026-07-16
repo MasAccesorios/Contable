@@ -8,8 +8,8 @@
  */
 
 const fs = require('fs');
-const EMAIL = 'tu_correo@ejemplo.com';
-const TOKEN = 'tu_token_api_alegra';
+const EMAIL = 'mauricio.izquierdo@hotmail.com';
+const TOKEN = '4be4096858fba53cdc21';
 
 const AUTH_HEADER = 'Basic ' + Buffer.from(EMAIL + ':' + TOKEN).toString('base64');
 const BASE_URL = 'https://api.alegra.com/api/v1';
