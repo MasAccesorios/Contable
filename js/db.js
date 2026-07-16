@@ -192,7 +192,8 @@ const DB = {
             localStorage.setItem('cg_test_cleared_v1', 'true');
         }
 
-        if (window.ALEGRA_SYNC_DATA && !localStorage.getItem('alegra_imported_v7')) {
+        if (window.ALEGRA_SYNC_DATA && !localStorage.getItem('alegra_imported_v8')) {
+            console.log("INICIANDO MIGRACION V8 - LIMPIEZA PROFUNDA Y RESTAURACION");
             const DATA = window.ALEGRA_SYNC_DATA;
             const mergeById = (existing, newItems, idField) => {
                 const map = {};
@@ -203,7 +204,9 @@ const DB = {
                         (e.nombre && n.nombre && e.nombre.trim().toLowerCase() === n.nombre.trim().toLowerCase()) ||
                         (e.identificacion && n.identificacion && String(e.identificacion).trim() === String(n.identificacion).trim())
                     );
-                    if (match) map[match.id] = { ...match, ...n };
+                    if (match) {
+                        map[match.id] = { ...match, ...n, deleted_at: null }; // Force restore if deleted
+                    }
                     else { const id = this.genId(); map[id] = { id, created_at: new Date().toISOString(), ...n }; }
                 });
                 return Object.values(map);
@@ -290,7 +293,8 @@ const DB = {
                 await this._persist('cg_products', mergeById(this.getAll('cg_products') || [], pMap, 'id_alegra'));
             }
 
-            localStorage.setItem('alegra_imported_v7', 'true');
+            console.log("MIGRACION V8 COMPLETADA. RECARGANDO...");
+            localStorage.setItem('alegra_imported_v8', 'true');
             location.reload();
             return new Promise(() => {}); // Wait forever for reload
         }
