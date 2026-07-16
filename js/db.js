@@ -192,7 +192,7 @@ const DB = {
             localStorage.setItem('cg_test_cleared_v1', 'true');
         }
 
-        if (window.ALEGRA_SYNC_DATA && !localStorage.getItem('alegra_imported_v5')) {
+        if (window.ALEGRA_SYNC_DATA && !localStorage.getItem('alegra_imported_v6')) {
             const DATA = window.ALEGRA_SYNC_DATA;
             const mergeById = (existing, newItems, idField) => {
                 const map = {};
@@ -213,6 +213,7 @@ const DB = {
             let existingClients = this.getAll('cg_clients') || [];
             const uniqueClientsMap = {};
             const deduplicatedClients = [];
+            const idRemap = {};
             existingClients.forEach(c => {
                 if (!c) return;
                 const key = (c.nombre || '').trim().toLowerCase();
@@ -225,6 +226,7 @@ const DB = {
                     deduplicatedClients.push(c);
                 } else {
                     const existing = uniqueClientsMap[key];
+                    if (c.id) idRemap[c.id] = existing.id;
                     if (!existing.id_alegra && c.id_alegra) existing.id_alegra = c.id_alegra;
                     if (!existing.identificacion && c.identificacion) existing.identificacion = c.identificacion;
                     if (!existing.telefono && c.telefono) existing.telefono = c.telefono;
@@ -232,6 +234,22 @@ const DB = {
                 }
             });
             await this._persist('cg_clients', deduplicatedClients);
+
+            if (Object.keys(idRemap).length > 0) {
+                let sales = this.getAll('cg_sales') || [];
+                let modifiedSales = false;
+                sales.forEach(s => {
+                    if (s.cliente_id && idRemap[s.cliente_id]) { s.cliente_id = idRemap[s.cliente_id]; modifiedSales = true; }
+                });
+                if (modifiedSales) await this._persist('cg_sales', sales);
+
+                let cartera = this.getAll('cg_cartera') || [];
+                let modifiedCartera = false;
+                cartera.forEach(c => {
+                    if (c.cliente_id && idRemap[c.cliente_id]) { c.cliente_id = idRemap[c.cliente_id]; modifiedCartera = true; }
+                });
+                if (modifiedCartera) await this._persist('cg_cartera', cartera);
+            }
 
             const cMap = DATA.clientes.map(c => ({ id_alegra: c.id_alegra, nombre: c.name, identificacion: c.identification, email: c.email, telefono: c.phone, direccion: c.address }));
             const cFinal = mergeById(deduplicatedClients, cMap, 'id_alegra');
@@ -272,7 +290,7 @@ const DB = {
                 await this._persist('cg_products', mergeById(this.getAll('cg_products') || [], pMap, 'id_alegra'));
             }
 
-            localStorage.setItem('alegra_imported_v5', 'true');
+            localStorage.setItem('alegra_imported_v6', 'true');
             location.reload();
             return new Promise(() => {}); // Wait forever for reload
         }
