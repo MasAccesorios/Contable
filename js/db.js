@@ -192,21 +192,49 @@ const DB = {
             localStorage.setItem('cg_test_cleared_v1', 'true');
         }
 
-        if (window.ALEGRA_SYNC_DATA && !localStorage.getItem('alegra_imported_v4')) {
+        if (window.ALEGRA_SYNC_DATA && !localStorage.getItem('alegra_imported_v5')) {
             const DATA = window.ALEGRA_SYNC_DATA;
             const mergeById = (existing, newItems, idField) => {
                 const map = {};
                 existing.forEach(e => map[e.id] = e);
                 newItems.forEach(n => {
-                    const match = Object.values(map).find(e => e[idField] && String(e[idField]) === String(n[idField]));
+                    const match = Object.values(map).find(e => 
+                        (e[idField] && String(e[idField]) === String(n[idField])) ||
+                        (e.nombre && n.nombre && e.nombre.trim().toLowerCase() === n.nombre.trim().toLowerCase()) ||
+                        (e.identificacion && n.identificacion && String(e.identificacion).trim() === String(n.identificacion).trim())
+                    );
                     if (match) map[match.id] = { ...match, ...n };
                     else { const id = this.genId(); map[id] = { id, created_at: new Date().toISOString(), ...n }; }
                 });
                 return Object.values(map);
             };
 
+            // Deduplicate existing clients before merge
+            let existingClients = this.getAll('cg_clients') || [];
+            const uniqueClientsMap = {};
+            const deduplicatedClients = [];
+            existingClients.forEach(c => {
+                if (!c) return;
+                const key = (c.nombre || '').trim().toLowerCase();
+                if (!key) {
+                    deduplicatedClients.push(c);
+                    return;
+                }
+                if (!uniqueClientsMap[key]) {
+                    uniqueClientsMap[key] = c;
+                    deduplicatedClients.push(c);
+                } else {
+                    const existing = uniqueClientsMap[key];
+                    if (!existing.id_alegra && c.id_alegra) existing.id_alegra = c.id_alegra;
+                    if (!existing.identificacion && c.identificacion) existing.identificacion = c.identificacion;
+                    if (!existing.telefono && c.telefono) existing.telefono = c.telefono;
+                    if (!existing.email && c.email) existing.email = c.email;
+                }
+            });
+            await this._persist('cg_clients', deduplicatedClients);
+
             const cMap = DATA.clientes.map(c => ({ id_alegra: c.id_alegra, nombre: c.name, identificacion: c.identification, email: c.email, telefono: c.phone, direccion: c.address }));
-            const cFinal = mergeById(this.getAll('cg_clients') || [], cMap, 'id_alegra');
+            const cFinal = mergeById(deduplicatedClients, cMap, 'id_alegra');
             await this._persist('cg_clients', cFinal);
 
             const bMap = DATA.bancos.map(b => ({ id_alegra: b.id_alegra, nombre: b.name, tipo: b.type, balance: b.balance, saldo_actual: parseFloat(b.balance) || 0 }));
@@ -244,7 +272,7 @@ const DB = {
                 await this._persist('cg_products', mergeById(this.getAll('cg_products') || [], pMap, 'id_alegra'));
             }
 
-            localStorage.setItem('alegra_imported_v4', 'true');
+            localStorage.setItem('alegra_imported_v5', 'true');
             location.reload();
             return new Promise(() => {}); // Wait forever for reload
         }
