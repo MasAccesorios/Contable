@@ -713,7 +713,7 @@ const App = {
                     const saldoColorClass = (saldo > 0 && esVencido) ? "text-danger fw-bold" : (saldo === 0 ? "text-muted" : "text-success fw-bold");
 
                     return `<tr>
-                        <td class="p-3 align-middle"><a href="#" onclick="event.preventDefault(); const modal = bootstrap.Modal.getInstance(document.getElementById('clienteDetailModal')); if(modal) modal.hide(); App.viewInvoice('${doc.id}', 'venta');" class="text-primary fw-medium text-decoration-none">${String(num).replace('#', '')}</a></td>
+                        <td class="p-3 align-middle"><a href="#" onclick="event.preventDefault(); const modal = bootstrap.Modal.getInstance(document.getElementById('clienteDetailModal')); if(modal) modal.hide(); App.viewInvoice('${doc.id}', 'venta');" class="text-primary fw-medium text-decoration-none">${String(num || '').replace('#', '')}</a></td>
                         <td class="p-3 align-middle">${fmtDate(doc.fecha)}</td>
                         <td class="p-3 align-middle"><span class="${badgeClass}">${fmtDate(doc.fecha_vencimiento)}</span></td>
                         <td class="p-3 align-middle">Factura de venta</td>
@@ -750,17 +750,17 @@ const App = {
 
                     if (tabName === 'facturas-proveedor') {
                         const num = item.numero_factura || item.id_alegra_factura || item.id.toString().substr(-6).toUpperCase();
-                        docCell = `<span class="text-primary fw-medium">${String(num).replace('#', '')}</span>`;
+                        docCell = `<span class="text-primary fw-medium">${String(num || '').replace('#', '')}</span>`;
                         detalle = `Factura de proveedor`;
                         gasto = item.total;
                     } else if (tabName === 'cotizaciones') {
                         const num = item.numero || item.id.toString().substr(-6).toUpperCase();
-                        docCell = `<a href="#" onclick="event.preventDefault(); App.viewInvoice('${item.id}', 'cotizacion')" class="text-primary fw-medium">${String(num).replace('#', '')}</a>`;
+                        docCell = `<a href="#" onclick="event.preventDefault(); App.viewInvoice('${item.id}', 'cotizacion')" class="text-primary fw-medium">${String(num || '').replace('#', '')}</a>`;
                         detalle = `Cotización`;
                         ingreso = item.total;
                     } else if (tabName === 'devoluciones') {
                         const ref = item.id.toString().substr(-6).toUpperCase();
-                        docCell = `<span class="text-primary fw-medium">${String(ref).replace('#', '')}</span>`;
+                        docCell = `<span class="text-primary fw-medium">${String(ref || '').replace('#', '')}</span>`;
                         detalle = `Devolución ${item.tipo === 'ingreso' ? 'de Venta' : 'a Proveedor'}`;
                         if (item.tipo === 'ingreso') {
                             gasto = item.total;
@@ -769,12 +769,12 @@ const App = {
                         }
                     } else if (tabName === 'cuentas-cobrar') {
                         const num = item.venta_numero || item.venta_id.toString().substr(-6).toUpperCase();
-                        docCell = `<a href="#" onclick="event.preventDefault(); App.viewInvoice('${item.venta_id}', 'venta')" class="text-primary fw-medium">${String(num).replace('#', '')}</a>`;
+                        docCell = `<a href="#" onclick="event.preventDefault(); App.viewInvoice('${item.venta_id}', 'venta')" class="text-primary fw-medium">${String(num || '').replace('#', '')}</a>`;
                         detalle = `Cuenta por cobrar`;
                         ingreso = item.saldo; // lo que entra
                     } else if (tabName === 'pagos') {
                         const ref = item.numero || item.id.toString().substr(-6).toUpperCase();
-                        docCell = `<span class="text-primary fw-medium">${String(ref).replace('#', '')}</span>`;
+                        docCell = `<span class="text-primary fw-medium">${String(ref || '').replace('#', '')}</span>`;
                         detalle = `Recibo de Caja`;
                         ingreso = item.total;
                     } else {
@@ -946,7 +946,7 @@ const App = {
                 rows = paginated.map(s => {
                     const num = s.numero || s.id.toString().substr(-6).toUpperCase();
                     return `<tr>
-                        <td><a href="#" onclick="event.preventDefault(); bootstrap.Modal.getInstance(document.getElementById('clienteDetailModal')).hide(); App.viewInvoice('${s.id}', 'venta')" class="text-decoration-none fw-bold">${String(num).replace('#', '')}</a></td>
+                        <td><a href="#" onclick="event.preventDefault(); bootstrap.Modal.getInstance(document.getElementById('clienteDetailModal')).hide(); App.viewInvoice('${s.id}', 'venta')" class="text-decoration-none fw-bold">${String(num || '').replace('#', '')}</a></td>
                         <td>${fmtDate(s.fecha)}</td>
                         <td><span class="badge-status badge-${s.tipo_venta}">${s.tipo_venta}</span></td>
                         <td class="text-end fw-bold">${fmt(s.total)}</td>
@@ -958,7 +958,7 @@ const App = {
                 rows = paginated.map(c => {
                     const num = c.numero || c.id.toString().substr(-6).toUpperCase();
                     return `<tr>
-                        <td><a href="#" onclick="event.preventDefault(); bootstrap.Modal.getInstance(document.getElementById('clienteDetailModal')).hide(); App.viewInvoice('${c.id}', 'cotizacion')" class="text-decoration-none fw-bold">${String(num).replace('#', '')}</a></td>
+                        <td><a href="#" onclick="event.preventDefault(); bootstrap.Modal.getInstance(document.getElementById('clienteDetailModal')).hide(); App.viewInvoice('${c.id}', 'cotizacion')" class="text-decoration-none fw-bold">${String(num || '').replace('#', '')}</a></td>
                         <td>${fmtDate(c.fecha)}</td>
                         <td>${fmtDate(c.validez)}</td>
                         <td class="text-end fw-bold">${fmt(c.total || 0)}</td>
@@ -2167,7 +2167,7 @@ const App = {
         const fmt = (n) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n);
         const fmtDate = (d) => d ? new Date(d).toLocaleDateString('es-CO') : '-';
 
-        const refNum = c.numero ? c.numero.toString().replace('#', '') : c.id.toString().substr(-6).toUpperCase();
+        const refNum = c.numero ? String(c.numero || '').replace('#', '') : String(c.id || '').substr(-6).toUpperCase();
 
         let detailRows = '';
         if (details.length === 0) {
@@ -2427,7 +2427,7 @@ const App = {
             const validezStr = c.validez ? (c.validez.includes('T') ? new Date(c.validez).toLocaleDateString('es-CO') : c.validez) : '-';
             const yaConvertida = c.estado === 'convertida' || !!c.factura_id;
             return `<tr>
-                <td><a href="#" onclick="event.preventDefault(); App.viewCotizacion('${c.id}')" class="text-decoration-none fw-bold">${String(ref).replace('#', '')}</a></td>
+                <td><a href="#" onclick="event.preventDefault(); App.viewCotizacion('${c.id}')" class="text-decoration-none fw-bold">${String(ref || '').replace('#', '')}</a></td>
                 <td>${fechaStr}</td>
                 <td><a href="#" onclick="event.preventDefault(); App.viewCliente('${c.cliente_id}')" class="text-decoration-none fw-bold">${DB.getClientName(c.cliente_id, c.cliente_nombre_alegra)}</a></td>
                 <td>${validezStr}</td>
@@ -2480,7 +2480,7 @@ const App = {
             const ref = s.numero || s.id.toString().substr(-6).toUpperCase();
             const fechaStr = s.fecha ? (s.fecha.includes('T') ? new Date(s.fecha).toLocaleDateString('es-CO') : s.fecha) : '-';
             return `<tr>
-                <td><a href="#" onclick="event.preventDefault(); App.viewInvoice('${s.id}', 'venta')" class="text-decoration-none fw-bold">${String(ref).replace('#', '')}</a></td>
+                <td><a href="#" onclick="event.preventDefault(); App.viewInvoice('${s.id}', 'venta')" class="text-decoration-none fw-bold">${String(ref || '').replace('#', '')}</a></td>
                 <td>${fechaStr}</td>
                 <td><a href="#" onclick="event.preventDefault(); App.viewCliente('${s.cliente_id}')" class="text-decoration-none fw-bold">${DB.getClientName(s.cliente_id, s.cliente_nombre_alegra)}</a></td>
                 <td><span class="badge-status badge-${s.tipo_venta}">${s.tipo_venta}</span></td>

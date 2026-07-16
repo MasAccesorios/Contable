@@ -2335,7 +2335,7 @@ const Pages = {
         const fmt = (n) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n);
         const fmtDate = (d) => d ? new Date(d).toLocaleDateString('es-CO') : '-';
         
-        const refNum = doc.numero ? doc.numero.toString().replace('#', '') : doc.id.toString().substr(-6).toUpperCase();
+        const refNum = doc.numero ? String(doc.numero || '').replace('#', '') : String(doc.id || '').substr(-6).toUpperCase();
 
         let saldo = 0;
         if (!isCotizacion && doc.tipo_venta !== 'contado') {

@@ -32,7 +32,7 @@ window.syncAlegraToday = async function() {
         let facturasLocales = DB.getAll(DB.KEYS.FACTURAS_ALEGRA) || [];
         
         todayInvoices.forEach(inv => {
-            const numLimpio = String(inv.numberTemplate ? inv.numberTemplate.number : inv.id).replace('#', '');
+            const numLimpio = String(inv.numberTemplate ? inv.numberTemplate.number : (inv.id || '')).replace('#', '');
             
             // Regla crítica: Extraer nombre exacto del cliente de Alegra
             const clientName = (inv.client && inv.client.name) ? inv.client.name : 'Desconocido';
@@ -113,7 +113,7 @@ window.syncAlegraToday = async function() {
         let cotiLocales = DB.getAll(DB.KEYS.COTIZACIONES_ALEGRA) || [];
         
         todayEstimates.forEach(est => {
-            const numLimpio = String(est.numberTemplate ? est.numberTemplate.number : est.id).replace('#', '');
+            const numLimpio = String(est.numberTemplate ? est.numberTemplate.number : (est.id || '')).replace('#', '');
             const clientName = (est.client && est.client.name) ? est.client.name : 'Desconocido';
             
             const existingIdx = cotiLocales.findIndex(c => String(c.id_alegra) === String(est.id));
