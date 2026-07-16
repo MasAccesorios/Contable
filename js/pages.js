@@ -2124,7 +2124,7 @@ const Pages = {
                             <button class="btn-action btn-edit" onclick="App.editCotizacion('${c.id}')" title="Ver / Editar"><i class="bi bi-pencil"></i></button>
                             ${!yaConvertida ? `<button class="btn-action" style="color:#0d6efd" onclick="App.convertFactura('${c.id}')" title="Convertir a Factura"><i class="bi bi-arrow-right-circle"></i></button>` : `<button class="btn-action" style="color:#6c757d; opacity:0.5; cursor:default" title="Ya convertida - Factura #${c.factura_id ? c.factura_id.substr(-6).toUpperCase() : ''}"><i class="bi bi-check-circle"></i></button>`}
                             <button class="btn-action" style="color:#6c757d" onclick="App.printCotizacion('${c.id}')" title="Imprimir Cotización"><i class="bi bi-printer"></i></button>
-                            ${!yaConvertida ? `<button class="btn-action btn-delete" onclick="App.deleteCotizacion('${c.id}')" title="Eliminar"><i class="bi bi-trash"></i></button>` : ''}
+                            <button class="btn-action btn-delete" onclick="App.deleteCotizacion('${c.id}')" title="Eliminar"><i class="bi bi-trash"></i></button>
                         </td>
                     </tr>`;
                 } catch (e) {
