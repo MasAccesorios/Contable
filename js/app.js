@@ -2506,7 +2506,10 @@ const App = {
         //     this.showToast('No se puede eliminar una cotización ya convertida en factura.', 'Operación no permitida', 'danger');
         //     return;
         // }
-        if (!confirm(`¿Está seguro de eliminar la Cotización #${c.numero || id.toString().substr(-6).toUpperCase()}? Esta acción no se puede deshacer.`)) return;
+        
+        // Strict safety casting to prevent .replace or numeric errors during deletion
+        const safeRef = String(c.numero || '').replace('#', '') || String(id).substr(-6).toUpperCase();
+        if (!confirm(`¿Está seguro de eliminar la Cotización #${safeRef}? Esta acción no se puede deshacer.`)) return;
         // Delete header and details
         DB.delete(DB.KEYS.COTIZACIONES, id);
         const allDetails = DB.getAll(DB.KEYS.COTIZACION_DETAILS).filter(d => d.cotizacion_id !== id);

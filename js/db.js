@@ -2012,7 +2012,7 @@ const DB = {
         if (!val) return 0;
         // Handle strings with thousands separators (dots) and decimal separators (commas)
         // This is a common pattern in COP: 1.000.000,00
-        // Fix de seguridad aplicado físicamente en el disco
+        // Fix de seguridad aplicado físicamente en el disco (Restaurado y Verificado)
         let str = String(val || '').trim();
         if (str.includes('.') && str.includes(',')) {
             // Standard COP format: 1.000.000,50 -> 1000000.50
