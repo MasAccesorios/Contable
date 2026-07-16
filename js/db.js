@@ -177,7 +177,7 @@ const DB = {
         
         return new Promise((resolve) => {
             transaction.oncomplete = () => {
-                console.log("Migration from localStorage to IndexedDB completed successfully.");
+
                 resolve();
             };
             transaction.onerror = () => {
@@ -193,7 +193,7 @@ const DB = {
         }
 
         if (window.ALEGRA_SYNC_DATA && !localStorage.getItem('alegra_imported_v8')) {
-            console.log("INICIANDO MIGRACION V8 - LIMPIEZA PROFUNDA Y RESTAURACION");
+
             const DATA = window.ALEGRA_SYNC_DATA;
             const mergeById = (existing, newItems, idField) => {
                 const map = {};
@@ -293,7 +293,7 @@ const DB = {
                 await this._persist('cg_products', mergeById(this.getAll('cg_products') || [], pMap, 'id_alegra'));
             }
 
-            console.log("MIGRACION V8 COMPLETADA. RECARGANDO...");
+
             localStorage.setItem('alegra_imported_v8', 'true');
             location.reload();
             return new Promise(() => {}); // Wait forever for reload
@@ -324,7 +324,7 @@ const DB = {
             });
 
             if (modified) {
-                console.log("[CONTACTS SYNC] Migrando contactos locales faltantes a Firebase...");
+
                 await this.pushToCloud(this.KEYS.CLIENTS, mergedClients);
             }
             return mergedClients;
@@ -339,7 +339,7 @@ const DB = {
     // Sync all local keys to Firebase, preventing duplicates
     async sincronizarTodoHaciaFirebase() {
         try {
-            console.log("[SYNC-MAESTRO] Iniciando sincronización maestra hacia Firebase...");
+
             const response = await fetch(this._readUrl(), { cache: 'no-store' });
             if (!response.ok) throw new Error(`Firebase respondió HTTP ${response.status}`);
             const cloudData = await response.json() || {};
@@ -402,7 +402,7 @@ const DB = {
                     added: addedCount
                 };
             }
-            console.log("[SYNC-MAESTRO] Sincronización completada exitosamente.", results);
+
             return results;
         } catch (e) {
             console.error("[SYNC-MAESTRO] Error:", e);
@@ -3185,7 +3185,7 @@ const DB = {
         localStorage.removeItem(this.KEYS.COUNTERS);
         delete this._cache[this.KEYS.COUNTERS];
 
-        console.log('Datos de prueba borrados.');
+
     }
 };
 
