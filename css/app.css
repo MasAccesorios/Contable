@@ -1233,6 +1233,10 @@ body {
     width: 100%;
 }
 
+.searchable-select-container.active {
+    z-index: 9999;
+}
+
 .ss-input-wrapper {
     position: relative;
     display: flex;

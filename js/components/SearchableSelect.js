@@ -114,6 +114,7 @@ class SearchableSelect {
 
     filter() {
         const term = this.input.value.toLowerCase().trim();
+        const tokens = term ? term.split(/\s+/) : [];
 
         // Custom search algorithm: Priority to Reference
         const referenceMatches = [];
@@ -123,11 +124,16 @@ class SearchableSelect {
             const ref = String(item.reference || '').toLowerCase();
             const text = String(item.text || '').toLowerCase();
 
+            if (term === '') {
+                textMatches.push(item);
+                return;
+            }
+
             if (ref.startsWith(term)) {
                 referenceMatches.push(item);
             } else if (ref.includes(term)) {
                 referenceMatches.push(item); // Partial ref matches
-            } else if (text.includes(term)) {
+            } else if (tokens.every(t => text.includes(t) || ref.includes(t))) {
                 textMatches.push(item);
             }
         });
