@@ -2405,7 +2405,7 @@ const App = {
         const items = q ? preFiltered.filter(c => {
             if (!c) return false;
             const client = DB.getClient(c.cliente_id);
-            const ref = (c.numero || (c.id ? c.id.toString().substr(-6) : '')).toString().replace('#', '').toLowerCase();
+            const ref = String((c.numero || (c.id ? String(c.id).substr(-6) : '')) || '').replace('#', '').toLowerCase();
             return ref.includes(q) || (client ? client.nombre.toLowerCase().includes(q) : false);
         }) : preFiltered;
 
@@ -2456,7 +2456,7 @@ const App = {
         const sales = q ? preFiltered.filter(s => {
             if (!s) return false;
             const client = DB.getClient(s.cliente_id);
-            const ref = (s.numero || (s.id ? s.id.toString().substr(-6) : '')).toString().replace('#', '').toLowerCase();
+            const ref = String((s.numero || (s.id ? String(s.id).substr(-6) : '')) || '').replace('#', '').toLowerCase();
             return ref.includes(q) || (client ? client.nombre.toLowerCase().includes(q) : false);
         }) : preFiltered;
 
