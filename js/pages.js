@@ -870,7 +870,7 @@ const Pages = {
                     const fechaStr = s.fecha ? (s.fecha.includes('T') ? new Date(s.fecha).toLocaleDateString('es-CO') : s.fecha) : '-';
 
                     return `<tr>
-                        <td><a href="#" onclick="event.preventDefault(); App.viewInvoice('${s.id}', 'venta')" class="text-decoration-none fw-bold">${String(ref).replace('#', '')}</a></td>
+                        <td><a href="#" onclick="event.preventDefault(); App.viewInvoice('${s.id}', 'venta')" class="text-decoration-none fw-bold">${String(ref || '').replace('#', '')}</a></td>
                         <td>${fechaStr}</td>
                         <td><a href="#" onclick="event.preventDefault(); App.viewCliente('${s.cliente_id}')" class="text-decoration-none fw-bold">${clientName}</a></td>
                         <td><span class="badge-status badge-${s.tipo_venta}">${s.tipo_venta}</span></td>
@@ -2114,7 +2114,7 @@ const Pages = {
                     const yaConvertida = c.estado === 'convertida' || !!c.factura_id;
 
                     return `<tr>
-                        <td><a href="#" onclick="event.preventDefault(); App.editCotizacion('${c.id}')" class="text-decoration-none fw-bold">${String(ref).replace('#', '')}</a></td>
+                        <td><a href="#" onclick="event.preventDefault(); App.editCotizacion('${c.id}')" class="text-decoration-none fw-bold">${String(ref || '').replace('#', '')}</a></td>
                         <td>${fechaStr}</td>
                         <td><a href="#" onclick="event.preventDefault(); App.viewCliente('${c.cliente_id}')" class="text-decoration-none fw-bold">${clientName}</a></td>
                         <td>${validezStr}</td>
