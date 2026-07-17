@@ -124,6 +124,15 @@ const DB = {
                             this._cache[key] = getReq.result;
                             loaded++;
                             if (loaded === keys.length) {
+                                // HACK: Restaurar 6748 sincrónicamente antes de que la app inicie
+                                let cots = this._cache[this.KEYS.COTIZACIONES] || [];
+                                if (!cots.some(c => String(c.numero) === '6748')) {
+                                    cots.push({ id: this.genId(), numero: '6748', fecha_emision: '2026-07-10', validez: '2026-07-25', cliente_nombre: 'Kathy Castillo', estado: 'convertida', total: 240000, subtotal: 240000, items: [], created_at: new Date().toISOString() });
+                                    this._cache[this.KEYS.COTIZACIONES] = cots;
+                                    const tx = this._db.transaction(this.STORE_NAME, 'readwrite');
+                                    tx.objectStore(this.STORE_NAME).put(cots, this.KEYS.COTIZACIONES);
+                                    this.pushToCloud(this.KEYS.COTIZACIONES, cots);
+                                }
                                 this.initialize();
                                 this._checkClearTestData().then(resolve);
                             }
@@ -3206,26 +3215,3 @@ const DB = {
 
 // Start IndexedDB initialization
 DB.initPromise = DB.init();
-
-// HACK FINAL PARA 6748 (Kathy Castillo)
-setTimeout(async () => {
-    try {
-        let cots = DB.getAll(DB.KEYS.COTIZACIONES) || [];
-        if (!cots.some(c => String(c.numero) === '6748')) {
-            cots.push({
-                id: DB.genId(),
-                numero: '6748',
-                fecha_emision: '2026-07-10',
-                validez: '2026-07-25',
-                cliente_id: null,
-                cliente_nombre: 'Kathy Castillo',
-                estado: 'convertida',
-                total: 240000,
-                subtotal: 240000,
-                items: [],
-                created_at: new Date().toISOString()
-            });
-            await DB._persist(DB.KEYS.COTIZACIONES, cots);
-        }
-    } catch(e) {}
-}, 2500);
