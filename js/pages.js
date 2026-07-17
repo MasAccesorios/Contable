@@ -2344,16 +2344,39 @@ const Pages = {
             if (carteraItem) saldo = parseFloat(carteraItem.saldo);
         }
 
+        let calculatedSubtotal = 0;
+        let calculatedDiscount = 0;
+        let calculatedTax = 0;
+
         let detailRows = '';
         if (details.length === 0) {
-            detailRows = `<tr><td colspan="4" class="text-center text-muted">No hay items</td></tr>`;
+            detailRows = `<tr><td colspan="6" class="text-center text-muted">No hay items</td></tr>`;
         } else {
             detailRows = details.map(d => {
                 const product = DB.getProduct(d.producto_id);
+                const qty = parseInt(d.cantidad) || 0;
+                const price = parseFloat(d.precio_unitario) || 0;
+                const descPercent = parseFloat(d.descuento) || 0;
+                
+                const rawSubtotal = qty * price;
+                const discountAmt = rawSubtotal * (descPercent / 100);
+                const netSubtotal = rawSubtotal - discountAmt;
+                const taxRate = d.impuesto === '19%' ? 0.19 : 0.00;
+                const taxAmt = netSubtotal * taxRate;
+                
+                calculatedSubtotal += rawSubtotal;
+                calculatedDiscount += discountAmt;
+                calculatedTax += taxAmt;
+                
                 return `<tr>
-                    <td style="padding: 8px; border-bottom: 1px solid #eee;">${d.descripcion || (product ? product.nombre : '-')}</td>
-                    <td class="text-center" style="padding: 8px; border-bottom: 1px solid #eee;">${d.cantidad}</td>
-                    <td class="text-end" style="padding: 8px; border-bottom: 1px solid #eee;">${fmt(d.precio_unitario)}</td>
+                    <td style="padding: 8px; border-bottom: 1px solid #eee;">
+                        <strong>${product ? product.nombre : 'Producto N/A'}</strong>
+                        ${d.descripcion ? `<br><small style="color: #666">${d.descripcion}</small>` : ''}
+                    </td>
+                    <td class="text-center" style="padding: 8px; border-bottom: 1px solid #eee;">${qty}</td>
+                    <td class="text-end" style="padding: 8px; border-bottom: 1px solid #eee;">${fmt(price)}</td>
+                    <td class="text-center" style="padding: 8px; border-bottom: 1px solid #eee;">${descPercent > 0 ? `${descPercent}%` : '-'}</td>
+                    <td class="text-center" style="padding: 8px; border-bottom: 1px solid #eee;">${d.impuesto === '19%' ? '19%' : '-'}</td>
                     <td class="text-end" style="padding: 8px; border-bottom: 1px solid #eee;">${fmt(d.subtotal)}</td>
                 </tr>`;
             }).join('');
@@ -2445,8 +2468,10 @@ const Pages = {
                             <tr>
                                 <th class="py-2 text-uppercase text-muted" style="font-size: 0.8rem;">Descripción</th>
                                 <th class="py-2 text-uppercase text-muted text-center" style="font-size: 0.8rem; width: 10%;">Cant.</th>
-                                <th class="py-2 text-uppercase text-muted text-end" style="font-size: 0.8rem; width: 20%;">Precio Unit.</th>
-                                <th class="py-2 text-uppercase text-muted text-end" style="font-size: 0.8rem; width: 20%;">Total</th>
+                                <th class="py-2 text-uppercase text-muted text-end" style="font-size: 0.8rem; width: 15%;">Precio Unit.</th>
+                                <th class="py-2 text-uppercase text-muted text-center" style="font-size: 0.8rem; width: 10%;">Desc.</th>
+                                <th class="py-2 text-uppercase text-muted text-center" style="font-size: 0.8rem; width: 10%;">IVA</th>
+                                <th class="py-2 text-uppercase text-muted text-end" style="font-size: 0.8rem; width: 15%;">Total</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -2462,11 +2487,15 @@ const Pages = {
                     <div class="col-sm-5">
                         <div class="d-flex justify-content-between mb-2 small">
                             <span>Subtotal</span>
-                            <span>${fmt(doc.subtotal || doc.total)}</span>
+                            <span>${fmt(calculatedSubtotal)}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2 small">
+                            <span>Descuento</span>
+                            <span>${fmt(calculatedDiscount)}</span>
                         </div>
                         <div class="d-flex justify-content-between mb-3 small">
-                            <span>Descuento</span>
-                            <span>${fmt(doc.descuento || 0)}</span>
+                            <span>Impuestos (IVA)</span>
+                            <span>${fmt(calculatedTax)}</span>
                         </div>
                         <div class="d-flex justify-content-between py-3 border-top border-dark border-2">
                             <strong class="fs-5">TOTAL A PAGAR</strong>

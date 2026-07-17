@@ -1148,11 +1148,11 @@ const DB = {
         const details = this.getCotizacionDetails(cotizacionId);
         if (!details || details.length === 0) throw new Error('La cotización no tiene productos.');
 
-        // 2. Stock Validation
+        // 2. Stock Validation (WARNING ONLY)
         details.forEach(d => {
             const product = this.getProduct(d.producto_id);
             if (!product || parseInt(product.stock_actual) < parseInt(d.cantidad)) {
-                throw new Error(`Stock insuficiente para "${product ? product.nombre : 'Producto'}". Disponible: ${product ? product.stock_actual : 0}`);
+                console.warn(`Stock insuficiente para "${product ? product.nombre : 'Producto'}". Disponible: ${product ? product.stock_actual : 0}, requerido: ${d.cantidad}. Procediendo con stock negativo.`);
             }
         });
 
