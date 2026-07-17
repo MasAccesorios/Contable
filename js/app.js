@@ -2760,14 +2760,17 @@ const App = {
                 this.addVentaRow();
             } else {
                 details.forEach(d => {
-                    this.addVentaRow({
-                        producto_id: d.producto_id,
-                        cantidad: d.cantidad,
-                        precio_unitario: d.precio_unitario,
-                        descuento: d.descuento,
-                        impuesto: d.impuesto,
-                        descripcion: d.descripcion
-                    });
+                    // Mapeo exhaustivo y seguro de cada propiedad
+                    const itemData = {
+                        producto_id: String(d.producto_id || d.id_item_alegra || d.id || ''),
+                        cantidad: Number(d.cantidad || d.quantity) || 1,
+                        precio_unitario: Number(d.precio_unitario || d.price) || 0,
+                        descuento: Number(d.descuento || d.discount) || 0,
+                        impuesto: String(d.impuesto || 'Ninguno'),
+                        descripcion: String(d.descripcion || d.nombre_producto || d.name || '')
+                    };
+                    
+                    this.addVentaRow(itemData);
                 });
             }
         });
