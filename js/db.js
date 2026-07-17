@@ -636,7 +636,14 @@ const DB = {
         const parsedId = !isNaN(Number(id)) ? Number(id) : id;
         const strId = String(id);
         
-        items = items.filter(i => i && String(i.id) !== strId && i.id !== parsedId);
+        items = items.filter(i => {
+            if (!i) return false;
+            // Verificar contra el id local
+            const idMatch = String(i.id) === strId || i.id === parsedId;
+            // Verificar contra el id de alegra (vital para borrar items de la caché de Alegra)
+            const alegraMatch = i.id_alegra && (String(i.id_alegra) === strId || i.id_alegra === parsedId);
+            return !idMatch && !alegraMatch;
+        });
         await this._persist(key, items);
     },
 
