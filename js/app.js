@@ -1434,6 +1434,7 @@ const App = {
     newVenta() {
         document.getElementById('ventaId').value = '';
         document.getElementById('ventaForm').reset();
+        document.getElementById('ventaForm').dataset.cotizacionId = ''; // Clear cotizacion link
         document.getElementById('ventaNumeroHeader').textContent = 'No. ' + DB.getNextNumber('venta');
         document.getElementById('ventaFecha').value = new Date().toISOString().split('T')[0];
 
@@ -1567,11 +1568,10 @@ const App = {
                 return;
             }
 
-            // Validate stock
+            // Validate stock (WARNING ONLY)
             const product = DB.getProduct(prodId);
             if (product && product.stock_actual < cantidad) {
-                this.showToast(`Stock insuficiente para ${product.nombre}. Disponible: ${product.stock_actual}`, 'Error', 'danger');
-                return;
+                console.warn(`Stock insuficiente para ${product.nombre}. Disponible: ${product.stock_actual}, Requerido: ${cantidad}. Se creará con stock negativo.`);
             }
 
             const netSubtotal = cantidad * precioUnitario * (1 - descuento / 100);
@@ -1590,6 +1590,7 @@ const App = {
         }
 
         const id = document.getElementById('ventaId')?.value || undefined;
+        const cotizacionId = document.getElementById('ventaForm').dataset.cotizacionId || null;
         const saleData = {
             id: id,
             cliente_id: clienteId,
@@ -1598,6 +1599,7 @@ const App = {
             vendedor_id: vendedorId,
             fecha: fecha,
             observacion: observacion,
+            cotizacion_id: cotizacionId, // Save the reference if converted
             usuario_id: Auth.currentUser ? Auth.currentUser.id : null
         };
 
@@ -2735,35 +2737,40 @@ const App = {
             return;
         }
 
-        // Prompt for sale type and bank if needed
-        const tipoVenta = confirm('¿Desea convertir esta cotización en una factura a CRÉDITO?\n\n(Cancelar = Venta de contado)') ? 'credito' : 'contado';
-        let bancoId = null;
+        // NO MÁS AUTO-SAVE. Abrir modal pre-llenado en la vista de Facturas (Ventas).
+        const modal = bootstrap.Modal.getInstance(document.getElementById('cotizacionModal'));
+        if (modal) modal.hide();
 
-        if (tipoVenta === 'contado') {
-            const banks = DB.getBanks();
-            if (banks.length === 0) {
-                this.showToast('Debe registrar al menos un banco para ventas de contado', 'Error', 'danger');
-                return;
+        this.navigateTo('ventas').then(() => {
+            this.newVenta();
+            
+            // Pre-llenar encabezado
+            this.selectors.ventaCliente.setValue(c.cliente_id);
+            if (c.vendedor_id) this.selectors.ventaVendedor.setValue(c.vendedor_id);
+            document.getElementById('ventaObservacion').value = `Convertida desde Cotización #${c.numero || c.id.toString().substr(-6).toUpperCase()}`;
+            
+            // Guardar el cotizacion_id en el formulario para usarlo al guardar
+            document.getElementById('ventaForm').dataset.cotizacionId = c.id;
+
+            // Llenar detalles
+            const details = DB.getCotizacionDetails(c.id);
+            document.getElementById('ventaDetalleBody').innerHTML = ''; // Limpiar fila vacía de newVenta
+            
+            if (!details || details.length === 0) {
+                this.addVentaRow();
+            } else {
+                details.forEach(d => {
+                    this.addVentaRow({
+                        producto_id: d.producto_id,
+                        cantidad: d.cantidad,
+                        precio_unitario: d.precio_unitario,
+                        descuento: d.descuento,
+                        impuesto: d.impuesto,
+                        descripcion: d.descripcion
+                    });
+                });
             }
-            // Use the first bank as default for the quick conversion, or show a simple choice if you want to be more elaborate
-            // For now, simplicity:
-            bancoId = banks[0].id;
-        }
-
-        try {
-            const savedSale = DB.convertCotizacionToVenta(id, tipoVenta, bancoId);
-
-            // Hide cotizacion modal
-            const modal = bootstrap.Modal.getInstance(document.getElementById('cotizacionModal'));
-            if (modal) modal.hide();
-
-            this.showToast(`Factura #${savedSale.numero || savedSale.id.toString().substr(-6).toUpperCase()} creada correctamente.`);
-
-            // Redirect to sales or show the new sale detail
-            this.navigateTo('ventas');
-        } catch (error) {
-            this.showToast(error.message, 'Error en conversión', 'danger');
-        }
+        });
     },
 
     /* =================================================
