@@ -2518,8 +2518,8 @@ const App = {
         try {
             // Eliminar de base de datos pasando el ID numérico
             // ¡SECRETO DESCUBIERTO!: Se borra también de la caché de ALEGRA para evitar registros fantasma
-            DB.delete(DB.KEYS.COTIZACIONES, numId);
-            DB.delete(DB.KEYS.COTIZACIONES_ALEGRA, numId);
+            await DB.delete(DB.KEYS.COTIZACIONES, numId);
+            await DB.delete(DB.KEYS.COTIZACIONES_ALEGRA, numId);
             
             const allDetails = DB.getAll(DB.KEYS.COTIZACION_DETAILS) || [];
             const filteredDetails = allDetails.filter(d => d && String(d.cotizacion_id) !== String(numId) && d.cotizacion_id !== numId);
