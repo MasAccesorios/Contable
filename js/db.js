@@ -690,6 +690,9 @@ const DB = {
                 else if (item.id_alegra && !isNaN(item.id_alegra)) n = parseInt(item.id_alegra);
                 else if (item.id && !isNaN(item.id)) n = parseInt(item.id);
                 
+                // HACK DEFINITIVO: Ignorar 6749 y 6750 en el cálculo para forzar el retroceso del contador
+                if (n === 6749 || n === 6750) return;
+
                 if (n > maxNum) maxNum = n;
             });
 
