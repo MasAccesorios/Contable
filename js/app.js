@@ -2531,10 +2531,10 @@ const App = {
             
             this.showToast('Cotización eliminada correctamente.', 'Eliminado', 'success');
             
-            // Solución nuclear exigida: Recargar la vista por completo
+            // Recargar la vista actual sin location.reload para no perder el contexto
             setTimeout(() => {
-                location.reload();
-            }, 600);
+                this.navigateTo('cotizaciones');
+            }, 300);
         } catch (error) {
             console.error('Error crítico al eliminar cotización:', error);
             this.showToast('Error interno al eliminar: ' + error.message, 'Error', 'danger');
