@@ -2752,8 +2752,16 @@ const App = {
             // Guardar el cotizacion_id en el formulario para usarlo al guardar
             document.getElementById('ventaForm').dataset.cotizacionId = c.id;
 
-            // Llenar detalles
-            const details = DB.getCotizacionDetails(c.id);
+            console.log("DATOS DE LA COTIZACIÓN RECUPERADA:", c);
+            const itemsAlternativos = c.items || c.detalles || c.productos;
+            const detailsFromDb = DB.getCotizacionDetails(c.id);
+            
+            const details = (itemsAlternativos && itemsAlternativos.length > 0) ? itemsAlternativos : detailsFromDb;
+            
+            if (!details || details.length === 0) {
+                alert("ALERTA: Esta cotización no tiene ningún ítem guardado en su estructura interna.");
+            }
+
             document.getElementById('ventaDetalleBody').innerHTML = ''; // Limpiar fila vacía de newVenta
             
             if (!details || details.length === 0) {
