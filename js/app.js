@@ -2499,23 +2499,36 @@ const App = {
         }).join('');
     },
 
-    deleteCotizacion(id) {
-        const c = DB.getCotizacion(id);
-        if (!c) return;
-        // if (c.estado === 'convertida' || c.factura_id) {
-        //     this.showToast('No se puede eliminar una cotización ya convertida en factura.', 'Operación no permitida', 'danger');
-        //     return;
-        // }
+    async deleteCotizacion(id) {
+        // Normalización del ID para asegurar compatibilidad de tipos (String vs Number)
+        const searchId = String(id).trim();
+        const c = DB.getCotizacion(searchId);
+        
+        if (!c) {
+            this.showToast('No se encontró la cotización a eliminar.', 'Error', 'danger');
+            return;
+        }
         
         // Strict safety casting to prevent .replace or numeric errors during deletion
-        const safeRef = String(c.numero || '').replace('#', '') || String(id).substr(-6).toUpperCase();
+        const safeRef = String(c.numero || '').replace('#', '') || searchId.substr(-6).toUpperCase();
         if (!confirm(`¿Está seguro de eliminar la Cotización #${safeRef}? Esta acción no se puede deshacer.`)) return;
-        // Delete header and details
-        DB.delete(DB.KEYS.COTIZACIONES, id);
-        const allDetails = DB.getAll(DB.KEYS.COTIZACION_DETAILS).filter(d => d.cotizacion_id !== id);
-        DB._persist(DB.KEYS.COTIZACION_DETAILS, allDetails);
-        this.showToast('Cotización eliminada correctamente.', 'Eliminado', 'success');
-        this.navigateTo('cotizaciones');
+        
+        try {
+            // Delete header and details con parseo estricto de tipos
+            DB.delete(DB.KEYS.COTIZACIONES, searchId);
+            
+            const allDetails = DB.getAll(DB.KEYS.COTIZACION_DETAILS) || [];
+            const filteredDetails = allDetails.filter(d => d && String(d.cotizacion_id) !== searchId);
+            await DB._persist(DB.KEYS.COTIZACION_DETAILS, filteredDetails);
+            
+            this.showToast('Cotización eliminada correctamente.', 'Eliminado', 'success');
+            
+            // Forzar re-render de la vista para actualizar la tabla inmediatamente
+            await this.navigateTo('cotizaciones');
+        } catch (error) {
+            console.error('Error crítico al eliminar cotización:', error);
+            this.showToast('Error interno al eliminar: ' + error.message, 'Error', 'danger');
+        }
     },
 
     /* =================================================
