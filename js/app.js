@@ -2516,8 +2516,10 @@ const App = {
         if (!confirm(`¿Está seguro de eliminar la Cotización #${safeRef}? Esta acción no se puede deshacer.`)) return;
         
         try {
-            // Delete header and details con parseo estricto de tipos (Number/String)
+            // Eliminar de base de datos pasando el ID numérico
+            // ¡SECRETO DESCUBIERTO!: Se borra también de la caché de ALEGRA para evitar registros fantasma
             DB.delete(DB.KEYS.COTIZACIONES, numId);
+            DB.delete(DB.KEYS.COTIZACIONES_ALEGRA, numId);
             
             const allDetails = DB.getAll(DB.KEYS.COTIZACION_DETAILS) || [];
             const filteredDetails = allDetails.filter(d => d && String(d.cotizacion_id) !== String(numId) && d.cotizacion_id !== numId);
