@@ -2500,9 +2500,11 @@ const App = {
     },
 
     async deleteCotizacion(id) {
-        // Normalización del ID para asegurar compatibilidad de tipos (String vs Number)
-        const searchId = String(id).trim();
-        const c = DB.getCotizacion(searchId);
+        // Normalización exigida: Forzar a Number puro (o String si es UUID)
+        let numId = Number(id);
+        if (isNaN(numId)) numId = id;
+        
+        const c = DB.getCotizacion(numId) || DB.getCotizacion(String(id));
         
         if (!c) {
             this.showToast('No se encontró la cotización a eliminar.', 'Error', 'danger');
@@ -2510,21 +2512,27 @@ const App = {
         }
         
         // Strict safety casting to prevent .replace or numeric errors during deletion
-        const safeRef = String(c.numero || '').replace('#', '') || searchId.substr(-6).toUpperCase();
+        const safeRef = String(c.numero || '').replace('#', '') || String(numId).substr(-6).toUpperCase();
         if (!confirm(`¿Está seguro de eliminar la Cotización #${safeRef}? Esta acción no se puede deshacer.`)) return;
         
         try {
-            // Delete header and details con parseo estricto de tipos
-            DB.delete(DB.KEYS.COTIZACIONES, searchId);
+            // Delete header and details con parseo estricto de tipos (Number/String)
+            DB.delete(DB.KEYS.COTIZACIONES, numId);
             
             const allDetails = DB.getAll(DB.KEYS.COTIZACION_DETAILS) || [];
-            const filteredDetails = allDetails.filter(d => d && String(d.cotizacion_id) !== searchId);
+            const filteredDetails = allDetails.filter(d => d && String(d.cotizacion_id) !== String(numId) && d.cotizacion_id !== numId);
             await DB._persist(DB.KEYS.COTIZACION_DETAILS, filteredDetails);
+            
+            // Limpieza estricta del buscador (por ejemplo, el texto "null" que quedó pegado)
+            const searchInput = document.getElementById('searchGlobal');
+            if (searchInput) searchInput.value = '';
             
             this.showToast('Cotización eliminada correctamente.', 'Eliminado', 'success');
             
-            // Forzar re-render de la vista para actualizar la tabla inmediatamente
-            await this.navigateTo('cotizaciones');
+            // Solución nuclear exigida: Recargar la vista por completo
+            setTimeout(() => {
+                location.reload();
+            }, 600);
         } catch (error) {
             console.error('Error crítico al eliminar cotización:', error);
             this.showToast('Error interno al eliminar: ' + error.message, 'Error', 'danger');

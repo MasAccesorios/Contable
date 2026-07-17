@@ -632,7 +632,11 @@ const DB = {
 
     delete(key, id) {
         let items = this.getAll(key);
-        items = items.filter(i => i && String(i.id) !== String(id));
+        // Soporte robusto de tipos exigido: Forzar comparación dual Number/String
+        const parsedId = !isNaN(Number(id)) ? Number(id) : id;
+        const strId = String(id);
+        
+        items = items.filter(i => i && String(i.id) !== strId && i.id !== parsedId);
         this._persist(key, items);
     },
 
