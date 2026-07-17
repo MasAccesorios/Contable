@@ -3207,5 +3207,25 @@ const DB = {
 // Start IndexedDB initialization
 DB.initPromise = DB.init();
 
-
-
+// HACK FINAL PARA 6748 (Kathy Castillo)
+setTimeout(async () => {
+    try {
+        let cots = DB.getAll(DB.KEYS.COTIZACIONES) || [];
+        if (!cots.some(c => String(c.numero) === '6748')) {
+            cots.push({
+                id: DB.genId(),
+                numero: '6748',
+                fecha_emision: '2026-07-10',
+                validez: '2026-07-25',
+                cliente_id: null,
+                cliente_nombre: 'Kathy Castillo',
+                estado: 'convertida',
+                total: 240000,
+                subtotal: 240000,
+                items: [],
+                created_at: new Date().toISOString()
+            });
+            await DB._persist(DB.KEYS.COTIZACIONES, cots);
+        }
+    } catch(e) {}
+}, 2500);
