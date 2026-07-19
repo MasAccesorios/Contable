@@ -83,7 +83,7 @@ export const CoreActions = {
             const idFactura = 'fac_' + Date.now();
             const nuevaFactura = {
                 id: idFactura,
-                contactoId: cotizacion.clienteId,
+                clienteId: cotizacion.clienteId,
                 fecha: new Date().toISOString().split('T')[0],
                 vencimiento: cotizacion.vencimiento,
                 total: cotizacion.total || 0,
@@ -91,7 +91,10 @@ export const CoreActions = {
                 tipo: 'venta',
                 detalles: JSON.parse(JSON.stringify(cotizacion.detalles || [])),
                 notas: cotizacion.notas || '',
-                origenCotizacionId: cotizacion.id
+                terminosCondiciones: cotizacion.terminosCondiciones || 'Favor realizar los pagos a nuestra cuenta bancaria.',
+                origenCotizacionId: cotizacion.id,
+                prefijo: 'FAC',
+                numero: Math.floor(Math.random() * 9000) + 1000
             };
 
             await DB.save('facturas', nuevaFactura);
@@ -108,7 +111,7 @@ export const CoreActions = {
 
         } catch (error) {
             console.error(error);
-            alert("Error al convertir a factura: " + error.message);
+            this.showWarningModal("Error al convertir a factura: " + error.message);
         }
     },
 
@@ -148,6 +151,185 @@ export const CoreActions = {
                 this.convertirCotizacionAFactura(id, callbacks.onConvertSuccess);
             });
         }
+
+        const btnPrint = element.querySelector('.btn-imprimir');
+        if (btnPrint) {
+            btnPrint.addEventListener('click', () => {
+                if (btnPrint.style.opacity === '0.5') {
+                    this.showWarningModal("Debe guardar los cambios del documento antes de poder imprimirlo.");
+                } else {
+                    this.printDocumentFormat(documentData, type);
+                }
+            });
+        }
+
+        const btnEdit = element.querySelector('.btn-editar');
+        if (btnEdit) {
+            btnEdit.addEventListener('click', () => {
+                let modulo = 'cotizaciones';
+                if (type === 'factura') modulo = 'facturas';
+                if (type === 'pago') modulo = 'pagos';
+                
+                window.location.hash = `#/ingresos/${modulo}/editar/${documentData.id}`;
+            });
+        }
+    },
+
+    /**
+     * Motor Asíncrono de Impresión
+     * @param {Object} documentData 
+     * @param {string} tipoModulo - 'cotizacion', 'factura', 'pago'
+     */
+    printDocumentFormat(documentData, tipoModulo) {
+        if (!documentData) return;
+
+        // 1. Remover cualquier residuo de impresión anterior
+        const oldContainer = document.getElementById('print-sandbox');
+        if (oldContainer) oldContainer.remove();
+
+        // 2. Crear un contenedor plano exclusivo para el motor de impresión
+        const printSandbox = document.createElement('div');
+        printSandbox.id = 'print-sandbox';
+        
+        // Limpieza estricta del número de factura (Quitar duplicados y prefijos 'fac_')
+        const numeroLimpio = documentData.distribucionCredito?.[0]?.facturaNumero
+            ?.replace(/fac_/gi, '')
+            ?.replace(/Fac\s+/gi, '') || '';
+
+        const totalFormateado = parseFloat(documentData.totalDebito || documentData.monto || 0)
+            .toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+        // Extraer dinámicamente el HTML exacto del logo corporativo de la interfaz actual
+        const interfaceLogo = document.querySelector('.brand .logo, aside .brand img');
+        const logoHtmlReal = interfaceLogo ? interfaceLogo.outerHTML : `
+            <img src="LogoMas.png" alt="MAS Accesorios" style="max-height: 45px; object-fit: contain;">
+        `;
+
+        const cabeceraImpresion = `
+            <div class="print-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0c1a30; padding-bottom: 15px; margin-bottom: 25px;">
+                <div style="display: flex; align-items: center;">
+                    ${logoHtmlReal}
+                </div>
+                <div style="text-align: right; font-family: 'Inter', sans-serif;">
+                    <h2 style="margin: 0; font-size: 14px; color: #0c1a30; font-weight: 700;">RECIBO DE CAJA</h2>
+                    <p style="margin: 2px 0 0 0; font-size: 13px; font-weight: 700; color: #ef4444;">No. ${documentData.nroRecibo || documentData.id}</p>
+                </div>
+            </div>
+        `;
+
+        // 3. Inyectar HTML plano con estilos inline inline-block (Sin layouts de la SPA)
+        printSandbox.innerHTML = `
+            <style>
+                @media screen {
+                    #print-sandbox { display: none; }
+                }
+                @media print {
+                    body * { visibility: hidden; }
+                    #print-sandbox, #print-sandbox * { visibility: visible; }
+                    
+                    /* Configuración del tamaño de la hoja física en el navegador */
+                    @page {
+                        size: letter portrait; /* O "A5 portrait" si usas papel media hoja nativo */
+                        margin: 0;
+                    }
+                    
+                    #print-sandbox {
+                        position: absolute;
+                        left: 0;
+                        top: 0;
+                        width: 100%;
+                        font-family: 'Inter', sans-serif;
+                        color: #0c1a30 !important;
+                        background: #fff !important;
+                        font-size: 14px; /* Aumentar escala base de texto */
+                    }
+                    
+                    .print-container {
+                        padding: 50px;
+                        width: 100%;
+                        box-sizing: border-box;
+                    }
+                    
+                    .print-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0c1a30; padding-bottom: 15px; margin-bottom: 25px; }
+                    /* Diseño exacto del Logo Corporativo MAS Accesorios */
+                    .corp-logo-box {
+                        width: 42px;
+                        height: 42px;
+                        background-color: #ffffff;
+                        border: 2px solid #0099ec;
+                        border-radius: 4px;
+                        display: flex;
+                        flex-direction: column;
+                        justify-content: center;
+                        align-items: center;
+                        font-family: 'Inter', sans-serif;
+                        padding: 2px;
+                        box-sizing: border-box;
+                    }
+                    .corp-logo-top {
+                        font-size: 14px;
+                        font-weight: 900;
+                        color: #0099ec;
+                        line-height: 1;
+                        letter-spacing: 0.5px;
+                    }
+                    .corp-logo-bottom {
+                        font-size: 6.5px;
+                        font-weight: 700;
+                        color: #0099ec;
+                        line-height: 1;
+                        margin-top: 1px;
+                        text-transform: uppercase;
+                    }
+                    
+                    /* Forzar que las tablas y textos ocupen el ancho completo real */
+                    .print-table { 
+                        width: 100% !important; 
+                        border-collapse: collapse; 
+                        margin-top: 30px; 
+                        font-size: 14px;
+                    }
+                    .print-table th { background-color: #f8f9fa !important; color: #0c1a30; font-weight: 600; padding: 10px; border-bottom: 1px solid #dee2e6; }
+                    .print-table td { padding: 12px 10px; border-bottom: 1px solid #eee; color: #2c3e50; }
+                }
+            </style>
+            
+            <div class="print-container">
+                ${cabeceraImpresion}
+
+                <div style="margin-bottom: 25px; font-size: 13px; color: #4b5563;">
+                    <strong>Fecha de Emisión:</strong> ${documentData.fecha}<br>
+                    <strong>Cliente:</strong> ${documentData.clienteNombre || 'Cliente Contado'}<br>
+                    <strong>Forma de Pago:</strong> ${documentData.formaPago || 'Consignación'}
+                </div>
+                
+                <table class="print-table">
+                    <thead>
+                        <tr>
+                            <th style="text-align: left;">Factura Afectada</th>
+                            <th style="text-align: right;">Monto Abonado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Factura ${numeroLimpio}</td>
+                            <td style="text-align: right; font-weight: 700;">
+                                $ ${totalFormateado}
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        `;
+
+        document.body.appendChild(printSandbox);
+
+        // 4. Retraso de macrotarea para asegurar el correcto renderizado del DOM de impresión
+        setTimeout(() => {
+            window.print();
+            // Limpiar el DOM inmediatamente después de cerrar el cuadro de diálogo
+            printSandbox.remove();
+        }, 250);
     }
 };
 
@@ -593,7 +775,7 @@ export const PrintManager = {
 export const ExportManager = {
     exportDataToExcel(dataArray, tipoModulo, getClienteNameFunc, btnElement = null) {
         if (!dataArray || dataArray.length === 0) {
-            alert('No hay datos disponibles para exportar con el filtro actual.');
+            CoreActions.showWarningModal('No hay datos disponibles para exportar con el filtro actual.');
             return;
         }
 
@@ -667,7 +849,7 @@ export const ExportManager = {
 
             } catch (error) {
                 console.error('Error generando reporte:', error);
-                alert('Ocurrió un error al generar el archivo. Por favor, intenta de nuevo.');
+                CoreActions.showWarningModal('Ocurrió un error al generar el archivo. Por favor, intenta de nuevo.');
             } finally {
                 // 8. Restaurar Feedback Visual
                 if (btnElement) {

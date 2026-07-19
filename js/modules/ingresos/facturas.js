@@ -4,9 +4,6 @@ import { CoreActions, ItemEngine, NumberingManager, ExportManager, PrintManager 
 export const FacturasModule = {
     async init(element) {
         if (!element) return;
-        
-        // Context Cleanup
-        document.querySelectorAll('.search-results-dropdown, .row-action-menu, .desc-popover').forEach(el => el.remove());
 
         const hashParts = window.location.hash.split('/');
         const action = hashParts[3];
@@ -352,6 +349,15 @@ export const FacturasModule = {
         if (id) {
             const dbData = await DB.get('facturas', id);
             if (dbData) factura = dbData;
+            
+            // Fix backwards compatibility for converted cotizaciones
+            if (factura.contactoId && !factura.clienteId) {
+                factura.clienteId = factura.contactoId;
+            }
+            if (!factura.numero) {
+                factura.numero = Math.floor(Math.random() * 9000) + 1000;
+            }
+
             if (!factura.detalles || factura.detalles.length === 0) {
                 factura.detalles = [{ id: Date.now(), productoId: '', cantidad: 0, precio: 0, descuento: 0, impuesto: 0 }];
             }
@@ -661,7 +667,10 @@ export const FacturasModule = {
         // Evento Guardar (Captura de Estado DOM a DB)
         element.querySelector('#btn-guardar')?.addEventListener('click', async () => {
             const clienteId = element.querySelector('#select-cliente').value;
-            if (!clienteId) return alert("Debe seleccionar un cliente.");
+            if (!clienteId) {
+                CoreActions.showWarningModal("Debe seleccionar un cliente.");
+                return;
+            }
 
             // Recolectar detalles
             const arrDetalles = [];
@@ -689,7 +698,8 @@ export const FacturasModule = {
             });
 
             if (arrDetalles.length === 0 || hasError || parseFloat(element.querySelector('#tot-total').dataset.rawTotal) <= 0) {
-                return alert("Debe agregar al menos un producto válido y con cantidad mayor a cero.");
+                CoreActions.showWarningModal("Debe agregar al menos un producto válido y con cantidad mayor a cero.");
+                return;
             }
 
             factura.clienteId = clienteId;

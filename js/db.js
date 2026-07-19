@@ -2,7 +2,7 @@
 // Módulo de persistencia local indexada y sincronización para MAS Accesorios
 
 const DB_NAME = 'MasAccesoriosDB';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 let dbInstance = null;
 
 const DB = {
@@ -56,6 +56,13 @@ const DB = {
                 if (!db.objectStoreNames.contains('transacciones')) {
                     const store = db.createObjectStore('transacciones', { keyPath: 'id' });
                     store.createIndex('by_cuenta', 'cuentaId', { unique: false });
+                    store.createIndex('by_fecha', 'fecha', { unique: false });
+                }
+
+                // 7. Pagos / Recibos de caja
+                if (!db.objectStoreNames.contains('pagos')) {
+                    const store = db.createObjectStore('pagos', { keyPath: 'id' });
+                    store.createIndex('by_cliente', 'clienteId', { unique: false });
                     store.createIndex('by_fecha', 'fecha', { unique: false });
                 }
             };
@@ -115,6 +122,21 @@ const DB = {
             const request = store.getAll();
 
             request.onsuccess = () => resolve(request.result || []);
+            request.onerror = (e) => reject(e.target.error);
+        });
+    },
+
+    /**
+     * Elimina un registro por su ID único.
+     */
+    async delete(storeName, id) {
+        const db = await this.init();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(storeName, 'readwrite');
+            const store = tx.objectStore(storeName);
+            const request = store.delete(id);
+
+            request.onsuccess = () => resolve(true);
             request.onerror = (e) => reject(e.target.error);
         });
     }

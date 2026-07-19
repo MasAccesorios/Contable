@@ -3,6 +3,10 @@
  * Arquitectura Vanilla JS (Sin dependencias externas)
  */
 
+window.cleanupFloatingElements = function() {
+    document.querySelectorAll('.dropdown-menu, .row-actions-menu, .desc-popover, .search-results-dropdown').forEach(el => el.remove());
+};
+
 const routes = {
     'inicio': () => import('./modules/dashboard.js'),
     'contactos': () => import('./modules/contactos.js'),
@@ -11,6 +15,10 @@ const routes = {
     'importador': () => import('./modules/importador.js'),
     'ingresos/cotizaciones': () => import('./modules/ingresos/cotizaciones.js'),
     'ingresos/facturas': () => import('./modules/ingresos/facturas.js'),
+    'ingresos/pagos/nuevo': () => import('./modules/ingresos/pagos.js'),
+    'ingresos/pagos/editar': () => import('./modules/ingresos/pagos.js'),
+    'ingresos/pagos/ver': () => import('./modules/ingresos/pagos_ver.js'),
+    'ingresos/pagos': () => import('./modules/ingresos/pagos_list.js'),
     // Soporte para alias de compatibilidad con módulos anteriores
     'dashboard': () => import('./modules/dashboard.js'),
     'tesoreria': () => import('./modules/tesoreria.js')
@@ -68,6 +76,9 @@ async function router() {
             }
 
             if (initFn) {
+                if (typeof window.cleanupFloatingElements === 'function') {
+                    window.cleanupFloatingElements();
+                }
                 await initFn(appEl);
             } else {
                 renderPlaceholder(appEl, hash, "El módulo se cargó correctamente, pero no expone un método init().");

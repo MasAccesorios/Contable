@@ -4,9 +4,6 @@ import { CoreActions, ItemEngine, NumberingManager, ExportManager, PrintManager 
 export const CotizacionesModule = {
     async init(element) {
         if (!element) return;
-        
-        // Context Cleanup
-        document.querySelectorAll('.search-results-dropdown, .row-action-menu, .desc-popover').forEach(el => el.remove());
 
         const hashParts = window.location.hash.split('/');
         const action = hashParts[3];
@@ -652,7 +649,10 @@ export const CotizacionesModule = {
         // Evento Guardar (Captura de Estado DOM a DB)
         element.querySelector('#btn-guardar')?.addEventListener('click', async () => {
             const clienteId = element.querySelector('#select-cliente').value;
-            if (!clienteId) return alert("Debe seleccionar un cliente.");
+            if (!clienteId) {
+                CoreActions.showWarningModal("Debe seleccionar un cliente.");
+                return;
+            }
 
             // Recolectar detalles
             const arrDetalles = [];
@@ -680,7 +680,8 @@ export const CotizacionesModule = {
             });
 
             if (arrDetalles.length === 0 || hasError || parseFloat(element.querySelector('#tot-total').dataset.rawTotal) <= 0) {
-                return alert("Debe agregar al menos un producto válido y con cantidad mayor a cero.");
+                CoreActions.showWarningModal("Debe agregar al menos un producto válido y con cantidad mayor a cero.");
+                return;
             }
 
             cotizacion.clienteId = clienteId;
