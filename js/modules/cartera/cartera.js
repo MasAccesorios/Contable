@@ -1,5 +1,5 @@
-import DB from '../../db.js';
-import { CoreActions } from '../../utils/core-actions.js';
+import DB from '../../core/db.js';
+import { CoreActions } from '../../shared/crud.js';
 import { TesoreriaModule } from '../tesoreria.js';
 
 export const PagosModule = {
@@ -186,7 +186,7 @@ export const PagosModule = {
                 <!-- Contenedor Superior Alineado y Sim√©trico -->
                 <div class="mx-auto mb-4 d-flex justify-content-between align-items-center" style="max-width: 1000px; font-family: 'Inter', sans-serif;">
                     <div>
-                        <span class="text-muted" style="cursor: pointer; font-size: 12px;" id="btn-volver-pagos">‚Üê Volver a Pagos</span>
+                        <span class="text-muted" style="cursor: pointer; font-size: 12px;" id="btn-volver-pagos">‚Ü?Volver a Pagos</span>
                         <h2 class="fw-medium text-dark mt-1 mb-0" style="font-size: 20px;">${titulo}</h2>
                     </div>
                     
@@ -245,7 +245,7 @@ export const PagosModule = {
 
                         <!-- Centro de Costo -->
                         <div>
-                            <label class="form-label text-secondary small mb-1">Centro de costo ‚ùì</label>
+                            <label class="form-label text-secondary small mb-1">Centro de costo ‚ù?/label>
                             <select id="centro-costo-pago" class="form-select form-select-sm border-light-subtle text-muted" disabled>
                                 <option value="">Seleccionar</option>
                             </select>

@@ -1,5 +1,5 @@
 // js/modules/sistema.js
-import DB from '../db.js';
+import DB from '../core/db.js';
 
 export const SistemaModule = {
     async init(element) {

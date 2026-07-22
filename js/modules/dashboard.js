@@ -1,5 +1,5 @@
 // js/modules/dashboard.js
-import DB from '../db.js';
+import DB from '../core/db.js';
 
 export const DashboardModule = {
     async init(element) {

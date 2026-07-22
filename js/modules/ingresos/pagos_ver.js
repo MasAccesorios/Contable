@@ -1,5 +1,5 @@
-import DB from '../../db.js';
-import { CoreActions } from '../../utils/core-actions.js';
+import DB from '../../core/db.js';
+import { CoreActions } from '../../shared/crud.js';
 import { TesoreriaModule } from '../tesoreria.js';
 
 export const PagosVerModule = {
@@ -102,7 +102,7 @@ export const PagosVerModule = {
                 <!-- BARRA SUPERIOR ALINEADA CON BOTONERA COMPACTA -->
                 <div class="d-flex justify-content-between align-items-center mb-4" style="max-width: 1000px; margin: 0 auto;">
                     <div>
-                        <a href="#/ingresos/pagos" class="text-decoration-none" style="font-size: 13px; color: #2cbfb7;" id="btn-volver-listado">‚Üê Volver a mis pagos recibidos</a>
+                        <a href="#/ingresos/pagos" class="text-decoration-none" style="font-size: 13px; color: #2cbfb7;" id="btn-volver-listado">‚Ü?Volver a mis pagos recibidos</a>
                         <h2 class="fw-bold text-dark mt-2 mb-0" style="font-size: 24px;">Pago recibido ${numero}</h2>
                     </div>
                     <div class="d-flex gap-2">
@@ -214,7 +214,7 @@ export const PagosVerModule = {
                         </div>
                         <div class="card-body p-4">
                             <div class="d-flex justify-content-between mb-4">
-                                <button class="btn btn-sm btn-light rounded-pill border px-3 text-info fw-medium" style="background-color: #e9fbfb; border-color: #bdf2f0 !important;"><i class="bi bi-search me-1"></i> Recientes <span class="ms-1" style="font-size: 10px;">‚Üì</span></button>
+                                <button class="btn btn-sm btn-light rounded-pill border px-3 text-info fw-medium" style="background-color: #e9fbfb; border-color: #bdf2f0 !important;"><i class="bi bi-search me-1"></i> Recientes <span class="ms-1" style="font-size: 10px;">‚Ü?/span></button>
                                 <button class="btn btn-sm text-muted border-0 bg-transparent"><i class="bi bi-arrows-expand"></i></button>
                             </div>
                             <div class="text-center py-4 mb-4">

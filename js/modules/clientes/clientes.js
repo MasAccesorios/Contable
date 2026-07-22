@@ -1,7 +1,7 @@
 // js/modules/contactos.js
 // Módulo de Gestión de Contactos (Clientes y Proveedores) - Hoja Completa
 
-import DB from '../db.js';
+import DB from '../../core/db.js';
 
 export const ContactosModule = {
     async init(element) {

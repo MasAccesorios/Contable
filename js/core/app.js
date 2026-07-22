@@ -8,20 +8,20 @@ window.cleanupFloatingElements = function() {
 };
 
 const routes = {
-    'inicio': () => import('./modules/dashboard.js'),
-    'contactos': () => import('./modules/contactos.js'),
-    'bancos': () => import('./modules/tesoreria.js'),
-    'inventario/items': () => import('./modules/productos.js'),
-    'importador': () => import('./modules/importador.js'),
-    'ingresos/cotizaciones': () => import('./modules/ingresos/cotizaciones.js'),
-    'ingresos/facturas': () => import('./modules/ingresos/facturas.js'),
-    'ingresos/pagos/nuevo': () => import('./modules/ingresos/pagos.js'),
-    'ingresos/pagos/editar': () => import('./modules/ingresos/pagos.js'),
-    'ingresos/pagos/ver': () => import('./modules/ingresos/pagos_ver.js'),
-    'ingresos/pagos': () => import('./modules/ingresos/pagos_list.js'),
+    'inicio': () => import('../modules/dashboard.js'),
+    'contactos': () => import('../modules/clientes/clientes.js'),
+    'bancos': () => import('../modules/bancos/bancos.js'),
+    'inventario/items': () => import('../modules/productos/productos.js'),
+    'importador': () => import('../modules/integracion-alegra/importador.js'),
+    'ingresos/cotizaciones': () => import('../modules/ingresos/cotizaciones.js'),
+    'ingresos/facturas': () => import('../modules/ventas/ventas.js'),
+    'ingresos/pagos/nuevo': () => import('../modules/cartera/cartera.js'),
+    'ingresos/pagos/editar': () => import('../modules/cartera/cartera.js'),
+    'ingresos/pagos/ver': () => import('../modules/ingresos/pagos_ver.js'),
+    'ingresos/pagos': () => import('../modules/ingresos/pagos_list.js'),
     // Soporte para alias de compatibilidad con módulos anteriores
-    'dashboard': () => import('./modules/dashboard.js'),
-    'tesoreria': () => import('./modules/tesoreria.js')
+    'dashboard': () => import('../modules/dashboard.js'),
+    'tesoreria': () => import('../modules/bancos/bancos.js')
 };
 
 async function router() {

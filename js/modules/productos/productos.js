@@ -1,6 +1,6 @@
 // js/modules/productos.js
 // Módulo de Gestión de Productos e Inventarios (Lotes FIFO) - Hoja Completa
-import DB from '../db.js';
+import DB from '../../core/db.js';
 
 export const ProductosModule = {
     async init(element) {

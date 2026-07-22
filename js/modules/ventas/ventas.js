@@ -1,5 +1,5 @@
-import DB from '../../db.js';
-import { CoreActions, ItemEngine, NumberingManager, ExportManager, PrintManager } from '../../utils/core-actions.js';
+import DB from '../../core/db.js';
+import { CoreActions, ItemEngine, NumberingManager, ExportManager, PrintManager } from '../../shared/crud.js';
 
 export const FacturasModule = {
     async init(element) {

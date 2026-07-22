@@ -1,5 +1,5 @@
 // js/modules/ventas.js
-import DB from '../db.js';
+import DB from '../core/db.js';
 
 export const VentasModule = {
     async init(element) {

@@ -1,4 +1,4 @@
-import DB from '../../db.js';
+import DB from '../../core/db.js';
 import { TesoreriaModule } from '../tesoreria.js';
 
 export const PagosListModule = {
@@ -117,7 +117,7 @@ export const PagosListModule = {
                                             <td class="text-dark fw-medium btn-ver-pago text-truncate" style="max-width: 150px;">${nombreCuenta}</td>
                                             <td class="btn-ver-pago">
                                                 <span class="d-flex align-items-center gap-1.5">
-                                                    <span style="color: ${esConciliado ? '#22c55e' : '#cbd5e1'}; font-size: 14px;">${esConciliado ? 'âœ“' : 'â—‹'}</span>
+                                                    <span style="color: ${esConciliado ? '#22c55e' : '#cbd5e1'}; font-size: 14px;">${esConciliado ? 'âœ? : 'â—?}</span>
                                                     <span class="text-secondary" style="font-size: 12.5px;">${pago.estado}</span>
                                                 </span>
                                             </td>
@@ -125,7 +125,7 @@ export const PagosListModule = {
                                                 $ ${(pago.monto || 0).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                             </td>
                                             <td class="pe-3 position-relative">
-                                                <button class="btn btn-sm btn-link text-secondary p-0 border-0 dropdown-toggle-acciones" style="text-decoration: none; font-size: 16px;">â‹®</button>
+                                                <button class="btn btn-sm btn-link text-secondary p-0 border-0 dropdown-toggle-acciones" style="text-decoration: none; font-size: 16px;">â‹?/button>
                                             </td>
                                         </tr>
                                     `;
@@ -154,8 +154,8 @@ export const PagosListModule = {
                         <div class="d-flex align-items-center gap-3">
                             <span>PÃ¡gina <input type="text" value="1" class="form-control form-control-sm d-inline-block text-center" style="width: 35px; font-size: 12px; padding-top: 2px; padding-bottom: 2px;"> de 1</span>
                             <div class="d-flex gap-1">
-                                <button class="btn btn-sm btn-light border py-0 px-2" disabled>â€¹</button>
-                                <button class="btn btn-sm btn-light border py-0 px-2" disabled>â€º</button>
+                                <button class="btn btn-sm btn-light border py-0 px-2" disabled>â€?/button>
+                                <button class="btn btn-sm btn-light border py-0 px-2" disabled>â€?/button>
                             </div>
                         </div>
                     </div>
@@ -235,7 +235,7 @@ export const PagosListModule = {
                     ev.stopPropagation();
                     const pagoReal = await DB.get('pagos', id);
                     if (pagoReal) {
-                        import('../../utils/core-actions.js').then(m => {
+                        import('../../shared/crud.js').then(m => {
                             m.CoreActions.printDocumentFormat(pagoReal, 'recibo');
                         });
                     }
@@ -245,7 +245,7 @@ export const PagosListModule = {
                 document.getElementById(`action-anular-${id}`)?.addEventListener('click', (ev) => {
                     ev.preventDefault();
                     ev.stopPropagation();
-                    import('../../utils/core-actions.js').then(m => {
+                    import('../../shared/crud.js').then(m => {
                         m.CoreActions.showWarningModal('La funciÃ³n de anular estÃ¡ actualmente en desarrollo. Pronto estarÃ¡ disponible.');
                     });
                     window.cleanupFloatingElements();

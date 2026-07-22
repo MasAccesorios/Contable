@@ -1,5 +1,5 @@
 // js/modules/importador.js
-import DB from '../db.js';
+import DB from '../../core/db.js';
 
 export const ImportadorModule = {
     async init(element) {
