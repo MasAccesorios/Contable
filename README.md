@@ -1,5 +1,7 @@
 # Manual Técnico - Aplicación Contable MAS Accesorios
 
+> **Nota:** Este documento es la ÚNICA fuente de verdad para la arquitectura de la aplicación. Cualquier diseño previo ha sido descartado en favor de esta arquitectura basada en Vanilla JS + IndexedDB + Firebase.
+
 ## 1. Arquitectura de Datos
 *   **Base de datos principal:** Firebase Realtime Database (Reglas de acceso privado: auth != null).
 *   **Base de datos local (Caché):** IndexedDB para persistencia sin conexión.

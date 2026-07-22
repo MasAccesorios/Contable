@@ -13,45 +13,11 @@ Registro de gastos
 Dashboard financiero básico  
 Sistema monousuario o multiusuario básico con roles simples.
 
-2\. ARQUITECTURA DEL SISTEMA  
-2.1 Tipo de aplicación  
-Web App tradicional (NO SPA compleja)  
-Arquitectura MVC  
-Acceso vía navegador  
-Responsive (adaptable a celular)  
-2.2 Stack Tecnológico  
-Backend:  
-Laravel 11 (PHP 8.3)  
-Frontend:  
-Blade \+ Bootstrap 5  
-JavaScript simple (sin framework pesado)  
-Base de datos:  
-MySQL 8+  
-Servidor:  
-Linux (Ubuntu)  
-Apache o Nginx  
-HTTPS (SSL obligatorio)  
-Hosting:  
-VPS básico (DigitalOcean / Hostinger / similar)
+2\. ARQUITECTURA DEL SISTEMA [NO VIGENTE]  
+(Reemplazado por arquitectura SPA en Vanilla JS con IndexedDB y Firebase según README.md)
 
-3\. CONTROL DE USUARIOS  
-3.1 Tabla: usuarios  
-Campos:  
-id (PK)  
-nombre  
-email  
-password (bcrypt)  
-rol (admin / vendedor)  
-estado (activo/inactivo)  
-created\_at  
-updated\_at  
-3.2 Funcionalidades  
-Login  
-Logout  
-Middleware por rol  
-Solo admin puede:  
-Crear usuarios  
-Ver reportes globales
+3\. CONTROL DE USUARIOS [NO VIGENTE]  
+(La gestión de usuarios pasa a ser manejada por Firebase Auth en el frontend, ver README.md)
 
 4\. MÓDULO CLIENTES  
 4.1 Tabla: clientes  
