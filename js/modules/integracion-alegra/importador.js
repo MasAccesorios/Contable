@@ -242,12 +242,77 @@ export const ImportadorModule = {
                 }
             }
 
+            // --- IMPORTACIÓN DE PAGOS (ABONOS) ---
+            const pagosRaw = data.pagos || data.payments || [];
+            let pagosImportados = 0;
+            let pagosOmitidos = 0;
+            if (pagosRaw.length > 0) {
+                appendDetail(`[JSON] Procesando ${pagosRaw.length} pagos (Abonos de Cartera)...`);
+                
+                const transaccionesDb = await DB.getAll('transacciones');
+                const existingTransIds = new Set(transaccionesDb.map(t => String(t.id)));
+                
+                // Recargar facturas ya que pudieron ser insertadas o modificadas
+                const facturasParaPagos = await DB.getAll('facturas');
+
+                for (const p of pagosRaw) {
+                    const id = String(p.id || 'pago_' + Math.random().toString(36).substring(2, 9));
+                    if (existingTransIds.has(id)) {
+                        pagosOmitidos++;
+                        continue;
+                    }
+
+                    const facturaAsociadaId = String(p.facturaId || p.invoice_id || '');
+                    const montoPago = parseFloat(p.monto || p.amount || 0);
+
+                    if (!facturaAsociadaId || montoPago <= 0) {
+                        pagosOmitidos++;
+                        continue;
+                    }
+
+                    // Afectar la factura
+                    const factura = facturasParaPagos.find(f => String(f.id) === facturaAsociadaId);
+                    if (factura) {
+                        const total = parseFloat(factura.total) || 0;
+                        const saldoAnterior = parseFloat(factura.saldo !== undefined ? factura.saldo : total);
+                        const nuevoSaldo = saldoAnterior - montoPago;
+                        factura.saldo = nuevoSaldo;
+                        if (nuevoSaldo <= 0) {
+                            factura.estado = 'pagada';
+                        } else {
+                            factura.estado = 'parcial';
+                        }
+                        await DB.save('facturas', factura);
+
+                        // Registrar transacción (ingreso a caja)
+                        const transaccion = {
+                            id,
+                            facturaId: factura.id, // For backwards comp
+                            referenciaId: factura.id, // Normalized
+                            tipo: 'ingreso',
+                            monto: montoPago,
+                            fecha: p.fecha || p.date || fechaActual,
+                            referencia: `Abono a Fac. ${factura.prefijo || ''}${factura.numero || factura.id}`, // For backwards comp
+                            detalle: `Abono a Fac. ${factura.prefijo || ''}${factura.numero || factura.id}`, // Normalized
+                            cuenta: p.cuenta || p.account || 'Caja General', // For backwards comp
+                            cuentaId: p.cuenta || p.account || 'Caja General' // Normalized
+                        };
+                        await DB.save('transacciones', transaccion);
+                        existingTransIds.add(id);
+                        pagosImportados++;
+                    } else {
+                        pagosOmitidos++;
+                    }
+                }
+            }
+
             appendDetail(`[Fin] Proceso finalizado con éxito.`);
             updateStatus(`
-                <strong>¡Importación y Descargo FIFO Completado!</strong><br>
+                <strong>¡Importación, Descargo FIFO y Pagos Completados!</strong><br>
                 - <strong>Productos:</strong> ${productosImportados} creados, ${productosOmitidos} duplicados omitidos.<br>
                 - <strong>Lotes (Init/Fallback):</strong> ${lotesCreados} inicializados.<br>
-                - <strong>Facturas Procesadas:</strong> ${facturasImportadas} creadas, ${facturasOmitidas} omitidas.
+                - <strong>Facturas Procesadas:</strong> ${facturasImportadas} creadas, ${facturasOmitidas} omitidas.<br>
+                - <strong>Pagos Procesados:</strong> ${pagosImportados} aplicados, ${pagosOmitidos} omitidos.
             `, 'success');
 
         } catch (err) {

@@ -1,5 +1,6 @@
 import DB from '../../core/db.js';
 import { CoreActions } from '../../shared/crud.js';
+import { TesoreriaModule } from '../bancos/bancos.js';
 
 export default {
     async init(element) {
@@ -94,8 +95,7 @@ export default {
                                 <div class="mb-4">
                                     <label class="form-label text-muted small fw-medium">Cuenta destino</label>
                                     <select id="abono-cuenta" class="form-select" required>
-                                        <option value="Caja General">Caja General</option>
-                                        <option value="Bancolombia">Bancolombia</option>
+                                        ${TesoreriaModule.cuentasConfig.map(c => `<option value="${c.nombre}">${c.nombre}</option>`).join('')}
                                     </select>
                                 </div>
                                 <button type="submit" class="btn btn-primary w-100 py-2" style="font-weight: 500; border-radius: 8px;">Confirmar Pago</button>
@@ -161,12 +161,15 @@ export default {
                 // Registrar transacción (ingreso)
                 const transaccion = {
                     id: 'trx_' + Date.now(),
-                    facturaId: factura.id,
+                    facturaId: factura.id, // Backwards comp
+                    referenciaId: factura.id, // Normalized
                     tipo: 'ingreso',
                     monto: monto,
                     fecha: fecha,
-                    referencia: `Abono a Fac. ${factura.prefijo || ''}${factura.numero || factura.id}`,
-                    cuenta: cuenta
+                    referencia: `Abono a Fac. ${factura.prefijo || ''}${factura.numero || factura.id}`, // Backwards comp
+                    detalle: `Abono a Fac. ${factura.prefijo || ''}${factura.numero || factura.id}`, // Normalized
+                    cuenta: cuenta, // Backwards comp
+                    cuentaId: cuenta // Normalized
                 };
                 await DB.save('transacciones', transaccion);
 

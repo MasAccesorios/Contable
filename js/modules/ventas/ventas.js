@@ -1,5 +1,6 @@
 import DB from '../../core/db.js';
 import { CoreActions, ItemEngine, NumberingManager, ExportManager, PrintManager } from '../../shared/crud.js';
+import { TesoreriaModule } from '../bancos/bancos.js';
 
 export const FacturasModule = {
     async init(element) {
@@ -419,6 +420,12 @@ export const FacturasModule = {
                                     <option value="contado" ${factura.tipoVenta === 'contado' ? 'selected' : ''}>De Contado (Caja)</option>
                                 </select>
                             </div>
+                            <div class="col-md-3" id="container-cuenta-venta" style="display: ${factura.tipoVenta === 'contado' ? 'block' : 'none'};">
+                                <label class="form-label" style="font-size: 12px; font-weight: var(--weight-medium); color: var(--text-body);">Cuenta (Contado)</label>
+                                <select id="select-cuenta-venta" class="form-select form-select-sm text-muted" ${isViewOnly ? 'disabled' : ''}>
+                                    ${TesoreriaModule.cuentasConfig.map(c => `<option value="${c.nombre}" ${factura.cuentaId === c.nombre ? 'selected' : ''}>${c.nombre}</option>`).join('')}
+                                </select>
+                            </div>
                             <div class="col-md-3">
                                 <label class="form-label" style="font-size: 12px; font-weight: var(--weight-medium); color: var(--text-body);">Fecha de creación</label>
                                 <input type="date" id="input-fecha" class="form-control form-control-sm text-muted" value="${factura.fecha}" ${isViewOnly ? 'disabled' : ''}>
@@ -633,6 +640,14 @@ export const FacturasModule = {
         });
 
         // Configuración de Numeración (Engranaje)
+        element.querySelector('#select-tipo-venta')?.addEventListener('change', (e) => {
+            const containerCuenta = element.querySelector('#container-cuenta-venta');
+            if (containerCuenta) {
+                containerCuenta.style.display = e.target.value === 'contado' ? 'block' : 'none';
+            }
+        });
+
+        // Configuración de Numeración (Engranaje)
         element.querySelector('#btn-config-num')?.addEventListener('click', () => {
             NumberingManager.openNumberingModal('factura', factura, (prefijo, numero) => {
                 element.querySelector('#lbl-numero').innerHTML = `No. <strong style="color: var(--text-main);">${prefijo ? prefijo + ' ' : ''}${numero}</strong>`;
@@ -760,6 +775,9 @@ export const FacturasModule = {
 
             factura.clienteId = clienteId;
             factura.tipoVenta = tipoVenta;
+            if (tipoVenta === 'contado') {
+                factura.cuentaId = element.querySelector('#select-cuenta-venta').value;
+            }
             factura.fecha = element.querySelector('#input-fecha').value;
             factura.vencimiento = element.querySelector('#input-vencimiento').value;
             factura.notas = element.querySelector('#input-notas').value;
@@ -779,12 +797,15 @@ export const FacturasModule = {
                 if (isNew) {
                     const transaccion = {
                         id: 'trx_' + Date.now(),
-                        facturaId: factura.id,
+                        facturaId: factura.id, // For backwards comp
+                        referenciaId: factura.id, // Normalized
                         tipo: 'ingreso',
                         monto: rawTotal,
                         fecha: factura.fecha,
-                        referencia: `Venta al contado Fac. ${factura.prefijo || ''}${factura.numero}`,
-                        cuenta: 'Caja General'
+                        referencia: `Venta al contado Fac. ${factura.prefijo || ''}${factura.numero}`, // For backwards comp
+                        detalle: `Venta al contado Fac. ${factura.prefijo || ''}${factura.numero}`, // Normalized
+                        cuenta: factura.cuentaId, // For backwards comp
+                        cuentaId: factura.cuentaId // Normalized
                     };
                     await DB.save('transacciones', transaccion);
                 }
