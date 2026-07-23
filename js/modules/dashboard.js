@@ -87,8 +87,8 @@ export const DashboardModule = {
                             <div class="col-6">
                                 <div class="card border-0 shadow-sm h-100" style="border-radius:10px;">
                                     <div class="card-body p-3">
-                                        <h6 class="text-dark mb-3 text-subtext fw-bold">Impuestos en venta</h6>
-                                        <h5 class="text-title mb-0 text-dark">$0,00</h5>
+                                        <h6 class="text-dark mb-3 text-subtext fw-bold">Utilidad (Mes Actual)</h6>
+                                        <h5 class="text-title mb-0 text-success" id="kpi-utilidad-mes">$0,00</h5>
                                     </div>
                                 </div>
                             </div>
@@ -98,7 +98,6 @@ export const DashboardModule = {
                                         <h6 class="text-dark mb-3 text-subtext fw-bold">Productos vendidos</h6>
                                         <div class="d-flex justify-content-between align-items-end">
                                             <h5 class="text-title mb-0 text-dark" id="kpi-productos">0</h5>
-                                            <span class="text-danger text-subtext"><i class="bi bi-arrow-down-short"></i>46%</span>
                                         </div>
                                     </div>
                                 </div>
@@ -106,17 +105,17 @@ export const DashboardModule = {
                             <div class="col-6">
                                 <div class="card border-0 shadow-sm h-100" style="border-radius:10px;">
                                     <div class="card-body p-3">
-                                        <h6 class="text-dark mb-1 text-subtext fw-bold" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Devoluciones de clientes</h6>
-                                        <span class="text-muted mb-2 d-block text-subtext">Incluye impuestos</span>
-                                        <h5 class="text-title mb-0 text-dark">$0,00</h5>
+                                        <h6 class="text-dark mb-1 text-subtext fw-bold" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Inventario Valorizado</h6>
+                                        <span class="text-muted mb-2 d-block text-subtext">Costo total (Stock Real)</span>
+                                        <h5 class="text-title mb-0 text-primary" id="kpi-inventario-valorizado">$0,00</h5>
                                     </div>
                                 </div>
                             </div>
                             <div class="col-6">
                                 <div class="card border-0 shadow-sm h-100" style="border-radius:10px;">
                                     <div class="card-body p-3">
-                                        <h6 class="text-dark mb-3 text-subtext fw-bold">Clientes con ventas</h6>
-                                        <h5 class="text-title mb-0 text-dark" id="kpi-clientes">7</h5>
+                                        <h6 class="text-dark mb-3 text-subtext fw-bold">Saldo Total Bancos</h6>
+                                        <h5 class="text-title mb-0 text-info" id="kpi-saldo-bancos">$0,00</h5>
                                     </div>
                                 </div>
                             </div>
@@ -134,8 +133,7 @@ export const DashboardModule = {
                             </div>
                             <div class="text-end">
                                 <div class="d-flex align-items-center justify-content-end">
-                                    <h4 class="text-metric mb-0 text-dark" id="kpi-total-ventas">$2.590.444,00</h4>
-                                    <span class="text-danger ms-3 text-body"><i class="bi bi-arrow-down-short fs-6"></i>54%</span>
+                                    <h4 class="text-metric mb-0 text-dark" id="kpi-total-ventas">$0,00</h4>
                                 </div>
                             </div>
                         </div>
@@ -160,15 +158,22 @@ export const DashboardModule = {
     },
 
     async loadData(element) {
-        const [facturas, transacciones] = await Promise.all([
+        const [facturas, transacciones, lotes] = await Promise.all([
             DB.getAll('facturas'),
-            DB.getAll('transacciones')
+            DB.getAll('transacciones'),
+            DB.getAll('lotes_fifo')
         ]);
 
         // Extract KPIs
         let ventasMes = 0;
-        let clientesUnicos = new Set();
-        let productosVendidos = 211; // Hardcoded default based on UI, can be updated if details exist
+        let utilidadMes = 0;
+        let productosVendidos = 0;
+        
+        // Inventario Valorizado
+        let inventarioValorizado = lotes.reduce((sum, l) => sum + (l.cantidadActual * l.costoUnitario), 0);
+        
+        // Saldo Total Bancos
+        let saldoBancos = transacciones.reduce((sum, t) => sum + (t.tipo === 'ingreso' ? t.monto : -t.monto), 0);
 
         let cxcTotal = 0, cxcVigentes = 0, cxcVencidas = 0;
         let cxcVigentesDoc = 0, cxcVencidasDoc = 0;
@@ -179,20 +184,25 @@ export const DashboardModule = {
         const hoy = new Date();
         hoy.setHours(0,0,0,0);
 
-        // Ventas de Julio (current focus from screenshot)
-        const currentMonthPrefix = '2026-07';
+        // Ventas del mes actual dinámico
+        const currentMonthPrefix = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}`;
         
-        // Prepare chart data grouped by day
+        // Prepare chart data grouped by day for current month
         const dailySales = {};
-        for(let i=1; i<=31; i++) {
-            dailySales[`2026-07-${String(i).padStart(2, '0')}`] = 0;
+        const daysInMonth = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0).getDate();
+        for(let i=1; i<=daysInMonth; i++) {
+            dailySales[`${currentMonthPrefix}-${String(i).padStart(2, '0')}`] = 0;
         }
 
         facturas.forEach(f => {
             if (f.tipo === 'venta') {
                 if (f.fecha.startsWith(currentMonthPrefix)) {
                     ventasMes += f.total;
-                    clientesUnicos.add(f.contactoId);
+                    utilidadMes += (f.utilidad || 0);
+                    
+                    if (f.detalles) {
+                        f.detalles.forEach(d => { productosVendidos += d.cantidad; });
+                    }
                     
                     if (dailySales[f.fecha] !== undefined) {
                         dailySales[f.fecha] += f.total;
@@ -226,7 +236,7 @@ export const DashboardModule = {
         });
 
         // Update KPI values in DOM
-        const formatMoney = val => '$' + val.toLocaleString('es-CO', {minimumFractionDigits: 2});
+        const formatMoney = val => '$' + (val || 0).toLocaleString('es-CO', {minimumFractionDigits: 2});
         
         const safeSetText = (id, text) => {
             const el = element.querySelector(id);
@@ -234,7 +244,9 @@ export const DashboardModule = {
         };
 
         safeSetText('#kpi-total-ventas', formatMoney(ventasMes));
-        safeSetText('#kpi-clientes', clientesUnicos.size > 0 ? clientesUnicos.size : 7);
+        safeSetText('#kpi-utilidad-mes', formatMoney(utilidadMes));
+        safeSetText('#kpi-inventario-valorizado', formatMoney(inventarioValorizado));
+        safeSetText('#kpi-saldo-bancos', formatMoney(saldoBancos));
         safeSetText('#kpi-productos', productosVendidos);
 
         // CXC Update

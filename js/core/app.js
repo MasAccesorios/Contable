@@ -16,6 +16,7 @@ const routes = {
     'ingresos/cotizaciones': () => import('../modules/ingresos/cotizaciones.js'),
     'ingresos/facturas': () => import('../modules/ventas/ventas.js'),
     'cartera': () => import('../modules/cartera/cartera.js'),
+    'reportes': () => import('../modules/reportes.js'),
     // Soporte para alias de compatibilidad con módulos anteriores
     'dashboard': () => import('../modules/dashboard.js'),
     'tesoreria': () => import('../modules/bancos/bancos.js')
