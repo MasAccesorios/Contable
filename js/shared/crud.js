@@ -859,5 +859,27 @@ export const ExportManager = {
                 }
             }
         }, 150); // Timeout leve para priorizar UI rendering
+    },
+
+    /**
+     * Soft delete para registros. En lugar de borrarlos físicamente,
+     * cambia el estado a 'inactivo' para preservar integridad referencial.
+     * @param {string} storeName - Nombre del object store
+     * @param {string} id - ID del registro
+     */
+    async softDelete(storeName, id) {
+        try {
+            const registro = await DB.get(storeName, id);
+            if (!registro) throw new Error("Registro no encontrado.");
+            
+            registro.estado = 'inactivo';
+            registro.updated_at = new Date().toISOString();
+            
+            await DB.save(storeName, registro);
+            return true;
+        } catch (error) {
+            console.error(`Error en softDelete para ${storeName} [${id}]:`, error);
+            throw error;
+        }
     }
 };

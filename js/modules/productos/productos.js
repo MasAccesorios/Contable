@@ -75,14 +75,17 @@ export const ProductosModule = {
             const costoTotal = lotesProd.reduce((sum, l) => sum + (l.cantidadActual * l.costoUnitario), 0);
             const costoPromedio = stockTotal > 0 ? (costoTotal / stockTotal) : p.costoBase;
 
+            if (p.estado === 'inactivo') return; // Soft delete check (opcional)
+            const isLowStock = stockTotal <= p.stockMinimo;
+            
             html += `
                 <tr data-id="${p.id}">
                     <td class="px-4"><code>${p.sku}</code></td>
                     <td><strong>${p.nombre}</strong></td>
                     <td class="text-end">$${p.precioVenta.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
                     <td class="text-end">
-                        <span class="badge ${stockTotal <= p.stockMinimo ? 'bg-danger-subtle text-danger' : 'bg-success-subtle text-success'} rounded-pill px-3 py-2">
-                            ${stockTotal} und
+                        <span class="badge ${isLowStock ? 'bg-danger text-white' : 'bg-success-subtle text-success'} rounded-pill px-3 py-2" ${isLowStock ? 'title="¡Alerta: Stock por debajo del mínimo!"' : ''}>
+                            ${isLowStock ? '<i class="bi bi-exclamation-triangle-fill me-1"></i>' : ''}${stockTotal} und
                         </span>
                     </td>
                     <td class="text-end">$${costoPromedio.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
@@ -124,7 +127,11 @@ export const ProductosModule = {
         container.innerHTML = `
             <div class="card border-0 shadow-sm max-width-md mx-auto" style="max-width: 600px;">
                 <div class="card-body p-4">
-                    <h4 class="card-title fw-bold mb-4 text-dark">${id ? 'Editar Producto' : 'Crear Nuevo Producto'}</h4>
+                    <h4 class="card-title fw-bold mb-3 text-dark">${id ? 'Editar Producto' : 'Crear Nuevo Producto'}</h4>
+                    <div class="alert alert-warning py-2 mb-4 d-flex align-items-center" style="font-size: 0.9rem;">
+                        <i class="bi bi-info-circle-fill me-2"></i>
+                        <span><strong>Nota:</strong> Los datos maestros (nombre, precio, SKU) se sincronizan desde Alegra.</span>
+                    </div>
                     <form id="form-producto-data">
                         <div class="mb-3">
                             <label class="form-label fw-semibold text-muted small">SKU / Código Único *</label>
@@ -246,7 +253,8 @@ export const ProductosModule = {
                     <!-- Formulario de Ajuste / Carga de Lotes -->
                     <div class="card border-0 shadow-sm">
                         <div class="card-body p-4">
-                            <h5 class="fw-bold mb-3"><i class="bi bi-box-arrow-in-down text-primary me-2"></i>Registrar Nuevo Lote</h5>
+                            <h5 class="fw-bold mb-2"><i class="bi bi-box-arrow-in-down text-primary me-2"></i>Registrar Nuevo Lote</h5>
+                            <p class="text-muted small mb-3">Nota: El inventario local puede ser sobreescrito si Alegra actualiza el stock maestro.</p>
                             <div id="lote-alert" class="alert alert-success d-none mb-3 py-2" style="font-size: 0.9rem;"></div>
                             
                             <form id="form-nuevo-lote">

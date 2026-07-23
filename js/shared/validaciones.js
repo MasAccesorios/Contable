@@ -8,6 +8,11 @@ export const Validaciones = {
     
     isValidRequired(text) {
         return text && text.trim().length > 0;
+    },
+    
+    hasStockSuficiente(producto, cantidadA_vender) {
+        if (!producto) return false;
+        return (producto.stockActual || 0) >= cantidadA_vender;
     }
 };
 

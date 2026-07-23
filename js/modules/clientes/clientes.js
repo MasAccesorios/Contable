@@ -2,6 +2,7 @@
 // Módulo de Gestión de Contactos (Clientes y Proveedores) - Hoja Completa
 
 import DB from '../../core/db.js';
+import { CoreActions } from '../../shared/crud.js';
 
 export const ContactosModule = {
     async init(element) {
@@ -67,6 +68,7 @@ export const ContactosModule = {
         `;
 
         contactos.forEach(c => {
+            if (c.estado === 'inactivo') return; // Soft delete check
             html += `
                 <tr data-id="${c.id}">
                     <td><strong>${c.nombre}</strong></td>
@@ -77,6 +79,7 @@ export const ContactosModule = {
                     <td>
                         <button class="btn-action btn-ver" data-id="${c.id}">Ver</button>
                         <button class="btn-action btn-editar" data-id="${c.id}">Editar</button>
+                        <button class="btn-action btn-eliminar" data-id="${c.id}" style="color: red;">Eliminar</button>
                     </td>
                 </tr>
             `;
@@ -91,6 +94,14 @@ export const ContactosModule = {
         });
         container.querySelectorAll('.btn-editar').forEach(btn => {
             btn.addEventListener('click', (e) => this.renderForm(element, e.target.dataset.id));
+        });
+        container.querySelectorAll('.btn-eliminar').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                if (confirm('¿Está seguro de eliminar este contacto?')) {
+                    await CoreActions.softDelete('contactos', e.target.dataset.id);
+                    await this.renderTabla(element);
+                }
+            });
         });
     },
 
@@ -232,6 +243,7 @@ export const ContactosModule = {
 
         tbody.innerHTML = '';
         contactos.forEach(c => {
+            if (c.estado === 'inactivo') return; // Soft delete check
             const matchQuery = c.nombre.toLowerCase().includes(query) || c.nit.includes(query);
             const matchTipo = tipo === 'todos' || c.tipo === tipo;
 
@@ -246,6 +258,7 @@ export const ContactosModule = {
                         <td>
                             <button class="btn-action btn-ver" data-id="${c.id}">Ver</button>
                             <button class="btn-action btn-editar" data-id="${c.id}">Editar</button>
+                            <button class="btn-action btn-eliminar" data-id="${c.id}" style="color: red;">Eliminar</button>
                         </td>
                     </tr>
                 `;
@@ -257,6 +270,14 @@ export const ContactosModule = {
         });
         tbody.querySelectorAll('.btn-editar').forEach(btn => {
             btn.addEventListener('click', (e) => this.renderForm(element, e.target.dataset.id));
+        });
+        tbody.querySelectorAll('.btn-eliminar').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                if (confirm('¿Está seguro de eliminar este contacto?')) {
+                    await CoreActions.softDelete('contactos', e.target.dataset.id);
+                    await this.filtrarContactos(element);
+                }
+            });
         });
     }
 };
