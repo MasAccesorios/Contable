@@ -405,18 +405,25 @@ export const FacturasModule = {
 
                         <!-- INFO FACTURA -->
                         <h6 class="fw-bold mb-3" style="color: var(--text-main);">Información de la factura</h6>
-                        <div class="row mb-5 g-4">
-                            <div class="col-md-4">
+                        <div class="row mb-5 g-3">
+                            <div class="col-md-3">
                                 <label class="form-label" style="font-size: 12px; font-weight: var(--weight-medium); color: var(--text-body);">Cliente <span class="text-danger">*</span></label>
                                 <select id="select-cliente" class="form-select form-select-sm text-muted" ${isViewOnly ? 'disabled' : ''}>
                                     ${clientesOptions}
                                 </select>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-3">
+                                <label class="form-label" style="font-size: 12px; font-weight: var(--weight-medium); color: var(--text-body);">Tipo de Venta</label>
+                                <select id="select-tipo-venta" class="form-select form-select-sm text-muted" ${isViewOnly ? 'disabled' : ''}>
+                                    <option value="credito" ${factura.tipoVenta === 'credito' || !factura.tipoVenta ? 'selected' : ''}>A Crédito (Cartera)</option>
+                                    <option value="contado" ${factura.tipoVenta === 'contado' ? 'selected' : ''}>De Contado (Caja)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
                                 <label class="form-label" style="font-size: 12px; font-weight: var(--weight-medium); color: var(--text-body);">Fecha de creación</label>
                                 <input type="date" id="input-fecha" class="form-control form-control-sm text-muted" value="${factura.fecha}" ${isViewOnly ? 'disabled' : ''}>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-3">
                                 <label class="form-label" style="font-size: 12px; font-weight: var(--weight-medium); color: var(--text-body);">Fecha de vencimiento</label>
                                 <input type="date" id="input-vencimiento" class="form-control form-control-sm text-muted" value="${factura.vencimiento}" ${isViewOnly ? 'disabled' : ''}>
                             </div>
@@ -672,18 +679,36 @@ export const FacturasModule = {
                 return;
             }
 
+            const tipoVenta = element.querySelector('#select-tipo-venta').value;
+            const isNew = !id; // Si es nueva factura, descargamos inventario
+
             // Recolectar detalles
             const arrDetalles = [];
             let hasError = false;
-            tbody.querySelectorAll('tr').forEach(tr => {
+            let stockError = '';
+
+            const rows = tbody.querySelectorAll('tr');
+            for (const tr of rows) {
                 const prodId = tr.querySelector('.input-prod-id').value;
-                if (!prodId) return; // Omitir filas sin producto
+                if (!prodId) continue;
                 
                 const inpQty = tr.querySelector('.input-qty');
                 const qty = parseFloat(inpQty.value || 0);
                 if (qty <= 0) {
                     inpQty.style.borderColor = '#ef4444';
                     hasError = true;
+                }
+
+                // Validación de stock solo si es nueva factura
+                if (isNew) {
+                    const lotes = await DB.getAll('lotes_fifo');
+                    const stockTotal = lotes.filter(l => l.productoId === prodId).reduce((sum, l) => sum + l.cantidadActual, 0);
+                    if (stockTotal < qty) {
+                        const prod = productos.find(p => p.id === prodId);
+                        stockError += `Stock insuficiente para ${prod ? prod.nombre : 'el producto'}. Disponible: ${stockTotal}, Requerido: ${qty}.<br>`;
+                        inpQty.style.borderColor = '#ef4444';
+                        hasError = true;
+                    }
                 }
                 
                 arrDetalles.push({
@@ -695,19 +720,77 @@ export const FacturasModule = {
                     descuento: parseFloat(tr.querySelector('.input-disc').value || 0),
                     impuesto: parseFloat(tr.querySelector('.input-tax').value || 0)
                 });
-            });
+            }
+
+            if (stockError) {
+                CoreActions.showWarningModal(stockError);
+                return;
+            }
 
             if (arrDetalles.length === 0 || hasError || parseFloat(element.querySelector('#tot-total').dataset.rawTotal) <= 0) {
                 CoreActions.showWarningModal("Debe agregar al menos un producto válido y con cantidad mayor a cero.");
                 return;
             }
 
+            // Descargo FIFO de inventario si es nueva
+            let costoTotalVenta = 0;
+            if (isNew) {
+                const lotesGlobales = await DB.getAll('lotes_fifo');
+                for (const det of arrDetalles) {
+                    let qtyRestante = det.cantidad;
+                    let costoLinea = 0;
+                    const lotesProd = lotesGlobales.filter(l => l.productoId === det.productoId && l.cantidadActual > 0);
+                    lotesProd.sort((a, b) => new Date(a.fechaIngreso) - new Date(b.fechaIngreso)); // FIFO
+                    
+                    for (const lote of lotesProd) {
+                        if (qtyRestante <= 0) break;
+                        const aDescontar = Math.min(lote.cantidadActual, qtyRestante);
+                        lote.cantidadActual -= aDescontar;
+                        qtyRestante -= aDescontar;
+                        costoLinea += (aDescontar * lote.costoUnitario);
+                        await DB.save('lotes_fifo', lote); // Guardar cambio en BD
+                    }
+                    det.costoTotalCalculado = costoLinea;
+                    costoTotalVenta += costoLinea;
+                }
+            } else {
+                // Si es edición, mantenemos el costo total previo para no recalcular
+                costoTotalVenta = factura.total_costo || 0;
+            }
+
             factura.clienteId = clienteId;
+            factura.tipoVenta = tipoVenta;
             factura.fecha = element.querySelector('#input-fecha').value;
             factura.vencimiento = element.querySelector('#input-vencimiento').value;
             factura.notas = element.querySelector('#input-notas').value;
             factura.terminosCondiciones = element.querySelector('#input-terminos').value;
             factura.detalles = arrDetalles;
+            factura.tipo = 'venta'; // Ensure type is venta
+            
+            const rawTotal = parseFloat(element.querySelector('#tot-total').dataset.rawTotal);
+            factura.total = rawTotal;
+            factura.total_costo = costoTotalVenta;
+            factura.utilidad = rawTotal - costoTotalVenta;
+
+            // Condicional Contado vs Crédito
+            if (tipoVenta === 'contado') {
+                factura.estado = 'pagada';
+                // Crear ingreso a Caja General si es nueva
+                if (isNew) {
+                    const transaccion = {
+                        id: 'trx_' + Date.now(),
+                        facturaId: factura.id,
+                        tipo: 'ingreso',
+                        monto: rawTotal,
+                        fecha: factura.fecha,
+                        referencia: `Venta al contado Fac. ${factura.prefijo || ''}${factura.numero}`,
+                        cuenta: 'Caja General'
+                    };
+                    await DB.save('transacciones', transaccion);
+                }
+            } else {
+                factura.estado = factura.estado === 'pagada' ? 'pagada' : 'por_pagar'; // Si se cambia a crédito, asume por_pagar
+            }
 
             await DB.save('facturas', factura);
             
