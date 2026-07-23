@@ -294,9 +294,13 @@ export const DashboardModule = {
             window.myVentasChart.destroy();
         }
 
+        const monthNames = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+        const currentMonthName = monthNames[new Date().getMonth()];
+        const currentYear = new Date().getFullYear();
+
         const labels = Object.keys(dailySales).map(date => {
             const [y, m, d] = date.split('-');
-            return `${parseInt(d)} de jul`;
+            return `${parseInt(d)} de ${monthNames[parseInt(m)-1]}`;
         });
         
         const dataVentas = Object.values(dailySales);
@@ -310,7 +314,7 @@ export const DashboardModule = {
                 labels: labels,
                 datasets: [
                     {
-                        label: '1 de jul de 2026 - 17 de jul de 2026',
+                        label: `Ventas de ${currentMonthName} de ${currentYear}`,
                         data: dataVentas,
                         borderColor: '#1e5dd1', // Azul oscuro de la imagen
                         backgroundColor: '#1e5dd1',
@@ -323,10 +327,11 @@ export const DashboardModule = {
                         borderDash: []
                     },
                     {
-                        label: '1 de jul de 2025 - 17 de jul de 2025',
+                        label: `Ventas de ${currentMonthName} de ${currentYear - 1}`,
                         data: dataAnterior,
                         borderColor: '#2dbda8', // Verde punteado
                         backgroundColor: '#2dbda8',
+
                         borderWidth: 1.5,
                         tension: 0,
                         pointRadius: 2,
