@@ -1,5 +1,5 @@
 // js/utils/core-actions.js
-import DB from '../db.js';
+import DB from '../core/db.js';
 
 export const CoreActions = {
     /**

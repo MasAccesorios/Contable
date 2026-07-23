@@ -40,6 +40,18 @@ export const ContactosModule = {
         await this.renderTabla(element);
     },
 
+    /**
+     * Lógica centralizada para guardar un contacto en la base de datos
+     */
+    async guardarContacto(datos, id = null) {
+        const nuevoContacto = {
+            id: id || 'cont_' + Date.now(),
+            ...datos
+        };
+        await DB.save('contactos', nuevoContacto);
+        return nuevoContacto;
+    },
+
     async renderTabla(element) {
         const container = element.querySelector('#contactos-view-container');
         if (!container) return;
@@ -179,8 +191,7 @@ export const ContactosModule = {
         element.querySelector('#form-contacto-data')?.addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            const nuevoContacto = {
-                id: id || 'cont_' + Date.now(),
+            const datos = {
                 nombre: element.querySelector('#form-nombre').value,
                 nit: element.querySelector('#form-nit').value,
                 tipo: element.querySelector('#form-tipo').value,
@@ -193,7 +204,7 @@ export const ContactosModule = {
                 plazosPago: parseInt(element.querySelector('#form-plazos').value) || 0
             };
 
-            await DB.save('contactos', nuevoContacto);
+            await this.guardarContacto(datos, id);
             this.renderTabla(element);
         });
     },

@@ -1,5 +1,7 @@
 // js/modules/tesoreria.js
 import DB from '../../core/db.js';
+import { CoreActions } from '../../shared/crud.js';
+import { UI } from '../../shared/combobox.js';
 
 export const TesoreriaModule = {
     cuentasConfig: [
@@ -229,10 +231,8 @@ export const TesoreriaModule = {
                         <div class="row g-3 mb-4">
                             <div class="col-md-6">
                                 <label class="form-label text-muted small fw-semibold">Cliente *</label>
-                                <select id="recaudo-cliente" class="form-select" required>
-                                    <option value="">Seleccione el cliente...</option>
-                                    ${clientes.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('')}
-                                </select>
+                                <input type="text" id="search-recaudo-cliente" class="form-control" placeholder="Buscar cliente..." autocomplete="off" required>
+                                <input type="hidden" id="recaudo-cliente" required>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label text-muted small fw-semibold">Cuenta de Ingreso *</label>
@@ -352,8 +352,8 @@ export const TesoreriaModule = {
             tbody.innerHTML = html;
         };
 
-        container.querySelector('#recaudo-cliente')?.addEventListener('change', async (e) => {
-            const clienteId = e.target.value;
+        // Función Helper: Carga de Facturas Pendientes
+        const cargarFacturasPendientes = async (clienteId) => {
             if (!clienteId) {
                 facturasPendientes = [];
                 recalcularDistribucion();
@@ -365,7 +365,7 @@ export const TesoreriaModule = {
             const transacciones = await DB.getAll('transacciones');
             
             facturasPendientes = facturas
-                .filter(f => f.contactoId === clienteId && f.tipo === 'venta')
+                .filter(f => f.clienteId === clienteId && f.tipo === 'venta')
                 .map(f => {
                     // Sumar pagos previos referenciados a esta factura
                     const pagosRelacionados = transacciones
@@ -379,12 +379,35 @@ export const TesoreriaModule = {
                 .sort((a, b) => new Date(a.fecha) - new Date(b.fecha)); // Cronológico FIFO
 
             recalcularDistribucion();
+        };
+
+        // Inicialización de Combobox de Clientes
+        UI.createCombobox({
+            inputEl: container.querySelector('#search-recaudo-cliente'),
+            hiddenIdEl: container.querySelector('#recaudo-cliente'),
+            items: clientes,
+            displayProp: 'nombre',
+            searchProps: ['nit', 'email'],
+            allowCreate: false, // En recaudo el cliente ya debe existir
+            onSelect: async (selectedItem) => {
+                await cargarFacturasPendientes(selectedItem.id);
+            }
         });
 
         container.querySelector('#recaudo-monto')?.addEventListener('input', recalcularDistribucion);
 
         container.querySelector('#form-recaudo')?.addEventListener('submit', async (e) => {
             e.preventDefault();
+
+            const clienteId = container.querySelector('#recaudo-cliente').value;
+            if (!clienteId) {
+                const searchInput = container.querySelector('#search-recaudo-cliente');
+                searchInput.style.borderColor = '#ef4444';
+                CoreActions.showWarningModal("Debes seleccionar un cliente válido de la lista.");
+                setTimeout(() => searchInput.style.borderColor = '', 3000);
+                return;
+            }
+
             const btn = container.querySelector('#btn-guardar');
             btn.disabled = true;
 

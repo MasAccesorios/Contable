@@ -1,5 +1,7 @@
 import DB from '../../core/db.js';
 import { CoreActions, ItemEngine, NumberingManager, ExportManager, PrintManager } from '../../shared/crud.js';
+import { ContactosModule } from '../clientes/clientes.js';
+import { UI } from '../../shared/combobox.js';
 
 export const CotizacionesModule = {
     async init(element) {
@@ -345,11 +347,10 @@ export const CotizacionesModule = {
         const headerHtml = CoreActions.renderDocumentHeader('ingresos/cotizaciones', 'Volver a Cotizaciones');
         const actionsHtml = CoreActions.renderActionButtons(cotizacion, 'cotizacion', isViewOnly, !id);
 
-        // Opciones de Clientes
-        let clientesOptions = '<option value="">Selecciona un cliente</option>';
-        contactos.filter(c => c.tipo === 'cliente').forEach(c => {
-            clientesOptions += `<option value="${c.id}" ${cotizacion.clienteId === c.id ? 'selected' : ''} data-plazos="${c.plazosPago || 0}">${c.nombre}</option>`;
-        });
+        // Datos de Clientes para el Combobox
+        const clientes = contactos.filter(c => c.tipo === 'cliente');
+        const clienteActual = clientes.find(c => c.id === cotizacion.clienteId);
+        const clienteNombreActual = clienteActual ? clienteActual.nombre : '';
 
         element.innerHTML = `
             <div class="module-container p-4" style="max-width: 1100px; margin: 0 auto;">
@@ -387,9 +388,8 @@ export const CotizacionesModule = {
                         <div class="row mb-5 g-4">
                             <div class="col-md-4">
                                 <label class="form-label" style="font-size: 12px; font-weight: var(--weight-medium); color: var(--text-body);">Cliente <span class="text-danger">*</span></label>
-                                <select id="select-cliente" class="form-select form-select-sm text-muted" ${isViewOnly ? 'disabled' : ''}>
-                                    ${clientesOptions}
-                                </select>
+                                <input type="text" id="search-cliente" class="form-control form-control-sm text-muted" placeholder="Buscar cliente..." value="${clienteNombreActual}" autocomplete="off" ${isViewOnly ? 'disabled' : ''}>
+                                <input type="hidden" id="select-cliente" value="${cotizacion.clienteId || ''}">
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label" style="font-size: 12px; font-weight: var(--weight-medium); color: var(--text-body);">Fecha de creación</label>
@@ -596,16 +596,38 @@ export const CotizacionesModule = {
             cotizacion.total = totalFinal; // Mantener en estado global para guardado rápido
         };
 
-        // Enlace de Datos: Fecha de Vencimiento Automatizada
-        element.querySelector('#select-cliente')?.addEventListener('change', (e) => {
-            const opt = e.target.options[e.target.selectedIndex];
-            const plazos = parseInt(opt.dataset.plazos || 0);
+        // Función Helper: Cálculo de Fecha de Vencimiento
+        const calcularVencimiento = (cliente) => {
+            const plazos = parseInt(cliente.plazosPago || 0);
             if (plazos > 0) {
                 const fechaCreacion = new Date(element.querySelector('#input-fecha').value);
                 fechaCreacion.setDate(fechaCreacion.getDate() + plazos);
                 element.querySelector('#input-vencimiento').value = fechaCreacion.toISOString().split('T')[0];
             }
-        });
+        };
+
+        // Inicialización de Combobox de Clientes y Cálculo de Vencimiento Automatizado
+        if (!isViewOnly) {
+            UI.createCombobox({
+                inputEl: element.querySelector('#search-cliente'),
+                hiddenIdEl: element.querySelector('#select-cliente'),
+                items: clientes,
+                displayProp: 'nombre',
+                searchProps: ['nit', 'email'],
+                allowCreate: true,
+                onSelect: (selectedItem) => {
+                    calcularVencimiento(selectedItem);
+                },
+                onCreate: (query) => {
+                    ContactosModule.renderQuickModal(query, (nuevoContacto) => {
+                        element.querySelector('#search-cliente').value = nuevoContacto.nombre;
+                        const hiddenInput = element.querySelector('#select-cliente');
+                        hiddenInput.value = nuevoContacto.id;
+                        calcularVencimiento(nuevoContacto);
+                    });
+                }
+            });
+        }
 
         // Configuración de Numeración (Engranaje)
         element.querySelector('#btn-config-num')?.addEventListener('click', () => {
@@ -650,7 +672,10 @@ export const CotizacionesModule = {
         element.querySelector('#btn-guardar')?.addEventListener('click', async () => {
             const clienteId = element.querySelector('#select-cliente').value;
             if (!clienteId) {
-                CoreActions.showWarningModal("Debe seleccionar un cliente.");
+                const searchInput = element.querySelector('#search-cliente');
+                searchInput.style.borderColor = '#ef4444';
+                CoreActions.showWarningModal("Debes seleccionar un cliente válido de la lista.");
+                setTimeout(() => searchInput.style.borderColor = '', 3000);
                 return;
             }
 
