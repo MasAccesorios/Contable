@@ -183,6 +183,13 @@ body {
     width: calc(100% - var(--sidebar-width));
 }
 
+/* Sin sesión: el main-wrapper ocupa el 100% (sin el hueco del sidebar) */
+#app-container.unauthenticated #main-wrapper {
+    margin-left: 0;
+    width: 100%;
+}
+
+
 /* NAVBAR */
 #navbar {
     height: var(--navbar-height);

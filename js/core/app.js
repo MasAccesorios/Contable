@@ -144,14 +144,16 @@ window.addEventListener('DOMContentLoaded', () => {
             // Usuario Autenticado: Restauramos la UI normal
             sidebar.style.display = 'block'; 
             navbar.style.display = 'flex';
+            document.getElementById('app-container').classList.remove('unauthenticated');
             
             // Dejamos que el enrutador lea la URL actual y cargue el módulo
             router(); 
         } else {
             // Usuario No Autenticado
-            // Ocultamos el cascarón de la app
+            // Ocultamos el cascarón de la app y liberamos el margen del sidebar
             sidebar.style.display = 'none';
             navbar.style.display = 'none';
+            document.getElementById('app-container').classList.add('unauthenticated');
             
             // Limpiamos la URL
             if (window.location.hash !== '') {
