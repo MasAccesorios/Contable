@@ -543,7 +543,7 @@ export const CotizacionesModule = {
                 const metaQty = tr.querySelector('.meta-qty');
                 const prod = productos.find(p => p.id === detalle.productoId);
                 if (prod) {
-                    if (metaProd) metaProd.innerHTML = `<span style="color: var(--text-muted); font-size: 11px;">${prod.sku || 'S/N'} | Agregar descripción <i class="bi bi-pencil" style="cursor:pointer;"></i></span>`;
+                    if (metaProd) metaProd.innerHTML = `<span style="color: var(--text-muted); font-size: 11px;">${prod.sku || 'S/N'}</span>`;
                     if (metaQty) metaQty.innerHTML = `<span style="color: var(--text-muted); font-size: 11px;">Disp: ${prod.stockActual || prod.cantidad || 0}</span>`;
                 }
             }

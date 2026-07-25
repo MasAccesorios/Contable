@@ -7,6 +7,8 @@ node_modules/
 .DS_Store
 Thumbs.db
 desktop.ini
+serviceAccountKey.json
+*-firebase-adminsdk-*.json
 
 # =============================================
 # ARCHIVOS DE CONFIGURACIÓN LOCAL (Antigravity)
@@ -24,7 +26,15 @@ importacion_log.txt
 # ARCHIVOS JSON MASIVOS DE RESPALDO / SYNC
 # =============================================
 datos_alegra.json
+datos_alegra.bak.json
 test_sync_results.json
+backup_*.json
+log_fusion_contactos_*.json
+
+# =============================================
+# ARCHIVOS TEMPORALES / BORRADORES DE PARCHES
+# =============================================
+js/shared/crud_patched.js
 
 # =============================================
 # SCRIPTS DE PRUEBA Y DEPURACIÓN

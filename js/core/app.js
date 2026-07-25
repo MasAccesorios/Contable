@@ -2,6 +2,9 @@
  * SPA Shell Router - MAS Accesorios
  * Arquitectura Vanilla JS (Sin dependencias externas)
  */
+import { auth, onAuthStateChanged, signOut } from './firebase.js';
+import { renderLogin } from './login.js';
+
 
 window.cleanupFloatingElements = function() {
     document.querySelectorAll('.dropdown-menu, .row-actions-menu, .desc-popover, .search-results-dropdown').forEach(el => el.remove());
@@ -11,6 +14,7 @@ const routes = {
     'inicio': () => import('../modules/dashboard.js'),
     'contactos': () => import('../modules/clientes/clientes.js'),
     'bancos': () => import('../modules/bancos/bancos.js'),
+    'gastos/pagos': () => import('../modules/gastos/gastos.js'),
     'inventario/items': () => import('../modules/productos/productos.js'),
     'importador': () => import('../modules/integracion-alegra/importador.js'),
     'ingresos/cotizaciones': () => import('../modules/ingresos/cotizaciones.js'),
@@ -120,8 +124,42 @@ function initUI() {
 }
 
 // Escuchadores globales de navegación y carga
-window.addEventListener('hashchange', router);
+window.addEventListener('hashchange', () => {
+    // Proteger cambios de ruta directos en la barra del navegador
+    if (auth.currentUser) {
+        router();
+    }
+});
+
 window.addEventListener('DOMContentLoaded', () => {
     initUI();
-    router();
+    
+    const sidebar = document.getElementById('sidebar');
+    const navbar = document.getElementById('navbar');
+    const viewport = document.getElementById('view-viewport');
+
+    // Firebase Auth Observer (El verdadero guardián de las rutas)
+    onAuthStateChanged(auth, (user) => {
+        if (user) {
+            // Usuario Autenticado: Restauramos la UI normal
+            sidebar.style.display = 'block'; 
+            navbar.style.display = 'flex';
+            
+            // Dejamos que el enrutador lea la URL actual y cargue el módulo
+            router(); 
+        } else {
+            // Usuario No Autenticado
+            // Ocultamos el cascarón de la app
+            sidebar.style.display = 'none';
+            navbar.style.display = 'none';
+            
+            // Limpiamos la URL
+            if (window.location.hash !== '') {
+                window.history.replaceState(null, null, ' '); 
+            }
+
+            // Inyectamos el módulo de Login
+            renderLogin(viewport);
+        }
+    });
 });

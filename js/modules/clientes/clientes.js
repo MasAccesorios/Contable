@@ -172,11 +172,11 @@ export const ContactosModule = {
                         </div>
                         <div class="form-group">
                             <label>Cupo de Crédito ($)</label>
-                            <input type="number" id="form-cupo" value="${contacto.cupoCredito}">
+                            <input type="number" id="form-cupo" value="${contacto.cupoCredito || 0}">
                         </div>
                         <div class="form-group">
                             <label>Plazos de Pago (Días)</label>
-                            <input type="number" id="form-plazos" value="${contacto.plazosPago}">
+                            <input type="number" id="form-plazos" value="${contacto.plazosPago || 0}">
                         </div>
                     </div>
                     <div class="form-actions">
@@ -233,9 +233,9 @@ export const ContactosModule = {
                     </div>
                     <div class="info-card">
                         <h4>Condiciones Comerciales</h4>
-                        <p><strong>Régimen:</strong> ${contacto.regimen}</p>
-                        <p><strong>Cupo de Crédito:</strong> $${contacto.cupoCredito.toLocaleString()}</p>
-                        <p><strong>Plías de Pago:</strong> ${contacto.plazosPago} días</p>
+                        <p><strong>Régimen:</strong> ${contacto.regimen || 'Regimen Simplificado'}</p>
+                        <p><strong>Cupo de Crédito:</strong> $${(contacto.cupoCredito || 0).toLocaleString()}</p>
+                        <p><strong>Plazos de Pago:</strong> ${contacto.plazosPago || 0} días</p>
                     </div>
                 </div>
             </div>
@@ -290,5 +290,118 @@ export const ContactosModule = {
                 }
             });
         });
+    },
+
+    /**
+     * Renderiza un modal rápido (Bootstrap) para crear un cliente mínimo.
+     * @param {string} query - El texto que el usuario escribió en el buscador.
+     * @param {function} callback - Función a ejecutar con el contacto recién creado.
+     */
+    renderQuickModal(query, callback) {
+        // 1. Crear la estructura del modal dinámicamente si no existe en el DOM
+        let modalEl = document.getElementById('quick-cliente-modal');
+        if (!modalEl) {
+            modalEl = document.createElement('div');
+            modalEl.id = 'quick-cliente-modal';
+            modalEl.className = 'modal fade';
+            modalEl.setAttribute('tabindex', '-1');
+            modalEl.innerHTML = `
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Crear Cliente Rápido</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                        </div>
+                        <div class="modal-body">
+                            <form id="form-quick-cliente">
+                                <div class="mb-3">
+                                    <label class="form-label">Nombre o Razón Social <span style="color:red">*</span></label>
+                                    <input type="text" class="form-control" id="quick-nombre" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">NIT / CC <span style="color:red">*</span></label>
+                                    <input type="text" class="form-control" id="quick-nit" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Teléfono</label>
+                                    <input type="tel" class="form-control" id="quick-telefono">
+                                </div>
+                            </form>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                            <button type="button" class="btn btn-primary" id="btn-save-quick-cliente">Guardar Cliente</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modalEl);
+        }
+
+        // 2. Instanciar el modal de Bootstrap
+        const modalInstance = new bootstrap.Modal(modalEl);
+
+        // 3. Precargar datos y resetear el formulario
+        const inputNombre = modalEl.querySelector('#quick-nombre');
+        const inputNit = modalEl.querySelector('#quick-nit');
+        const inputTelefono = modalEl.querySelector('#quick-telefono');
+        const form = modalEl.querySelector('#form-quick-cliente');
+
+        form.reset();
+        inputNombre.value = query || '';
+        
+        // 4. Configurar el evento de guardado
+        const btnSave = modalEl.querySelector('#btn-save-quick-cliente');
+        
+        // Evitar suscripciones múltiples clonando y reemplazando el botón
+        const newBtnSave = btnSave.cloneNode(true);
+        btnSave.parentNode.replaceChild(newBtnSave, btnSave);
+        
+        newBtnSave.addEventListener('click', async () => {
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+
+            // Datos mínimos explícitos
+            const datos = {
+                nombre: inputNombre.value.trim(),
+                nit: inputNit.value.trim(),
+                telefono: inputTelefono.value.trim(),
+                tipo: 'cliente',
+                regimen: 'Regimen Simplificado',
+                cupoCredito: 0,
+                plazosPago: 0,
+                fechaCreacion: new Date().toISOString()
+            };
+
+            try {
+                newBtnSave.disabled = true;
+                newBtnSave.textContent = 'Guardando...';
+
+                // Usamos la lógica centralizada de la línea 46
+                const nuevoContacto = await this.guardarContacto(datos);
+                
+                modalInstance.hide();
+                
+                if (typeof callback === 'function') {
+                    callback(nuevoContacto);
+                }
+            } catch (err) {
+                console.error('Error al guardar cliente rápido:', err);
+                alert('Ocurrió un error al guardar: ' + err.message);
+            } finally {
+                newBtnSave.disabled = false;
+                newBtnSave.textContent = 'Guardar Cliente';
+            }
+        });
+
+        // 5. Mostrar el modal (y dar foco al primer campo útil)
+        modalEl.addEventListener('shown.bs.modal', function onShown() {
+            inputNit.focus();
+            modalEl.removeEventListener('shown.bs.modal', onShown);
+        });
+
+        modalInstance.show();
     }
 };

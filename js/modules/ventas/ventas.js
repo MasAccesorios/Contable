@@ -3,6 +3,7 @@ import { CoreActions, ItemEngine, NumberingManager, ExportManager, PrintManager 
 import { TesoreriaModule } from '../bancos/bancos.js';
 import { ContactosModule } from '../clientes/clientes.js';
 import { UI } from '../../shared/combobox.js';
+import { calcularEstadoFactura } from '../../shared/carteraUtils.js';
 
 export const FacturasModule = {
     async init(element) {
@@ -22,7 +23,16 @@ export const FacturasModule = {
     },
 
     async renderList(element) {
-        const facturasData = await DB.getAll('facturas');
+        let facturasData = await DB.getAll('facturas');
+        const transacciones = (await DB.getAll('transacciones').catch(() => [])) || [];
+        
+        // Decorar con estado en tiempo real
+        facturasData = facturasData.map(f => {
+            if (f.tipo !== 'venta') return f;
+            const dinamico = calcularEstadoFactura(f, transacciones);
+            return { ...f, estado: dinamico.estado };
+        });
+
         // Ordenar por ID o fecha (más reciente primero)
         facturasData.sort((a, b) => b.id.localeCompare(a.id));
 
@@ -575,7 +585,7 @@ export const FacturasModule = {
                 const metaQty = tr.querySelector('.meta-qty');
                 const prod = productos.find(p => p.id === detalle.productoId);
                 if (prod) {
-                    if (metaProd) metaProd.innerHTML = `<span style="color: var(--text-muted); font-size: 11px;">${prod.sku || 'S/N'} | Agregar descripción <i class="bi bi-pencil" style="cursor:pointer;"></i></span>`;
+                    if (metaProd) metaProd.innerHTML = `<span style="color: var(--text-muted); font-size: 11px;">${prod.sku || 'S/N'}</span>`;
                     if (metaQty) metaQty.innerHTML = `<span style="color: var(--text-muted); font-size: 11px;">Disp: ${prod.stockActual || prod.cantidad || 0}</span>`;
                 }
             }
@@ -820,7 +830,6 @@ export const FacturasModule = {
 
             // Condicional Contado vs Crédito
             if (tipoVenta === 'contado') {
-                factura.estado = 'pagada';
                 // Crear ingreso a Caja General si es nueva
                 if (isNew) {
                     const transaccion = {
@@ -837,8 +846,6 @@ export const FacturasModule = {
                     };
                     await DB.save('transacciones', transaccion);
                 }
-            } else {
-                factura.estado = factura.estado === 'pagada' ? 'pagada' : 'por_pagar'; // Si se cambia a crédito, asume por_pagar
             }
 
             await DB.save('facturas', factura);

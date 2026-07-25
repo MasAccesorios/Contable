@@ -346,9 +346,10 @@ export const ItemEngine = {
         return `
             <div class="position-relative">
                 <input type="hidden" class="input-prod-id" value="${detalle.productoId || ''}">
-                <input type="hidden" class="input-prod-desc" value="${detalle.descripcion_personalizada || ''}">
                 <input type="text" class="form-control form-control-sm text-muted border-0 bg-light input-prod-search mb-1" 
                        placeholder="Escriba código o nombre..." autocomplete="off" value="${initialText}">
+                <input type="text" class="form-control form-control-sm border-0 bg-light mt-1 input-prod-desc" 
+                       placeholder="Ej. iPhone 17 Pro Max" value="${detalle.descripcion_personalizada || ''}">
                 <div class="search-results-dropdown position-absolute w-100 bg-white shadow-sm" 
                      style="display: none; z-index: 1050; max-height: 250px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 4px; top: 100%;">
                 </div>
@@ -369,72 +370,11 @@ export const ItemEngine = {
         const metaProd = tr.querySelector('.meta-prod');
         const metaQty = tr.querySelector('.meta-qty');
 
-        const inputDesc = tr.querySelector('.input-prod-desc');
-        
-        // Cerrar dropdowns (búsqueda y descripciones) al hacer click fuera
+        // Cerrar dropdowns al hacer click fuera
         document.addEventListener('click', (e) => {
             if (!tr.contains(e.target)) {
                 dropdown.style.display = 'none';
-                const popover = tr.querySelector('.desc-popover');
-                if (popover && !popover.contains(e.target) && !e.target.closest('.btn-desc-trigger')) {
-                    popover.remove();
-                }
             }
-        });
-
-        // Escuchar tecla ESC para cerrar el popover
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                const popover = tr.querySelector('.desc-popover');
-                if (popover) popover.remove();
-            }
-        });
-
-        // ==========================================
-        // Lógica de Popover de Descripción
-        // ==========================================
-        metaProd.parentElement.style.position = 'relative'; // Asegurar posicionamiento
-        
-        metaProd.addEventListener('click', (e) => {
-            const trigger = e.target.closest('.btn-desc-trigger');
-            if (!trigger) return;
-            e.preventDefault();
-
-            // Evitar duplicados
-            const existing = tr.querySelector('.desc-popover');
-            if (existing) existing.remove();
-
-            const currentSku = inputSearch.dataset.lastSku || 'S/N';
-            
-            const popoverHtml = `
-                <div class="desc-popover position-absolute bg-white p-3 shadow-sm rounded" 
-                     style="z-index: 1060; width: 320px; border: 1px solid var(--border-color); left: 10px; top: 100%; margin-top: 5px;">
-                    <div class="mb-2">
-                        <label class="form-label" style="font-size: 12px; font-weight: var(--weight-medium); color: var(--text-body);">Referencia</label>
-                        <input type="text" class="form-control form-control-sm bg-light text-muted" value="${currentSku}" disabled>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label" style="font-size: 12px; font-weight: var(--weight-medium); color: var(--text-body);">Descripción del producto o servicio</label>
-                        <textarea class="form-control form-control-sm popover-textarea" rows="3" style="font-size: 13px; resize: none;">${inputDesc.value}</textarea>
-                    </div>
-                    <div class="text-end">
-                        <button class="btn btn-sm text-white px-3 btn-aplicar-desc" style="background-color: #2cbfb7; font-weight: var(--weight-medium); border-radius: 6px;">Aplicar</button>
-                    </div>
-                </div>
-            `;
-            metaProd.insertAdjacentHTML('beforeend', popoverHtml);
-
-            const newPopover = tr.querySelector('.desc-popover');
-            const textarea = newPopover.querySelector('.popover-textarea');
-            textarea.focus();
-
-            newPopover.querySelector('.btn-aplicar-desc').addEventListener('click', () => {
-                const newText = textarea.value.trim();
-                inputDesc.value = newText;
-                
-                trigger.innerHTML = `${newText || 'Agregar descripción'} <i class="bi bi-pencil" style="cursor:pointer;"></i>`;
-                newPopover.remove();
-            });
         });
 
         // ==========================================
@@ -509,11 +449,10 @@ export const ItemEngine = {
                     inpTax.value = ds.impuesto;
                     if (parseFloat(inpQty.value || 0) === 0) inpQty.value = 1;
 
-                    // Renderizado de Información Secundaria Inferior (con Popover trigger)
-                    const descText = inputDesc.value || 'Agregar descripción';
+                    // Renderizado de Información Secundaria Inferior
                     if (metaProd) metaProd.innerHTML = `
                         <span style="color: var(--text-muted); font-size: 11px; display: inline-block; margin-top: 4px;">
-                            ${ds.sku || 'S/N'} | <a href="#" class="text-muted text-decoration-none btn-desc-trigger">${descText} <i class="bi bi-pencil" style="cursor:pointer;"></i></a>
+                            ${ds.sku || 'S/N'}
                         </span>
                     `;
                     if (metaQty) metaQty.innerHTML = `<span style="color: var(--text-muted); font-size: 11px; display: inline-block; margin-top: 4px;">Disp: ${ds.stock || 0}</span>`;

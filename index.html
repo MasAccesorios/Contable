@@ -12,8 +12,8 @@
 </head>
 <body>
     <div id="app-container">
-        <!-- Sidebar -->
-        <aside id="sidebar">
+        <!-- Sidebar (Oculto por defecto hasta autenticar) -->
+        <aside id="sidebar" style="display: none;">
             <div class="brand">
                 <img src="LogoMas.png" alt="MAS Accesorios" class="logo" style="max-height: 40px; padding: 5px;">
             </div>
@@ -99,8 +99,8 @@
 
         <!-- Main Content Area -->
         <div id="main-wrapper">
-            <!-- Navbar -->
-            <header id="navbar">
+            <!-- Navbar (Oculto por defecto hasta autenticar) -->
+            <header id="navbar" style="display: none;">
                 <div class="search-box">
                     <input type="search" id="global-search" placeholder="Buscar por cliente, NIT, producto, referencia, cotización o factura...">
                     <button id="quick-action-btn" class="btn-add">+</button>
@@ -119,5 +119,6 @@
 
     <!-- SPA Router & Core Logic -->
     <script type="module" src="js/core/app.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

@@ -1,6 +1,7 @@
 import DB from '../../core/db.js';
 import { CoreActions } from '../../shared/crud.js';
 import { TesoreriaModule } from '../bancos/bancos.js';
+import { calcularEstadoFactura } from '../../shared/carteraUtils.js';
 
 export default {
     async init(element) {
@@ -8,62 +9,211 @@ export default {
         await this.renderList(element);
     },
 
-    async renderList(element) {
+    async renderList(element, fechaInicio = null, fechaFin = null) {
+        this.lastElement = element;
         const facturasRaw = await DB.getAll('facturas');
         const contactos = await DB.getAll('contactos');
+        const transacciones = (await DB.getAll('transacciones').catch(() => [])) || [];
         
+        // Decorar facturas con métricas en tiempo real
+        const facturasDecoradas = facturasRaw.map(f => {
+            if (f.tipo !== 'venta') return f;
+            const dinamico = calcularEstadoFactura(f, transacciones);
+            return { ...f, estado: dinamico.estado, saldo: dinamico.saldo, totalPagado: dinamico.totalPagado };
+        });
+
         // Solo facturas de venta pendientes
-        const facturasPendientes = facturasRaw.filter(f => f.tipo === 'venta' && f.estado !== 'pagada' && f.estado !== 'anulada');
+        let facturasPendientes = facturasDecoradas.filter(f => f.tipo === 'venta' && f.estado !== 'pagada' && f.estado !== 'anulada');
+
+        if (fechaInicio && fechaFin) {
+            const fStart = new Date(fechaInicio);
+            const fEnd = new Date(fechaFin);
+            fEnd.setHours(23, 59, 59, 999);
+            
+            facturasPendientes = facturasPendientes.filter(f => {
+                const dateVal = f.fecha || f.fechaCreacion || f.vencimiento; 
+                if (!dateVal) return true;
+                const d = new Date(dateVal);
+                return d >= fStart && d <= fEnd;
+            });
+        }
         
         const getCliente = (id) => contactos.find(c => c.id === id) || { nombre: 'Desconocido' };
         const formatMoney = (val) => '$ ' + parseFloat(val || 0).toLocaleString('es-CO', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 
+        const totalCartera = facturasPendientes.reduce((sum, f) => {
+            const total = parseFloat(f.total) || 0;
+            const saldo = parseFloat(f.saldo !== undefined ? f.saldo : total);
+            return sum + saldo;
+        }, 0);
+
         const html = `
-            <div class="module-container p-4" style="max-width: 1100px; margin: 0 auto;">
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h2 class="h3 fw-bold mb-0" style="color: var(--text-main);">Cartera (Cuentas por Cobrar)</h2>
+            <div class="py-3 px-4" style="font-family: 'Inter', sans-serif; background-color: #f8f9fa; min-height: 100vh; font-size: 13px;">
+                
+                <!-- BREADCRUMB Y BOTONES SUPERIORES DE ACCIÓN -->
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div style="font-size: 12px;" class="text-muted">
+                        <span>Reportes</span> &gt; <span>Administrativos</span> &gt; <span class="text-dark font-weight-bold">Cuentas por cobrar</span>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-sm btn-light border bg-white text-secondary" title="Exportar">📥</button>
+                        <button class="btn btn-sm btn-light border bg-white text-secondary" title="Compartir">🔗</button>
+                    </div>
                 </div>
 
-                <div class="card border-0 shadow-sm" style="border-radius: 8px;">
-                    <div class="card-body p-0">
-                        <div class="table-responsive">
-                            <table class="table table-hover align-middle mb-0">
-                                <thead style="background-color: #f8fafc; border-bottom: 1px solid var(--border-color);">
-                                    <tr style="color: var(--text-muted); font-size: 13px; font-weight: var(--weight-medium);">
-                                        <th class="ps-4 py-3">Factura</th>
-                                        <th class="py-3">Cliente</th>
-                                        <th class="py-3">Fecha Venc.</th>
-                                        <th class="text-end py-3">Total</th>
-                                        <th class="text-end py-3">Saldo Pendiente</th>
-                                        <th class="text-center py-3 pe-4">Acciones</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    ${facturasPendientes.length === 0 ? '<tr><td colspan="6" class="text-center py-4 text-muted">No hay facturas pendientes de cobro.</td></tr>' : 
-                                    facturasPendientes.map(f => {
-                                        const total = parseFloat(f.total) || 0;
-                                        const saldo = parseFloat(f.saldo !== undefined ? f.saldo : total); // Si no hay saldo, es el total
-                                        const cliente = getCliente(f.clienteId);
-                                        
-                                        // Comprobar si está vencida
-                                        const isVencida = new Date(f.vencimiento) < new Date();
-                                        const vencimientoClass = isVencida ? 'text-danger fw-bold' : '';
+                <!-- TÍTULO Y BOTÓN GENERAR -->
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <h2 class="fw-bold text-dark m-0" style="font-size: 20px;">Cuentas por cobrar</h2>
+                        <p class="text-muted m-0 mt-1" style="font-size: 12px;">Conoce lo que te deben tus clientes y lleva un control del vencimiento de sus facturas.</p>
+                    </div>
+                    <div>
+                        <button id="btn-generar-reporte" class="btn btn-sm text-white px-3 py-2 fw-medium" style="background-color: #2cbfb7; border-radius: 4px; font-size: 13px;">Generar Reporte</button>
+                    </div>
+                </div>
 
-                                        return `
-                                            <tr style="border-bottom: 1px solid var(--border-color); font-size: 13px; color: var(--text-body);">
-                                                <td class="ps-4 py-3 fw-medium">No. ${f.prefijo || ''}${f.numero || f.id}</td>
-                                                <td class="py-3">${cliente.nombre}</td>
-                                                <td class="py-3 ${vencimientoClass}">${f.vencimiento || 'N/A'} ${isVencida ? '(Vencida)' : ''}</td>
-                                                <td class="py-3 text-end">${formatMoney(total)}</td>
-                                                <td class="py-3 text-end fw-bold text-danger">${formatMoney(saldo)}</td>
-                                                <td class="py-3 text-center pe-4">
-                                                    <button class="btn btn-sm btn-primary px-3 rounded-pill btn-abonar" data-id="${f.id}" data-saldo="${saldo}">Registrar Abono</button>
-                                                </td>
-                                            </tr>
-                                        `;
-                                    }).join('')}
-                                </tbody>
-                            </table>
+                <!-- FILTRO DE PERIODO -->
+                <div class="card border-0 shadow-sm p-3 mb-3 bg-white position-relative" style="border-radius: 6px; max-width: 320px;">
+                    <label class="form-label text-muted mb-1" style="font-size: 11px; font-weight: 600;">Periodo *</label>
+                    
+                    <!-- INPUT DISPARADOR DEL PICKER -->
+                    <div id="input-date-range-trigger" class="form-control form-control-sm border-light-subtle d-flex justify-content-between align-items-center" style="font-size: 12px; cursor: pointer; background-color: #fff; padding: 6px 12px;">
+                        <span id="lbl-rango-activo">01/01/2000 - 22/07/2026</span>
+                        <span class="text-muted">📅</span>
+                    </div>
+
+                    <!-- POPOVER DESPLEGABLE CON ATAJOS Y CALENDARIO -->
+                    <div id="popover-date-picker" class="card shadow-lg border-0 position-absolute start-0 mt-1 d-none" style="z-index: 1050; width: 620px; border-radius: 8px; top: 100%;">
+                        <div class="card-body p-0 d-flex" style="font-size: 12px; min-height: 280px;">
+                            
+                            <!-- PANEL IZQUIERDO: ATAJOS PREDEFINIDOS -->
+                            <div class="border-end p-2" style="width: 170px; background-color: #f9fbfd;">
+                                <div class="text-muted fw-bold px-2 py-1" style="font-size: 11px;">Predefinido</div>
+                                <div class="list-group list-group-flush" id="lista-atajos-fecha" style="font-size: 12px;">
+                                    <button type="button" class="list-group-item list-group-item-action border-0 px-2 py-1 text-primary bg-transparent fw-medium" data-range="inicio">Desde el Inicio</button>
+                                    <button type="button" class="list-group-item list-group-item-action border-0 px-2 py-1 text-secondary bg-transparent" data-range="hoy">Hoy</button>
+                                    <button type="button" class="list-group-item list-group-item-action border-0 px-2 py-1 text-secondary bg-transparent" data-range="ayer">Ayer</button>
+                                    <button type="button" class="list-group-item list-group-item-action border-0 px-2 py-1 text-secondary bg-transparent" data-range="esta_semana">Esta Semana</button>
+                                    <button type="button" class="list-group-item list-group-item-action border-0 px-2 py-1 text-secondary bg-transparent" data-range="semana_anterior">Semana Anterior</button>
+                                    <button type="button" class="list-group-item list-group-item-action border-0 px-2 py-1 text-secondary bg-transparent" data-range="este_mes">Este Mes</button>
+                                    <button type="button" class="list-group-item list-group-item-action border-0 px-2 py-1 text-secondary bg-transparent" data-range="mes_anterior">Mes Anterior</button>
+                                    <button type="button" class="list-group-item list-group-item-action border-0 px-2 py-1 text-secondary bg-transparent" data-range="este_trimestre">Este Trimestre</button>
+                                    <button type="button" class="list-group-item list-group-item-action border-0 px-2 py-1 text-secondary bg-transparent" data-range="trimestre_anterior">Trimestre Anterior</button>
+                                    <button type="button" class="list-group-item list-group-item-action border-0 px-2 py-1 text-secondary bg-transparent" data-range="este_ano">Este Año</button>
+                                    <button type="button" class="list-group-item list-group-item-action border-0 px-2 py-1 text-secondary bg-transparent" data-range="ano_anterior">Año Anterior</button>
+                                </div>
+                            </div>
+
+                            <!-- PANEL DERECHO: VISTA DE DUAL CALENDAR -->
+                            <div class="p-3 flex-fill bg-white">
+                                <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+                                    <span class="fw-bold text-dark" style="font-size: 11px;">Rango personalizado:</span>
+                                    <div class="d-flex gap-1">
+                                        <input type="date" id="picker-fecha-inicio" class="form-control form-control-sm py-0 px-1" style="font-size: 11px; width: 110px;" value="2000-01-01">
+                                        <span class="text-muted">-</span>
+                                        <input type="date" id="picker-fecha-fin" class="form-control form-control-sm py-0 px-1" style="font-size: 11px; width: 110px;" value="2026-07-22">
+                                    </div>
+                                </div>
+                                
+                                <!-- MOCKUP VISUAL DE CALENDARIOS DUALES SELECCIONABLES -->
+                                <div class="d-flex gap-3 text-center align-items-start pt-1">
+                                    <div class="flex-fill border rounded p-2">
+                                        <div class="fw-bold text-dark mb-1" style="font-size: 11px;">Enero 2000</div>
+                                        <div class="text-muted small">◄ Mes Incial</div>
+                                    </div>
+                                    <div class="flex-fill border rounded p-2">
+                                        <div class="fw-bold text-dark mb-1" style="font-size: 11px;">Julio 2026</div>
+                                        <div class="text-muted small">Mes Final ►</div>
+                                    </div>
+                                </div>
+
+                                <!-- ACCIONES DE APLICACIÓN -->
+                                <div class="d-flex justify-content-end gap-2 mt-4 pt-2 border-top">
+                                    <button id="btn-cancelar-picker" class="btn btn-sm btn-light border px-3" style="font-size: 11px;">Cancelar</button>
+                                    <button id="btn-aplicar-picker" class="btn btn-sm text-white px-3" style="background-color: #2cbfb7; font-size: 11px;">Aplicar Periodo</button>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+                <!-- BARRAS / PESTAÑAS DE VENCIMIENTO Y TOTAL GENERAL -->
+                <div class="card border-0 shadow-sm bg-white mb-3" style="border-radius: 6px; overflow: hidden;">
+                    <div class="d-flex border-bottom text-center text-muted" style="font-size: 12px;">
+                        <div class="flex-fill py-2 px-1 border-end bg-light-subtle">Vencidas 30 días o menos</div>
+                        <div class="flex-fill py-2 px-1 border-end bg-light-subtle">Vencidas 31 a de 60 días</div>
+                        <div class="flex-fill py-2 px-1 border-end bg-light-subtle">Vencidas 61 a de 90 días</div>
+                        <div class="flex-fill py-2 px-1 border-end bg-light-subtle">Vencidas 91+</div>
+                        <div class="flex-fill py-2 px-1 bg-light-subtle">No vencidas</div>
+                    </div>
+                    <div class="p-3 text-center">
+                        <div class="text-muted" style="font-size: 11px;">Total por cobrar</div>
+                        <div class="fw-bold" style="font-size: 18px; color: #ef4444;" id="lbl-total-por-cobrar">$ ${totalCartera.toLocaleString('es-CO', {minimumFractionDigits: 2})}</div>
+                    </div>
+                </div>
+
+                <!-- TABLA DE DETALLE DE CARTERA POR FACTURA -->
+                <div class="card border-0 shadow-sm bg-white" style="border-radius: 6px;">
+                    <div class="p-2 d-flex justify-content-end border-bottom">
+                        <button class="btn btn-sm btn-light border bg-white text-secondary" style="font-size: 12px;">⚙️ Filtrar</button>
+                    </div>
+                    
+                    <div class="table-responsive">
+                        <table class="table align-middle table-hover m-0" style="font-size: 12px;">
+                            <thead class="table-light text-secondary fw-semibold border-bottom" style="--bs-table-bg: #f9fbfd;">
+                                <tr>
+                                    <th style="width: 35px;" class="ps-3"><input type="checkbox" class="form-check-input"></th>
+                                    <th>Número</th>
+                                    <th>Tipo de documento</th>
+                                    <th>Cliente</th>
+                                    <th>Creación</th>
+                                    <th>Vencimiento</th>
+                                    <th class="text-end">Total</th>
+                                    <th class="text-end">Cobrado</th>
+                                    <th class="text-end pe-3">Por cobrar</th>
+                                    <th class="text-center">Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${facturasPendientes.map(f => {
+                                    const total = parseFloat(f.total) || 0;
+                                    const saldo = parseFloat(f.saldo !== undefined ? f.saldo : total);
+                                    const cobrado = total - saldo;
+                                    const cliente = getCliente(f.clienteId);
+                                    const isVencida = new Date(f.vencimiento) < new Date();
+                                    
+                                    return `
+                                    <tr>
+                                        <td class="ps-3"><input type="checkbox" class="form-check-input"></td>
+                                        <td class="text-primary fw-medium" style="cursor: pointer;">${f.prefijo || ''}${f.numero || f.id}</td>
+                                        <td class="text-muted">Factura de venta</td>
+                                        <td class="text-dark">${cliente.nombre}</td>
+                                        <td class="text-muted">${f.fecha || 'N/A'}</td>
+                                        <td class="${isVencida ? 'text-danger fw-semibold' : 'text-muted'}">${f.vencimiento || 'N/A'}</td>
+                                        <td class="text-end text-dark">$ ${total.toLocaleString('es-CO', {minimumFractionDigits: 2})}</td>
+                                        <td class="text-end text-muted">$ ${cobrado.toLocaleString('es-CO', {minimumFractionDigits: 2})}</td>
+                                        <td class="text-end fw-bold text-dark pe-3">$ ${saldo.toLocaleString('es-CO', {minimumFractionDigits: 2})}</td>
+                                        <td class="text-center">
+                                            <button class="btn btn-sm text-white btn-abonar" style="background-color: #2cbfb7;" data-id="${f.id}" data-saldo="${saldo}">Registrar Pago</button>
+                                        </td>
+                                    </tr>
+                                    `;
+                                }).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- PAGINADOR FIJO INFERIOR -->
+                    <div class="d-flex justify-content-between align-items-center p-3 text-muted border-top" style="font-size: 11px;">
+                        <div class="d-flex align-items-center gap-2">
+                            <span>Página 1 de 1</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-3">
+                            <span>Mostrando 1-${facturasPendientes.length} de ${facturasPendientes.length}</span>
+                            <select class="form-select form-select-sm border-light-subtle py-0" style="width: 110px; font-size: 11px;">
+                                <option>Resultados por página: 20</option>
+                            </select>
                         </div>
                     </div>
                 </div>
@@ -107,6 +257,7 @@ export default {
         `;
 
         element.innerHTML = html;
+        this.bindDatePickerEvents();
 
         // Lógica del modal
         let currentSaldo = 0;
@@ -117,6 +268,8 @@ export default {
 
         element.querySelectorAll('.btn-abonar').forEach(btn => {
             btn.addEventListener('click', (e) => {
+                console.log('🔵 CLIC EN BOTÓN ABONAR DETECTADO', e.currentTarget.dataset);
+                
                 const facturaId = e.currentTarget.dataset.id;
                 currentSaldo = parseFloat(e.currentTarget.dataset.saldo);
                 
@@ -145,19 +298,9 @@ export default {
             // Procesar el pago
             const factura = await DB.get('facturas', facturaId);
             if (factura) {
-                const total = parseFloat(factura.total) || 0;
-                const saldoAnterior = parseFloat(factura.saldo !== undefined ? factura.saldo : total);
-                const nuevoSaldo = saldoAnterior - monto;
-
-                factura.saldo = nuevoSaldo;
-                if (nuevoSaldo <= 0) {
-                    factura.estado = 'pagada';
-                } else {
-                    factura.estado = 'parcial';
-                }
-
-                await DB.save('facturas', factura);
-
+                // La cartera ahora se calcula dinámicamente, por ende ya NO sobreescribimos 
+                // factura.saldo ni factura.estado estáticamente en la BD aquí.
+                
                 // Registrar transacción (ingreso)
                 const transaccion = {
                     id: 'trx_' + Date.now(),
@@ -180,5 +323,122 @@ export default {
                 setTimeout(() => this.renderList(element), 500);
             }
         });
+    },
+
+    bindDatePickerEvents() {
+        const trigger = document.getElementById('input-date-range-trigger');
+        const popover = document.getElementById('popover-date-picker');
+
+        // Alternar visibilidad del menú desplegable
+        trigger?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            popover?.classList.toggle('d-none');
+        });
+
+        // Ocultar al hacer clic fuera
+        document.addEventListener('click', (e) => {
+            if (!popover?.contains(e.target) && !trigger?.contains(e.target)) {
+                popover?.classList.add('d-none');
+            }
+        });
+
+        // Eventos de atajos predefinidos
+        document.querySelectorAll('#lista-atajos-fecha button').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const tipoAtajo = e.target.getAttribute('data-range');
+                this.calcularRangoSegunAtajo(tipoAtajo);
+                popover?.classList.add('d-none');
+            });
+        });
+
+        // Botones de acción
+        document.getElementById('btn-cancelar-picker')?.addEventListener('click', () => {
+            popover?.classList.add('d-none');
+        });
+
+        document.getElementById('btn-aplicar-picker')?.addEventListener('click', () => {
+            const fInicio = document.getElementById('picker-fecha-inicio').value;
+            const fFin = document.getElementById('picker-fecha-fin').value;
+            
+            if (fInicio && fFin) {
+                document.getElementById('lbl-rango-activo').innerText = `${fInicio} - ${fFin}`;
+                // Disparar regeneración limpia del reporte
+                if (typeof this.filtrarDatosPorRango === 'function') {
+                    this.filtrarDatosPorRango(fInicio, fFin);
+                }
+            }
+            popover?.classList.add('d-none');
+        });
+
+        // VINCULACIÓN DEL BOTÓN GENERAR REPORTE
+        const btnGenerar = document.getElementById('btn-generar-reporte');
+        if (btnGenerar) {
+            btnGenerar.addEventListener('click', () => {
+                this.ejecutarFiltroReporte();
+            });
+        }
+    },
+
+    ejecutarFiltroReporte() {
+        const inputInicio = document.getElementById('picker-fecha-inicio');
+        const inputFin = document.getElementById('picker-fecha-fin');
+
+        // Estado inicial de la UI indica rango 2000-01-01 a 2026-07-22 si no está definido
+        const fechaInicio = inputInicio ? inputInicio.value : '2000-01-01';
+        const fechaFin = inputFin ? inputFin.value : '2026-07-22';
+
+        // Feedback visual inmediato en el botón
+        const btnGenerar = document.getElementById('btn-generar-reporte');
+        if (btnGenerar) {
+            btnGenerar.disabled = true;
+            btnGenerar.innerHTML = `<span class="spinner-border spinner-border-sm me-1" role="status"></span> Buscando...`;
+        }
+
+        // Ejecutar la búsqueda/filtrado
+        setTimeout(() => {
+            if (typeof this.filtrarDatosPorRango === 'function') {
+                this.filtrarDatosPorRango(fechaInicio, fechaFin);
+            }
+        }, 300);
+    },
+
+    filtrarDatosPorRango(inicio, fin) {
+        if (this.lastElement) {
+            this.renderList(this.lastElement, inicio, fin);
+        }
+    },
+
+    calcularRangoSegunAtajo(tipo) {
+        const hoy = new Date("2026-07-22");
+        let inicio, fin;
+
+        switch(tipo) {
+            case 'inicio':
+                inicio = "2000-01-01";
+                fin = "2026-07-22";
+                break;
+            case 'hoy':
+                inicio = fin = "2026-07-22";
+                break;
+            case 'este_mes':
+                inicio = "2026-07-01";
+                fin = "2026-07-31";
+                break;
+            case 'este_ano':
+                inicio = "2026-01-01";
+                fin = "2026-12-31";
+                break;
+            default:
+                inicio = "2000-01-01";
+                fin = "2026-07-22";
+        }
+
+        document.getElementById('picker-fecha-inicio').value = inicio;
+        document.getElementById('picker-fecha-fin').value = fin;
+        document.getElementById('lbl-rango-activo').innerText = `${inicio} - ${fin}`;
+        
+        if (typeof this.filtrarDatosPorRango === 'function') {
+            this.filtrarDatosPorRango(inicio, fin);
+        }
     }
 };
