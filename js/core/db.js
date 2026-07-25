@@ -97,7 +97,8 @@ const DB = {
     async save(storeName, data) {
         if (!data.id) throw new Error(`El registro debe contener un ID único para persistencia en ${storeName}.`);
 
-        if (storeName === 'productos' || storeName === 'contactos' || storeName === 'cotizaciones') {
+        // TODO: transacciones sigue en IndexedDB — bancos.js hace getAll completo para sumar saldos, migrar solo después de refactorizar a saldo acumulado para no agotar cuota de lecturas de Firestore.
+        if (storeName === 'productos' || storeName === 'contactos' || storeName === 'cotizaciones' || storeName === 'facturas' || storeName === 'lotes_fifo') {
             const ref = doc(db, storeName, data.id);
             await setDoc(ref, data);
             return data;
@@ -118,7 +119,8 @@ const DB = {
      * Si storeName es 'productos', lee desde Firestore; el resto usa IndexedDB.
      */
     async get(storeName, id) {
-        if (storeName === 'productos' || storeName === 'contactos' || storeName === 'cotizaciones') {
+        // TODO: transacciones sigue en IndexedDB — bancos.js hace getAll completo para sumar saldos, migrar solo después de refactorizar a saldo acumulado para no agotar cuota de lecturas de Firestore.
+        if (storeName === 'productos' || storeName === 'contactos' || storeName === 'cotizaciones' || storeName === 'facturas' || storeName === 'lotes_fifo') {
             const ref = doc(db, storeName, id);
             const snap = await getDoc(ref);
             return snap.exists() ? snap.data() : null;
@@ -139,7 +141,8 @@ const DB = {
      * Si storeName es 'productos', usa getDocs() (lectura puntual); el resto usa IndexedDB.
      */
     async getAll(storeName) {
-        if (storeName === 'productos' || storeName === 'contactos' || storeName === 'cotizaciones') {
+        // TODO: transacciones sigue en IndexedDB — bancos.js hace getAll completo para sumar saldos, migrar solo después de refactorizar a saldo acumulado para no agotar cuota de lecturas de Firestore.
+        if (storeName === 'productos' || storeName === 'contactos' || storeName === 'cotizaciones' || storeName === 'facturas' || storeName === 'lotes_fifo') {
             const snap = await getDocs(collection(db, storeName));
             return snap.docs.map(d => d.data());
         }
@@ -159,7 +162,8 @@ const DB = {
      * Si storeName es 'productos', elimina en Firestore; el resto usa IndexedDB.
      */
     async delete(storeName, id) {
-        if (storeName === 'productos' || storeName === 'contactos' || storeName === 'cotizaciones') {
+        // TODO: transacciones sigue en IndexedDB — bancos.js hace getAll completo para sumar saldos, migrar solo después de refactorizar a saldo acumulado para no agotar cuota de lecturas de Firestore.
+        if (storeName === 'productos' || storeName === 'contactos' || storeName === 'cotizaciones' || storeName === 'facturas' || storeName === 'lotes_fifo') {
             await deleteDoc(doc(db, storeName, id));
             return true;
         }
