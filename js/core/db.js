@@ -183,3 +183,111 @@ const DB = {
 DB.init().catch(err => console.error("Fallo automáico de inicialización DB:", err));
 
 export default DB;
+
+// ============================================================================
+// SCRIPT DE MIGRACIÓN ÚNICA (IndexedDB -> Firestore)
+// Ejecutar en consola del navegador: await window.runMigration()
+// ============================================================================
+window.runMigration = async function() {
+    const storesToMigrate = ['productos', 'contactos', 'cotizaciones', 'facturas', 'lotes_fifo'];
+    const idb = await DB.init();
+    
+    let totalRecords = 0;
+    const storeCounts = {};
+
+    console.log("=== FASE 1: Análisis de IndexedDB ===");
+    for (const storeName of storesToMigrate) {
+        const count = await new Promise((resolve, reject) => {
+            const tx = idb.transaction(storeName, 'readonly');
+            const store = tx.objectStore(storeName);
+            const req = store.count();
+            req.onsuccess = () => resolve(req.result);
+            req.onerror = () => reject(req.error);
+        });
+        storeCounts[storeName] = count;
+        totalRecords += count;
+        console.log(`- ${storeName}: ${count} registros locales encontrados`);
+    }
+
+    console.log(`\nTOTAL ESTIMADO DE ESCRITURAS A FIRESTORE: ${totalRecords}`);
+    
+    if (totalRecords > 15000) {
+        console.warn("⚠️ ALERTA: Estás muy cerca o superas el límite gratuito de 20.000 escrituras/día de Firebase Spark.");
+        console.warn("Se cancela la ejecución automática. Avísale a tu asistente para dividir el script en tandas.");
+        return;
+    }
+
+    const confirmar = confirm(`Se van a migrar ${totalRecords} documentos a Firestore.\nRevisa la consola. ¿Deseas continuar?`);
+    if (!confirmar) {
+        console.log("Migración cancelada por el usuario.");
+        return;
+    }
+
+    console.log("\n=== FASE 2: Migración masiva a Firestore ===");
+    let totalErroresGlobales = 0;
+
+    for (const storeName of storesToMigrate) {
+        console.log(`\nMigrando '${storeName}'...`);
+        
+        const data = await new Promise((resolve, reject) => {
+            const tx = idb.transaction(storeName, 'readonly');
+            const store = tx.objectStore(storeName);
+            const req = store.getAll();
+            req.onsuccess = () => resolve(req.result);
+            req.onerror = () => reject(req.error);
+        });
+
+        let migrados = 0;
+        const errores = [];
+        const chunkSize = 100;
+        
+        for (let i = 0; i < data.length; i += chunkSize) {
+            const chunk = data.slice(i, i + chunkSize);
+            
+            await Promise.all(chunk.map(async (docData) => {
+                try {
+                    if (!docData || !docData.id) {
+                        throw new Error("El documento no tiene un campo 'id' válido.");
+                    }
+                    
+                    const ref = doc(db, storeName, String(docData.id));
+                    await setDoc(ref, docData);
+                } catch (error) {
+                    errores.push({
+                        id: docData && docData.id ? docData.id : 'ID_DESCONOCIDO',
+                        error: error.message
+                    });
+                }
+            }));
+            
+            migrados += chunk.length;
+            console.log(`Progreso ${storeName}: ${migrados} / ${data.length}...`);
+        }
+
+        const snap = await getDocs(collection(db, storeName));
+        const firestoreCount = snap.size;
+        
+        console.log(`\n✅ RESULTADO ${storeName}:`);
+        console.log(`   - IndexedDB original: ${storeCounts[storeName]}`);
+        console.log(`   - Firestore actual:   ${firestoreCount}`);
+        
+        if (errores.length > 0) {
+            totalErroresGlobales += errores.length;
+            console.error(`   ❌ ERRORES EN ${storeName}: ${errores.length} documentos fallaron y no se escribieron.`);
+            console.table(errores);
+        } else if (storeCounts[storeName] === firestoreCount) {
+            console.log(`   👉 Match perfecto. 100% migrado sin errores.`);
+        } else {
+            console.warn(`   ⚠️ DESCUADRE INEXPLICABLE: No hay errores reportados, pero faltan/sobran documentos en la nube.`);
+        }
+    }
+    
+    console.log("\n=============================================");
+    if (totalErroresGlobales === 0) {
+        console.log("🚀 MIGRACIÓN GLOBAL COMPLETADA CON ÉXITO ABSOLUTO.");
+    } else {
+        console.warn(`⚠️ MIGRACIÓN COMPLETADA CON ${totalErroresGlobales} ERRORES TOTALES.`);
+        console.log("Revisa las tablas arriba para identificar los documentos huérfanos.");
+    }
+    console.log("=============================================");
+};
