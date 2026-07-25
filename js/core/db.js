@@ -466,3 +466,155 @@ window.runDeduplication = async function() {
         console.error(`- Ocurrieron ${errores} errores durante el proceso.`);
     }
 };
+
+// SCRIPT DE RECONCILIACI車N DE PRECIOS (FIRESTORE)
+window.runPriceReconciliation = async function() {
+    console.log("Iniciando preparaci車n para reconciliaci車n de precios...");
+
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    
+    input.onchange = async e => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+            try {
+                const dataStr = event.target.result;
+                let dataAlegra = JSON.parse(dataStr);
+                
+                let alegraProducts = [];
+                if (Array.isArray(dataAlegra)) alegraProducts = dataAlegra;
+                else if (dataAlegra.productos) alegraProducts = dataAlegra.productos;
+                else if (dataAlegra.items) alegraProducts = dataAlegra.items;
+
+                console.log(`Le赤dos ${alegraProducts.length} productos del archivo ${file.name}.`);
+
+                console.log("Descargando productos actuales de Firestore...");
+                const snap = await getDocs(collection(db, 'productos'));
+                const firestoreProducts = [];
+                snap.forEach(doc => firestoreProducts.push({ id: doc.id, ...doc.data() }));
+
+                console.log(`Descargados ${firestoreProducts.length} productos de Firestore.`);
+
+                // Generar Respaldo de Precios Actuales
+                const backupPrecios = firestoreProducts.map(p => ({
+                    id: p.id,
+                    sku: p.sku,
+                    nombre: p.nombre,
+                    precioVentaActual: p.precioVenta || 0
+                }));
+                
+                const backupStr = JSON.stringify(backupPrecios, null, 2);
+                const blob = new Blob([backupStr], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `backup_precios_firestore_${new Date().getTime()}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                console.log("Respaldo de precios actuales descargado.");
+
+                // Cruzar SKUs
+                const aActualizar = [];
+                const noEncontrados = [];
+
+                for (const pAlegra of alegraProducts) {
+                    const sku = pAlegra.sku || pAlegra.reference || pAlegra.referencia;
+                    if (!sku) continue;
+
+                    let nuevoPrecio = 0;
+                    if (pAlegra.precioVenta !== undefined) {
+                        nuevoPrecio = parseFloat(pAlegra.precioVenta);
+                    } else if (pAlegra.price !== undefined) {
+                        if (Array.isArray(pAlegra.price) && pAlegra.price.length > 0) {
+                            nuevoPrecio = parseFloat(pAlegra.price[0].price);
+                        } else {
+                            nuevoPrecio = parseFloat(pAlegra.price);
+                        }
+                    }
+
+                    if (isNaN(nuevoPrecio)) nuevoPrecio = 0;
+
+                    const pFirestore = firestoreProducts.find(pf => String(pf.sku).trim() === String(sku).trim());
+                    
+                    if (pFirestore) {
+                        // Solo agregamos si el precio realmente cambi車 o est芍 en 0
+                        // (Si quieres forzar sobrescribir todos, puedes quitar esta validaci車n)
+                        aActualizar.push({
+                            id: pFirestore.id,
+                            sku: sku,
+                            nombre: pFirestore.nombre,
+                            precioAnterior: pFirestore.precioVenta || 0,
+                            precioNuevo: nuevoPrecio
+                        });
+                    } else {
+                        noEncontrados.push({
+                            sku: sku,
+                            nombre: pAlegra.name || pAlegra.nombre
+                        });
+                    }
+                }
+
+                console.log(`\n=== RESUMEN DE RECONCILIACI車N ===`);
+                console.log(`- Coincidencias exactas por SKU (a actualizar): ${aActualizar.length}`);
+                console.log(`- Productos de Alegra NO encontrados en Firestore: ${noEncontrados.length}`);
+                
+                if (aActualizar.length === 0) {
+                    console.log("No hay coincidencias. Operaci車n terminada.");
+                    return;
+                }
+
+                if (noEncontrados.length > 0) {
+                    console.log(`\nMuestra de 5 no encontrados:`);
+                    console.table(noEncontrados.slice(0, 5));
+                }
+
+                const proceder = confirm(
+                    `RESPALDO DESCARGADO.\n\n` +
+                    `Se encontraron ${aActualizar.length} productos coincidentes por SKU.\n` +
+                    `${noEncontrados.length} productos del archivo no est芍n en Firestore.\n\n` +
+                    `?Deseas proceder a hacer updateDoc() parcial del campo precioVenta en los ${aActualizar.length} documentos de Firestore?`
+                );
+
+                if (!proceder) {
+                    console.log("Operaci車n cancelada por el usuario.");
+                    return;
+                }
+
+                console.log("\nIniciando actualizaci車n quir迆rgica en Firestore...");
+                let exitosos = 0;
+                let errores = 0;
+
+                for (const update of aActualizar) {
+                    try {
+                        const ref = doc(db, 'productos', String(update.id));
+                        await updateDoc(ref, {
+                            precioVenta: update.precioNuevo
+                        });
+                        exitosos++;
+                    } catch (e) {
+                        console.error(`Error actualizando producto ${update.id} (SKU: ${update.sku}):`, e);
+                        errores++;
+                    }
+                    if (exitosos > 0 && exitosos % 100 === 0) {
+                        console.log(`Progreso: ${exitosos}/${aActualizar.length}...`);
+                    }
+                }
+
+                console.log(`\n?? RECONCILIACI車N DE PRECIOS COMPLETA.`);
+                console.log(`- Actualizaciones exitosas: ${exitosos}`);
+                if (errores > 0) console.error(`- Ocurrieron ${errores} errores.`);
+                
+            } catch (err) {
+                console.error("Error al procesar el archivo JSON:", err);
+            }
+        };
+        reader.readAsText(file);
+    };
+    input.click();
+};
