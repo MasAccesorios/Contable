@@ -97,8 +97,8 @@ const DB = {
     async save(storeName, data) {
         if (!data.id) throw new Error(`El registro debe contener un ID único para persistencia en ${storeName}.`);
 
-        if (storeName === 'productos') {
-            const ref = doc(db, 'productos', data.id);
+        if (storeName === 'productos' || storeName === 'contactos') {
+            const ref = doc(db, storeName, data.id);
             await setDoc(ref, data);
             return data;
         }
@@ -118,8 +118,8 @@ const DB = {
      * Si storeName es 'productos', lee desde Firestore; el resto usa IndexedDB.
      */
     async get(storeName, id) {
-        if (storeName === 'productos') {
-            const ref = doc(db, 'productos', id);
+        if (storeName === 'productos' || storeName === 'contactos') {
+            const ref = doc(db, storeName, id);
             const snap = await getDoc(ref);
             return snap.exists() ? snap.data() : null;
         }
@@ -139,8 +139,8 @@ const DB = {
      * Si storeName es 'productos', usa getDocs() (lectura puntual); el resto usa IndexedDB.
      */
     async getAll(storeName) {
-        if (storeName === 'productos') {
-            const snap = await getDocs(collection(db, 'productos'));
+        if (storeName === 'productos' || storeName === 'contactos') {
+            const snap = await getDocs(collection(db, storeName));
             return snap.docs.map(d => d.data());
         }
 
@@ -159,8 +159,8 @@ const DB = {
      * Si storeName es 'productos', elimina en Firestore; el resto usa IndexedDB.
      */
     async delete(storeName, id) {
-        if (storeName === 'productos') {
-            await deleteDoc(doc(db, 'productos', id));
+        if (storeName === 'productos' || storeName === 'contactos') {
+            await deleteDoc(doc(db, storeName, id));
             return true;
         }
 
