@@ -185,109 +185,125 @@ DB.init().catch(err => console.error("Fallo automáico de inicialización DB:", 
 export default DB;
 
 // ============================================================================
-// SCRIPT DE MIGRACIÓN ÚNICA (IndexedDB -> Firestore)
-// Ejecutar en consola del navegador: await window.runMigration()
+// SCRIPT DE RESTAURACIÓN DE BACKUPS (JSON -> Firestore/IndexedDB)
+// Ejecutar en consola del navegador: await window.runRestoration()
 // ============================================================================
-window.runMigration = async function() {
-    const storesToMigrate = ['productos', 'contactos', 'cotizaciones', 'facturas', 'lotes_fifo'];
-    const idb = await DB.init();
+window.runRestoration = async function() {
+    // 1. Crear el selector de archivos
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.multiple = true;
     
-    let totalRecords = 0;
-    const storeCounts = {};
-
-    console.log("=== FASE 1: Análisis de IndexedDB ===");
-    for (const storeName of storesToMigrate) {
-        const count = await new Promise((resolve, reject) => {
-            const tx = idb.transaction(storeName, 'readonly');
-            const store = tx.objectStore(storeName);
-            const req = store.count();
-            req.onsuccess = () => resolve(req.result);
-            req.onerror = () => reject(req.error);
-        });
-        storeCounts[storeName] = count;
-        totalRecords += count;
-        console.log(`- ${storeName}: ${count} registros locales encontrados`);
-    }
-
-    console.log(`\nTOTAL ESTIMADO DE ESCRITURAS A FIRESTORE: ${totalRecords}`);
-    
-    if (totalRecords > 15000) {
-        console.warn("⚠️ ALERTA: Estás muy cerca o superas el límite gratuito de 20.000 escrituras/día de Firebase Spark.");
-        console.warn("Se cancela la ejecución automática. Avísale a tu asistente para dividir el script en tandas.");
-        return;
-    }
-
-    const confirmar = confirm(`Se van a migrar ${totalRecords} documentos a Firestore.\nRevisa la consola. ¿Deseas continuar?`);
-    if (!confirmar) {
-        console.log("Migración cancelada por el usuario.");
-        return;
-    }
-
-    console.log("\n=== FASE 2: Migración masiva a Firestore ===");
-    let totalErroresGlobales = 0;
-
-    for (const storeName of storesToMigrate) {
-        console.log(`\nMigrando '${storeName}'...`);
+    input.onchange = async e => {
+        const files = Array.from(e.target.files);
+        const getFile = (pattern) => files.find(f => f.name.includes(pattern));
         
-        const data = await new Promise((resolve, reject) => {
-            const tx = idb.transaction(storeName, 'readonly');
-            const store = tx.objectStore(storeName);
-            const req = store.getAll();
-            req.onsuccess = () => resolve(req.result);
-            req.onerror = () => reject(req.error);
-        });
+        const fInventario = getFile('backup_inventario_pre_reset500x');
+        const fContactos = getFile('backup_contactos_2026-07-23_v2');
+        const fFacturas = getFile('backup_facturas_post_refactor');
+        const fCompleto = getFile('backup_completo_pre_v3');
 
-        let migrados = 0;
-        const errores = [];
-        const chunkSize = 100;
+        if (!fInventario || !fContactos || !fFacturas || !fCompleto) {
+            console.error("Faltan archivos. Asegúrate de seleccionar los 4 requeridos.");
+            return;
+        }
+
+        const readJson = async (file) => JSON.parse(await file.text());
         
-        for (let i = 0; i < data.length; i += chunkSize) {
-            const chunk = data.slice(i, i + chunkSize);
+        console.log("Leyendo archivos...");
+        const invData = await readJson(fInventario);
+        const contData = await readJson(fContactos);
+        const facData = await readJson(fFacturas);
+        const compData = await readJson(fCompleto);
+
+        // 2. Filtrado en Memoria
+        console.log("=== FASE 1: Filtro ===");
+        
+        // Productos
+        const originalProdCount = invData.productos.length;
+        const productosAprobados = invData.productos.filter(p => !p.sku.match(/^500[1-5]-/));
+        const productosExcluidos = invData.productos.filter(p => p.sku.match(/^500[1-5]-/));
+        const excluidosIds = productosExcluidos.map(p => p.id);
+        console.log(`- Productos: Leídos ${originalProdCount}, Excluidos ${productosExcluidos.length}, A restaurar ${productosAprobados.length}`);
+
+        // Lotes FIFO
+        const originalLoteCount = invData.lotes.length;
+        const lotesAprobados = invData.lotes.filter(l => !excluidosIds.includes(l.productoId));
+        console.log(`- Lotes FIFO: Leídos ${originalLoteCount}, Excluidos ${originalLoteCount - lotesAprobados.length}, A restaurar ${lotesAprobados.length}`);
+
+        // Las demás no necesitan filtro
+        const contactos = contData.length ? contData : contData.contactos || Object.values(contData);
+        const facturas = facData.length ? facData : facData.facturas || Object.values(facData);
+        const transacciones = compData.transacciones || [];
+
+        const coleccionesFirestore = [
+            { name: 'productos', data: productosAprobados },
+            { name: 'lotes_fifo', data: lotesAprobados },
+            { name: 'contactos', data: contactos },
+            { name: 'facturas', data: facturas }
+        ];
+
+        let totalAEscribir = coleccionesFirestore.reduce((acc, curr) => acc + curr.data.length, 0);
+        
+        const confirmar = confirm(`Se escribirán ${totalAEscribir} documentos en Firestore y ${transacciones.length} en IndexedDB.\n¿Proceder?`);
+        if (!confirmar) return;
+
+        console.log("\n=== FASE 2: Restauración Firestore ===");
+        let totalErroresGlobales = 0;
+
+        for (const col of coleccionesFirestore) {
+            console.log(`Restaurando '${col.name}' (${col.data.length} docs)...`);
+            const errores = [];
+            let migrados = 0;
+            const chunkSize = 100;
             
-            await Promise.all(chunk.map(async (docData) => {
-                try {
-                    if (!docData || !docData.id) {
-                        throw new Error("El documento no tiene un campo 'id' válido.");
+            for (let i = 0; i < col.data.length; i += chunkSize) {
+                const chunk = col.data.slice(i, i + chunkSize);
+                await Promise.all(chunk.map(async (docData) => {
+                    try {
+                        if (!docData.id) throw new Error("ID inválido");
+                        const ref = doc(db, col.name, String(docData.id));
+                        await setDoc(ref, docData);
+                    } catch (error) {
+                        errores.push({ id: docData.id || 'N/A', error: error.message });
                     }
-                    
-                    const ref = doc(db, storeName, String(docData.id));
-                    await setDoc(ref, docData);
-                } catch (error) {
-                    errores.push({
-                        id: docData && docData.id ? docData.id : 'ID_DESCONOCIDO',
-                        error: error.message
-                    });
-                }
-            }));
+                }));
+                migrados += chunk.length;
+                console.log(`Progreso ${col.name}: ${migrados} / ${col.data.length}...`);
+            }
+
+            const snap = await getDocs(collection(db, col.name));
+            console.log(`✅ RESULTADO ${col.name}: Archivo=${col.data.length} | Nube=${snap.size}`);
             
-            migrados += chunk.length;
-            console.log(`Progreso ${storeName}: ${migrados} / ${data.length}...`);
+            if (errores.length > 0) {
+                totalErroresGlobales += errores.length;
+                console.error(`❌ ERRORES EN ${col.name}: ${errores.length}`);
+                console.table(errores);
+            }
         }
 
-        const snap = await getDocs(collection(db, storeName));
-        const firestoreCount = snap.size;
-        
-        console.log(`\n✅ RESULTADO ${storeName}:`);
-        console.log(`   - IndexedDB original: ${storeCounts[storeName]}`);
-        console.log(`   - Firestore actual:   ${firestoreCount}`);
-        
-        if (errores.length > 0) {
-            totalErroresGlobales += errores.length;
-            console.error(`   ❌ ERRORES EN ${storeName}: ${errores.length} documentos fallaron y no se escribieron.`);
-            console.table(errores);
-        } else if (storeCounts[storeName] === firestoreCount) {
-            console.log(`   👉 Match perfecto. 100% migrado sin errores.`);
+        console.log("\n=== FASE 3: Restauración IndexedDB (Transacciones) ===");
+        const idb = await DB.init();
+        const txCount = transacciones.length;
+        if (txCount > 0) {
+            let txErrores = 0;
+            await new Promise((resolve, reject) => {
+                const idbTx = idb.transaction('transacciones', 'readwrite');
+                const store = idbTx.objectStore('transacciones');
+                transacciones.forEach(t => {
+                    const req = store.put(t);
+                    req.onerror = () => txErrores++;
+                });
+                idbTx.oncomplete = () => resolve();
+                idbTx.onerror = () => reject(idbTx.error);
+            });
+            console.log(`✅ RESULTADO transacciones: Archivo=${txCount} | IndexedDB=Restauradas (${txErrores} errores)`);
         } else {
-            console.warn(`   ⚠️ DESCUADRE INEXPLICABLE: No hay errores reportados, pero faltan/sobran documentos en la nube.`);
+            console.log("No hay transacciones para restaurar.");
         }
-    }
-    
-    console.log("\n=============================================");
-    if (totalErroresGlobales === 0) {
-        console.log("🚀 MIGRACIÓN GLOBAL COMPLETADA CON ÉXITO ABSOLUTO.");
-    } else {
-        console.warn(`⚠️ MIGRACIÓN COMPLETADA CON ${totalErroresGlobales} ERRORES TOTALES.`);
-        console.log("Revisa las tablas arriba para identificar los documentos huérfanos.");
-    }
-    console.log("=============================================");
+
+        console.log("\n🚀 RESTAURACIÓN COMPLETA.");
+    };
+
+    input.click();
 };
