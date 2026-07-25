@@ -4,6 +4,7 @@ import { TesoreriaModule } from '../bancos/bancos.js';
 import { ContactosModule } from '../clientes/clientes.js';
 import { UI } from '../../shared/combobox.js';
 import { calcularEstadoFactura } from '../../shared/carteraUtils.js';
+import { InventarioUtils } from '../../shared/inventarioUtils.js';
 
 export const FacturasModule = {
     async init(element) {
@@ -752,17 +753,7 @@ export const FacturasModule = {
                     hasError = true;
                 }
 
-                // Validación de stock solo si es nueva factura
-                if (isNew) {
-                    const lotes = await DB.getAll('lotes_fifo');
-                    const stockTotal = lotes.filter(l => l.productoId === prodId).reduce((sum, l) => sum + l.cantidadActual, 0);
-                    if (stockTotal < qty) {
-                        const prod = productos.find(p => p.id === prodId);
-                        stockError += `Stock insuficiente para ${prod ? prod.nombre : 'el producto'}. Disponible: ${stockTotal}, Requerido: ${qty}.<br>`;
-                        inpQty.style.borderColor = '#ef4444';
-                        hasError = true;
-                    }
-                }
+                // La validación de stock se delega a InventarioUtils más abajo
                 
                 arrDetalles.push({
                     id: tr.dataset.uid,
@@ -775,11 +766,6 @@ export const FacturasModule = {
                 });
             }
 
-            if (stockError) {
-                CoreActions.showWarningModal(stockError);
-                return;
-            }
-
             if (arrDetalles.length === 0 || hasError || parseFloat(element.querySelector('#tot-total').dataset.rawTotal) <= 0) {
                 CoreActions.showWarningModal("Debe agregar al menos un producto válido y con cantidad mayor a cero.");
                 return;
@@ -788,24 +774,15 @@ export const FacturasModule = {
             // Descargo FIFO de inventario si es nueva
             let costoTotalVenta = 0;
             if (isNew) {
-                const lotesGlobales = await DB.getAll('lotes_fifo');
-                for (const det of arrDetalles) {
-                    let qtyRestante = det.cantidad;
-                    let costoLinea = 0;
-                    const lotesProd = lotesGlobales.filter(l => l.productoId === det.productoId && l.cantidadActual > 0);
-                    lotesProd.sort((a, b) => new Date(a.fechaIngreso) - new Date(b.fechaIngreso)); // FIFO
-                    
-                    for (const lote of lotesProd) {
-                        if (qtyRestante <= 0) break;
-                        const aDescontar = Math.min(lote.cantidadActual, qtyRestante);
-                        lote.cantidadActual -= aDescontar;
-                        qtyRestante -= aDescontar;
-                        costoLinea += (aDescontar * lote.costoUnitario);
-                        await DB.save('lotes_fifo', lote); // Guardar cambio en BD
-                    }
-                    det.costoTotalCalculado = costoLinea;
-                    costoTotalVenta += costoLinea;
+                const invResult = await InventarioUtils.procesarSalidaInventario(arrDetalles, null, productos);
+                if (!invResult.success) {
+                    CoreActions.showWarningModal(invResult.error);
+                    return; // ABORTA LA VENTA
                 }
+                costoTotalVenta = invResult.costoTotalVenta;
+                // Reemplazamos arrDetalles con los actualizados que ya tienen el costoTotalCalculado
+                arrDetalles.length = 0;
+                arrDetalles.push(...invResult.detallesActualizados);
             } else {
                 // Si es edición, mantenemos el costo total previo para no recalcular
                 costoTotalVenta = factura.total_costo || 0;

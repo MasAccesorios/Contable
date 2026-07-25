@@ -1,5 +1,6 @@
 // js/utils/core-actions.js
 import DB from '../core/db.js';
+import { InventarioUtils } from './inventarioUtils.js';
 
 export const CoreActions = {
     /**
@@ -79,6 +80,13 @@ export const CoreActions = {
                 return;
             }
 
+            // Regla de Negocio: Validar y Descontar FIFO antes de convertir
+            const invResult = await InventarioUtils.procesarSalidaInventario(cotizacion.detalles || []);
+            if (!invResult.success) {
+                this.showWarningModal("Acción interceptada: " + invResult.error);
+                return; // ABORTA LA CONVERSIÓN
+            }
+
             // Regla de Negocio: Condición Permitida (Primera vez) - Clonación de la data
             const idFactura = 'fac_' + Date.now();
             const nuevaFactura = {
@@ -89,7 +97,8 @@ export const CoreActions = {
                 total: cotizacion.total || 0,
                 estado: 'por_pagar',
                 tipo: 'venta',
-                detalles: JSON.parse(JSON.stringify(cotizacion.detalles || [])),
+                detalles: invResult.detallesActualizados,
+                total_costo: invResult.costoTotalVenta,
                 notas: cotizacion.notas || '',
                 terminosCondiciones: cotizacion.terminosCondiciones || 'Favor realizar los pagos a nuestra cuenta bancaria.',
                 origenCotizacionId: cotizacion.id,
