@@ -1,125 +1,307 @@
-// js/modules/contactos.js
+// js/modules/clientes/clientes.js
 // Módulo de Gestión de Contactos (Clientes y Proveedores) - Hoja Completa
 
 import DB from '../../core/db.js';
-import { CoreActions } from '../../shared/crud.js';
 
 export const ContactosModule = {
+    state: {
+        contactosData: [],
+        currentPage: 1,
+        itemsPerPage: 10,
+        currentFilter: 'todos',
+        searchQuery: ''
+    },
+
     async init(element) {
         if (!element) return;
+        this.element = element;
         
         // Renderizar contenedor principal de hoja completa
         element.innerHTML = `
-            <div class="module-container">
-                <div class="module-header">
-                    <h2>Gestión de Contactos (Clientes / Proveedores)</h2>
-                    <button id="btn-nuevo-contacto" class="btn-primary">+ Nuevo Contacto</button>
-                </div>
-                
-                <div class="filters-bar">
-                    <input type="text" id="search-contacto" placeholder="Buscar por nombre, NIT o teléfono..." class="input-search">
-                    <select id="filter-tipo" class="select-filter">
-                        <option value="todos">Todos los tipos</option>
-                        <option value="cliente">Clientes</option>
-                        <option value="proveedor">Proveedores</option>
-                    </select>
+            <div class="module-container bg-white rounded shadow-sm p-4">
+                <!-- Header -->
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h2 class="h4 mb-1 text-dark fw-bold">Gestión de Contactos</h2>
+                        <p class="text-muted small mb-0">Crea tus clientes, proveedores y demás contactos para asociarlos en tus documentos</p>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <div class="dropdown">
+                            <button class="btn btn-light border dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                Más acciones
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="#">Importar contactos</a></li>
+                                <li><a class="dropdown-item" href="#">Exportar contactos</a></li>
+                            </ul>
+                        </div>
+                        <button id="btn-nuevo-contacto" class="btn btn-primary d-flex align-items-center gap-2" style="background-color: var(--primary); border: none;">
+                            <i class="bi bi-plus-lg"></i> Nuevo contacto
+                        </button>
+                    </div>
                 </div>
 
+                <!-- Pestañas de Filtro (Tabs) -->
+                <ul class="nav nav-tabs mb-4 border-bottom-0 gap-3" id="contactos-tabs" style="border-bottom: 2px solid var(--border-color) !important;">
+                    <li class="nav-item">
+                        <a class="nav-link active fw-medium text-dark border-0 pb-3" data-filter="todos" href="#" style="border-bottom: 2px solid var(--primary) !important;">Todos</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link fw-medium text-muted border-0 pb-3" data-filter="cliente" href="#" style="border-bottom: 2px solid transparent !important;">Clientes</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link fw-medium text-muted border-0 pb-3" data-filter="proveedor" href="#" style="border-bottom: 2px solid transparent !important;">Proveedores</a>
+                    </li>
+                </ul>
+
                 <div id="contactos-view-container" class="view-container">
-                    <!-- Aquí se cargará dinámicamente la tabla o el formulario -->
+                    <!-- Buscador y Tabla Principal -->
+                    <div id="tabla-contactos-wrapper">
+                        <!-- Buscador -->
+                        <div class="d-flex justify-content-between mb-3">
+                            <div class="input-group" style="max-width: 300px;">
+                                <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
+                                <input type="text" id="search-contacto" class="form-control border-start-0 ps-0" placeholder="Buscar..." style="box-shadow: none;">
+                            </div>
+                            <button id="btn-filtrar" class="btn btn-light border text-muted"><i class="bi bi-funnel"></i> Filtrar</button>
+                        </div>
+
+                        <!-- Tabla -->
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle">
+                                <thead class="table-light text-muted small text-uppercase">
+                                    <tr>
+                                        <th style="width: 40px;"><input type="checkbox" class="form-check-input" id="check-all"></th>
+                                        <th>Nombre <i class="bi bi-arrow-up-short"></i></th>
+                                        <th>Identificación</th>
+                                        <th>Teléfono</th>
+                                        <th>Tipo</th>
+                                        <th class="text-end">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbody-contactos">
+                                    <!-- Inyectado dinámicamente -->
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Paginación -->
+                        <div class="d-flex justify-content-between align-items-center mt-3 text-muted small">
+                            <div class="d-flex align-items-center gap-3">
+                                <span>Página <span id="current-page">1</span> de <span id="total-pages">1</span></span>
+                                <div class="btn-group">
+                                    <button class="btn btn-sm btn-light border text-muted" id="btn-prev-page"><i class="bi bi-chevron-left"></i></button>
+                                    <button class="btn btn-sm btn-light border text-muted" id="btn-next-page"><i class="bi bi-chevron-right"></i></button>
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-center gap-3">
+                                <span class="d-flex align-items-center gap-2">
+                                    Contactos por página: 
+                                    <select id="items-per-page" class="form-select form-select-sm border-0 bg-transparent text-muted fw-bold" style="width: 60px; box-shadow: none; cursor: pointer;">
+                                        <option value="10">10</option>
+                                        <option value="25">25</option>
+                                        <option value="50">50</option>
+                                    </select>
+                                </span>
+                                <span id="showing-count">1-10 de 709</span>
+                                <button id="btn-refresh" class="btn btn-sm btn-light border text-muted rounded-circle" style="width: 30px; height: 30px; padding: 0;"><i class="bi bi-arrow-clockwise"></i></button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         `;
 
-        // Enganchar eventos principales
-        element.querySelector('#btn-nuevo-contacto')?.addEventListener('click', () => this.renderForm(element));
-        element.querySelector('#search-contacto')?.addEventListener('input', () => this.filtrarContactos(element));
-        element.querySelector('#filter-tipo')?.addEventListener('change', () => this.filtrarContactos(element));
-
-        // Cargar vista de tabla por defecto
-        await this.renderTabla(element);
+        this.bindEvents();
+        await this.cargarDatos(); // Carga inicial
+        this.renderTabla();       // Render inicial
     },
 
-    /**
-     * Lógica centralizada para guardar un contacto en la base de datos
-     */
-    async guardarContacto(datos, id = null) {
-        const nuevoContacto = {
-            id: id || 'cont_' + Date.now(),
-            ...datos
-        };
-        await DB.save('contactos', nuevoContacto);
-        return nuevoContacto;
+    async cargarDatos() {
+        // Obtenemos de Firestore vía el enrutador de DB
+        const raw = await DB.getAll('contactos');
+        this.state.contactosData = raw; // Se eliminó el filtro especulativo de 'estado !== inactivo'
     },
 
-    async renderTabla(element) {
-        const container = element.querySelector('#contactos-view-container');
+    renderTabla() {
+        const wrapper = this.element.querySelector('#tabla-contactos-wrapper');
+        if (wrapper) wrapper.style.display = 'block';
+
+        const container = this.element.querySelector('#tbody-contactos');
         if (!container) return;
 
-        const contactos = await DB.getAll('contactos');
+        const { contactosData, currentFilter, searchQuery, itemsPerPage } = this.state;
+
+        // A. Filtrado por Tipo y Búsqueda (Combinado)
+        let filtrados = contactosData.filter(c => {
+            if (currentFilter !== 'todos' && c.tipo !== currentFilter) return false;
+            if (searchQuery) {
+                const searchStr = `${c.nombre || ''} ${c.nit || ''} ${c.telefono || ''}`.toLowerCase();
+                if (!searchStr.includes(searchQuery)) return false;
+            }
+            return true;
+        });
+
+        // B. Cálculos de Paginación
+        const totalItems = filtrados.length;
+        const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
         
-        if (contactos.length === 0) {
-            container.innerHTML = `<p class="empty-state">No hay contactos registrados en el sistema.</p>`;
-            return;
+        if (this.state.currentPage > totalPages) {
+            this.state.currentPage = totalPages;
         }
 
-        let html = `
-            <div class="table-responsive">
-                <table class="table-main">
-                    <thead>
-                        <tr>
-                            <th>Nombre / Razón Social</th>
-                            <th>NIT / CC</th>
-                            <th>Tipo</th>
-                            <th>Teléfono</th>
-                            <th>Ciudad</th>
-                            <th>Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tbody-contactos">
-        `;
+        const startIndex = (this.state.currentPage - 1) * itemsPerPage;
+        const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
+        const paginaActual = filtrados.slice(startIndex, endIndex);
 
-        contactos.forEach(c => {
-            if (c.estado === 'inactivo') return; // Soft delete check
-            html += `
-                <tr data-id="${c.id}">
-                    <td><strong>${c.nombre}</strong></td>
-                    <td>${c.nit}</td>
-                    <td><span class="badge ${c.tipo}">${c.tipo.toUpperCase()}</span></td>
-                    <td>${c.telefono || 'N/A'}</td>
-                    <td>${c.ciudad || 'N/A'}</td>
-                    <td>
-                        <button class="btn-action btn-ver" data-id="${c.id}">Ver</button>
-                        <button class="btn-action btn-editar" data-id="${c.id}">Editar</button>
-                        <button class="btn-action btn-eliminar" data-id="${c.id}" style="color: red;">Eliminar</button>
-                    </td>
-                </tr>
-            `;
+        // C. Renderizado
+        if (paginaActual.length === 0) {
+            container.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted">No se encontraron contactos que coincidan con la búsqueda.</td></tr>`;
+        } else {
+            let html = '';
+            paginaActual.forEach(c => {
+                const inicial = c.nombre ? c.nombre.charAt(0).toUpperCase() : '?';
+                html += `
+                    <tr data-id="${c.id}">
+                        <td><input type="checkbox" class="form-check-input contact-check"></td>
+                        <td>
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold flex-shrink-0" style="width: 32px; height: 32px; background-color: var(--primary); font-size: 14px;">
+                                    ${inicial}
+                                </div>
+                                <span class="fw-medium text-dark text-capitalize text-truncate" style="max-width: 200px;">${c.nombre ? c.nombre.toLowerCase() : ''}</span>
+                            </div>
+                        </td>
+                        <td class="text-muted">${c.nit || '-'}</td>
+                        <td class="text-muted">${c.telefono || '-'}</td>
+                        <td class="text-muted text-capitalize">${c.tipo || '-'}</td>
+                        <td class="text-end">
+                            <button class="btn btn-sm btn-light text-muted btn-editar me-1" data-id="${c.id}" title="Editar"><i class="bi bi-pencil"></i></button>
+                            <div class="dropdown d-inline-block">
+                                <button class="btn btn-sm btn-light text-muted border-0" data-bs-toggle="dropdown"><i class="bi bi-three-dots-vertical"></i></button>
+                                <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                                    <li><a class="dropdown-item btn-ver" href="#" data-id="${c.id}">Ver detalles</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item text-danger btn-eliminar" href="#" data-id="${c.id}">Eliminar</a></li>
+                                </ul>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        // D. Actualización UI Paginación
+        const paginasEl = this.element.querySelector('#current-page');
+        if(paginasEl) paginasEl.textContent = this.state.currentPage;
+        
+        const totalPagEl = this.element.querySelector('#total-pages');
+        if(totalPagEl) totalPagEl.textContent = totalPages;
+        
+        const showingCountEl = this.element.querySelector('#showing-count');
+        if(showingCountEl) showingCountEl.textContent = totalItems > 0 ? `${startIndex + 1}-${endIndex} de ${totalItems}` : `0-0 de 0`;
+        
+        const prevBtn = this.element.querySelector('#btn-prev-page');
+        if(prevBtn) prevBtn.disabled = (this.state.currentPage === 1);
+        
+        const nextBtn = this.element.querySelector('#btn-next-page');
+        if(nextBtn) nextBtn.disabled = (this.state.currentPage === totalPages);
+
+        this.bindFilaEvents();
+    },
+
+    bindEvents() {
+        const el = this.element;
+
+        el.querySelector('#btn-nuevo-contacto')?.addEventListener('click', () => this.renderForm());
+
+        el.querySelector('#search-contacto')?.addEventListener('input', (e) => {
+            this.state.searchQuery = e.target.value.toLowerCase().trim();
+            this.state.currentPage = 1;
+            this.renderTabla();
         });
 
-        html += `</tbody></table></div>`;
-        container.innerHTML = html;
+        el.querySelectorAll('.nav-link[data-filter]').forEach(tab => {
+            tab.addEventListener('click', (e) => {
+                e.preventDefault();
+                el.querySelectorAll('.nav-link').forEach(t => {
+                    t.classList.remove('active', 'text-dark');
+                    t.classList.add('text-muted');
+                    t.style.borderBottomColor = 'transparent';
+                });
+                
+                e.target.classList.add('active', 'text-dark');
+                e.target.classList.remove('text-muted');
+                e.target.style.borderBottomColor = 'var(--primary)';
 
-        // Asignar eventos a los botones de la tabla
+                this.state.currentFilter = e.target.dataset.filter;
+                this.state.currentPage = 1;
+                this.renderTabla();
+            });
+        });
+
+        el.querySelector('#items-per-page')?.addEventListener('change', (e) => {
+            this.state.itemsPerPage = parseInt(e.target.value);
+            this.state.currentPage = 1;
+            this.renderTabla();
+        });
+
+        el.querySelector('#btn-prev-page')?.addEventListener('click', () => {
+            if (this.state.currentPage > 1) {
+                this.state.currentPage--;
+                this.renderTabla();
+            }
+        });
+
+        el.querySelector('#btn-next-page')?.addEventListener('click', () => {
+            this.state.currentPage++;
+            this.renderTabla();
+        });
+
+        el.querySelector('#btn-refresh')?.addEventListener('click', async (e) => {
+            const icon = e.currentTarget.querySelector('i');
+            if(icon) icon.classList.add('spin-animation');
+            await this.cargarDatos();
+            this.renderTabla();
+            if(icon) setTimeout(() => icon.classList.remove('spin-animation'), 500);
+        });
+    },
+
+    bindFilaEvents() {
+        const container = this.element.querySelector('#tbody-contactos');
+        if(!container) return;
+
         container.querySelectorAll('.btn-ver').forEach(btn => {
-            btn.addEventListener('click', (e) => this.renderDetalle(element, e.target.dataset.id));
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.renderDetalle(e.currentTarget.dataset.id);
+            });
         });
         container.querySelectorAll('.btn-editar').forEach(btn => {
-            btn.addEventListener('click', (e) => this.renderForm(element, e.target.dataset.id));
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.renderForm(e.currentTarget.dataset.id);
+            });
         });
         container.querySelectorAll('.btn-eliminar').forEach(btn => {
             btn.addEventListener('click', async (e) => {
+                e.preventDefault();
                 if (confirm('¿Está seguro de eliminar este contacto?')) {
-                    await CoreActions.softDelete('contactos', e.target.dataset.id);
-                    await this.renderTabla(element);
+                    await DB.delete('contactos', e.currentTarget.dataset.id);
+                    await this.cargarDatos();
+                    this.renderTabla();
                 }
             });
         });
     },
 
-    async renderForm(element, id = null) {
-        const container = element.querySelector('#contactos-view-container');
+    async renderForm(id = null) {
+        const container = this.element.querySelector('#contactos-view-container');
         if (!container) return;
+
+        const tabs = this.element.querySelector('#contactos-tabs');
+        if (tabs) tabs.style.display = 'none';
 
         let contacto = { nombre: '', nit: '', tipo: 'cliente', telefono: '', email: '', ciudad: '', direccion: '', regimen: 'Regimen Simplificado', cupoCredito: 0, plazosPago: 0 };
         
@@ -128,280 +310,205 @@ export const ContactosModule = {
         }
 
         container.innerHTML = `
-            <div class="form-hoja-completa">
-                <h3>${id ? 'Editar Contacto' : 'Crear Nuevo Contacto'}</h3>
+            <div class="form-hoja-completa bg-white p-4 rounded border">
+                <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
+                    <h3 class="h5 m-0 fw-bold">${id ? 'Editar Contacto' : 'Crear Nuevo Contacto'}</h3>
+                    <button id="btn-cancelar-contacto" class="btn btn-light btn-sm text-muted">Volver</button>
+                </div>
                 <form id="form-contacto-data">
-                    <div class="form-grid">
-                        <div class="form-group">
-                            <label>Nombre o Razón Social *</label>
-                            <input type="text" id="form-nombre" value="${contacto.nombre}" required>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label text-muted small fw-medium">Nombre o Razón Social *</label>
+                            <input type="text" id="form-nombre" class="form-control form-control-sm" value="${contacto.nombre}" required>
                         </div>
-                        <div class="form-group">
-                            <label>NIT o Cédula *</label>
-                            <input type="text" id="form-nit" value="${contacto.nit}" required>
+                        <div class="col-md-6">
+                            <label class="form-label text-muted small fw-medium">NIT o Cédula *</label>
+                            <input type="text" id="form-nit" class="form-control form-control-sm" value="${contacto.nit}" required>
                         </div>
-                        <div class="form-group">
-                            <label>Tipo de Contacto</label>
-                            <select id="form-tipo">
+                        <div class="col-md-6">
+                            <label class="form-label text-muted small fw-medium">Tipo de Contacto</label>
+                            <select id="form-tipo" class="form-select form-select-sm">
                                 <option value="cliente" ${contacto.tipo === 'cliente' ? 'selected' : ''}>Cliente</option>
                                 <option value="proveedor" ${contacto.tipo === 'proveedor' ? 'selected' : ''}>Proveedor</option>
                             </select>
                         </div>
-                        <div class="form-group">
-                            <label>Teléfono</label>
-                            <input type="text" id="form-telefono" value="${contacto.telefono}">
+                        <div class="col-md-6">
+                            <label class="form-label text-muted small fw-medium">Teléfono</label>
+                            <input type="text" id="form-telefono" class="form-control form-control-sm" value="${contacto.telefono || ''}">
                         </div>
-                        <div class="form-group">
-                            <label>Correo Electrónico</label>
-                            <input type="email" id="form-email" value="${contacto.email}">
+                        <div class="col-md-6">
+                            <label class="form-label text-muted small fw-medium">Correo Electrónico</label>
+                            <input type="email" id="form-email" class="form-control form-control-sm" value="${contacto.email || ''}">
                         </div>
-                        <div class="form-group">
-                            <label>Ciudad</label>
-                            <input type="text" id="form-ciudad" value="${contacto.ciudad}">
+                        <div class="col-md-6">
+                            <label class="form-label text-muted small fw-medium">Ciudad</label>
+                            <input type="text" id="form-ciudad" class="form-control form-control-sm" value="${contacto.ciudad || ''}">
                         </div>
-                        <div class="form-group">
-                            <label>Dirección</label>
-                            <input type="text" id="form-direccion" value="${contacto.direccion}">
+                        <div class="col-md-12">
+                            <label class="form-label text-muted small fw-medium">Dirección</label>
+                            <input type="text" id="form-direccion" class="form-control form-control-sm" value="${contacto.direccion || ''}">
                         </div>
-                        <div class="form-group">
-                            <label>Régimen Tributario</label>
-                            <select id="form-regimen">
+                        <div class="col-md-4">
+                            <label class="form-label text-muted small fw-medium">Régimen Tributario</label>
+                            <select id="form-regimen" class="form-select form-select-sm">
                                 <option value="Regimen Simplificado" ${contacto.regimen === 'Regimen Simplificado' ? 'selected' : ''}>Régimen Simplificado (No responsable de IVA)</option>
                                 <option value="Regimen Comun" ${contacto.regimen === 'Regimen Comun' ? 'selected' : ''}>Régimen Común (Responsable de IVA)</option>
                             </select>
                         </div>
-                        <div class="form-group">
-                            <label>Cupo de Crédito ($)</label>
-                            <input type="number" id="form-cupo" value="${contacto.cupoCredito || 0}">
+                        <div class="col-md-4">
+                            <label class="form-label text-muted small fw-medium">Cupo de Crédito ($)</label>
+                            <input type="number" id="form-cupo" class="form-control form-control-sm" value="${contacto.cupoCredito || 0}">
                         </div>
-                        <div class="form-group">
-                            <label>Plazos de Pago (Días)</label>
-                            <input type="number" id="form-plazos" value="${contacto.plazosPago || 0}">
+                        <div class="col-md-4">
+                            <label class="form-label text-muted small fw-medium">Plazos de Pago (Días)</label>
+                            <input type="number" id="form-plazos" class="form-control form-control-sm" value="${contacto.plazosPago || 0}">
                         </div>
                     </div>
-                    <div class="form-actions">
-                        <button type="button" id="btn-cancelar-contacto" class="btn-secondary">Cancelar</button>
-                        <button type="submit" class="btn-primary">Guardar Contacto</button>
+                    <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+                        <button type="submit" class="btn btn-primary" style="background-color: var(--primary); border: none;">Guardar Contacto</button>
                     </div>
                 </form>
             </div>
         `;
 
-        element.querySelector('#btn-cancelar-contacto')?.addEventListener('click', () => this.renderTabla(element));
-        element.querySelector('#form-contacto-data')?.addEventListener('submit', async (e) => {
+        this.element.querySelector('#btn-cancelar-contacto')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            this.restaurarVistaTabla();
+        });
+
+        this.element.querySelector('#form-contacto-data')?.addEventListener('submit', async (e) => {
             e.preventDefault();
             
             const datos = {
-                nombre: element.querySelector('#form-nombre').value,
-                nit: element.querySelector('#form-nit').value,
-                tipo: element.querySelector('#form-tipo').value,
-                telefono: element.querySelector('#form-telefono').value,
-                email: element.querySelector('#form-email').value,
-                ciudad: element.querySelector('#form-ciudad').value,
-                direccion: element.querySelector('#form-direccion').value,
-                regimen: element.querySelector('#form-regimen').value,
-                cupoCredito: parseFloat(element.querySelector('#form-cupo').value) || 0,
-                plazosPago: parseInt(element.querySelector('#form-plazos').value) || 0
+                nombre: this.element.querySelector('#form-nombre').value,
+                nit: this.element.querySelector('#form-nit').value,
+                tipo: this.element.querySelector('#form-tipo').value,
+                telefono: this.element.querySelector('#form-telefono').value,
+                email: this.element.querySelector('#form-email').value,
+                ciudad: this.element.querySelector('#form-ciudad').value,
+                direccion: this.element.querySelector('#form-direccion').value,
+                regimen: this.element.querySelector('#form-regimen').value,
+                cupoCredito: parseFloat(this.element.querySelector('#form-cupo').value) || 0,
+                plazosPago: parseInt(this.element.querySelector('#form-plazos').value) || 0
             };
 
-            await this.guardarContacto(datos, id);
-            this.renderTabla(element);
+            const nuevoContacto = {
+                id: id || 'cont_' + Date.now(),
+                ...datos
+            };
+            await DB.save('contactos', nuevoContacto);
+            await this.cargarDatos();
+            this.restaurarVistaTabla();
         });
     },
 
-    async renderDetalle(element, id) {
-        const container = element.querySelector('#contactos-view-container');
+    async renderDetalle(id) {
+        const container = this.element.querySelector('#contactos-view-container');
         if (!container) return;
+
+        const tabs = this.element.querySelector('#contactos-tabs');
+        if (tabs) tabs.style.display = 'none';
 
         const contacto = await DB.get('contactos', id);
         if (!contacto) return;
 
         container.innerHTML = `
-            <div class="perfil-hoja-completa">
-                <div class="perfil-header">
-                    <h3>${contacto.nombre}</h3>
-                    <button id="btn-volver-perfil" class="btn-secondary">Volver al listado</button>
+            <div class="perfil-hoja-completa bg-white p-4 rounded border">
+                <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
+                    <h3 class="h5 m-0 fw-bold">${contacto.nombre}</h3>
+                    <button id="btn-volver-perfil" class="btn btn-light btn-sm text-muted">Volver al listado</button>
                 </div>
-                <div class="perfil-grid">
-                    <div class="info-card">
-                        <h4>Datos Básicos</h4>
-                        <p><strong>Identificación:</strong> ${contacto.nit}</p>
-                        <p><strong>Tipo:</strong> ${contacto.tipo.toUpperCase()}</p>
-                        <p><strong>Teléfono:</strong> ${contacto.telefono || 'No registrado'}</p>
-                        <p><strong>Email:</strong> ${contacto.email || 'No registrado'}</p>
-                        <p><strong>Ubicación:</strong> ${contacto.direccion || ''} ${contacto.ciudad ? `(${contacto.ciudad})` : ''}</p>
+                <div class="row g-4">
+                    <div class="col-md-6">
+                        <div class="card border-0 shadow-sm h-100">
+                            <div class="card-body">
+                                <h4 class="h6 fw-bold text-dark mb-3">Datos Básicos</h4>
+                                <p class="mb-2 text-muted small"><strong class="text-dark">Identificación:</strong> ${contacto.nit}</p>
+                                <p class="mb-2 text-muted small text-capitalize"><strong class="text-dark">Tipo:</strong> ${contacto.tipo}</p>
+                                <p class="mb-2 text-muted small"><strong class="text-dark">Teléfono:</strong> ${contacto.telefono || 'No registrado'}</p>
+                                <p class="mb-2 text-muted small"><strong class="text-dark">Email:</strong> ${contacto.email || 'No registrado'}</p>
+                                <p class="mb-0 text-muted small"><strong class="text-dark">Ubicación:</strong> ${contacto.direccion || ''} ${contacto.ciudad ? \`(\${contacto.ciudad})\` : ''}</p>
+                            </div>
+                        </div>
                     </div>
-                    <div class="info-card">
-                        <h4>Condiciones Comerciales</h4>
-                        <p><strong>Régimen:</strong> ${contacto.regimen || 'Regimen Simplificado'}</p>
-                        <p><strong>Cupo de Crédito:</strong> $${(contacto.cupoCredito || 0).toLocaleString()}</p>
-                        <p><strong>Plazos de Pago:</strong> ${contacto.plazosPago || 0} días</p>
+                    <div class="col-md-6">
+                        <div class="card border-0 shadow-sm h-100">
+                            <div class="card-body">
+                                <h4 class="h6 fw-bold text-dark mb-3">Condiciones Comerciales</h4>
+                                <p class="mb-2 text-muted small"><strong class="text-dark">Régimen:</strong> ${contacto.regimen || 'Regimen Simplificado'}</p>
+                                <p class="mb-2 text-muted small"><strong class="text-dark">Cupo de Crédito:</strong> $${(contacto.cupoCredito || 0).toLocaleString()}</p>
+                                <p class="mb-0 text-muted small"><strong class="text-dark">Plazos de Pago:</strong> ${contacto.plazosPago || 0} días</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         `;
 
-        element.querySelector('#btn-volver-perfil')?.addEventListener('click', () => this.renderTabla(element));
+        this.element.querySelector('#btn-volver-perfil')?.addEventListener('click', () => {
+            this.restaurarVistaTabla();
+        });
     },
 
-    async filtrarContactos(element) {
-        const query = element.querySelector('#search-contacto')?.value.toLowerCase() || '';
-        const tipo = element.querySelector('#filter-tipo')?.value || 'todos';
-        const tbody = element.querySelector('#tbody-contactos');
-        if (!tbody) return;
-
-        const contactos = await DB.getAll('contactos');
-
-        tbody.innerHTML = '';
-        contactos.forEach(c => {
-            if (c.estado === 'inactivo') return; // Soft delete check
-            const matchQuery = c.nombre.toLowerCase().includes(query) || c.nit.includes(query);
-            const matchTipo = tipo === 'todos' || c.tipo === tipo;
-
-            if (matchQuery && matchTipo) {
-                tbody.innerHTML += `
-                    <tr data-id="${c.id}">
-                        <td><strong>${c.nombre}</strong></td>
-                        <td>${c.nit}</td>
-                        <td><span class="badge ${c.tipo}">${c.tipo.toUpperCase()}</span></td>
-                        <td>${c.telefono || 'N/A'}</td>
-                        <td>${c.ciudad || 'N/A'}</td>
-                        <td>
-                            <button class="btn-action btn-ver" data-id="${c.id}">Ver</button>
-                            <button class="btn-action btn-editar" data-id="${c.id}">Editar</button>
-                            <button class="btn-action btn-eliminar" data-id="${c.id}" style="color: red;">Eliminar</button>
-                        </td>
-                    </tr>
-                `;
-            }
-        });
+    restaurarVistaTabla() {
+        const tabs = this.element.querySelector('#contactos-tabs');
+        if (tabs) tabs.style.display = 'flex';
         
-        tbody.querySelectorAll('.btn-ver').forEach(btn => {
-            btn.addEventListener('click', (e) => this.renderDetalle(element, e.target.dataset.id));
-        });
-        tbody.querySelectorAll('.btn-editar').forEach(btn => {
-            btn.addEventListener('click', (e) => this.renderForm(element, e.target.dataset.id));
-        });
-        tbody.querySelectorAll('.btn-eliminar').forEach(btn => {
-            btn.addEventListener('click', async (e) => {
-                if (confirm('¿Está seguro de eliminar este contacto?')) {
-                    await CoreActions.softDelete('contactos', e.target.dataset.id);
-                    await this.filtrarContactos(element);
-                }
-            });
-        });
-    },
-
-    /**
-     * Renderiza un modal rápido (Bootstrap) para crear un cliente mínimo.
-     * @param {string} query - El texto que el usuario escribió en el buscador.
-     * @param {function} callback - Función a ejecutar con el contacto recién creado.
-     */
-    renderQuickModal(query, callback) {
-        // 1. Crear la estructura del modal dinámicamente si no existe en el DOM
-        let modalEl = document.getElementById('quick-cliente-modal');
-        if (!modalEl) {
-            modalEl = document.createElement('div');
-            modalEl.id = 'quick-cliente-modal';
-            modalEl.className = 'modal fade';
-            modalEl.setAttribute('tabindex', '-1');
-            modalEl.innerHTML = `
-                <div class="modal-dialog modal-dialog-centered">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title">Crear Cliente Rápido</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        const container = this.element.querySelector('#contactos-view-container');
+        if (container) {
+            container.innerHTML = `
+                <div id="tabla-contactos-wrapper">
+                    <div class="d-flex justify-content-between mb-3">
+                        <div class="input-group" style="max-width: 300px;">
+                            <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
+                            <input type="text" id="search-contacto" class="form-control border-start-0 ps-0" placeholder="Buscar..." style="box-shadow: none;">
                         </div>
-                        <div class="modal-body">
-                            <form id="form-quick-cliente">
-                                <div class="mb-3">
-                                    <label class="form-label">Nombre o Razón Social <span style="color:red">*</span></label>
-                                    <input type="text" class="form-control" id="quick-nombre" required>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">NIT / CC <span style="color:red">*</span></label>
-                                    <input type="text" class="form-control" id="quick-nit" required>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Teléfono</label>
-                                    <input type="tel" class="form-control" id="quick-telefono">
-                                </div>
-                            </form>
+                        <button id="btn-filtrar" class="btn btn-light border text-muted"><i class="bi bi-funnel"></i> Filtrar</button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light text-muted small text-uppercase">
+                                <tr>
+                                    <th style="width: 40px;"><input type="checkbox" class="form-check-input" id="check-all"></th>
+                                    <th>Nombre <i class="bi bi-arrow-up-short"></i></th>
+                                    <th>Identificación</th>
+                                    <th>Teléfono</th>
+                                    <th>Tipo</th>
+                                    <th class="text-end">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbody-contactos"></tbody>
+                        </table>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mt-3 text-muted small">
+                        <div class="d-flex align-items-center gap-3">
+                            <span>Página <span id="current-page">1</span> de <span id="total-pages">1</span></span>
+                            <div class="btn-group">
+                                <button class="btn btn-sm btn-light border text-muted" id="btn-prev-page"><i class="bi bi-chevron-left"></i></button>
+                                <button class="btn btn-sm btn-light border text-muted" id="btn-next-page"><i class="bi bi-chevron-right"></i></button>
+                            </div>
                         </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                            <button type="button" class="btn btn-primary" id="btn-save-quick-cliente">Guardar Cliente</button>
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="d-flex align-items-center gap-2">
+                                Contactos por página: 
+                                <select id="items-per-page" class="form-select form-select-sm border-0 bg-transparent text-muted fw-bold" style="width: 60px; box-shadow: none; cursor: pointer;">
+                                    <option value="10" ${this.state.itemsPerPage === 10 ? 'selected' : ''}>10</option>
+                                    <option value="25" ${this.state.itemsPerPage === 25 ? 'selected' : ''}>25</option>
+                                    <option value="50" ${this.state.itemsPerPage === 50 ? 'selected' : ''}>50</option>
+                                </select>
+                            </span>
+                            <span id="showing-count">1-10 de 709</span>
+                            <button id="btn-refresh" class="btn btn-sm btn-light border text-muted rounded-circle" style="width: 30px; height: 30px; padding: 0;"><i class="bi bi-arrow-clockwise"></i></button>
                         </div>
                     </div>
                 </div>
             `;
-            document.body.appendChild(modalEl);
+            if(this.state.searchQuery) {
+                const search = this.element.querySelector('#search-contacto');
+                if(search) search.value = this.state.searchQuery;
+            }
+            this.bindEvents();
+            this.renderTabla();
         }
-
-        // 2. Instanciar el modal de Bootstrap
-        const modalInstance = new bootstrap.Modal(modalEl);
-
-        // 3. Precargar datos y resetear el formulario
-        const inputNombre = modalEl.querySelector('#quick-nombre');
-        const inputNit = modalEl.querySelector('#quick-nit');
-        const inputTelefono = modalEl.querySelector('#quick-telefono');
-        const form = modalEl.querySelector('#form-quick-cliente');
-
-        form.reset();
-        inputNombre.value = query || '';
-        
-        // 4. Configurar el evento de guardado
-        const btnSave = modalEl.querySelector('#btn-save-quick-cliente');
-        
-        // Evitar suscripciones múltiples clonando y reemplazando el botón
-        const newBtnSave = btnSave.cloneNode(true);
-        btnSave.parentNode.replaceChild(newBtnSave, btnSave);
-        
-        newBtnSave.addEventListener('click', async () => {
-            if (!form.checkValidity()) {
-                form.reportValidity();
-                return;
-            }
-
-            // Datos mínimos explícitos
-            const datos = {
-                nombre: inputNombre.value.trim(),
-                nit: inputNit.value.trim(),
-                telefono: inputTelefono.value.trim(),
-                tipo: 'cliente',
-                regimen: 'Regimen Simplificado',
-                cupoCredito: 0,
-                plazosPago: 0,
-                fechaCreacion: new Date().toISOString()
-            };
-
-            try {
-                newBtnSave.disabled = true;
-                newBtnSave.textContent = 'Guardando...';
-
-                // Usamos la lógica centralizada de la línea 46
-                const nuevoContacto = await this.guardarContacto(datos);
-                
-                modalInstance.hide();
-                
-                if (typeof callback === 'function') {
-                    callback(nuevoContacto);
-                }
-            } catch (err) {
-                console.error('Error al guardar cliente rápido:', err);
-                alert('Ocurrió un error al guardar: ' + err.message);
-            } finally {
-                newBtnSave.disabled = false;
-                newBtnSave.textContent = 'Guardar Cliente';
-            }
-        });
-
-        // 5. Mostrar el modal (y dar foco al primer campo útil)
-        modalEl.addEventListener('shown.bs.modal', function onShown() {
-            inputNit.focus();
-            modalEl.removeEventListener('shown.bs.modal', onShown);
-        });
-
-        modalInstance.show();
     }
 };
