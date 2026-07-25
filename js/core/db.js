@@ -1,7 +1,7 @@
-// js/db.js
-// MÃ³dulo de persistencia local indexada y sincronizaciÃ³n para MAS Accesorios
+ï»¿// js/db.js
+// Mè´¸dulo de persistencia local indexada y sincronizaciè´¸n para MAS Accesorios
 
-import { db, collection, doc, getDoc, getDocs, setDoc, deleteDoc } from './firebase.js';
+import { db, collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc } from './firebase.js';
 
 const DB_NAME = 'MasAccesoriosDB';
 const DB_VERSION = 3;
@@ -20,33 +20,33 @@ const DB = {
             request.onupgradeneeded = (e) => {
                 const db = e.target.result;
 
-                // 1. AlmacÃ©n de Contactos (Clientes y Proveedores)
+                // 1. AlmacèŒ…n de Contactos (Clientes y Proveedores)
                 if (!db.objectStoreNames.contains('contactos')) {
                     const store = db.createObjectStore('contactos', { keyPath: 'id' });
                     store.createIndex('by_nit', 'nit', { unique: false });
                     store.createIndex('by_tipo', 'tipo', { unique: false }); // 'cliente' o 'proveedor'
                 }
 
-                // 2. AlmacÃ©n de Productos e Inventarios
+                // 2. AlmacèŒ…n de Productos e Inventarios
                 if (!db.objectStoreNames.contains('productos')) {
                     const store = db.createObjectStore('productos', { keyPath: 'id' });
                     store.createIndex('by_sku', 'sku', { unique: true });
                 }
 
-                // 3. AlmacÃ©n de Lotes FIFO para tracking de costos reales
+                // 3. AlmacèŒ…n de Lotes FIFO para tracking de costos reales
                 if (!db.objectStoreNames.contains('lotes_fifo')) {
                     const store = db.createObjectStore('lotes_fifo', { keyPath: 'id' });
                     store.createIndex('by_producto', 'productoId', { unique: false });
                 }
 
-                // 4. AlmacÃ©n de Cotizaciones
+                // 4. AlmacèŒ…n de Cotizaciones
                 if (!db.objectStoreNames.contains('cotizaciones')) {
                     const store = db.createObjectStore('cotizaciones', { keyPath: 'id' });
                     store.createIndex('by_cliente', 'clienteId', { unique: false });
                     store.createIndex('by_estado', 'estado', { unique: false });
                 }
 
-                // 5. AlmacÃ©n de Facturas y Cuentas por Cobrar/Pagar
+                // 5. AlmacèŒ…n de Facturas y Cuentas por Cobrar/Pagar
                 if (!db.objectStoreNames.contains('facturas')) {
                     const store = db.createObjectStore('facturas', { keyPath: 'id' });
                     store.createIndex('by_contacto', 'contactoId', { unique: false });
@@ -54,7 +54,7 @@ const DB = {
                     store.createIndex('by_estado', 'estado', { unique: false }); // 'paga', 'parcial', 'por_pagar'
                 }
 
-                // 6. AlmacÃ©n de Transacciones de Caja y Bancos
+                // 6. AlmacèŒ…n de Transacciones de Caja y Bancos
                 if (!db.objectStoreNames.contains('transacciones')) {
                     const store = db.createObjectStore('transacciones', { keyPath: 'id' });
                     store.createIndex('by_cuenta', 'cuentaId', { unique: false });
@@ -79,25 +79,25 @@ const DB = {
 
             request.onsuccess = (e) => {
                 dbInstance = e.target.result;
-                console.log("IndexedDB inicializada con Ã©xito.");
+                console.log("IndexedDB inicializada con èŒ…xito.");
                 resolve(dbInstance);
             };
 
             request.onerror = (e) => {
-                console.error("Error crÃ­tico abriendo IndexedDB:", e.target.error);
+                console.error("Error cré“†tico abriendo IndexedDB:", e.target.error);
                 reject(e.target.error);
             };
         });
     },
 
     /**
-     * Guarda o actualiza un registro de forma idempotente en un almacÃ©n.
+     * Guarda o actualiza un registro de forma idempotente en un almacèŒ…n.
      * Si storeName es 'productos', persiste en Firestore; el resto usa IndexedDB.
      */
     async save(storeName, data) {
-        if (!data.id) throw new Error(`El registro debe contener un ID Ãºnico para persistencia en ${storeName}.`);
+        if (!data.id) throw new Error(`El registro debe contener un ID ç…¤nico para persistencia en ${storeName}.`);
 
-        // TODO: transacciones sigue en IndexedDB â€” bancos.js hace getAll completo para sumar saldos, migrar solo despuÃ©s de refactorizar a saldo acumulado para no agotar cuota de lecturas de Firestore.
+        // TODO: transacciones sigue en IndexedDB éˆ¥?bancos.js hace getAll completo para sumar saldos, migrar solo despuèŒ…s de refactorizar a saldo acumulado para no agotar cuota de lecturas de Firestore.
         if (storeName === 'productos' || storeName === 'contactos' || storeName === 'cotizaciones' || storeName === 'facturas' || storeName === 'lotes_fifo') {
             const ref = doc(db, storeName, data.id);
             await setDoc(ref, data);
@@ -115,11 +115,11 @@ const DB = {
     },
 
     /**
-     * Obtiene un registro por su ID Ãºnico.
+     * Obtiene un registro por su ID ç…¤nico.
      * Si storeName es 'productos', lee desde Firestore; el resto usa IndexedDB.
      */
     async get(storeName, id) {
-        // TODO: transacciones sigue en IndexedDB â€” bancos.js hace getAll completo para sumar saldos, migrar solo despuÃ©s de refactorizar a saldo acumulado para no agotar cuota de lecturas de Firestore.
+        // TODO: transacciones sigue en IndexedDB éˆ¥?bancos.js hace getAll completo para sumar saldos, migrar solo despuèŒ…s de refactorizar a saldo acumulado para no agotar cuota de lecturas de Firestore.
         if (storeName === 'productos' || storeName === 'contactos' || storeName === 'cotizaciones' || storeName === 'facturas' || storeName === 'lotes_fifo') {
             const ref = doc(db, storeName, id);
             const snap = await getDoc(ref);
@@ -137,11 +137,11 @@ const DB = {
     },
 
     /**
-     * Obtiene todos los registros de un almacÃ©n especÃ­fico.
+     * Obtiene todos los registros de un almacèŒ…n especé“†fico.
      * Si storeName es 'productos', usa getDocs() (lectura puntual); el resto usa IndexedDB.
      */
     async getAll(storeName) {
-        // TODO: transacciones sigue en IndexedDB â€” bancos.js hace getAll completo para sumar saldos, migrar solo despuÃ©s de refactorizar a saldo acumulado para no agotar cuota de lecturas de Firestore.
+        // TODO: transacciones sigue en IndexedDB éˆ¥?bancos.js hace getAll completo para sumar saldos, migrar solo despuèŒ…s de refactorizar a saldo acumulado para no agotar cuota de lecturas de Firestore.
         if (storeName === 'productos' || storeName === 'contactos' || storeName === 'cotizaciones' || storeName === 'facturas' || storeName === 'lotes_fifo') {
             const snap = await getDocs(collection(db, storeName));
             return snap.docs.map(d => d.data());
@@ -158,11 +158,11 @@ const DB = {
     },
 
     /**
-     * Elimina un registro por su ID Ãºnico.
+     * Elimina un registro por su ID ç…¤nico.
      * Si storeName es 'productos', elimina en Firestore; el resto usa IndexedDB.
      */
     async delete(storeName, id) {
-        // TODO: transacciones sigue en IndexedDB â€” bancos.js hace getAll completo para sumar saldos, migrar solo despuÃ©s de refactorizar a saldo acumulado para no agotar cuota de lecturas de Firestore.
+        // TODO: transacciones sigue en IndexedDB éˆ¥?bancos.js hace getAll completo para sumar saldos, migrar solo despuèŒ…s de refactorizar a saldo acumulado para no agotar cuota de lecturas de Firestore.
         if (storeName === 'productos' || storeName === 'contactos' || storeName === 'cotizaciones' || storeName === 'facturas' || storeName === 'lotes_fifo') {
             await deleteDoc(doc(db, storeName, id));
             return true;
@@ -179,13 +179,13 @@ const DB = {
     }
 };
 
-// AutoejecuciÃ³n preventiva para asegurar la disponibilidad del esquema global
-DB.init().catch(err => console.error("Fallo automÃ¡ico de inicializaciÃ³n DB:", err));
+// Autoejecuciè´¸n preventiva para asegurar la disponibilidad del esquema global
+DB.init().catch(err => console.error("Fallo automè°©ico de inicializaciè´¸n DB:", err));
 
 export default DB;
 
 // ============================================================================
-// SCRIPT DE RESTAURACIÃ“N DE BACKUPS (JSON -> Firestore/IndexedDB)
+// SCRIPT DE RESTAURACIè„«N DE BACKUPS (JSON -> Firestore/IndexedDB)
 // Ejecutar en consola del navegador: await window.runRestoration()
 // ============================================================================
 window.runRestoration = async function() {
@@ -204,7 +204,7 @@ window.runRestoration = async function() {
         const fCompleto = getFile('backup_completo_pre_v3');
 
         if (!fInventario || !fContactos || !fFacturas || !fCompleto) {
-            console.error("Faltan archivos. AsegÃºrate de seleccionar los 4 requeridos.");
+            console.error("Faltan archivos. Asegç…¤rate de seleccionar los 4 requeridos.");
             return;
         }
 
@@ -224,14 +224,14 @@ window.runRestoration = async function() {
         const productosAprobados = invData.productos.filter(p => !p.sku.match(/^500[1-5]-/));
         const productosExcluidos = invData.productos.filter(p => p.sku.match(/^500[1-5]-/));
         const excluidosIds = productosExcluidos.map(p => p.id);
-        console.log(`- Productos: LeÃ­dos ${originalProdCount}, Excluidos ${productosExcluidos.length}, A restaurar ${productosAprobados.length}`);
+        console.log(`- Productos: Leé“†dos ${originalProdCount}, Excluidos ${productosExcluidos.length}, A restaurar ${productosAprobados.length}`);
 
         // Lotes FIFO
         const originalLoteCount = invData.lotes.length;
         const lotesAprobados = invData.lotes.filter(l => !excluidosIds.includes(l.productoId));
-        console.log(`- Lotes FIFO: LeÃ­dos ${originalLoteCount}, Excluidos ${originalLoteCount - lotesAprobados.length}, A restaurar ${lotesAprobados.length}`);
+        console.log(`- Lotes FIFO: Leé“†dos ${originalLoteCount}, Excluidos ${originalLoteCount - lotesAprobados.length}, A restaurar ${lotesAprobados.length}`);
 
-        // Las demÃ¡s no necesitan filtro
+        // Las demè°©s no necesitan filtro
         const contactos = contData.length ? contData : contData.contactos || Object.values(contData);
         const facturas = facData.length ? facData : facData.facturas || Object.values(facData);
         const transacciones = compData.transacciones || [];
@@ -245,10 +245,10 @@ window.runRestoration = async function() {
 
         let totalAEscribir = coleccionesFirestore.reduce((acc, curr) => acc + curr.data.length, 0);
         
-        const confirmar = confirm(`Se escribirÃ¡n ${totalAEscribir} documentos en Firestore y ${transacciones.length} en IndexedDB.\nÂ¿Proceder?`);
+        const confirmar = confirm(`Se escribirè°©n ${totalAEscribir} documentos en Firestore y ${transacciones.length} en IndexedDB.\né©´Proceder?`);
         if (!confirmar) return;
 
-        console.log("\n=== FASE 2: RestauraciÃ³n Firestore ===");
+        console.log("\n=== FASE 2: Restauraciè´¸n Firestore ===");
         let totalErroresGlobales = 0;
 
         for (const col of coleccionesFirestore) {
@@ -261,7 +261,7 @@ window.runRestoration = async function() {
                 const chunk = col.data.slice(i, i + chunkSize);
                 await Promise.all(chunk.map(async (docData) => {
                     try {
-                        if (!docData.id) throw new Error("ID invÃ¡lido");
+                        if (!docData.id) throw new Error("ID invè°©lido");
                         const ref = doc(db, col.name, String(docData.id));
                         await setDoc(ref, docData);
                     } catch (error) {
@@ -273,16 +273,16 @@ window.runRestoration = async function() {
             }
 
             const snap = await getDocs(collection(db, col.name));
-            console.log(`âœ… RESULTADO ${col.name}: Archivo=${col.data.length} | Nube=${snap.size}`);
+            console.log(`é‰?RESULTADO ${col.name}: Archivo=${col.data.length} | Nube=${snap.size}`);
             
             if (errores.length > 0) {
                 totalErroresGlobales += errores.length;
-                console.error(`âŒ ERRORES EN ${col.name}: ${errores.length}`);
+                console.error(`é‰‚?ERRORES EN ${col.name}: ${errores.length}`);
                 console.table(errores);
             }
         }
 
-        console.log("\n=== FASE 3: RestauraciÃ³n IndexedDB (Transacciones) ===");
+        console.log("\n=== FASE 3: Restauraciè´¸n IndexedDB (Transacciones) ===");
         const idb = await DB.init();
         const txCount = transacciones.length;
         if (txCount > 0) {
@@ -297,19 +297,19 @@ window.runRestoration = async function() {
                 idbTx.oncomplete = () => resolve();
                 idbTx.onerror = () => reject(idbTx.error);
             });
-            console.log(`âœ… RESULTADO transacciones: Archivo=${txCount} | IndexedDB=Restauradas (${txErrores} errores)`);
+            console.log(`é‰?RESULTADO transacciones: Archivo=${txCount} | IndexedDB=Restauradas (${txErrores} errores)`);
         } else {
             console.log("No hay transacciones para restaurar.");
         }
 
-        console.log("\nðŸš€ RESTAURACIÃ“N COMPLETA.");
+        console.log("\né¦ƒæ®Œ RESTAURACIè„«N COMPLETA.");
     };
 
     input.click();
 };
 // SCRIPT DE DEDUPLICACION (FIRESTORE)
 window.runDeduplication = async function() {
-    console.log("Iniciando an¨¢lisis de deduplicaci¨®n en Firestore...");
+    console.log("Iniciando anÃ¡lisis de deduplicaciÃ³n en Firestore...");
 
     // 1. Obtener todos los contactos
     const snap = await getDocs(collection(db, 'contactos'));
@@ -331,7 +331,7 @@ window.runDeduplication = async function() {
     URL.revokeObjectURL(url);
     console.log("Respaldo JSON descargado correctamente en tu equipo.");
 
-    // 3. Agrupar por NIT o por Nombre Normalizado + Tel¨¦fono
+    // 3. Agrupar por NIT o por Nombre Normalizado + TelÃ©fono
     const grupos = {};
     for (const c of contactos) {
         let key;
@@ -349,8 +349,8 @@ window.runDeduplication = async function() {
     }
 
     // 4. Analizar e identificar operaciones (Merge Inteligente)
-    const docsAActualizar = []; // Registros base que heredar¨¢n campos
-    const docsAEliminar = []; // Duplicados que ser¨¢n borrados
+    const docsAActualizar = []; // Registros base que heredarÃ¡n campos
+    const docsAEliminar = []; // Duplicados que serÃ¡n borrados
     const muestraGrupos = []; // Para reporte en consola
 
     const keys = Object.keys(grupos);
@@ -361,14 +361,14 @@ window.runDeduplication = async function() {
             const base = { ...grupo[0] };
             const duplicados = grupo.slice(1);
 
-            // Merge inteligente: rellenar campos vac¨ªos del base
+            // Merge inteligente: rellenar campos vacÃ­os del base
             for (const dup of duplicados) {
                 for (const field of Object.keys(dup)) {
                     if (field !== 'id') {
                         const valBase = base[field];
                         const valDup = dup[field];
-                        // Si el base lo tiene vac¨ªo, pero el duplicado s¨ª lo tiene, heredarlo
-                        // Aseguramos respetar valores reales como el n¨²mero 0
+                        // Si el base lo tiene vacÃ­o, pero el duplicado sÃ­ lo tiene, heredarlo
+                        // Aseguramos respetar valores reales como el nÃºmero 0
                         if ((valBase === undefined || valBase === null || valBase === '') && (valDup !== undefined && valDup !== null && valDup !== '')) {
                             base[field] = valDup;
                         }
@@ -396,8 +396,8 @@ window.runDeduplication = async function() {
     }
 
     // 5. Mostrar en consola el resumen y la tabla de muestra
-    console.log(`\n=== RESUMEN DE DEDUPLICACI¨®N ===`);
-    console.log(`- Grupos ¨²nicos totales resultantes: ${keys.length}`);
+    console.log(`\n=== RESUMEN DE DEDUPLICACIÃ³N ===`);
+    console.log(`- Grupos Ãºnicos totales resultantes: ${keys.length}`);
     console.log(`- Registros base a fusionar/actualizar: ${docsAActualizar.length}`);
     console.log(`- Documentos basura a eliminar de Firestore: ${docsAEliminar.length}`);
     
@@ -414,14 +414,14 @@ window.runDeduplication = async function() {
     // 6. Lanzar confirm de bloqueo de seguridad
     const proceder = confirm(
         `RESPALDO DESCARGADO.\n\n` +
-        `An¨¢lisis terminado:\n` +
-        `- Se enriquecer¨¢n ${docsAActualizar.length} registros base.\n` +
-        `- SE ELIMINAR¨¢N ${docsAEliminar.length} registros duplicados de Firestore.\n\n` +
-        `?Deseas proceder con la fusi¨®n y el borrado final?`
+        `AnÃ¡lisis terminado:\n` +
+        `- Se enriquecerÃ¡n ${docsAActualizar.length} registros base.\n` +
+        `- SE ELIMINARÃ¡N ${docsAEliminar.length} registros duplicados de Firestore.\n\n` +
+        `?Deseas proceder con la fusiÃ³n y el borrado final?`
     );
     
     if (!proceder) {
-        console.log("Operaci¨®n cancelada por el usuario.");
+        console.log("OperaciÃ³n cancelada por el usuario.");
         return;
     }
 
@@ -467,9 +467,9 @@ window.runDeduplication = async function() {
     }
 };
 
-// SCRIPT DE RECONCILIACI¨®N DE PRECIOS (FIRESTORE)
+// SCRIPT DE RECONCILIACIÃ³N DE PRECIOS (FIRESTORE)
 window.runPriceReconciliation = async function() {
-    console.log("Iniciando preparaci¨®n para reconciliaci¨®n de precios...");
+    console.log("Iniciando preparaciÃ³n para reconciliaciÃ³n de precios...");
 
     const input = document.createElement('input');
     input.type = 'file';
@@ -490,7 +490,7 @@ window.runPriceReconciliation = async function() {
                 else if (dataAlegra.productos) alegraProducts = dataAlegra.productos;
                 else if (dataAlegra.items) alegraProducts = dataAlegra.items;
 
-                console.log(`Le¨ªdos ${alegraProducts.length} productos del archivo ${file.name}.`);
+                console.log(`LeÃ­dos ${alegraProducts.length} productos del archivo ${file.name}.`);
 
                 console.log("Descargando productos actuales de Firestore...");
                 const snap = await getDocs(collection(db, 'productos'));
@@ -543,8 +543,8 @@ window.runPriceReconciliation = async function() {
                     const pFirestore = firestoreProducts.find(pf => String(pf.sku).trim() === String(sku).trim());
                     
                     if (pFirestore) {
-                        // Solo agregamos si el precio realmente cambi¨® o est¨¢ en 0
-                        // (Si quieres forzar sobrescribir todos, puedes quitar esta validaci¨®n)
+                        // Solo agregamos si el precio realmente cambiÃ³ o estÃ¡ en 0
+                        // (Si quieres forzar sobrescribir todos, puedes quitar esta validaciÃ³n)
                         aActualizar.push({
                             id: pFirestore.id,
                             sku: sku,
@@ -560,12 +560,12 @@ window.runPriceReconciliation = async function() {
                     }
                 }
 
-                console.log(`\n=== RESUMEN DE RECONCILIACI¨®N ===`);
+                console.log(`\n=== RESUMEN DE RECONCILIACIÃ³N ===`);
                 console.log(`- Coincidencias exactas por SKU (a actualizar): ${aActualizar.length}`);
                 console.log(`- Productos de Alegra NO encontrados en Firestore: ${noEncontrados.length}`);
                 
                 if (aActualizar.length === 0) {
-                    console.log("No hay coincidencias. Operaci¨®n terminada.");
+                    console.log("No hay coincidencias. OperaciÃ³n terminada.");
                     return;
                 }
 
@@ -577,16 +577,16 @@ window.runPriceReconciliation = async function() {
                 const proceder = confirm(
                     `RESPALDO DESCARGADO.\n\n` +
                     `Se encontraron ${aActualizar.length} productos coincidentes por SKU.\n` +
-                    `${noEncontrados.length} productos del archivo no est¨¢n en Firestore.\n\n` +
+                    `${noEncontrados.length} productos del archivo no estÃ¡n en Firestore.\n\n` +
                     `?Deseas proceder a hacer updateDoc() parcial del campo precioVenta en los ${aActualizar.length} documentos de Firestore?`
                 );
 
                 if (!proceder) {
-                    console.log("Operaci¨®n cancelada por el usuario.");
+                    console.log("OperaciÃ³n cancelada por el usuario.");
                     return;
                 }
 
-                console.log("\nIniciando actualizaci¨®n quir¨²rgica en Firestore...");
+                console.log("\nIniciando actualizaciÃ³n quirÃºrgica en Firestore...");
                 let exitosos = 0;
                 let errores = 0;
 
@@ -606,7 +606,7 @@ window.runPriceReconciliation = async function() {
                     }
                 }
 
-                console.log(`\n?? RECONCILIACI¨®N DE PRECIOS COMPLETA.`);
+                console.log(`\n?? RECONCILIACIÃ³N DE PRECIOS COMPLETA.`);
                 console.log(`- Actualizaciones exitosas: ${exitosos}`);
                 if (errores > 0) console.error(`- Ocurrieron ${errores} errores.`);
                 
@@ -618,3 +618,4 @@ window.runPriceReconciliation = async function() {
     };
     input.click();
 };
+
