@@ -307,3 +307,162 @@ window.runRestoration = async function() {
 
     input.click();
 };
+// SCRIPT DE DEDUPLICACION (FIRESTORE)
+window.runDeduplication = async function() {
+    console.log("Iniciando an¨¢lisis de deduplicaci¨®n en Firestore...");
+
+    // 1. Obtener todos los contactos
+    const snap = await getDocs(collection(db, 'contactos'));
+    const contactos = [];
+    snap.forEach(doc => contactos.push({ id: doc.id, ...doc.data() }));
+
+    console.log(`Descargados ${contactos.length} contactos de Firestore.`);
+
+    // 2. Generar y forzar descarga de respaldo JSON crudo (Pre-Delete)
+    const dataStr = JSON.stringify(contactos, null, 2);
+    const blob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `firestore_contactos_pre_dedup_${new Date().getTime()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    console.log("Respaldo JSON descargado correctamente en tu equipo.");
+
+    // 3. Agrupar por NIT o por Nombre Normalizado + Tel¨¦fono
+    const grupos = {};
+    for (const c of contactos) {
+        let key;
+        const nit = c.nit ? String(c.nit).trim() : '';
+        if (nit && nit.toUpperCase() !== 'S/N') {
+            key = nit.toUpperCase();
+        } else {
+            const n = c.nombre ? String(c.nombre).trim().toLowerCase().replace(/\s+/g, ' ') : '';
+            const t = c.telefono ? String(c.telefono).trim() : '';
+            key = `${n}|${t}`;
+        }
+        
+        if (!grupos[key]) grupos[key] = [];
+        grupos[key].push(c);
+    }
+
+    // 4. Analizar e identificar operaciones (Merge Inteligente)
+    const docsAActualizar = []; // Registros base que heredar¨¢n campos
+    const docsAEliminar = []; // Duplicados que ser¨¢n borrados
+    const muestraGrupos = []; // Para reporte en consola
+
+    const keys = Object.keys(grupos);
+    for (const key of keys) {
+        const grupo = grupos[key];
+        if (grupo.length > 1) {
+            // Tomamos el primer registro como BASE
+            const base = { ...grupo[0] };
+            const duplicados = grupo.slice(1);
+
+            // Merge inteligente: rellenar campos vac¨ªos del base
+            for (const dup of duplicados) {
+                for (const field of Object.keys(dup)) {
+                    if (field !== 'id') {
+                        const valBase = base[field];
+                        const valDup = dup[field];
+                        // Si el base lo tiene vac¨ªo, pero el duplicado s¨ª lo tiene, heredarlo
+                        // Aseguramos respetar valores reales como el n¨²mero 0
+                        if ((valBase === undefined || valBase === null || valBase === '') && (valDup !== undefined && valDup !== null && valDup !== '')) {
+                            base[field] = valDup;
+                        }
+                    }
+                }
+                docsAEliminar.push(dup.id);
+            }
+            
+            docsAActualizar.push(base);
+
+            // Guardar para la muestra de consola
+            if (muestraGrupos.length < 10) {
+                muestraGrupos.push({
+                    criterio: key,
+                    totalEnGrupo: grupo.length,
+                    idBaseFinal: base.id,
+                    nombreFinal: base.nombre,
+                    telefonoFinal: base.telefono,
+                    emailFinal: base.email,
+                    direccionFinal: base.direccion,
+                    idsBorrados: duplicados.map(d => d.id).join(', ')
+                });
+            }
+        }
+    }
+
+    // 5. Mostrar en consola el resumen y la tabla de muestra
+    console.log(`\n=== RESUMEN DE DEDUPLICACI¨®N ===`);
+    console.log(`- Grupos ¨²nicos totales resultantes: ${keys.length}`);
+    console.log(`- Registros base a fusionar/actualizar: ${docsAActualizar.length}`);
+    console.log(`- Documentos basura a eliminar de Firestore: ${docsAEliminar.length}`);
+    
+    if (muestraGrupos.length > 0) {
+        console.log(`\n--- MUESTRA DE LOS PRIMEROS 10 GRUPOS (YA FUSIONADOS) ---`);
+        console.table(muestraGrupos);
+    }
+
+    if (docsAEliminar.length === 0) {
+        console.log("No hay duplicados para limpiar. Proceso terminado.");
+        return;
+    }
+
+    // 6. Lanzar confirm de bloqueo de seguridad
+    const proceder = confirm(
+        `RESPALDO DESCARGADO.\n\n` +
+        `An¨¢lisis terminado:\n` +
+        `- Se enriquecer¨¢n ${docsAActualizar.length} registros base.\n` +
+        `- SE ELIMINAR¨¢N ${docsAEliminar.length} registros duplicados de Firestore.\n\n` +
+        `?Deseas proceder con la fusi¨®n y el borrado final?`
+    );
+    
+    if (!proceder) {
+        console.log("Operaci¨®n cancelada por el usuario.");
+        return;
+    }
+
+    // 7. Ejecutar cambios en Firestore (Protegido con try/catch individual)
+    console.log("\nEjecutando cambios en Firestore...");
+    let errores = 0;
+    
+    // 7a. Primero actualizar los base
+    for (const base of docsAActualizar) {
+        try {
+            const ref = doc(db, 'contactos', String(base.id));
+            await setDoc(ref, base);
+        } catch (e) {
+            console.error(`Error fusionando el base ${base.id}:`, e);
+            errores++;
+        }
+    }
+    console.log(`? Actualizados ${docsAActualizar.length} registros base.`);
+
+    // 7b. Luego borrar los excedentes (deleteDoc)
+    let borrados = 0;
+    for (const id of docsAEliminar) {
+        try {
+            const ref = doc(db, 'contactos', String(id));
+            await deleteDoc(ref);
+            borrados++;
+        } catch (e) {
+            console.error(`Error eliminando el duplicado ${id}:`, e);
+            errores++;
+        }
+        if (borrados % 100 === 0) console.log(`Progreso borrado: ${borrados}/${docsAEliminar.length}...`);
+    }
+
+    // Recalcular Nube
+    const snapFinal = await getDocs(collection(db, 'contactos'));
+    
+    console.log(`\n?? LIMPIEZA FINALIZADA.`);
+    console.log(`- Duplicados eliminados exitosamente: ${borrados}`);
+    console.log(`- Total de contactos en Firestore AHORA: ${snapFinal.size}`);
+    
+    if (errores > 0) {
+        console.error(`- Ocurrieron ${errores} errores durante el proceso.`);
+    }
+};
