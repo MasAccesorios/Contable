@@ -121,6 +121,25 @@ function initUI() {
             parent.classList.toggle('open');
         });
     });
+
+    // Lógica para el toggle del Sidebar en Móviles
+    const mobileToggle = document.getElementById('mobile-menu-toggle');
+    const sidebar = document.getElementById('sidebar');
+    
+    if (mobileToggle && sidebar) {
+        mobileToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('open');
+        });
+    }
+
+    // Auto-cerrar sidebar en móvil al hacer clic en cualquier enlace
+    document.querySelectorAll('#sidebar a').forEach(link => {
+        link.addEventListener('click', () => {
+            if (window.innerWidth <= 768) {
+                sidebar.classList.remove('open');
+            }
+        });
+    });
 }
 
 // Escuchadores globales de navegación y carga
