@@ -64,8 +64,10 @@ export const TesoreriaModule = {
                             <div class="card-body p-4">
                                 <div class="d-flex justify-content-between align-items-center mb-4">
                                     <h5 class="fw-bold mb-0" style="color: var(--text-main); font-size: 16px;">Ingresos y gastos</h5>
-                                    <select class="form-select form-select-sm border text-muted fw-medium" style="width: auto; border-radius: 6px; box-shadow: none;">
-                                        <option>Últimos 6 meses</option>
+                                    <select id="select-chart-rango" class="form-select form-select-sm border text-muted fw-medium" style="width: auto; border-radius: 6px; box-shadow: none;">
+                                        <option value="1">1 mes</option>
+                                        <option value="3">3 meses</option>
+                                        <option value="6" selected>6 meses</option>
                                     </select>
                                 </div>
                                 <div style="height: 250px; position: relative;">
@@ -223,6 +225,11 @@ export const TesoreriaModule = {
             this.renderTabla(e.target.value.toLowerCase().trim());
         });
 
+        el.querySelector('#select-chart-rango')?.addEventListener('change', (e) => {
+            const meses = parseInt(e.target.value, 10);
+            this.renderChart(meses);
+        });
+
         el.querySelector('#form-transferir')?.addEventListener('submit', async (e) => {
             e.preventDefault();
             const btn = document.getElementById('btn-confirmar-transf');
@@ -352,7 +359,7 @@ export const TesoreriaModule = {
         container.innerHTML = html;
     },
 
-    renderChart() {
+    renderChart(meses = 6) {
         const canvas = document.getElementById('chart-ingresos-gastos');
         if (!canvas) return;
 
@@ -361,15 +368,15 @@ export const TesoreriaModule = {
             this.state.chartInstance.destroy();
         }
 
-        // 1. Generar los últimos 6 meses cronológicos
+        // 1. Generar los últimos X meses cronológicos
         const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-        const ultimos6Meses = [];
+        const ultimosMeses = [];
         const hoy = new Date();
         
-        for (let i = 5; i >= 0; i--) {
+        for (let i = meses - 1; i >= 0; i--) {
             const d = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1);
             const prefix = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-            ultimos6Meses.push({
+            ultimosMeses.push({
                 prefix, 
                 label: monthNames[d.getMonth()], // Nombre del mes para el gráfico
                 ingresos: 0,
@@ -383,7 +390,7 @@ export const TesoreriaModule = {
             if (!t.fecha) return;
             const prefix = t.fecha.substring(0, 7); // "YYYY-MM"
             
-            const mesTarget = ultimos6Meses.find(m => m.prefix === prefix);
+            const mesTarget = ultimosMeses.find(m => m.prefix === prefix);
             if (mesTarget) {
                 if (t.tipo === 'ingreso') {
                     mesTarget.ingresos += t.monto;
@@ -394,9 +401,9 @@ export const TesoreriaModule = {
         });
 
         // 3. Preparar Data para Chart.js
-        const labels = ultimos6Meses.map(m => m.label);
-        const dataIngresos = ultimos6Meses.map(m => m.ingresos);
-        const dataGastos = ultimos6Meses.map(m => m.gastos);
+        const labels = ultimosMeses.map(m => m.label);
+        const dataIngresos = ultimosMeses.map(m => m.ingresos);
+        const dataGastos = ultimosMeses.map(m => m.gastos);
 
         this.state.chartInstance = new Chart(ctx, {
             type: 'bar',
