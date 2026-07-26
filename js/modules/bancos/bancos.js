@@ -1,7 +1,5 @@
-// js/modules/tesoreria.js
+// js/modules/bancos/bancos.js
 import DB from '../../core/db.js';
-import { CoreActions } from '../../shared/crud.js';
-import { UI } from '../../shared/combobox.js';
 
 export const TesoreriaModule = {
     cuentasConfig: [
@@ -29,540 +27,503 @@ export const TesoreriaModule = {
         { nombre: "AAACaja general", tipo: "Efectivo", numero: "-" }
     ],
 
+    state: {
+        transacciones: [],
+        saldos: {},
+        totalConsolidado: 0,
+        chartInstance: null
+    },
+
     async init(element) {
         if (!element) return;
+        this.element = element;
 
         element.innerHTML = `
-            <div class="module-container p-4">
+            <div class="module-container p-4" style="max-width: 1200px; margin: 0 auto;">
+                <!-- TOP BAR -->
                 <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h2 class="h3 fw-bold text-dark mb-0">Tesorería (Caja y Bancos)</h2>
+                    <div>
+                        <h2 class="h3 fw-bold mb-1" style="color: var(--text-main);">Bancos</h2>
+                        <p class="text-muted mb-0" style="font-size: 14px;">Controla los movimientos de dinero con tus cuentas de banco, efectivo y tarjetas de crédito.</p>
+                    </div>
                     <div class="d-flex gap-2">
-                        <button id="btn-nuevo-recaudo" class="btn btn-success">
-                            <i class="bi bi-box-arrow-in-down me-1"></i>Recaudo (Ingreso)
+                        <button id="btn-transferir" class="btn bg-white border fw-medium shadow-sm d-flex align-items-center px-3" style="color: #475569; font-size: 14px; border-radius: 6px;">
+                            <i class="bi bi-arrow-down-up me-2"></i> Transferir
                         </button>
-                        <button id="btn-nuevo-egreso" class="btn btn-danger">
-                            <i class="bi bi-box-arrow-up me-1"></i>Pago (Egreso)
+                        <button id="btn-agregar-banco" class="btn text-white fw-medium shadow-sm d-flex align-items-center px-3" style="background-color: #2cbfb7; font-size: 14px; border-radius: 6px;">
+                            <i class="bi bi-plus-lg me-2"></i> Agregar banco
                         </button>
                     </div>
                 </div>
 
-                <!-- Dashboard de Saldos -->
-                <div id="dashboard-saldos" class="row g-3 mb-4"></div>
+                <!-- ROW FOR CHART AND RESUMEN -->
+                <div class="row g-4 mb-4">
+                    <!-- Chart -->
+                    <div class="col-md-8">
+                        <div class="card border-0 h-100" style="box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.03), 0px 1px 3px rgba(0, 0, 0, 0.05); border-radius: 8px;">
+                            <div class="card-body p-4">
+                                <div class="d-flex justify-content-between align-items-center mb-4">
+                                    <h5 class="fw-bold mb-0" style="color: var(--text-main); font-size: 16px;">Ingresos y gastos</h5>
+                                    <select class="form-select form-select-sm border text-muted fw-medium" style="width: auto; border-radius: 6px; box-shadow: none;">
+                                        <option>Últimos 6 meses</option>
+                                    </select>
+                                </div>
+                                <div style="height: 250px; position: relative;">
+                                    <canvas id="chart-ingresos-gastos"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Resumen -->
+                    <div class="col-md-4">
+                        <div class="card border-0 h-100" style="box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.03), 0px 1px 3px rgba(0, 0, 0, 0.05); border-radius: 8px;">
+                            <div class="card-body p-4 d-flex flex-column">
+                                <h5 class="fw-bold mb-4" style="color: var(--text-main); font-size: 16px;">Resumen</h5>
+                                
+                                <div class="mb-4">
+                                    <p class="text-muted mb-1" style="font-size: 13px;">Saldo en bancos y efectivo</p>
+                                    <h3 class="fw-bold mb-0" style="color: #2cbfb7;" id="resumen-bancos">$0,00</h3>
+                                </div>
+                                
+                                <div class="mb-4 d-flex align-items-center justify-content-center" style="position: relative;">
+                                    <hr class="w-100 text-muted m-0 opacity-25">
+                                    <span class="bg-white px-2 position-absolute text-muted opacity-50" style="font-size: 12px;"><i class="bi bi-dash-circle"></i></span>
+                                </div>
+                                
+                                <div class="mt-2">
+                                    <p class="text-muted mb-1" style="font-size: 13px;">Saldo total</p>
+                                    <h3 class="fw-bold mb-0" style="color: var(--text-main);" id="resumen-total">$0,00</h3>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-                <!-- Lista de Transacciones -->
-                <div id="tesoreria-view-container" class="view-container"></div>
-            </div>
-        `;
-
-        element.querySelector('#btn-nuevo-recaudo')?.addEventListener('click', () => this.renderFormRecaudo(element));
-        element.querySelector('#btn-nuevo-egreso')?.addEventListener('click', () => this.renderFormEgreso(element));
-
-        await this.renderDashboard(element);
-        await this.renderTablaTransacciones(element);
-    },
-
-    async renderDashboard(element) {
-        const container = element.querySelector('#dashboard-saldos');
-        if (!container) return;
-
-        const transacciones = await DB.getAll('transacciones');
-        
-        // Calcular saldos por cuenta
-        const saldos = {};
-        this.cuentasConfig.forEach(c => saldos[c.nombre] = 0);
-
-        transacciones.forEach(t => {
-            const cuenta = t.cuentaId || 'AAACaja general';
-            if (saldos[cuenta] === undefined) saldos[cuenta] = 0;
-            
-            if (t.tipo === 'ingreso') {
-                saldos[cuenta] += t.monto;
-            } else if (t.tipo === 'egreso') {
-                saldos[cuenta] -= t.monto;
-            }
-        });
-
-        let totalConsolidado = 0;
-        
-        let html = `
-        <div class="col-12">
-            <div class="card border-0 shadow-sm mb-4">
-                <div class="card-body p-0">
+                <!-- TABLE -->
+                <div class="card border-0" style="box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.03), 0px 1px 3px rgba(0, 0, 0, 0.05); border-radius: 8px;">
+                    <div class="card-header bg-white border-bottom p-3 d-flex gap-3 align-items-center" style="border-radius: 8px 8px 0 0;">
+                        <div class="input-group input-group-sm" style="width: 300px;">
+                            <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
+                            <input type="text" id="search-bancos" class="form-control border-start-0 ps-0 text-muted" placeholder="Buscar bancos..." style="font-size: 13px; box-shadow: none;">
+                        </div>
+                        <button class="btn btn-sm btn-light border text-muted ms-auto d-flex align-items-center px-3" style="font-weight: 500; font-size: 13px;">
+                            <i class="bi bi-arrow-clockwise me-2"></i> Actualizar datos
+                        </button>
+                    </div>
                     <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0">
-                            <thead class="table-light text-muted small">
-                                <tr>
-                                    <th class="ps-4">Nombre</th>
-                                    <th>Tipo de cuenta</th>
-                                    <th>Número de cuenta</th>
-                                    <th class="text-end pe-4">Saldo</th>
+                        <table class="table table-borderless align-middle mb-0 table-hover">
+                            <thead style="border-bottom: 1px solid var(--border-color);">
+                                <tr style="color: var(--text-muted); font-size: 13px; font-weight: var(--weight-medium);">
+                                    <th class="py-3 fw-normal ps-4">Nombre</th>
+                                    <th class="py-3 fw-normal">Tipo de cuenta</th>
+                                    <th class="py-3 fw-normal">Número de cuenta</th>
+                                    <th class="py-3 fw-normal">Saldo</th>
+                                    <th class="py-3 fw-normal pe-4">Conciliación</th>
                                 </tr>
                             </thead>
-                            <tbody>
-        `;
-
-        this.cuentasConfig.forEach(c => {
-            const saldo = saldos[c.nombre] || 0;
-            totalConsolidado += saldo;
-            let icon = c.tipo.toLowerCase() === 'efectivo' ? 'bi-cash-coin' : 'bi-bank';
-            
-            html += `
-                <tr>
-                    <td class="ps-4 py-3">
-                        <div class="d-flex align-items-center">
-                            <div class="bg-light rounded-circle p-2 me-3 text-secondary" style="width:36px; height:36px; display:flex; align-items:center; justify-content:center;">
-                                <i class="bi ${icon}"></i>
-                            </div>
-                            <span class="fw-semibold text-dark">${c.nombre}</span>
-                        </div>
-                    </td>
-                    <td class="text-muted"><i class="bi bi-briefcase me-1"></i>${c.tipo}</td>
-                    <td class="text-muted font-monospace">${c.numero}</td>
-                    <td class="text-end pe-4 fw-bold ${saldo < 0 ? 'text-danger' : 'text-success'}">
-                        $${saldo.toLocaleString(undefined, {minimumFractionDigits: 2})}
-                    </td>
-                </tr>
-            `;
-        });
-
-        html += `
+                            <tbody id="tbody-bancos">
+                                <tr><td colspan="5" class="text-center py-5 text-muted"><span class="spinner-border spinner-border-sm me-2"></span>Cargando bancos...</td></tr>
                             </tbody>
                         </table>
                     </div>
                 </div>
             </div>
-            
-            <div class="card border-0 shadow-sm bg-primary text-white">
-                <div class="card-body d-flex justify-content-between align-items-center p-4">
-                    <h5 class="mb-0 fw-bold">Saldo Consolidado Total</h5>
-                    <h3 class="mb-0 fw-bold">$${totalConsolidado.toLocaleString(undefined, {minimumFractionDigits: 2})}</h3>
+
+            <!-- MODAL TRANSFERIR -->
+            <div class="modal fade" id="modal-transferir" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content border-0 shadow" style="border-radius: 12px;">
+                        <div class="modal-header border-bottom-0 pb-0">
+                            <h5 class="modal-title fw-bold" style="color: var(--text-main);">Transferir entre cuentas</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body p-4">
+                            <form id="form-transferir">
+                                <div class="mb-3">
+                                    <label class="form-label text-muted small fw-semibold">Cuenta origen *</label>
+                                    <select class="form-select" id="transf-origen" required>
+                                        <option value="" disabled selected>Selecciona el origen</option>
+                                        ${this.cuentasConfig.map(c => `<option value="${c.nombre}">${c.nombre}</option>`).join('')}
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label text-muted small fw-semibold">Cuenta destino *</label>
+                                    <select class="form-select" id="transf-destino" required>
+                                        <option value="" disabled selected>Selecciona el destino</option>
+                                        ${this.cuentasConfig.map(c => `<option value="${c.nombre}">${c.nombre}</option>`).join('')}
+                                    </select>
+                                </div>
+                                <div class="row g-3 mb-3">
+                                    <div class="col-6">
+                                        <label class="form-label text-muted small fw-semibold">Monto *</label>
+                                        <input type="number" class="form-control fw-bold fs-5" id="transf-monto" min="0.01" step="any" required>
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label text-muted small fw-semibold">Fecha *</label>
+                                        <input type="date" class="form-control" id="transf-fecha" value="${new Date().toISOString().split('T')[0]}" required>
+                                    </div>
+                                </div>
+                                <div class="mb-4">
+                                    <label class="form-label text-muted small fw-semibold">Nota o referencia (Opcional)</label>
+                                    <input type="text" class="form-control" id="transf-nota" placeholder="Ej. Traspaso de fondos">
+                                </div>
+                                <div class="d-flex gap-2 justify-content-end">
+                                    <button type="button" class="btn btn-light border px-4" data-bs-dismiss="modal">Cancelar</button>
+                                    <button type="submit" class="btn text-white px-4" style="background-color: #2cbfb7;" id="btn-confirmar-transf">Transferir</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
         `;
 
-        container.innerHTML = html;
+        this.bindEvents();
+        await this.loadData();
     },
 
-    async renderTablaTransacciones(element) {
-        const container = element.querySelector('#tesoreria-view-container');
+    bindEvents() {
+        const el = this.element;
+
+        el.querySelector('#btn-agregar-banco')?.addEventListener('click', () => {
+            alert('Funcionalidad de agregar banco en desarrollo (Próximamente).');
+        });
+
+        el.querySelector('#btn-transferir')?.addEventListener('click', () => {
+            const modalEl = document.getElementById('modal-transferir');
+            if (modalEl) {
+                // Si bootstrap no está instanciado globalmente, usamos la clase show manual (fallback) o bootstrap.Modal
+                if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                    const modal = new bootstrap.Modal(modalEl);
+                    modal.show();
+                } else {
+                    modalEl.classList.add('show', 'd-block');
+                    modalEl.style.backgroundColor = 'rgba(0,0,0,0.5)';
+                }
+            }
+        });
+
+        // Close manual fallback
+        el.querySelector('#modal-transferir .btn-close')?.addEventListener('click', () => {
+            const modalEl = document.getElementById('modal-transferir');
+            if (modalEl) {
+                modalEl.classList.remove('show', 'd-block');
+                modalEl.style.backgroundColor = '';
+            }
+        });
+        el.querySelector('#modal-transferir [data-bs-dismiss="modal"]')?.addEventListener('click', () => {
+            const modalEl = document.getElementById('modal-transferir');
+            if (modalEl) {
+                modalEl.classList.remove('show', 'd-block');
+                modalEl.style.backgroundColor = '';
+            }
+        });
+
+        el.querySelector('#search-bancos')?.addEventListener('input', (e) => {
+            this.renderTabla(e.target.value.toLowerCase().trim());
+        });
+
+        el.querySelector('#form-transferir')?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('btn-confirmar-transf');
+            if (btn) btn.disabled = true;
+
+            const origenId = document.getElementById('transf-origen').value;
+            const destinoId = document.getElementById('transf-destino').value;
+            const monto = parseFloat(document.getElementById('transf-monto').value);
+            const fecha = document.getElementById('transf-fecha').value;
+            const nota = document.getElementById('transf-nota').value.trim();
+
+            const success = await this.ejecutarTransferencia(origenId, destinoId, monto, fecha, nota);
+            
+            if (success) {
+                // Cerrar modal
+                const modalEl = document.getElementById('modal-transferir');
+                if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                    const modalInstance = bootstrap.Modal.getInstance(modalEl);
+                    if (modalInstance) modalInstance.hide();
+                } else {
+                    modalEl.classList.remove('show', 'd-block');
+                }
+                
+                // Limpiar form
+                document.getElementById('form-transferir').reset();
+                document.getElementById('transf-fecha').value = new Date().toISOString().split('T')[0];
+
+                // Recargar datos
+                await this.loadData();
+            }
+
+            if (btn) btn.disabled = false;
+        });
+    },
+
+    async loadData() {
+        this.state.transacciones = await DB.getAll('transacciones');
+        
+        // Calcular saldos
+        this.cuentasConfig.forEach(c => this.state.saldos[c.nombre] = 0);
+        this.state.totalConsolidado = 0;
+
+        this.state.transacciones.forEach(t => {
+            const cuenta = t.cuentaId || 'AAACaja general';
+            if (this.state.saldos[cuenta] === undefined) this.state.saldos[cuenta] = 0;
+            
+            if (t.tipo === 'ingreso') {
+                this.state.saldos[cuenta] += t.monto;
+            } else if (t.tipo === 'egreso') {
+                this.state.saldos[cuenta] -= t.monto;
+            }
+        });
+
+        // Sumar todos los saldos (el loop excluye cuentas no configuradas para el total si fuera necesario, pero aquí sumaremos todas las configuradas)
+        this.cuentasConfig.forEach(c => {
+            this.state.totalConsolidado += (this.state.saldos[c.nombre] || 0);
+        });
+
+        // Renderizar vistas
+        this.renderResumen();
+        this.renderTabla();
+        
+        // Cargar script de Chart.js si no existe y dibujar gráfico
+        if (typeof Chart === 'undefined') {
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/chart.js';
+            script.onload = () => this.renderChart();
+            document.head.appendChild(script);
+        } else {
+            this.renderChart();
+        }
+    },
+
+    renderResumen() {
+        const formatMoney = val => '$' + (val || 0).toLocaleString('es-CO', {minimumFractionDigits: 2});
+        
+        const resumenBancos = this.element.querySelector('#resumen-bancos');
+        const resumenTotal = this.element.querySelector('#resumen-total');
+
+        if (resumenBancos) resumenBancos.textContent = formatMoney(this.state.totalConsolidado);
+        if (resumenTotal) resumenTotal.textContent = formatMoney(this.state.totalConsolidado);
+    },
+
+    renderTabla(searchQuery = '') {
+        const container = this.element.querySelector('#tbody-bancos');
         if (!container) return;
 
-        const transacciones = await DB.getAll('transacciones');
-        transacciones.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+        let html = '';
+        const formatMoney = val => '$' + (val || 0).toLocaleString('es-CO', {minimumFractionDigits: 2});
 
-        if (transacciones.length === 0) {
-            container.innerHTML = `
-                <div class="text-center py-5 bg-white rounded shadow-sm border border-light">
-                    <i class="bi bi-cash-coin text-muted" style="font-size: 3rem;"></i>
-                    <p class="text-muted mt-3 mb-0">No hay movimientos de tesorería registrados.</p>
-                </div>`;
-            return;
+        const cuentasFiltradas = this.cuentasConfig.filter(c => 
+            c.nombre.toLowerCase().includes(searchQuery) ||
+            c.tipo.toLowerCase().includes(searchQuery) ||
+            c.numero.toLowerCase().includes(searchQuery)
+        );
+
+        if (cuentasFiltradas.length === 0) {
+            html = `<tr><td colspan="5" class="text-center py-5 text-muted">No se encontraron bancos.</td></tr>`;
         }
 
-        let html = `
-            <div class="card border-0 shadow-sm mt-2">
-                <div class="card-header bg-white border-bottom py-3">
-                    <h5 class="mb-0 fw-bold">Historial de Movimientos</h5>
-                </div>
-                <div class="table-responsive">
-                    <table class="table align-middle mb-0">
-                        <thead class="table-light text-muted font-monospace" style="font-size: 0.85rem;">
-                            <tr>
-                                <th class="px-4">Fecha</th>
-                                <th>Cuenta</th>
-                                <th>Tipo</th>
-                                <th>Detalle</th>
-                                <th>Ref. Documento</th>
-                                <th class="text-end px-4">Monto</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-        `;
-
-        transacciones.forEach(t => {
-            const isIngreso = t.tipo === 'ingreso';
+        cuentasFiltradas.forEach(c => {
+            const saldo = this.state.saldos[c.nombre] || 0;
+            const isEfectivo = c.tipo.toLowerCase() === 'efectivo';
+            const icon = isEfectivo ? 'bi-cash' : 'bi-bank';
+            
+            // Layout de Alegra: ícono gris tenue a la izquierda del nombre
             html += `
-                <tr>
-                    <td class="px-4">${t.fecha}</td>
-                    <td><span class="badge bg-light text-dark border">${t.cuentaId || 'AAACaja general'}</span></td>
-                    <td>
-                        <span class="badge ${isIngreso ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger'} rounded-pill px-2 py-1 text-uppercase">
-                            ${t.tipo}
-                        </span>
+                <tr style="font-size: 13px; color: var(--text-body); border-bottom: 1px solid var(--border-color);">
+                    <td class="py-3 ps-4 d-flex align-items-center">
+                        <div class="bg-light rounded-circle p-2 me-3 d-flex align-items-center justify-content-center text-muted" style="width: 32px; height: 32px; border: 1px solid #e2e8f0;">
+                            <i class="bi ${icon}" style="font-size: 14px;"></i>
+                        </div>
+                        <span style="color: var(--text-main); font-weight: 500;">${c.nombre}</span>
                     </td>
-                    <td>${t.detalle || 'N/A'}</td>
-                    <td><code>${(t.referenciaId || '').split('_')[1] || t.referenciaId || '-'}</code></td>
-                    <td class="text-end px-4 fw-bold ${isIngreso ? 'text-success' : 'text-danger'}">
-                        ${isIngreso ? '+' : '-'}$${t.monto.toLocaleString(undefined, {minimumFractionDigits: 2})}
+                    <td class="py-3"><i class="bi bi-wallet2 me-2 text-muted"></i>${c.tipo}</td>
+                    <td class="py-3 font-monospace text-muted">${c.numero}</td>
+                    <td class="py-3" style="color: #2cbfb7; font-weight: 500;">${formatMoney(saldo)}</td>
+                    <td class="py-3 pe-4">
+                        <button class="btn btn-sm btn-light border px-3 text-muted" style="font-size: 12px; font-weight: 500; border-radius: 4px;" onclick="alert('Funcionalidad de conciliación en desarrollo (Próximamente).')">
+                            Conciliar
+                        </button>
                     </td>
                 </tr>
             `;
         });
 
-        html += `</tbody></table></div></div>`;
         container.innerHTML = html;
     },
 
-    async renderFormRecaudo(element) {
-        const container = element.querySelector('#tesoreria-view-container');
-        if (!container) return;
+    renderChart() {
+        const canvas = document.getElementById('chart-ingresos-gastos');
+        if (!canvas) return;
+
+        const ctx = canvas.getContext('2d');
+        if (this.state.chartInstance) {
+            this.state.chartInstance.destroy();
+        }
+
+        // 1. Generar los últimos 6 meses cronológicos
+        const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+        const ultimos6Meses = [];
+        const hoy = new Date();
         
-        // Hide dashboard when showing form
-        const dashboard = element.querySelector('#dashboard-saldos');
-        if (dashboard) dashboard.style.display = 'none';
-
-        const contactos = await DB.getAll('contactos');
-        const clientes = contactos.filter(c => c.tipo === 'cliente');
-
-        container.innerHTML = `
-            <div class="card border-0 shadow-sm max-width-md mx-auto" style="max-width: 800px;">
-                <div class="card-body p-4">
-                    <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
-                        <h4 class="card-title fw-bold text-success mb-0">
-                            <i class="bi bi-box-arrow-in-down me-2"></i>Recaudo Multi-Factura
-                        </h4>
-                        <button id="btn-cancelar" class="btn btn-sm btn-light">Volver</button>
-                    </div>
-                    
-                    <div id="tesoreria-alert" class="alert d-none mb-3 py-2"></div>
-                    
-                    <form id="form-recaudo">
-                        <div class="row g-3 mb-4">
-                            <div class="col-md-6">
-                                <label class="form-label text-muted small fw-semibold">Cliente *</label>
-                                <input type="text" id="search-recaudo-cliente" class="form-control" placeholder="Buscar cliente..." autocomplete="off" required>
-                                <input type="hidden" id="recaudo-cliente" required>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label text-muted small fw-semibold">Cuenta de Ingreso *</label>
-                                <select id="recaudo-cuenta" class="form-select" required>
-                                    ${this.cuentasConfig.map(c => `<option value="${c.nombre}">${c.nombre}</option>`).join('')}
-                                </select>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label text-muted small fw-semibold">Monto Recibido ($) *</label>
-                                <input type="number" step="any" id="recaudo-monto" class="form-control fw-bold text-success fs-5" required min="0.01">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label text-muted small fw-semibold">Fecha *</label>
-                                <input type="date" id="recaudo-fecha" class="form-control" value="${new Date().toISOString().split('T')[0]}" required>
-                            </div>
-                        </div>
-
-                        <!-- Área de distribución automática -->
-                        <div class="bg-light p-3 rounded border mb-4">
-                            <h6 class="fw-bold mb-3">Facturas Pendientes del Cliente</h6>
-                            <div class="table-responsive">
-                                <table class="table table-sm align-middle mb-0">
-                                    <thead class="text-muted small">
-                                        <tr>
-                                            <th>Factura</th>
-                                            <th>Fecha</th>
-                                            <th class="text-end">Total</th>
-                                            <th class="text-end">Saldo Pend.</th>
-                                            <th class="text-end text-success">Abono Aplicado</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="tbody-facturas-pendientes">
-                                        <tr><td colspan="5" class="text-center text-muted">Seleccione un cliente para ver sus saldos pendientes.</td></tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-
-                        <div class="d-flex justify-content-end">
-                            <button type="submit" id="btn-guardar" class="btn btn-success px-5" disabled>
-                                <i class="bi bi-check-lg me-1"></i>Procesar Recaudo
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        `;
-
-        const showAlert = (msg, type = 'danger') => {
-            const alertEl = container.querySelector('#tesoreria-alert');
-            if (!alertEl) return;
-            alertEl.className = `alert alert-${type} mb-3 py-2`;
-            alertEl.textContent = msg;
-            alertEl.classList.remove('d-none');
-            setTimeout(() => alertEl.classList.add('d-none'), 4000);
-        };
-
-        element.querySelector('#btn-cancelar')?.addEventListener('click', async () => {
-            if (dashboard) dashboard.style.display = 'flex';
-            await this.renderDashboard(element);
-            await this.renderTablaTransacciones(element);
-        });
-
-        let facturasPendientes = [];
-        let asignaciones = [];
-
-        // Lógica interactiva de distribución multi-factura
-        const recalcularDistribucion = () => {
-            const montoInput = parseFloat(container.querySelector('#recaudo-monto').value) || 0;
-            let montoRestante = montoInput;
-            asignaciones = [];
-
-            const tbody = container.querySelector('#tbody-facturas-pendientes');
-            const btnGuardar = container.querySelector('#btn-guardar');
-
-            if (facturasPendientes.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">El cliente no tiene facturas con saldo pendiente.</td></tr>';
-                btnGuardar.disabled = true;
-                return;
-            }
-
-            btnGuardar.disabled = montoInput <= 0;
-            let html = '';
-
-            facturasPendientes.forEach(f => {
-                let abono = 0;
-                if (montoRestante > 0) {
-                    abono = Math.min(f.saldoPendiente, montoRestante);
-                    montoRestante -= abono;
-                    if (abono > 0) {
-                        asignaciones.push({ facturaId: f.id, abono });
-                    }
-                }
-
-                html += `
-                    <tr class="${abono > 0 ? 'table-success' : ''}">
-                        <td><code>${f.id.split('_')[1] || f.id}</code></td>
-                        <td>${f.fecha}</td>
-                        <td class="text-end">$${f.total.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                        <td class="text-end fw-bold">$${f.saldoPendiente.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                        <td class="text-end fw-bold text-success">${abono > 0 ? '+$' + abono.toLocaleString(undefined, {minimumFractionDigits: 2}) : '-'}</td>
-                    </tr>
-                `;
+        for (let i = 5; i >= 0; i--) {
+            const d = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1);
+            const prefix = \`\${d.getFullYear()}-\${String(d.getMonth() + 1).padStart(2, '0')}\`;
+            ultimos6Meses.push({
+                prefix, 
+                label: monthNames[d.getMonth()], // Nombre del mes para el gráfico
+                ingresos: 0,
+                gastos: 0
             });
+        }
 
-            if (montoRestante > 0) {
-                html += `
-                    <tr>
-                        <td colspan="4" class="text-end fw-bold text-primary">SALDO A FAVOR (Anticipo):</td>
-                        <td class="text-end fw-bold text-primary">+$${montoRestante.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                    </tr>
-                `;
-                // Registraremos el anticipo genérico
-                asignaciones.push({ facturaId: 'ANTICIPO', abono: montoRestante });
-            }
-
-            tbody.innerHTML = html;
-        };
-
-        // Función Helper: Carga de Facturas Pendientes
-        const cargarFacturasPendientes = async (clienteId) => {
-            if (!clienteId) {
-                facturasPendientes = [];
-                recalcularDistribucion();
-                return;
-            }
-
-            // Fetch facturas and related transacciones to calculate real pending balance
-            const facturas = await DB.getAll('facturas');
-            const transacciones = await DB.getAll('transacciones');
+        // 2. Agrupar transacciones
+        this.state.transacciones.forEach(t => {
+            // Asumimos formato t.fecha = "YYYY-MM-DD"
+            if (!t.fecha) return;
+            const prefix = t.fecha.substring(0, 7); // "YYYY-MM"
             
-            facturasPendientes = facturas
-                .filter(f => f.clienteId === clienteId && f.tipo === 'venta')
-                .map(f => {
-                    // Sumar pagos previos referenciados a esta factura
-                    const pagosRelacionados = transacciones
-                        .filter(t => t.referenciaId === f.id && t.tipo === 'ingreso')
-                        .reduce((sum, t) => sum + t.monto, 0);
-                    
-                    const saldoPendiente = f.total - pagosRelacionados;
-                    return { ...f, saldoPendiente };
-                })
-                .filter(f => f.saldoPendiente > 0)
-                .sort((a, b) => new Date(a.fecha) - new Date(b.fecha)); // Cronológico FIFO
-
-            recalcularDistribucion();
-        };
-
-        // Inicialización de Combobox de Clientes
-        UI.createCombobox({
-            inputEl: container.querySelector('#search-recaudo-cliente'),
-            hiddenIdEl: container.querySelector('#recaudo-cliente'),
-            items: clientes,
-            displayProp: 'nombre',
-            searchProps: ['nit', 'email'],
-            allowCreate: false, // En recaudo el cliente ya debe existir
-            onSelect: async (selectedItem) => {
-                await cargarFacturasPendientes(selectedItem.id);
+            const mesTarget = ultimos6Meses.find(m => m.prefix === prefix);
+            if (mesTarget) {
+                if (t.tipo === 'ingreso') {
+                    mesTarget.ingresos += t.monto;
+                } else if (t.tipo === 'egreso') {
+                    mesTarget.gastos += t.monto;
+                }
             }
         });
 
-        container.querySelector('#recaudo-monto')?.addEventListener('input', recalcularDistribucion);
+        // 3. Preparar Data para Chart.js
+        const labels = ultimos6Meses.map(m => m.label);
+        const dataIngresos = ultimos6Meses.map(m => m.ingresos);
+        const dataGastos = ultimos6Meses.map(m => m.gastos);
 
-        container.querySelector('#form-recaudo')?.addEventListener('submit', async (e) => {
-            e.preventDefault();
-
-            const clienteId = container.querySelector('#recaudo-cliente').value;
-            if (!clienteId) {
-                const searchInput = container.querySelector('#search-recaudo-cliente');
-                searchInput.style.borderColor = '#ef4444';
-                CoreActions.showWarningModal("Debes seleccionar un cliente válido de la lista.");
-                setTimeout(() => searchInput.style.borderColor = '', 3000);
-                return;
-            }
-
-            const btn = container.querySelector('#btn-guardar');
-            btn.disabled = true;
-
-            const cuentaId = container.querySelector('#recaudo-cuenta').value;
-            const monto = parseFloat(container.querySelector('#recaudo-monto').value) || 0;
-            const fecha = container.querySelector('#recaudo-fecha').value;
-
-            try {
-                // Registrar transacciones por cada asignación para claridad
-                for (const asig of asignaciones) {
-                    const transaccion = {
-                        id: `trans_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
-                        cuentaId: cuentaId,
-                        tipo: 'ingreso',
-                        monto: asig.abono,
-                        fecha: fecha,
-                        detalle: asig.facturaId === 'ANTICIPO' 
-                            ? 'Anticipo / Saldo a favor del cliente' 
-                            : `Abono a Factura #${asig.facturaId.split('_')[1] || asig.facturaId}`,
-                        referenciaId: asig.facturaId
-                    };
-                    await DB.save('transacciones', transaccion);
-
-                    // Actualizar estado de la factura si fue pagada en su totalidad
-                    if (asig.facturaId !== 'ANTICIPO') {
-                        const fac = await DB.get('facturas', asig.facturaId);
-                        if (fac) {
-                            const facPendiente = facturasPendientes.find(f => f.id === asig.facturaId);
-                            if (facPendiente && (facPendiente.saldoPendiente - asig.abono <= 0.01)) {
-                                fac.estado = 'paga';
-                                await DB.save('facturas', fac);
+        this.state.chartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Ingresos',
+                        data: dataIngresos,
+                        backgroundColor: '#2cbfb7', // Verde
+                        borderRadius: 4,
+                        barPercentage: 0.6,
+                        categoryPercentage: 0.8
+                    },
+                    {
+                        label: 'Gastos',
+                        data: dataGastos,
+                        backgroundColor: '#e11d48', // Rojo suave
+                        borderRadius: 4,
+                        barPercentage: 0.6,
+                        categoryPercentage: 0.8
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            usePointStyle: true,
+                            boxWidth: 8,
+                            padding: 20,
+                            font: { size: 12, family: "'Inter', sans-serif" }
+                        }
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    label += new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(context.parsed.y);
+                                }
+                                return label;
                             }
                         }
                     }
+                },
+                scales: {
+                    x: {
+                        grid: { display: false, drawBorder: false },
+                        ticks: { font: { size: 12 } }
+                    },
+                    y: {
+                        grid: {
+                            color: '#f1f5f9',
+                            drawBorder: false,
+                            borderDash: [5, 5]
+                        },
+                        ticks: {
+                            font: { size: 11 },
+                            callback: function(value) {
+                                // Convertir a millones si es muy grande
+                                if (value >= 1000000) {
+                                    return '$' + (value / 1000000).toFixed(0) + 'M';
+                                }
+                                return '$' + value.toLocaleString();
+                            }
+                        }
+                    }
+                },
+                interaction: {
+                    mode: 'nearest',
+                    axis: 'x',
+                    intersect: false
                 }
-
-                showAlert('Recaudo procesado y distribuido exitosamente', 'success');
-                setTimeout(async () => {
-                    if (dashboard) dashboard.style.display = 'flex';
-                    await this.renderDashboard(element);
-                    await this.renderTablaTransacciones(element);
-                }, 1500);
-            } catch (err) {
-                console.error(err);
-                showAlert(err.message, 'danger');
-                btn.disabled = false;
             }
         });
     },
 
-    async renderFormEgreso(element) {
-        const container = element.querySelector('#tesoreria-view-container');
-        if (!container) return;
+    async ejecutarTransferencia(origenId, destinoId, monto, fecha, nota) {
+        if (!origenId || !destinoId || !monto || monto <= 0 || !fecha) {
+            alert('Por favor completa todos los campos correctamente.');
+            return false;
+        }
         
-        const dashboard = element.querySelector('#dashboard-saldos');
-        if (dashboard) dashboard.style.display = 'none';
+        if (origenId === destinoId) {
+            alert('La cuenta de origen y destino no pueden ser la misma.');
+            return false;
+        }
 
-        container.innerHTML = `
-            <div class="card border-0 shadow-sm max-width-md mx-auto" style="max-width: 600px;">
-                <div class="card-body p-4">
-                    <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
-                        <h4 class="card-title fw-bold text-danger mb-0">
-                            <i class="bi bi-box-arrow-up me-2"></i>Registrar Egreso
-                        </h4>
-                        <button id="btn-cancelar-egreso" class="btn btn-sm btn-light">Volver</button>
-                    </div>
-                    
-                    <div id="egreso-alert" class="alert d-none mb-3 py-2"></div>
-                    
-                    <form id="form-egreso">
-                        <div class="row g-3 mb-4">
-                            <div class="col-md-12">
-                                <label class="form-label text-muted small fw-semibold">Cuenta de Salida *</label>
-                                <select id="egreso-cuenta" class="form-select" required>
-                                    ${this.cuentasConfig.map(c => `<option value="${c.nombre}">${c.nombre}</option>`).join('')}
-                                </select>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label text-muted small fw-semibold">Monto a Pagar ($) *</label>
-                                <input type="number" step="any" id="egreso-monto" class="form-control fw-bold text-danger fs-5" required min="0.01">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label text-muted small fw-semibold">Fecha *</label>
-                                <input type="date" id="egreso-fecha" class="form-control" value="${new Date().toISOString().split('T')[0]}" required>
-                            </div>
-                            <div class="col-md-12">
-                                <label class="form-label text-muted small fw-semibold">Concepto / Detalle *</label>
-                                <input type="text" id="egreso-detalle" class="form-control" placeholder="Ej. Pago orden a proveedor, Arriendo, etc." required>
-                            </div>
-                            <div class="col-md-12">
-                                <label class="form-label text-muted small fw-semibold">Referencia (Opcional)</label>
-                                <input type="text" id="egreso-ref" class="form-control" placeholder="Número de factura del proveedor, comprobante...">
-                            </div>
-                        </div>
-
-                        <div class="d-flex justify-content-end">
-                            <button type="submit" id="btn-guardar-egreso" class="btn btn-danger px-5">
-                                <i class="bi bi-check-lg me-1"></i>Registrar Salida
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        `;
-
-        const showAlert = (msg, type = 'danger') => {
-            const alertEl = container.querySelector('#egreso-alert');
-            if (!alertEl) return;
-            alertEl.className = `alert alert-${type} mb-3 py-2`;
-            alertEl.textContent = msg;
-            alertEl.classList.remove('d-none');
-            setTimeout(() => alertEl.classList.add('d-none'), 4000);
+        // 1. Crear el Egreso en la cuenta Origen
+        const egreso = {
+            id: 'trans_' + Date.now().toString(36) + Math.random().toString(36).substr(2),
+            tipo: 'egreso',
+            categoria: 'Transferencia',
+            monto: monto,
+            fecha: fecha,
+            metodo: 'Transferencia',
+            detalle: \`Transferencia a \${destinoId}\${nota ? ' - ' + nota : ''}\`,
+            cuentaId: origenId,
+            timestamp: new Date().toISOString()
         };
 
-        element.querySelector('#btn-cancelar-egreso')?.addEventListener('click', async () => {
-            if (dashboard) dashboard.style.display = 'flex';
-            await this.renderDashboard(element);
-            await this.renderTablaTransacciones(element);
-        });
+        // 2. Crear el Ingreso en la cuenta Destino
+        const ingreso = {
+            id: 'trans_' + (Date.now() + 1).toString(36) + Math.random().toString(36).substr(2),
+            tipo: 'ingreso',
+            categoria: 'Transferencia',
+            monto: monto,
+            fecha: fecha,
+            metodo: 'Transferencia',
+            detalle: \`Transferencia desde \${origenId}\${nota ? ' - ' + nota : ''}\`,
+            cuentaId: destinoId,
+            timestamp: new Date().toISOString()
+        };
 
-        element.querySelector('#form-egreso')?.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const btn = container.querySelector('#btn-guardar-egreso');
-            btn.disabled = true;
-
-            const cuentaId = container.querySelector('#egreso-cuenta').value;
-            const monto = parseFloat(container.querySelector('#egreso-monto').value) || 0;
-            const fecha = container.querySelector('#egreso-fecha').value;
-            const detalle = container.querySelector('#egreso-detalle').value;
-            const ref = container.querySelector('#egreso-ref').value;
-
-            try {
-                const transaccion = {
-                    id: `trans_${Date.now()}`,
-                    cuentaId: cuentaId,
-                    tipo: 'egreso',
-                    monto: monto,
-                    fecha: fecha,
-                    detalle: detalle,
-                    referenciaId: ref || ''
-                };
-                
-                await DB.save('transacciones', transaccion);
-
-                showAlert('Egreso registrado correctamente', 'success');
-                setTimeout(async () => {
-                    if (dashboard) dashboard.style.display = 'flex';
-                    await this.renderDashboard(element);
-                    await this.renderTablaTransacciones(element);
-                }, 1500);
-            } catch (err) {
-                console.error(err);
-                showAlert(err.message, 'danger');
-                btn.disabled = false;
-            }
-        });
+        // 3. Guardar en la base de datos (se usa el almacén 'transacciones')
+        await DB.save('transacciones', egreso);
+        await DB.save('transacciones', ingreso);
+        
+        return true;
     }
 };
