@@ -368,7 +368,7 @@ export const TesoreriaModule = {
         
         for (let i = 5; i >= 0; i--) {
             const d = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1);
-            const prefix = \`\${d.getFullYear()}-\${String(d.getMonth() + 1).padStart(2, '0')}\`;
+            const prefix = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
             ultimos6Meses.push({
                 prefix, 
                 label: monthNames[d.getMonth()], // Nombre del mes para el gráfico
@@ -502,7 +502,7 @@ export const TesoreriaModule = {
             monto: monto,
             fecha: fecha,
             metodo: 'Transferencia',
-            detalle: \`Transferencia a \${destinoId}\${nota ? ' - ' + nota : ''}\`,
+            detalle: `Transferencia a ${destinoId}${nota ? ' - ' + nota : ''}`,
             cuentaId: origenId,
             timestamp: new Date().toISOString()
         };
@@ -515,7 +515,7 @@ export const TesoreriaModule = {
             monto: monto,
             fecha: fecha,
             metodo: 'Transferencia',
-            detalle: \`Transferencia desde \${origenId}\${nota ? ' - ' + nota : ''}\`,
+            detalle: `Transferencia desde ${origenId}${nota ? ' - ' + nota : ''}`,
             cuentaId: destinoId,
             timestamp: new Date().toISOString()
         };
