@@ -427,7 +427,7 @@ export const ContactosModule = {
                                 <p class="mb-2 text-muted small text-capitalize"><strong class="text-dark">Tipo:</strong> ${contacto.tipo}</p>
                                 <p class="mb-2 text-muted small"><strong class="text-dark">Teléfono:</strong> ${contacto.telefono || 'No registrado'}</p>
                                 <p class="mb-2 text-muted small"><strong class="text-dark">Email:</strong> ${contacto.email || 'No registrado'}</p>
-                                <p class="mb-0 text-muted small"><strong class="text-dark">Ubicación:</strong> ${contacto.direccion || ''} ${contacto.ciudad ? \`(\${contacto.ciudad})\` : ''}</p>
+                                <p class="mb-0 text-muted small"><strong class="text-dark">Ubicación:</strong> ${contacto.direccion || ''} ${contacto.ciudad ? `(${contacto.ciudad})` : ''}</p>
                             </div>
                         </div>
                     </div>
