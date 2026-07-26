@@ -1,4 +1,4 @@
-﻿// js/db.js
+// js/db.js
 // M贸dulo de persistencia local indexada y sincronizaci贸n para MAS Accesorios
 
 import { db, collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc } from './firebase.js';
@@ -98,7 +98,7 @@ const DB = {
         if (!data.id) throw new Error(`El registro debe contener un ID 煤nico para persistencia en ${storeName}.`);
 
         // TODO: transacciones sigue en IndexedDB 鈥?bancos.js hace getAll completo para sumar saldos, migrar solo despu茅s de refactorizar a saldo acumulado para no agotar cuota de lecturas de Firestore.
-        if (storeName === 'productos' || storeName === 'contactos' || storeName === 'cotizaciones' || storeName === 'facturas' || storeName === 'lotes_fifo') {
+        if (storeName === 'productos' || storeName === 'contactos' || storeName === 'cotizaciones' || storeName === 'facturas' || storeName === 'lotes_fifo' || storeName === 'cuentas_bancarias') {
             const ref = doc(db, storeName, data.id);
             await setDoc(ref, data);
             return data;
@@ -120,7 +120,7 @@ const DB = {
      */
     async get(storeName, id) {
         // TODO: transacciones sigue en IndexedDB 鈥?bancos.js hace getAll completo para sumar saldos, migrar solo despu茅s de refactorizar a saldo acumulado para no agotar cuota de lecturas de Firestore.
-        if (storeName === 'productos' || storeName === 'contactos' || storeName === 'cotizaciones' || storeName === 'facturas' || storeName === 'lotes_fifo') {
+        if (storeName === 'productos' || storeName === 'contactos' || storeName === 'cotizaciones' || storeName === 'facturas' || storeName === 'lotes_fifo' || storeName === 'cuentas_bancarias') {
             const ref = doc(db, storeName, id);
             const snap = await getDoc(ref);
             return snap.exists() ? snap.data() : null;
@@ -142,7 +142,7 @@ const DB = {
      */
     async getAll(storeName) {
         // TODO: transacciones sigue en IndexedDB 鈥?bancos.js hace getAll completo para sumar saldos, migrar solo despu茅s de refactorizar a saldo acumulado para no agotar cuota de lecturas de Firestore.
-        if (storeName === 'productos' || storeName === 'contactos' || storeName === 'cotizaciones' || storeName === 'facturas' || storeName === 'lotes_fifo') {
+        if (storeName === 'productos' || storeName === 'contactos' || storeName === 'cotizaciones' || storeName === 'facturas' || storeName === 'lotes_fifo' || storeName === 'cuentas_bancarias') {
             const snap = await getDocs(collection(db, storeName));
             return snap.docs.map(d => d.data());
         }
@@ -163,7 +163,7 @@ const DB = {
      */
     async delete(storeName, id) {
         // TODO: transacciones sigue en IndexedDB 鈥?bancos.js hace getAll completo para sumar saldos, migrar solo despu茅s de refactorizar a saldo acumulado para no agotar cuota de lecturas de Firestore.
-        if (storeName === 'productos' || storeName === 'contactos' || storeName === 'cotizaciones' || storeName === 'facturas' || storeName === 'lotes_fifo') {
+        if (storeName === 'productos' || storeName === 'contactos' || storeName === 'cotizaciones' || storeName === 'facturas' || storeName === 'lotes_fifo' || storeName === 'cuentas_bancarias') {
             await deleteDoc(doc(db, storeName, id));
             return true;
         }
