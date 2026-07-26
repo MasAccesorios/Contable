@@ -113,8 +113,17 @@ export const ContactosModule = {
         `;
 
         this.bindEvents();
-        await this.cargarDatos(); // Carga inicial
-        this.renderTabla();       // Render inicial
+
+        const hashParts = window.location.hash.split('/');
+        const action = hashParts[2];
+        const routeId = hashParts[3];
+
+        if (action === 'ver' && routeId) {
+            await this.renderDetalle(routeId);
+        } else {
+            await this.cargarDatos(); // Carga inicial
+            this.renderTabla();       // Render inicial
+        }
     },
 
     async cargarDatos() {
@@ -162,7 +171,7 @@ export const ContactosModule = {
             paginaActual.forEach(c => {
                 const inicial = c.nombre ? c.nombre.charAt(0).toUpperCase() : '?';
                 html += `
-                    <tr data-id="${c.id}">
+                    <tr data-id="${c.id}" style="cursor: pointer; border-bottom: 1px solid var(--border-color); font-size: 13px; color: var(--text-body);" onclick="if(!event.target.closest('button') && !event.target.closest('input')) window.location.hash = '#/contactos/ver/${c.id}'">
                         <td><input type="checkbox" class="form-check-input contact-check"></td>
                         <td>
                             <div class="d-flex align-items-center gap-3">

@@ -7,110 +7,134 @@ export const ProductosModule = {
         if (!element) return;
         
         element.innerHTML = `
-            <div class="module-container p-4">
+            <div class="module-container p-4" style="max-width: 1200px; margin: 0 auto;">
+                <!-- TOP BAR -->
                 <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h2 class="h3 fw-bold text-dark mb-0">Gestión de Productos e Inventarios</h2>
-                    <button id="btn-nuevo-producto" class="btn btn-primary">
-                        <i class="bi bi-plus-circle me-1"></i>Nuevo Producto
-                    </button>
-                </div>
-                
-                <div class="card border-0 shadow-sm mb-4">
-                    <div class="card-body">
-                        <div class="input-group">
-                            <span class="input-group-text bg-white border-end-0 text-muted">
-                                <i class="bi bi-search"></i>
-                            </span>
-                            <input type="text" id="search-producto" placeholder="Buscar por nombre o SKU..." class="form-control border-start-0 ps-0">
-                        </div>
+                    <div>
+                        <h2 class="h3 fw-bold mb-1" style="color: var(--text-main);">Ítems de venta</h2>
+                        <p class="text-muted mb-0" style="font-size: 14px;">Gestiona tus productos, su costo promedio y el inventario disponible.</p>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button id="btn-export-list" class="btn btn-light bg-white border" style="font-weight: var(--weight-medium); font-size: 14px; color: var(--text-body);">
+                            <i class="bi bi-download me-1"></i> Exportar
+                        </button>
+                        <button id="btn-nuevo-producto" class="btn text-white" style="background-color: #2cbfb7; font-weight: var(--weight-medium); font-size: 14px;">
+                            <i class="bi bi-plus-lg me-1"></i> Nuevo producto
+                        </button>
                     </div>
                 </div>
 
-                <div id="productos-view-container" class="view-container"></div>
+                <!-- DATA TABLE CARD -->
+                <div class="card border-0" style="box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.03), 0px 1px 3px rgba(0, 0, 0, 0.05); border-radius: 8px;">
+                    
+                    <!-- FILTERS -->
+                    <div class="card-header bg-white border-bottom p-3 d-flex gap-3 align-items-center" style="border-radius: 8px 8px 0 0;">
+                        <div class="input-group input-group-sm" style="width: 250px;">
+                            <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
+                            <input type="text" id="search-producto" class="form-control border-start-0 ps-0 text-muted" placeholder="Buscar por nombre o SKU..." style="font-size: 13px; box-shadow: none;">
+                        </div>
+                    </div>
+
+                    <!-- GRID -->
+                    <div class="table-responsive">
+                        <table class="table table-borderless align-middle mb-0">
+                            <thead style="border-bottom: 1px solid var(--border-color);">
+                                <tr style="color: var(--text-muted); font-size: 13px; font-weight: var(--weight-medium);">
+                                    <th class="py-3 fw-normal ps-4">SKU</th>
+                                    <th class="py-3 fw-normal">Nombre / Descripción</th>
+                                    <th class="py-3 fw-normal text-end">Precio Venta</th>
+                                    <th class="py-3 fw-normal text-end">Stock Total</th>
+                                    <th class="py-3 fw-normal text-end">Costo Promedio Real</th>
+                                    <th class="py-3 fw-normal text-end pe-4" style="width: 80px;"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbody-productos">
+                                <!-- Filas inyectadas por renderTabla -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- PAGINATION FOOTER -->
+                    <div class="card-footer bg-white border-top p-3 d-flex justify-content-between align-items-center" style="border-radius: 0 0 8px 8px;">
+                        <div class="d-flex align-items-center gap-3" style="font-size: 13px; color: var(--text-body);">
+                            <span id="showing-count">Cargando...</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="productos-view-container" class="view-container mt-4"></div>
             </div>
         `;
 
         element.querySelector('#btn-nuevo-producto')?.addEventListener('click', () => this.renderForm(element));
         element.querySelector('#search-producto')?.addEventListener('input', () => this.filtrarProductos(element));
 
-        await this.renderTabla(element);
+        const hashParts = window.location.hash.split('/');
+        const action = hashParts[3]; // #/inventario/items/ver/id (parts[0]=#, [1]=inventario, [2]=items, [3]=ver)
+        const routeId = hashParts[4];
+
+        if (action === 'ver' && routeId) {
+            await this.renderDetalle(element, routeId);
+        } else {
+            await this.renderTabla(element);
+        }
     },
 
     async renderTabla(element) {
-        const container = element.querySelector('#productos-view-container');
+        const container = element.querySelector('#tbody-productos');
         if (!container) return;
 
         const productos = await DB.getAll('productos');
         const lotes = await DB.getAll('lotes_fifo');
         
         if (productos.length === 0) {
-            container.innerHTML = `
-                <div class="text-center py-5 bg-white rounded shadow-sm">
-                    <i class="bi bi-box-seam text-muted" style="font-size: 3rem;"></i>
-                    <p class="text-muted mt-3 mb-0">No hay productos registrados en el inventario.</p>
-                </div>`;
+            container.innerHTML = `<tr><td colspan="6" class="text-center py-5 text-muted">No hay productos registrados en el inventario.</td></tr>`;
             return;
         }
 
-        let html = `
-            <div class="card border-0 shadow-sm">
-                <div class="table-responsive">
-                    <table class="table align-middle mb-0">
-                        <thead class="table-light text-muted uppercase font-monospace" style="font-size: 0.85rem;">
-                            <tr>
-                                <th class="px-4">SKU</th>
-                                <th>Nombre / Descripción</th>
-                                <th class="text-end">Precio Venta</th>
-                                <th class="text-end">Stock Total</th>
-                                <th class="text-end">Costo Promedio Real</th>
-                                <th class="text-center px-4">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tbody-productos">
-        `;
+        let html = '';
 
         productos.forEach(p => {
+            if (p.estado === 'inactivo') return;
+
             const lotesProd = lotes.filter(l => l.productoId === p.id && l.cantidadActual > 0);
             const stockTotal = lotesProd.reduce((sum, l) => sum + l.cantidadActual, 0);
-            const costoTotal = lotesProd.reduce((sum, l) => sum + (l.cantidadActual * l.costoUnitario), 0);
-            const costoPromedio = stockTotal > 0 ? (costoTotal / stockTotal) : p.costoBase;
+            const costoTotal = lotesProd.reduce((sum, l) => sum + (l.cantidadActual * (l.costoUnitario || 0)), 0);
+            const costoPromedio = stockTotal > 0 ? (costoTotal / stockTotal) : (p.costoBase || 0);
 
-            if (p.estado === 'inactivo') return; // Soft delete check (opcional)
-            const isLowStock = stockTotal <= p.stockMinimo;
+            const isLowStock = stockTotal <= (p.stockMinimo || 0);
             
             html += `
-                <tr data-id="${p.id}">
-                    <td class="px-4"><code>${p.sku}</code></td>
-                    <td><strong>${p.nombre}</strong></td>
-                    <td class="text-end">$${p.precioVenta.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                    <td class="text-end">
-                        <span class="badge ${isLowStock ? 'bg-danger text-white' : 'bg-success-subtle text-success'} rounded-pill px-3 py-2" ${isLowStock ? 'title="¡Alerta: Stock por debajo del mínimo!"' : ''}>
+                <tr style="cursor: pointer; border-bottom: 1px solid var(--border-color); font-size: 13px; color: var(--text-body);" onclick="if(!event.target.closest('button')) window.location.hash = '#/inventario/items/ver/${p.id}'">
+                    <td class="py-3 ps-4" style="color: var(--text-main); font-weight: var(--weight-medium);">${p.sku}</td>
+                    <td class="py-3 text-truncate" style="max-width: 300px;">${p.nombre}</td>
+                    <td class="py-3 text-end">$${(p.precioVenta || 0).toLocaleString('es-CO', {minimumFractionDigits: 2})}</td>
+                    <td class="py-3 text-end">
+                        <span style="${isLowStock ? 'color: #ef4444; background-color: #fee2e2;' : 'color: #15803d; background-color: #dcfce7;'} padding: 4px 12px; border-radius: 12px; font-size: 11px; font-weight: var(--weight-medium);" ${isLowStock ? 'title="¡Alerta: Stock por debajo del mínimo!"' : ''}>
                             ${isLowStock ? '<i class="bi bi-exclamation-triangle-fill me-1"></i>' : ''}${stockTotal} und
                         </span>
                     </td>
-                    <td class="text-end">$${costoPromedio.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                    <td class="text-center px-4">
-                        <div class="btn-group">
-                            <button class="btn btn-sm btn-outline-primary btn-ver" data-id="${p.id}">
-                                <i class="bi bi-journal-text me-1"></i>Kardex / Lotes
-                            </button>
-                            <button class="btn btn-sm btn-outline-secondary btn-editar" data-id="${p.id}">
-                                <i class="bi bi-pencil me-1"></i>Editar
-                            </button>
-                        </div>
+                    <td class="py-3 text-end text-muted">$${(costoPromedio || 0).toLocaleString('es-CO', {minimumFractionDigits: 2})}</td>
+                    <td class="py-3 text-end pe-4">
+                        <button class="btn btn-link text-muted p-0 btn-menu-row btn-editar" data-id="${p.id}">
+                            <i class="bi bi-pencil"></i>
+                        </button>
                     </td>
                 </tr>
             `;
         });
 
-        html += `</tbody></table></div></div>`;
         container.innerHTML = html;
 
-        container.querySelectorAll('.btn-ver').forEach(btn => {
-            btn.addEventListener('click', (e) => this.renderDetalle(element, e.currentTarget.dataset.id));
-        });
+        // Actualizar paginador (simulado por ahora)
+        const showingEl = element.querySelector('#showing-count');
+        if (showingEl) showingEl.textContent = `Mostrando ${productos.filter(p => p.estado !== 'inactivo').length} productos`;
+
         container.querySelectorAll('.btn-editar').forEach(btn => {
-            btn.addEventListener('click', (e) => this.renderForm(element, e.currentTarget.dataset.id));
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.renderForm(element, e.currentTarget.dataset.id);
+            });
         });
     },
 
