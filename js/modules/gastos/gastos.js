@@ -119,7 +119,7 @@ export const GastosModule = {
         const hiddenCuentaId = element.querySelector('#gasto-cuenta-id');
         
         // Transformar la data de cuentas para el combobox
-        const bancosData = TesoreriaModule.cuentasConfig.map(b => ({
+        const bancosData = this.cuentasActivas.map(b => ({
             id: b.nombre, // Nombre puro para la base de datos
             displayNombre: `${b.nombre} ${b.numero !== '-' ? '('+b.numero+')' : ''}` // Nombre visual
         }));
@@ -162,7 +162,7 @@ export const GastosModule = {
             const cuentaName = hiddenCuentaId.value.trim(); // Extraer el nombre puro del campo oculto
 
             // Validar que la cuenta existe en config usando el nombre puro
-            const cuentaValida = TesoreriaModule.cuentasConfig.find(b => b.nombre === cuentaName);
+            const cuentaValida = this.cuentasActivas.find(b => b.nombre === cuentaName);
             if (!cuentaValida) {
                 alert("Por favor seleccione una cuenta bancaria válida de la lista.");
                 return;

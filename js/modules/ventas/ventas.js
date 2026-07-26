@@ -385,6 +385,9 @@ export const FacturasModule = {
         const clienteActual = clientes.find(c => c.id === factura.clienteId);
         const clienteNombreActual = clienteActual ? clienteActual.nombre : '';
 
+        const dbCuentas = await DB.getAll('cuentas_bancarias') || [];
+        const cuentasActivas = dbCuentas.filter(c => c.estado === 'activo');
+
         element.innerHTML = `
             <div class="module-container p-4" style="max-width: 1100px; margin: 0 auto;">
                 <div class="d-flex justify-content-between align-items-start mb-4">
@@ -434,7 +437,7 @@ export const FacturasModule = {
                             <div class="col-md-3" id="container-cuenta-venta" style="display: ${factura.tipoVenta === 'contado' ? 'block' : 'none'};">
                                 <label class="form-label" style="font-size: 12px; font-weight: var(--weight-medium); color: var(--text-body);">Cuenta (Contado)</label>
                                 <select id="select-cuenta-venta" class="form-select form-select-sm text-muted" ${isViewOnly ? 'disabled' : ''}>
-                                    ${TesoreriaModule.cuentasConfig.map(c => `<option value="${c.nombre}" ${factura.cuentaId === c.nombre ? 'selected' : ''}>${c.nombre}</option>`).join('')}
+                                    ${cuentasActivas.map(c => `<option value="${c.nombre}" ${factura.cuentaId === c.nombre ? 'selected' : ''}>${c.nombre}</option>`).join('')}
                                 </select>
                             </div>
                             <div class="col-md-3">

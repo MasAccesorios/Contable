@@ -245,7 +245,7 @@ export default {
                                 <div class="mb-4">
                                     <label class="form-label text-muted small fw-medium">Cuenta destino</label>
                                     <select id="abono-cuenta" class="form-select" required>
-                                        ${TesoreriaModule.cuentasConfig.map(c => `<option value="${c.nombre}">${c.nombre}</option>`).join('')}
+                                        ${this.cuentasActivas.map(c => `<option value="${c.nombre}">${c.nombre}</option>`).join('')}
                                     </select>
                                 </div>
                                 <button type="submit" class="btn btn-primary w-100 py-2" style="font-weight: 500; border-radius: 8px;">Confirmar Pago</button>

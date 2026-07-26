@@ -151,14 +151,14 @@ export const TesoreriaModule = {
                                     <label class="form-label text-muted small fw-semibold">Cuenta origen *</label>
                                     <select class="form-select" id="transf-origen" required>
                                         <option value="" disabled selected>Selecciona el origen</option>
-                                        ${this.cuentasConfig.map(c => `<option value="${c.nombre}">${c.nombre}</option>`).join('')}
+                                        ${(this.state.cuentasActivas || []).map(c => `<option value="${c.nombre}">${c.nombre}</option>`).join('')}
                                     </select>
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label text-muted small fw-semibold">Cuenta destino *</label>
                                     <select class="form-select" id="transf-destino" required>
                                         <option value="" disabled selected>Selecciona el destino</option>
-                                        ${this.cuentasConfig.map(c => `<option value="${c.nombre}">${c.nombre}</option>`).join('')}
+                                        ${(this.state.cuentasActivas || []).map(c => `<option value="${c.nombre}">${c.nombre}</option>`).join('')}
                                     </select>
                                 </div>
                                 <div class="row g-3 mb-3">
@@ -274,8 +274,11 @@ export const TesoreriaModule = {
     async loadData() {
         this.state.transacciones = await DB.getAll('transacciones');
         
-        // Calcular saldos
-        this.cuentasConfig.forEach(c => this.state.saldos[c.nombre] = 0);
+        const dbCuentas = await DB.getAll('cuentas_bancarias') || [];
+        this.state.cuentasActivas = dbCuentas.filter(c => c.estado === 'activo');
+        
+        // Calcular saldos (sólo para las cuentas activas)
+        this.state.cuentasActivas.forEach(c => this.state.saldos[c.nombre] = 0);
         this.state.totalConsolidado = 0;
 
         this.state.transacciones.forEach(t => {
