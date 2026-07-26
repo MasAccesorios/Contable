@@ -611,6 +611,7 @@ export const PrintManager = {
         const cliente = contactos.find(c => c.id === doc.clienteId) || {};
         const formatMoney = (val) => '$ ' + parseFloat(val || 0).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         const numDisplay = (doc.prefijo || '') + (doc.numero || doc.id);
+        const totalUnidades = (doc.detalles || []).reduce((sum, det) => sum + (Number(det.cantidad) || 0), 0);
 
         // 4. Generar Filas de la Tabla
         const rowsHtml = (doc.detalles || []).map(det => {
@@ -619,7 +620,10 @@ export const PrintManager = {
             return `
                 <tr style="border-bottom: 1px solid #dee2e6; font-size: 12px; color: #495057;">
                     <td style="padding: 8px 4px;">${prod.sku || 'N/A'}</td>
-                    <td style="padding: 8px 4px;">${det.descripcion_personalizada || prod.nombre || 'Ítem sin nombre'}</td>
+                    <td style="padding: 8px 4px;">
+                        <div style="font-weight: 600; color: #212529;">${prod.nombre || 'Ítem sin nombre'}</div>
+                        ${det.descripcion_personalizada ? `<div style="font-size: 10.5px; color: #6c757d; margin-top: 3px;">${det.descripcion_personalizada}</div>` : ''}
+                    </td>
                     <td style="padding: 8px 4px; text-align: right;">${formatMoney(det.precio)}</td>
                     <td style="padding: 8px 4px; text-align: center;">${det.cantidad}</td>
                     <td style="padding: 8px 4px; text-align: right;">${det.descuento || 0}%</td>
@@ -700,7 +704,7 @@ export const PrintManager = {
                         <strong style="color: #212529;">Total</strong><span style="font-weight: bold; color: #212529;">${formatMoney(doc.total)}</span>
                     </div>
                     <div style="text-align: right; font-size: 12px; font-weight: bold; color: #6c757d;">
-                        Total de items: ${doc.detalles ? doc.detalles.length : 0}
+                        Cantidad de productos: ${totalUnidades}
                     </div>
                 </div>
             </div>
