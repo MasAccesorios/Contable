@@ -4,6 +4,7 @@ import { TesoreriaModule } from '../bancos/bancos.js';
 import { ContactosModule } from '../clientes/clientes.js';
 import { UI } from '../../shared/combobox.js';
 import { calcularEstadoFactura } from '../../shared/carteraUtils.js';
+import { AbonoModal } from '../../shared/abonoModal.js';
 import { InventarioUtils } from '../../shared/inventarioUtils.js';
 
 export const FacturasModule = {
@@ -31,7 +32,7 @@ export const FacturasModule = {
         facturasData = facturasData.map(f => {
             if (f.tipo !== 'venta') return f;
             const dinamico = calcularEstadoFactura(f, transacciones);
-            return { ...f, estado: dinamico.estado };
+            return { ...f, estado: dinamico.estado, saldoPendiente: dinamico.saldo };
         });
 
         // Ordenar por ID o fecha (más reciente primero)
@@ -288,9 +289,18 @@ export const FacturasModule = {
                     const id = e.currentTarget.dataset.id;
                     const rect = e.currentTarget.getBoundingClientRect();
 
+                    // Find current factura's dynamic state from facturasData
+                    const factData = facturasData.find(f => f.id === id);
+                    const canAbonar = factData && factData.estado !== 'pagada' && factData.estado !== 'anulada';
+                    
                     const menuHtml = `
                         <div class="row-action-menu position-absolute bg-white shadow rounded border py-2" 
-                             style="z-index: 1060; width: 140px; top: ${rect.bottom + window.scrollY}px; left: ${rect.left - 100}px;">
+                             style="z-index: 1060; width: 150px; top: ${rect.bottom + window.scrollY}px; left: ${rect.left - 100}px;">
+                            ${canAbonar ? `
+                            <a href="#" class="d-block px-3 py-1 text-decoration-none btn-abonar-factura" data-id="${id}" data-saldo="${factData.saldoPendiente}" style="color: #10b981; font-size: 13px;">
+                                <i class="bi bi-wallet2 me-2"></i> Registrar Pago
+                            </a>
+                            <hr class="dropdown-divider my-1">` : ''}
                             <a href="#/ingresos/facturas/editar/${id}" class="d-block px-3 py-1 text-decoration-none" style="color: var(--text-body); font-size: 13px;">
                                 <i class="bi bi-pencil me-2"></i> Editar
                             </a>
@@ -302,6 +312,19 @@ export const FacturasModule = {
                     document.body.insertAdjacentHTML('beforeend', menuHtml);
 
                     const menu = document.querySelector('.row-action-menu');
+                    
+                    if (canAbonar) {
+                        menu.querySelector('.btn-abonar-factura').addEventListener('click', (ev) => {
+                            ev.preventDefault();
+                            const facId = ev.currentTarget.dataset.id;
+                            const saldo = parseFloat(ev.currentTarget.dataset.saldo);
+                            menu.remove();
+                            AbonoModal.show(facId, saldo, () => {
+                                renderGrid(); // Recargar grid para reflejar estado
+                            });
+                        });
+                    }
+
                     menu.querySelector('.btn-delete-row').addEventListener('click', async (ev) => {
                         ev.preventDefault();
                         if (confirm('¿Estás seguro de eliminar esta factura de forma permanente?')) {
@@ -395,7 +418,12 @@ export const FacturasModule = {
                         ${headerHtml}
                         <h2 class="h3 fw-bold mb-0" style="color: var(--text-main);">${id ? 'Factura No. ' + factura.numero : 'Nueva factura'}</h2>
                     </div>
-                    ${actionsHtml}
+                    <div class="d-flex align-items-center gap-2">
+                        ${isViewOnly && id && factura.estado !== 'pagada' && factura.estado !== 'anulada' ? 
+                            `<button class="btn btn-primary fw-medium px-4 btn-abonar-detalle" data-id="${factura.id}" data-saldo="${factura.saldoPendiente}" style="background-color: #2cbfb7; border: none; border-radius: 8px;"><i class="bi bi-wallet2 me-2"></i>Registrar Pago</button>` 
+                            : ''}
+                        ${actionsHtml}
+                    </div>
                 </div>
 
                 <div class="card border-0 mb-4" style="box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.03), 0px 1px 3px rgba(0, 0, 0, 0.05); border-radius: 8px;">
