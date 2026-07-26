@@ -1,6 +1,5 @@
 // js/modules/bancos/bancos.js
 import DB from '../../core/db.js';
-import '../../../migrate_cuentas.js';
 
 export const TesoreriaModule = {
     cuentasConfig: [
@@ -36,11 +35,6 @@ export const TesoreriaModule = {
     },
 
     async init(element) {
-        if (typeof window.runMigrationCuentas === 'function') {
-            await window.runMigrationCuentas();
-            window.runMigrationCuentas = null; // Evitar que corra dos veces
-        }
-
         if (!element) return;
         this.element = element;
 
