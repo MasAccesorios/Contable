@@ -16,6 +16,7 @@ const routes = {
     'bancos': () => import('../modules/bancos/bancos.js'),
     'gastos/pagos': () => import('../modules/gastos/gastos.js'),
     'inventario/items': () => import('../modules/productos/productos.js'),
+    'inventario/valor': () => import('../modules/inventario/valorizacion.js'),
     'importador': () => import('../modules/integracion-alegra/importador.js'),
     'ingresos/cotizaciones': () => import('../modules/ingresos/cotizaciones.js'),
     'ingresos/facturas': () => import('../modules/ventas/ventas.js'),
