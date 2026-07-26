@@ -163,13 +163,16 @@ export const CoreActions = {
 
         const btnPrint = element.querySelector('.btn-imprimir');
         if (btnPrint) {
-            btnPrint.addEventListener('click', () => {
-                if (btnPrint.style.opacity === '0.5') {
-                    this.showWarningModal("Debe guardar los cambios del documento antes de poder imprimirlo.");
-                } else {
-                    this.printDocumentFormat(documentData, type);
-                }
-            });
+            // Solo secuestramos el evento genérico si es explícitamente un pago/recibo de caja.
+            if (type === 'pago') {
+                btnPrint.addEventListener('click', () => {
+                    if (btnPrint.style.opacity === '0.5') {
+                        this.showWarningModal("Debe guardar los cambios del documento antes de poder imprimirlo.");
+                    } else {
+                        this.printDocumentFormat(documentData, type);
+                    }
+                });
+            }
         }
 
         const btnEdit = element.querySelector('.btn-editar');
@@ -712,7 +715,15 @@ export const PrintManager = {
         document.body.appendChild(container);
 
         // 6. Ejecutar impresión simple y directa
-        setTimeout(() => window.print(), 150);
+        setTimeout(() => {
+            window.print();
+            // Limpiar el DOM 1 segundo después de que se cierre el cuadro de impresión
+            setTimeout(() => {
+                if (document.body.contains(container)) {
+                    container.remove();
+                }
+            }, 1000);
+        }, 150);
     }
 };
 
