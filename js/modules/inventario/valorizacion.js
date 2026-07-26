@@ -239,7 +239,12 @@ export const ValorizacionModule = {
         }
 
         // UTF-8 BOM (\uFEFF) fuerza a Excel a reconocer tildes y caracteres especiales
-        let csvContent = "Ítem,Referencia,Cantidad,Costo promedio,Total\n";
+        // 1. Separador de columnas ajustado a punto y coma (;) para LatAm
+        let csvContent = "Ítem;Referencia;Cantidad;Costo promedio;Total\n";
+
+        // 2. Función helper para que Excel lea los números como números puros:
+        // Toma un número, fija 2 decimales, y cambia el punto (.) por coma (,) decimal.
+        const formatDecimalLatam = (num) => Number(num || 0).toFixed(2).replace('.', ',');
 
         // Exportamos TODOS los filtrados, ignorando la página actual
         this.state.filtrados.forEach(item => {
@@ -250,16 +255,16 @@ export const ValorizacionModule = {
                 escapeCSV(item.nombre),
                 escapeCSV(item.sku),
                 item.stockTotal,
-                item.costoPromedio.toFixed(2),
-                item.valorTotal.toFixed(2)
+                formatDecimalLatam(item.costoPromedio),
+                formatDecimalLatam(item.valorTotal)
             ];
             
-            csvContent += row.join(",") + "\n";
+            csvContent += row.join(";") + "\n";
         });
 
         // Añadir sumatoria al final del CSV de lo que se acaba de exportar
         const totalExportado = this.state.filtrados.reduce((sum, item) => sum + item.valorTotal, 0);
-        csvContent += `\n"Total Valorizado","",,"","${totalExportado.toFixed(2)}"\n`;
+        csvContent += `\n"Total Valorizado";"";"";"";"${formatDecimalLatam(totalExportado)}"\n`;
 
         const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
