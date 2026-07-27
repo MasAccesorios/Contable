@@ -30,6 +30,7 @@ const routes = {
 
 async function router() {
     const hash = window.location.hash.substring(2) || 'inicio';
+    const [routePath, queryString] = hash.split('?');
     const appEl = document.getElementById('view-viewport');
     if (!appEl) return;
 
@@ -37,7 +38,7 @@ async function router() {
     document.querySelectorAll('#sidebar a').forEach(link => {
         const href = link.getAttribute('href');
         // Usamos includes para soportar tanto #/inicio como #/inicio/
-        if (href === '#/' + hash) {
+        if (href === '#/' + routePath) {
             link.classList.add('active');
             
             // Si está dentro de un submenú, mantener abierto el padre
@@ -55,7 +56,7 @@ async function router() {
     
     // Buscar la ruta más específica que coincida con el hash (permite sub-rutas como /nueva o /editar/123)
     for (const key of Object.keys(routes)) {
-        if (hash === key || hash.startsWith(key + '/')) {
+        if (routePath === key || routePath.startsWith(key + '/')) {
             if (key.length > matchKey.length) {
                 matchKey = key;
                 matchRoute = routes[key];
@@ -85,15 +86,15 @@ async function router() {
                 }
                 await initFn(appEl);
             } else {
-                renderPlaceholder(appEl, hash, "El módulo se cargó correctamente, pero no expone un método init().");
+                renderPlaceholder(appEl, routePath, "El módulo se cargó correctamente, pero no expone un método init().");
             }
         } catch (err) {
             console.error('Error al instanciar el módulo:', err);
-            renderPlaceholder(appEl, hash, `Error de Carga: ${err.message}`);
+            renderPlaceholder(appEl, routePath, `Error de Carga: ${err.message}`);
         }
     } else {
         // Generador automático de Placeholders
-        renderPlaceholder(appEl, hash, "Esta vista base está configurada correctamente y lista para ser desarrollada.");
+        renderPlaceholder(appEl, routePath, "Esta vista base está configurada correctamente y lista para ser desarrollada.");
     }
 }
 
