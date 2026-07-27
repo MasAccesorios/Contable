@@ -12,7 +12,9 @@ export const ConciliacionModule = {
         entradas: 0,
         salidas: 0,
         saldoBancario: 0,
-        movimientosRango: []
+        movimientosRango: [],
+        editingConciliacionId: null,
+        editingConciliacionMovimientos: []
     },
 
     async init(element) {
@@ -220,7 +222,8 @@ export const ConciliacionModule = {
                                                 <th class="py-3 text-muted" style="font-size: 12px; font-weight: 600;">Rango de Fechas</th>
                                                 <th class="py-3 text-muted" style="font-size: 12px; font-weight: 600;">Saldo Bancario</th>
                                                 <th class="py-3 text-muted" style="font-size: 12px; font-weight: 600;">Diferencia</th>
-                                                <th class="py-3 pe-4 text-center text-muted" style="font-size: 12px; font-weight: 600;">Movs. Conciliados</th>
+                                                <th class="py-3 text-center text-muted" style="font-size: 12px; font-weight: 600;">Movs. Conciliados</th>
+                                                <th class="py-3 pe-4 text-end text-muted" style="font-size: 12px; font-weight: 600;">Acciones</th>
                                             </tr>
                                         </thead>
                                         <tbody id="tbody-historial">
@@ -229,6 +232,21 @@ export const ConciliacionModule = {
                                     </table>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Detalle Conciliacion -->
+            <div class="modal fade" id="modal-detalle-conciliacion" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-lg modal-dialog-centered">
+                    <div class="modal-content border-0 shadow" style="border-radius: 12px;">
+                        <div class="modal-header border-bottom-0 pb-0">
+                            <h5 class="modal-title fw-bold" style="color: var(--text-main);">Detalle de Conciliación</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body p-4" id="modal-detalle-body">
+                            <!-- Inyectado via JS -->
                         </div>
                     </div>
                 </div>
@@ -263,7 +281,7 @@ export const ConciliacionModule = {
                     </td>
                     <td class="py-3" style="font-weight: 500;">${this.formatMoney(m.monto)}</td>
                     <td class="py-3 pe-4 text-center">
-                        <input class="form-check-input concil-check" type="checkbox" data-id="${m.id}" style="width: 18px; height: 18px; cursor: pointer;">
+                        <input class="form-check-input concil-check" type="checkbox" data-id="${m.id}" ${this.state.editingConciliacionMovimientos.includes(m.id) ? 'checked' : ''} style="width: 18px; height: 18px; cursor: pointer;">
                     </td>
                 </tr>
             `;
@@ -300,8 +318,15 @@ export const ConciliacionModule = {
                     <td class="py-3 text-muted">${rango}</td>
                     <td class="py-3" style="font-weight: 500;">${this.formatMoney(h.saldo_bancario)}</td>
                     <td class="py-3" style="color: ${difColor}; font-weight: 600;">${this.formatMoney(h.diferencia)}</td>
-                    <td class="py-3 pe-4 text-center">
+                    <td class="py-3 text-center">
                         <span class="badge bg-light text-dark border">${cantMovs}</span>
+                    </td>
+                    <td class="py-3 pe-4 text-end">
+                        <div class="d-flex gap-2 justify-content-end">
+                            <button class="btn btn-sm btn-light border text-primary btn-ver-concil" data-id="${h.id}" title="Ver detalle"><i class="bi bi-eye"></i></button>
+                            <button class="btn btn-sm btn-light border text-warning btn-editar-concil" data-id="${h.id}" title="Editar"><i class="bi bi-pencil"></i></button>
+                            <button class="btn btn-sm btn-light border text-danger btn-eliminar-concil" data-id="${h.id}" title="Eliminar"><i class="bi bi-trash"></i></button>
+                        </div>
                     </td>
                 </tr>
             `;
@@ -341,7 +366,7 @@ export const ConciliacionModule = {
             const movimientosConciliados = Array.from(checks).map(cb => cb.dataset.id);
 
             const concil = {
-                id: `concil_${Date.now()}`,
+                id: this.state.editingConciliacionId || `concil_${Date.now()}`,
                 banco_id: this.state.bancoId,
                 fecha_desde: this.state.fechaDesde,
                 fecha_hasta: this.state.fechaHasta,
@@ -354,12 +379,110 @@ export const ConciliacionModule = {
 
             try {
                 await DB.save('conciliaciones', concil);
+                this.state.editingConciliacionId = null;
+                this.state.editingConciliacionMovimientos = [];
                 alert('Conciliación guardada exitosamente.');
                 // Redirigir a bancos
                 window.location.hash = '#/bancos';
             } catch (error) {
                 console.error("Error al guardar:", error);
                 alert('Hubo un error al guardar la conciliación.');
+            }
+        });
+
+        // Eventos para la tabla de historial (Ver, Editar, Eliminar)
+        this.element.querySelector('#tbody-historial')?.addEventListener('click', async (e) => {
+            const btnVer = e.target.closest('.btn-ver-concil');
+            const btnEditar = e.target.closest('.btn-editar-concil');
+            const btnEliminar = e.target.closest('.btn-eliminar-concil');
+
+            if (btnVer) {
+                const id = btnVer.getAttribute('data-id');
+                const concil = this.state.historialConciliaciones.find(c => c.id === id);
+                if (!concil) return;
+
+                const movs = this.state.transacciones.filter(t => (concil.movimientos_conciliados || []).includes(t.id));
+                let tableHtml = `
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr class="text-muted" style="font-size: 13px;">
+                                    <th>Fecha</th>
+                                    <th>Detalle</th>
+                                    <th class="text-end">Monto</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+                if (movs.length === 0) {
+                    tableHtml += `<tr><td colspan="3" class="text-center py-4 text-muted">No hay movimientos guardados en esta conciliación.</td></tr>`;
+                } else {
+                    movs.forEach(m => {
+                        const esIngreso = m.tipo === 'ingreso';
+                        tableHtml += `
+                        <tr style="font-size: 13px;">
+                            <td class="py-2">${(m.fecha || '').substring(0,10)}</td>
+                            <td class="py-2 fw-medium">${m.detalle || m.referencia || m.descripcion || '-'}</td>
+                            <td class="py-2 text-end text-${esIngreso ? 'success' : 'danger'} fw-medium">${this.formatMoney(m.monto)}</td>
+                        </tr>`;
+                    });
+                }
+                tableHtml += `</tbody></table></div>`;
+                
+                const modalBody = document.getElementById('modal-detalle-body');
+                if (modalBody) modalBody.innerHTML = tableHtml;
+                
+                const modalEl = document.getElementById('modal-detalle-conciliacion');
+                if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                    const modal = new bootstrap.Modal(modalEl);
+                    modal.show();
+                }
+            }
+
+            if (btnEditar) {
+                const id = btnEditar.getAttribute('data-id');
+                const concil = this.state.historialConciliaciones.find(c => c.id === id);
+                if (!concil) return;
+
+                this.state.editingConciliacionId = concil.id;
+                this.state.editingConciliacionMovimientos = concil.movimientos_conciliados || [];
+
+                // Llenar inputs
+                const inputDesde = document.getElementById('concil-desde');
+                const inputHasta = document.getElementById('concil-hasta');
+                const inputSaldo = document.getElementById('concil-input-saldo');
+                
+                if (inputDesde) inputDesde.value = concil.fecha_desde;
+                if (inputHasta) inputHasta.value = concil.fecha_hasta;
+                if (inputSaldo) inputSaldo.value = concil.saldo_bancario;
+                
+                this.state.fechaDesde = concil.fecha_desde;
+                this.state.fechaHasta = concil.fecha_hasta;
+                this.state.saldoBancario = concil.saldo_bancario;
+                
+                this.calcularTotales();
+                this.renderTabla();
+
+                // Cambiar a la pestaña Nueva Conciliacion
+                const tabBtn = document.getElementById('nueva-tab');
+                if (tabBtn && typeof bootstrap !== 'undefined' && bootstrap.Tab) {
+                    const tab = new bootstrap.Tab(tabBtn);
+                    tab.show();
+                }
+            }
+
+            if (btnEliminar) {
+                const id = btnEliminar.getAttribute('data-id');
+                if (confirm("¿Seguro que deseas eliminar el registro de esta conciliación?\n(Los movimientos bancarios reales no se verán afectados)")) {
+                    try {
+                        await DB.delete('conciliaciones', id);
+                        this.state.historialConciliaciones = await DB.getAll('conciliaciones') || [];
+                        this.renderHistorial();
+                    } catch (error) {
+                        console.error(error);
+                        alert("Error al eliminar la conciliación.");
+                    }
+                }
             }
         });
     }
