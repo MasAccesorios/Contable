@@ -338,10 +338,15 @@ export const TesoreriaModule = {
         let html = '';
         const formatMoney = val => '$' + (val || 0).toLocaleString('es-CO', {minimumFractionDigits: 2});
 
-        const cuentasFiltradas = this.cuentasConfig.filter(c => 
+        // Usar cuentas de Firestore (cuentasActivas) si existen, si no fallback a cuentasConfig
+        const sourceArray = (this.state.cuentasActivas && this.state.cuentasActivas.length > 0) 
+                            ? this.state.cuentasActivas 
+                            : this.cuentasConfig;
+                            
+        const cuentasFiltradas = sourceArray.filter(c => 
             c.nombre.toLowerCase().includes(searchQuery) ||
             c.tipo.toLowerCase().includes(searchQuery) ||
-            c.numero.toLowerCase().includes(searchQuery)
+            (c.numero && c.numero.toLowerCase().includes(searchQuery))
         );
 
         if (cuentasFiltradas.length === 0) {
@@ -366,7 +371,7 @@ export const TesoreriaModule = {
                     <td class="py-3 font-monospace text-muted">${c.numero}</td>
                     <td class="py-3" style="color: #2cbfb7; font-weight: 500;">${formatMoney(saldo)}</td>
                     <td class="py-3 pe-4">
-                        <button class="btn btn-sm btn-light border px-3 text-muted" style="font-size: 12px; font-weight: 500; border-radius: 4px;" onclick="alert('Funcionalidad de conciliación en desarrollo (Próximamente).')">
+                        <button class="btn btn-sm btn-light border px-3 text-muted" style="font-size: 12px; font-weight: 500; border-radius: 4px;" onclick="window.location.hash='#/bancos/conciliacion?banco_id=${c.id || ''}'">
                             Conciliar
                         </button>
                     </td>

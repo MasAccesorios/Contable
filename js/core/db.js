@@ -4,7 +4,7 @@
 import { db, collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc } from './firebase.js';
 
 const DB_NAME = 'MasAccesoriosDB';
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 let dbInstance = null;
 
 const DB = {
@@ -74,6 +74,13 @@ const DB = {
                     store.createIndex('by_cuenta', 'cuentaId', { unique: false });
                     store.createIndex('by_fecha', 'fecha', { unique: false });
                     store.createIndex('by_categoria', 'categoria', { unique: false });
+                }
+
+                // 9. Conciliaciones Bancarias
+                if (!db.objectStoreNames.contains('conciliaciones')) {
+                    const store = db.createObjectStore('conciliaciones', { keyPath: 'id' });
+                    store.createIndex('by_banco', 'banco_id', { unique: false });
+                    store.createIndex('by_fecha', 'fecha_guardado', { unique: false });
                 }
             };
 
