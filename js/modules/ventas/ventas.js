@@ -368,6 +368,7 @@ export const FacturasModule = {
         // Carga de DB
         const contactos = await DB.getAll('contactos');
         const productos = await DB.getAll('productos');
+        const transacciones = (await DB.getAll('transacciones').catch(() => [])) || [];
         
         // Estado por defecto
         let factura = {
@@ -385,7 +386,13 @@ export const FacturasModule = {
 
         if (id) {
             const dbData = await DB.get('facturas', id);
-            if (dbData) factura = dbData;
+            if (dbData) {
+                factura = dbData;
+                // Decorar factura con saldo real al vuelo
+                const dinamico = calcularEstadoFactura(factura, transacciones);
+                factura.estado = dinamico.estado;
+                factura.saldoPendiente = dinamico.saldo;
+            }
             
             // Fix backwards compatibility for converted cotizaciones
             if (factura.contactoId && !factura.clienteId) {
