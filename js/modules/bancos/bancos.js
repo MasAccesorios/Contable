@@ -108,7 +108,7 @@ export const TesoreriaModule = {
                             <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
                             <input type="text" id="search-bancos" class="form-control border-start-0 ps-0 text-muted" placeholder="Buscar bancos..." style="font-size: 13px; box-shadow: none;">
                         </div>
-                        <button class="btn btn-sm btn-light border text-muted ms-auto d-flex align-items-center px-3" style="font-weight: 500; font-size: 13px;">
+                        <button id="btn-actualizar-bancos" class="btn btn-sm btn-light border text-muted ms-auto d-flex align-items-center px-3" style="font-weight: 500; font-size: 13px;">
                             <i class="bi bi-arrow-clockwise me-2"></i> Actualizar datos
                         </button>
                     </div>
@@ -184,6 +184,18 @@ export const TesoreriaModule = {
 
     bindEvents() {
         const el = this.element;
+
+        el.querySelector('#btn-actualizar-bancos')?.addEventListener('click', async (e) => {
+            const btn = e.currentTarget;
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Actualizando...';
+            btn.disabled = true;
+            
+            await this.loadData();
+            
+            btn.innerHTML = originalHtml;
+            btn.disabled = false;
+        });
 
         el.querySelector('#btn-agregar-banco')?.addEventListener('click', () => {
             alert('Funcionalidad de agregar banco en desarrollo (Próximamente).');
