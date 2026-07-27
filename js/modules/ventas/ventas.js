@@ -747,6 +747,16 @@ export const FacturasModule = {
             PrintManager.printDocument(factura, 'Factura de venta', contactos, productos);
         });
 
+        // Evento Registrar Pago (Acción Superior - Solo Vista)
+        element.querySelector('.btn-abonar-detalle')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            const facId = e.currentTarget.dataset.id;
+            const saldo = parseFloat(e.currentTarget.dataset.saldo);
+            AbonoModal.show(facId, saldo, () => {
+                this.renderForm(element, facId, true); // Recargar la vista de detalle para reflejar el pago
+            });
+        });
+
         // Evento Editar Global (Acción Superior)
         element.querySelector('.btn-editar')?.addEventListener('click', (e) => {
             const docId = e.currentTarget.dataset.id;
