@@ -145,14 +145,12 @@ export const TesoreriaModule = {
                                     <label class="form-label text-muted small fw-semibold">Cuenta origen *</label>
                                     <select class="form-select" id="transf-origen" required>
                                         <option value="" disabled selected>Selecciona el origen</option>
-                                        ${(this.state.cuentasActivas || []).map(c => `<option value="${c.nombre}">${c.nombre}</option>`).join('')}
                                     </select>
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label text-muted small fw-semibold">Cuenta destino *</label>
                                     <select class="form-select" id="transf-destino" required>
                                         <option value="" disabled selected>Selecciona el destino</option>
-                                        ${(this.state.cuentasActivas || []).map(c => `<option value="${c.nombre}">${c.nombre}</option>`).join('')}
                                     </select>
                                 </div>
                                 <div class="row g-3 mb-3">
@@ -192,9 +190,26 @@ export const TesoreriaModule = {
         });
 
         el.querySelector('#btn-transferir')?.addEventListener('click', () => {
+            // 1. Obtener las referencias a los selects
+            const origenSelect = document.getElementById('transf-origen');
+            const destinoSelect = document.getElementById('transf-destino');
+            
+            // 2. Construir el HTML de los options
+            const cuentasOptions = (this.state.cuentasActivas || [])
+                .map(c => `<option value="${c.nombre}">${c.nombre}</option>`)
+                .join('');
+            
+            // 3. Inyectar dinámicamente preservando los placeholders originales
+            if (origenSelect) {
+                origenSelect.innerHTML = '<option value="" disabled selected>Selecciona el origen</option>' + cuentasOptions;
+            }
+            if (destinoSelect) {
+                destinoSelect.innerHTML = '<option value="" disabled selected>Selecciona el destino</option>' + cuentasOptions;
+            }
+
+            // 4. Abrir el modal normalmente
             const modalEl = document.getElementById('modal-transferir');
             if (modalEl) {
-                // Si bootstrap no está instanciado globalmente, usamos la clase show manual (fallback) o bootstrap.Modal
                 if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
                     const modal = new bootstrap.Modal(modalEl);
                     modal.show();
