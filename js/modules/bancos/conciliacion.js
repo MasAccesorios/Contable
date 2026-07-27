@@ -4,6 +4,7 @@ export const ConciliacionModule = {
     state: {
         transacciones: [],
         cuentas: [],
+        historialConciliaciones: [],
         bancoId: null,
         fechaDesde: '',
         fechaHasta: '',
@@ -29,6 +30,7 @@ export const ConciliacionModule = {
         this.renderBase();
         this.calcularTotales();
         this.renderTabla();
+        this.renderHistorial();
         this.attachEvents();
     },
 
@@ -39,6 +41,7 @@ export const ConciliacionModule = {
             this.state.bancoId = this.state.cuentas[0].id;
         }
         this.state.transacciones = await DB.getAll('transacciones') || [];
+        this.state.historialConciliaciones = await DB.getAll('conciliaciones') || [];
     },
 
     formatMoney(val) {
@@ -108,82 +111,126 @@ export const ConciliacionModule = {
                     </div>
                 </div>
 
-                <!-- Selectores -->
-                <div class="d-flex gap-3 mb-4 flex-wrap">
+                <!-- Selector global de cuenta -->
+                <div class="mb-4">
+                    <label class="form-label text-muted" style="font-size: 12px; font-weight: 500;">Cuenta a conciliar</label>
                     <select id="concil-cuenta" class="form-select border text-muted fw-medium" style="width: 250px; border-radius: 6px;">
                         ${opcionesCuentas}
                     </select>
-                    <div class="d-flex align-items-center gap-2 bg-white border px-3 rounded-2 shadow-sm">
-                        <i class="bi bi-calendar text-muted"></i>
-                        <input type="date" id="concil-desde" class="form-control border-0 bg-transparent text-muted text-sm shadow-none p-0" value="${this.state.fechaDesde}">
-                        <span class="text-muted">-</span>
-                        <input type="date" id="concil-hasta" class="form-control border-0 bg-transparent text-muted text-sm shadow-none p-0" value="${this.state.fechaHasta}">
-                    </div>
                 </div>
 
-                <!-- Resumen (Estilo Alegra) -->
-                <div class="card border-0 mb-4" style="box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.03), 0px 1px 3px rgba(0, 0, 0, 0.05); border-radius: 8px;">
-                    <div class="card-body p-4">
-                        <div class="row text-center mb-4">
-                            <div class="col-4 border-end">
-                                <p class="text-muted mb-1" style="font-size: 12px; font-weight: 500;">Saldo anterior</p>
-                                <h4 class="fw-bold mb-0" style="color: var(--text-main);" id="concil-saldo-anterior">$0,00</h4>
-                            </div>
-                            <div class="col-4 border-end">
-                                <p class="text-muted mb-1" style="font-size: 12px; font-weight: 500;">Entradas</p>
-                                <h4 class="fw-bold mb-0" style="color: #10b981;" id="concil-entradas">$0,00</h4>
-                            </div>
-                            <div class="col-4">
-                                <p class="text-muted mb-1" style="font-size: 12px; font-weight: 500;">Salidas</p>
-                                <h4 class="fw-bold mb-0" style="color: #ef4444;" id="concil-salidas">$0,00</h4>
+                <!-- Tabs -->
+                <ul class="nav nav-tabs mb-4" id="concilTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active text-muted fw-medium" id="nueva-tab" data-bs-toggle="tab" data-bs-target="#nueva" type="button" role="tab" style="color: var(--text-main) !important;">Nueva Conciliación</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link text-muted fw-medium" id="historial-tab" data-bs-toggle="tab" data-bs-target="#historial" type="button" role="tab">Historial</button>
+                    </li>
+                </ul>
+
+                <div class="tab-content" id="concilTabsContent">
+                    <!-- Pestaña Nueva Conciliación -->
+                    <div class="tab-pane fade show active" id="nueva" role="tabpanel">
+                        <!-- Selectores de Fechas -->
+                        <div class="d-flex gap-3 mb-4 flex-wrap">
+                            <div class="d-flex align-items-center gap-2 bg-white border px-3 rounded-2 shadow-sm" style="height: 38px;">
+                                <i class="bi bi-calendar text-muted"></i>
+                                <input type="date" id="concil-desde" class="form-control border-0 bg-transparent text-muted text-sm shadow-none p-0" value="${this.state.fechaDesde}">
+                                <span class="text-muted">-</span>
+                                <input type="date" id="concil-hasta" class="form-control border-0 bg-transparent text-muted text-sm shadow-none p-0" value="${this.state.fechaHasta}">
                             </div>
                         </div>
-                        <div class="row align-items-center">
-                            <div class="col-4">
-                                <label class="text-muted mb-1 d-block" style="font-size: 12px; font-weight: 500;">Saldo bancario <i class="bi bi-info-circle"></i></label>
-                                <div class="input-group input-group-sm">
-                                    <span class="input-group-text bg-light border-end-0">$</span>
-                                    <input type="number" id="concil-input-saldo" class="form-control border-start-0 ps-0 text-dark fw-medium" placeholder="0.00" value="0">
+
+                        <!-- Resumen (Estilo Alegra) -->
+                        <div class="card border-0 mb-4" style="box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.03), 0px 1px 3px rgba(0, 0, 0, 0.05); border-radius: 8px;">
+                            <div class="card-body p-4">
+                                <div class="row text-center mb-4">
+                                    <div class="col-4 border-end">
+                                        <p class="text-muted mb-1" style="font-size: 12px; font-weight: 500;">Saldo anterior</p>
+                                        <h4 class="fw-bold mb-0" style="color: var(--text-main);" id="concil-saldo-anterior">$0,00</h4>
+                                    </div>
+                                    <div class="col-4 border-end">
+                                        <p class="text-muted mb-1" style="font-size: 12px; font-weight: 500;">Entradas</p>
+                                        <h4 class="fw-bold mb-0" style="color: #10b981;" id="concil-entradas">$0,00</h4>
+                                    </div>
+                                    <div class="col-4">
+                                        <p class="text-muted mb-1" style="font-size: 12px; font-weight: 500;">Salidas</p>
+                                        <h4 class="fw-bold mb-0" style="color: #ef4444;" id="concil-salidas">$0,00</h4>
+                                    </div>
+                                </div>
+                                <div class="row align-items-center">
+                                    <div class="col-4">
+                                        <label class="text-muted mb-1 d-block" style="font-size: 12px; font-weight: 500;">Saldo bancario <i class="bi bi-info-circle"></i></label>
+                                        <div class="input-group input-group-sm">
+                                            <span class="input-group-text bg-light border-end-0">$</span>
+                                            <input type="number" id="concil-input-saldo" class="form-control border-start-0 ps-0 text-dark fw-medium" placeholder="0.00" value="0">
+                                        </div>
+                                    </div>
+                                    <div class="col-4 text-center">
+                                        <p class="text-muted mb-1" style="font-size: 12px; font-weight: 500;">Saldo total</p>
+                                        <h4 class="fw-bold mb-0" style="color: var(--text-main);" id="concil-saldo-total">$0,00</h4>
+                                    </div>
+                                    <div class="col-4 text-center">
+                                        <p class="text-muted mb-1" style="font-size: 12px; font-weight: 500;">Diferencia</p>
+                                        <h4 class="fw-bold mb-0" id="concil-diferencia" style="color: #ef4444;">$0,00</h4>
+                                    </div>
                                 </div>
                             </div>
-                            <div class="col-4 text-center">
-                                <p class="text-muted mb-1" style="font-size: 12px; font-weight: 500;">Saldo total</p>
-                                <h4 class="fw-bold mb-0" style="color: var(--text-main);" id="concil-saldo-total">$0,00</h4>
+                        </div>
+
+                        <!-- Tabla de Movimientos -->
+                        <div class="card border-0 mb-4" style="box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.03), 0px 1px 3px rgba(0, 0, 0, 0.05); border-radius: 8px;">
+                            <div class="card-body p-0">
+                                <div class="table-responsive">
+                                    <table class="table table-hover align-middle mb-0">
+                                        <thead style="background-color: #f8fafc;">
+                                            <tr>
+                                                <th class="py-3 ps-4 text-muted" style="font-size: 12px; font-weight: 600;">Fecha</th>
+                                                <th class="py-3 text-muted" style="font-size: 12px; font-weight: 600;">Descripción</th>
+                                                <th class="py-3 text-muted" style="font-size: 12px; font-weight: 600;">Tipo</th>
+                                                <th class="py-3 text-muted" style="font-size: 12px; font-weight: 600;">Monto</th>
+                                                <th class="py-3 pe-4 text-center text-muted" style="font-size: 12px; font-weight: 600;">Conciliado</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="tbody-conciliacion">
+                                            <!-- Inyectado vía JS -->
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
-                            <div class="col-4 text-center">
-                                <p class="text-muted mb-1" style="font-size: 12px; font-weight: 500;">Diferencia</p>
-                                <h4 class="fw-bold mb-0" id="concil-diferencia" style="color: #ef4444;">$0,00</h4>
+                        </div>
+
+                        <div class="d-flex justify-content-end mb-5">
+                            <button id="btn-guardar-concil" class="btn text-white fw-medium shadow-sm px-4 py-2" style="background-color: #2cbfb7; border-radius: 6px;">
+                                Guardar conciliación
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Pestaña Historial -->
+                    <div class="tab-pane fade" id="historial" role="tabpanel">
+                        <div class="card border-0 mb-4" style="box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.03), 0px 1px 3px rgba(0, 0, 0, 0.05); border-radius: 8px;">
+                            <div class="card-body p-0">
+                                <div class="table-responsive">
+                                    <table class="table table-hover align-middle mb-0">
+                                        <thead style="background-color: #f8fafc;">
+                                            <tr>
+                                                <th class="py-3 ps-4 text-muted" style="font-size: 12px; font-weight: 600;">Fecha Guardado</th>
+                                                <th class="py-3 text-muted" style="font-size: 12px; font-weight: 600;">Rango de Fechas</th>
+                                                <th class="py-3 text-muted" style="font-size: 12px; font-weight: 600;">Saldo Bancario</th>
+                                                <th class="py-3 text-muted" style="font-size: 12px; font-weight: 600;">Diferencia</th>
+                                                <th class="py-3 pe-4 text-center text-muted" style="font-size: 12px; font-weight: 600;">Movs. Conciliados</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="tbody-historial">
+                                            <!-- Inyectado vía JS -->
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-
-                <!-- Tabla de Movimientos -->
-                <div class="card border-0 mb-4" style="box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.03), 0px 1px 3px rgba(0, 0, 0, 0.05); border-radius: 8px;">
-                    <div class="card-body p-0">
-                        <div class="table-responsive">
-                            <table class="table table-hover align-middle mb-0">
-                                <thead style="background-color: #f8fafc;">
-                                    <tr>
-                                        <th class="py-3 ps-4 text-muted" style="font-size: 12px; font-weight: 600;">Fecha</th>
-                                        <th class="py-3 text-muted" style="font-size: 12px; font-weight: 600;">Descripción</th>
-                                        <th class="py-3 text-muted" style="font-size: 12px; font-weight: 600;">Tipo</th>
-                                        <th class="py-3 text-muted" style="font-size: 12px; font-weight: 600;">Monto</th>
-                                        <th class="py-3 pe-4 text-center text-muted" style="font-size: 12px; font-weight: 600;">Conciliado</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="tbody-conciliacion">
-                                    <!-- Inyectado vía JS -->
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="d-flex justify-content-end mb-5">
-                    <button id="btn-guardar-concil" class="btn text-white fw-medium shadow-sm px-4 py-2" style="background-color: #2cbfb7; border-radius: 6px;">
-                        Guardar conciliación
-                    </button>
                 </div>
             </div>
         `;
@@ -208,7 +255,7 @@ export const ConciliacionModule = {
             html += `
                 <tr style="font-size: 13px; color: var(--text-body);">
                     <td class="py-3 ps-4">${(m.fecha || '').substring(0, 10)}</td>
-                    <td class="py-3 fw-medium" style="color: var(--text-main);">${m.descripcion || '-'}</td>
+                    <td class="py-3 fw-medium" style="color: var(--text-main);">${m.detalle || m.referencia || m.descripcion || '-'}</td>
                     <td class="py-3">
                         <span class="badge" style="background-color: ${badgeBg}; color: ${badgeColor}; font-weight: 500;">
                             ${m.tipo.toUpperCase()}
@@ -225,11 +272,50 @@ export const ConciliacionModule = {
         tbody.innerHTML = html;
     },
 
+    renderHistorial() {
+        const tbody = this.element.querySelector('#tbody-historial');
+        if (!tbody) return;
+        let html = '';
+
+        const historialFiltrado = this.state.historialConciliaciones
+            .filter(c => c.banco_id === this.state.bancoId)
+            .sort((a, b) => new Date(b.fecha_guardado) - new Date(a.fecha_guardado));
+
+        if (historialFiltrado.length === 0) {
+            html = `<tr><td colspan="5" class="text-center py-5 text-muted">No hay historial para esta cuenta.</td></tr>`;
+        }
+
+        historialFiltrado.forEach(h => {
+            const dateObj = new Date(h.fecha_guardado);
+            const fechaGuardadoStr = dateObj.toLocaleDateString('es-CO') + ' ' + dateObj.toLocaleTimeString('es-CO', {hour: '2-digit', minute:'2-digit'});
+            const rango = `${h.fecha_desde} a ${h.fecha_hasta}`;
+            
+            const isDiferenciaCero = h.diferencia === 0;
+            const difColor = isDiferenciaCero ? '#059669' : '#dc2626';
+            const cantMovs = h.movimientos_conciliados ? h.movimientos_conciliados.length : 0;
+
+            html += `
+                <tr style="font-size: 13px; color: var(--text-body);">
+                    <td class="py-3 ps-4 fw-medium text-muted">${fechaGuardadoStr}</td>
+                    <td class="py-3 text-muted">${rango}</td>
+                    <td class="py-3" style="font-weight: 500;">${this.formatMoney(h.saldo_bancario)}</td>
+                    <td class="py-3" style="color: ${difColor}; font-weight: 600;">${this.formatMoney(h.diferencia)}</td>
+                    <td class="py-3 pe-4 text-center">
+                        <span class="badge bg-light text-dark border">${cantMovs}</span>
+                    </td>
+                </tr>
+            `;
+        });
+
+        tbody.innerHTML = html;
+    },
+
     attachEvents() {
         this.element.querySelector('#concil-cuenta').addEventListener('change', (e) => {
             this.state.bancoId = e.target.value;
             this.calcularTotales();
             this.renderTabla();
+            this.renderHistorial();
         });
 
         this.element.querySelector('#concil-desde').addEventListener('change', (e) => {
