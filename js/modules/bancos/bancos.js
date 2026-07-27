@@ -252,6 +252,15 @@ export const TesoreriaModule = {
             this.renderTabla(e.target.value.toLowerCase().trim());
         });
 
+        el.querySelector('#tbody-bancos')?.addEventListener('click', (e) => {
+            const toggleBtn = e.target.closest('.btn-toggle-estado');
+            if (toggleBtn) {
+                const id = toggleBtn.getAttribute('data-id');
+                const estadoActual = toggleBtn.getAttribute('data-estado');
+                this.toggleEstadoCuenta(id, estadoActual);
+            }
+        });
+
         el.querySelector('#select-chart-rango')?.addEventListener('change', (e) => {
             const meses = parseInt(e.target.value, 10);
             this.renderChart(meses);
@@ -296,6 +305,7 @@ export const TesoreriaModule = {
         this.state.transacciones = await DB.getAll('transacciones');
         
         const dbCuentas = await DB.getAll('cuentas_bancarias') || [];
+        this.state.todasLasCuentas = dbCuentas;
         this.state.cuentasActivas = dbCuentas.filter(c => c.estado === 'activo');
         
         // Calcular saldos (sólo para las cuentas activas)
@@ -350,9 +360,9 @@ export const TesoreriaModule = {
         let html = '';
         const formatMoney = val => '$' + (val || 0).toLocaleString('es-CO', {minimumFractionDigits: 2});
 
-        // Usar cuentas de Firestore (cuentasActivas) si existen, si no fallback a cuentasConfig
-        const sourceArray = (this.state.cuentasActivas && this.state.cuentasActivas.length > 0) 
-                            ? this.state.cuentasActivas 
+        // Usar cuentas de Firestore (todasLasCuentas) si existen, si no fallback a cuentasConfig
+        const sourceArray = (this.state.todasLasCuentas && this.state.todasLasCuentas.length > 0) 
+                            ? this.state.todasLasCuentas 
                             : this.cuentasConfig;
                             
         const cuentasFiltradas = sourceArray.filter(c => 
@@ -370,22 +380,35 @@ export const TesoreriaModule = {
             const isEfectivo = c.tipo.toLowerCase() === 'efectivo';
             const icon = isEfectivo ? 'bi-cash' : 'bi-bank';
             
+            const isActivo = c.estado !== 'inactivo';
+            const opacityStyle = isActivo ? '' : 'opacity: 0.6;';
+            const badge = isActivo ? '' : '<span class="badge bg-secondary ms-2" style="font-size: 10px;">Inactiva</span>';
+            const actionBtnIcon = isActivo ? 'bi-pause-circle' : 'bi-play-circle';
+            const actionBtnColor = isActivo ? 'text-danger' : 'text-success';
+            const actionBtnTitle = isActivo ? 'Desactivar cuenta' : 'Activar cuenta';
+            
             // Layout de Alegra: ícono gris tenue a la izquierda del nombre
             html += `
-                <tr style="font-size: 13px; color: var(--text-body); border-bottom: 1px solid var(--border-color);">
+                <tr style="font-size: 13px; color: var(--text-body); border-bottom: 1px solid var(--border-color); ${opacityStyle}">
                     <td class="py-3 ps-4 d-flex align-items-center">
                         <div class="bg-light rounded-circle p-2 me-3 d-flex align-items-center justify-content-center text-muted" style="width: 32px; height: 32px; border: 1px solid #e2e8f0;">
                             <i class="bi ${icon}" style="font-size: 14px;"></i>
                         </div>
                         <span style="color: var(--text-main); font-weight: 500;">${c.nombre}</span>
+                        ${badge}
                     </td>
                     <td class="py-3"><i class="bi bi-wallet2 me-2 text-muted"></i>${c.tipo}</td>
                     <td class="py-3 font-monospace text-muted">${c.numero}</td>
                     <td class="py-3" style="color: #2cbfb7; font-weight: 500;">${formatMoney(saldo)}</td>
                     <td class="py-3 pe-4">
-                        <button class="btn btn-sm btn-light border px-3 text-muted" style="font-size: 12px; font-weight: 500; border-radius: 4px;" onclick="window.location.hash='#/bancos/conciliacion?banco_id=${c.id || ''}'">
-                            Conciliar
-                        </button>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-sm btn-light border px-3 text-muted" style="font-size: 12px; font-weight: 500; border-radius: 4px;" onclick="window.location.hash='#/bancos/conciliacion?banco_id=${c.id || ''}'">
+                                Conciliar
+                            </button>
+                            <button class="btn btn-sm btn-light border ${actionBtnColor} btn-toggle-estado" data-id="${c.id}" data-estado="${c.estado || 'activo'}" title="${actionBtnTitle}" style="border-radius: 4px;">
+                                <i class="bi ${actionBtnIcon}"></i>
+                            </button>
+                        </div>
                     </td>
                 </tr>
             `;
@@ -567,5 +590,44 @@ export const TesoreriaModule = {
         await DB.save('transacciones', ingreso);
         
         return true;
+    },
+
+    async toggleEstadoCuenta(id, estadoActual) {
+        if (!id) return;
+        const nuevoEstado = estadoActual === 'inactivo' ? 'activo' : 'inactivo';
+        const accionStr = nuevoEstado === 'inactivo' ? 'desactivar' : 'activar';
+        
+        if (window.CoreActions && window.CoreActions.showConfirmModal) {
+            window.CoreActions.showConfirmModal(
+                `¿Seguro que deseas ${accionStr} esta cuenta?`,
+                async () => {
+                    await this.actualizarEstadoDB(id, nuevoEstado);
+                }
+            );
+        } else {
+            if (confirm(`¿Seguro que deseas ${accionStr} esta cuenta?`)) {
+                await this.actualizarEstadoDB(id, nuevoEstado);
+            }
+        }
+    },
+
+    async actualizarEstadoDB(id, nuevoEstado) {
+        try {
+            const cuenta = await DB.get('cuentas_bancarias', id);
+            if (cuenta) {
+                cuenta.estado = nuevoEstado;
+                await DB.save('cuentas_bancarias', cuenta);
+                // Usar nuestro nuevo botón de actualizar para refrescar visualmente
+                const btnRefresh = this.element.querySelector('#btn-actualizar-bancos');
+                if (btnRefresh) {
+                    btnRefresh.click();
+                } else {
+                    await this.loadData();
+                }
+            }
+        } catch (err) {
+            console.error('Error al actualizar estado:', err);
+            alert('Error al actualizar el estado de la cuenta.');
+        }
     }
 };
