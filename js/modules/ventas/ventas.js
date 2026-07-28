@@ -65,7 +65,7 @@ export const FacturasModule = {
             filteredData = facturasData.filter(c => {
                 if (!searchQuery) return true;
                 const clientName = getClienteName(c.clienteId || c.contactoId).toLowerCase();
-                const num = (c.prefijo || '') + (c.numero || '').toString();
+                const num = (c.numero || '').toString();
                 const state = c.estado || 'por_pagar';
                 const date = c.fecha || '';
 
@@ -126,7 +126,7 @@ export const FacturasModule = {
                     labelEstado = 'Por Pagar';
                 }
 
-                const numDisplay = (c.prefijo || '') + (c.numero || c.id);
+                const numDisplay = c.numero || parseInt(String(c.id).replace(/\D/g, ''), 10) || c.id;
                 
                 return `
                     <tr style="cursor: pointer; border-bottom: 1px solid var(--border-color); font-size: 13px; color: var(--text-body);" onclick="if(!event.target.closest('button')) window.location.hash = '#/ingresos/facturas/ver/${c.id}'">
@@ -403,14 +403,6 @@ export const FacturasModule = {
             });
         };
 
-        // Click out to close row menus
-        document.addEventListener('click', (e) => {
-            const menu = document.querySelector('.row-action-menu');
-            if (menu && !e.target.closest('.row-action-menu') && !e.target.closest('.btn-menu-row')) {
-                menu.remove();
-            }
-        });
-
         renderGrid();
     },
 
@@ -423,7 +415,7 @@ export const FacturasModule = {
         // Estado por defecto
         let factura = {
             id: 'fac_' + Date.now(),
-            numero: Math.floor(Math.random() * 9000) + 1000,
+            numero: await DB.nextNumero('facturas'),
             fecha: new Date().toISOString().split('T')[0],
             vencimiento: new Date().toISOString().split('T')[0],
             clienteId: '',
@@ -498,7 +490,7 @@ export const FacturasModule = {
                                     <option>Factura de venta</option>
                                 </select>
                                 <div class="d-flex justify-content-between align-items-center text-muted" style="font-size: 14px;">
-                                    <span id="lbl-numero">No. <strong style="color: var(--text-main);">${factura.prefijo ? factura.prefijo + ' ' : ''}${factura.numero}</strong></span>
+                                    <span id="lbl-numero">No. <strong style="color: var(--text-main);">${factura.numero}</strong></span>
                                     ${!isViewOnly ? `<i class="bi bi-gear" id="btn-config-num" style="cursor: pointer;"></i>` : ''}
                                 </div>
                             </div>
@@ -774,7 +766,7 @@ export const FacturasModule = {
         // Configuración de Numeración (Engranaje)
         element.querySelector('#btn-config-num')?.addEventListener('click', () => {
             NumberingManager.openNumberingModal('factura', factura, (prefijo, numero) => {
-                element.querySelector('#lbl-numero').innerHTML = `No. <strong style="color: var(--text-main);">${prefijo ? prefijo + ' ' : ''}${numero}</strong>`;
+                element.querySelector('#lbl-numero').innerHTML = `No. <strong style="color: var(--text-main);">${numero}</strong>`;
             });
         });
 
@@ -923,8 +915,8 @@ export const FacturasModule = {
                             tipo: 'ingreso',
                             monto: rawTotal,
                             fecha: factura.fecha,
-                            referencia: `Venta al contado Fac. ${factura.prefijo || ''}${factura.numero}`,
-                            detalle: `Venta al contado Fac. ${factura.prefijo || ''}${factura.numero}`,
+                            referencia: `Venta al contado Fac. ${factura.numero}`,
+                            detalle: `Venta al contado Fac. ${factura.numero}`,
                             cuenta: factura.cuentaId,
                             cuentaId: factura.cuentaId
                         };

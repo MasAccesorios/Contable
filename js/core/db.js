@@ -1,7 +1,7 @@
 // js/db.js
 // M贸dulo de persistencia local indexada y sincronizaci贸n para MAS Accesorios
 
-import { db, collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, auth, onAuthStateChanged } from './firebase.js';
+import { db, collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, deleteField, runTransaction, auth, onAuthStateChanged } from './firebase.js';
 
 const DB_NAME = 'MasAccesoriosDB';
 const DB_VERSION = 4;
@@ -105,7 +105,7 @@ const DB = {
         if (!data.id) throw new Error(`El registro debe contener un ID 煤nico para persistencia en ${storeName}.`);
 
         // TODO: transacciones sigue en IndexedDB 鈥?bancos.js hace getAll completo para sumar saldos, migrar solo despu茅s de refactorizar a saldo acumulado para no agotar cuota de lecturas de Firestore.
-        if (storeName === 'productos' || storeName === 'contactos' || storeName === 'cotizaciones' || storeName === 'facturas' || storeName === 'lotes_fifo' || storeName === 'cuentas_bancarias') {
+        if (storeName === 'productos' || storeName === 'contactos' || storeName === 'cotizaciones' || storeName === 'facturas' || storeName === 'lotes_fifo' || storeName === 'cuentas_bancarias' || storeName === 'contadores') {
             const ref = doc(db, storeName, data.id);
             await setDoc(ref, data);
             return data;
@@ -127,7 +127,7 @@ const DB = {
      */
     async get(storeName, id) {
         // TODO: transacciones sigue en IndexedDB 鈥?bancos.js hace getAll completo para sumar saldos, migrar solo despu茅s de refactorizar a saldo acumulado para no agotar cuota de lecturas de Firestore.
-        if (storeName === 'productos' || storeName === 'contactos' || storeName === 'cotizaciones' || storeName === 'facturas' || storeName === 'lotes_fifo' || storeName === 'cuentas_bancarias') {
+        if (storeName === 'productos' || storeName === 'contactos' || storeName === 'cotizaciones' || storeName === 'facturas' || storeName === 'lotes_fifo' || storeName === 'cuentas_bancarias' || storeName === 'contadores') {
             const ref = doc(db, storeName, id);
             const snap = await getDoc(ref);
             return snap.exists() ? snap.data() : null;
@@ -206,13 +206,76 @@ const DB = {
             request.onsuccess = () => resolve(true);
             request.onerror = (e) => reject(e.target.error);
         });
+    },
+
+    /**
+     * Genera el siguiente número de documento de forma atómica usando Firestore runTransaction.
+     * El documento contador vive en 'contadores/facturas' o 'contadores/cotizaciones'.
+     * Si el contador no existe aún, calcula MAX(numero existente) + 1 para no colisionar
+     * con ningún número histórico (aleatorios incluidos).
+     * @param {string} coleccion - 'facturas' | 'cotizaciones'
+     * @returns {Promise<number>} El siguiente número disponible, ya reservado en Firestore
+     */
+    async nextNumero(coleccion) {
+        const contadorRef = doc(db, 'contadores', coleccion);
+        return await runTransaction(db, async (tx) => {
+            const snap = await tx.get(contadorRef);
+            let siguiente;
+            if (snap.exists()) {
+                // Caso normal: leer el contador persistido y avanzarlo
+                siguiente = snap.data().siguiente;
+            } else {
+                // Primera vez: calcular MAX del histórico para no colisionar con aleatorios
+                const todos = await getDocs(collection(db, coleccion));
+                const maxNum = todos.docs.reduce((max, d) => {
+                    const n = parseInt(String(d.data().numero ?? d.id).replace(/\D/g, ''), 10) || 0;
+                    return n > max ? n : max;
+                }, 0);
+                siguiente = maxNum + 1;
+            }
+            // Reservar: el contador apunta ya al próximo después de este
+            tx.set(contadorRef, { siguiente: siguiente + 1, coleccion, actualizadoEn: new Date().toISOString() });
+            return siguiente;
+        });
     }
 };
 
-// Autoejecuci贸n preventiva para asegurar la disponibilidad del esquema global
-DB.init().catch(err => console.error("Fallo autom谩ico de inicializaci贸n DB:", err));
+// Autoejecución preventiva para asegurar la disponibilidad del esquema global
+DB.init().catch(err => console.error("Fallo automático de inicialización DB:", err));
 
 export default DB;
+
+/**
+ * MIGRACIÓN ONE-SHOT: Limpieza del campo 'prefijo' en facturas
+ * Uso: await window.limpiarPrefijosFacturas() desde la consola del navegador.
+ * Eliminar esta función después de ejecutarla una sola vez.
+ */
+window.limpiarPrefijosFacturas = async function() {
+    console.log('🔄 Iniciando limpieza de prefijos en facturas...');
+    const snap = await getDocs(collection(db, 'facturas'));
+    let revisadas = 0, limpiadas = 0, errores = 0;
+
+    for (const docSnap of snap.docs) {
+        revisadas++;
+        const data = docSnap.data();
+        if (data.prefijo !== undefined && data.prefijo !== '') {
+            try {
+                await updateDoc(docSnap.ref, { prefijo: deleteField() });
+                limpiadas++;
+                console.log(`  ✅ [${docSnap.id}] prefijo "${data.prefijo}" eliminado`);
+            } catch (e) {
+                errores++;
+                console.error(`  ❌ Error en [${docSnap.id}]:`, e.message);
+            }
+        }
+    }
+
+    console.log(`\n📋 RESUMEN:`);
+    console.log(`   Facturas revisadas : ${revisadas}`);
+    console.log(`   Prefijos limpiados : ${limpiadas}`);
+    if (errores > 0) console.error(`   Errores            : ${errores}`);
+    console.log('✅ Limpieza completada.');
+};
 
 // ============================================================================
 // SCRIPT DE RESTAURACI脫N DE BACKUPS (JSON -> Firestore/IndexedDB)

@@ -187,7 +187,7 @@ export default {
                                     return `
                                     <tr>
                                         <td class="ps-3"><input type="checkbox" class="form-check-input"></td>
-                                        <td class="text-primary fw-medium" style="cursor: pointer;">${f.prefijo || ''}${f.numero || f.id}</td>
+                                        <td class="text-primary fw-medium" style="cursor: pointer;">${f.numero || f.id}</td>
                                         <td class="text-muted">Factura de venta</td>
                                         <td class="text-dark">${cliente.nombre}</td>
                                         <td class="text-muted">${f.fecha || 'N/A'}</td>

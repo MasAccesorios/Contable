@@ -175,7 +175,8 @@ export const ImportadorModule = {
                 const cacheLotes = await DB.getAll('lotes_fifo');
 
                 for (const f of facturasRaw) {
-                    const id = String(f.id || 'fac_' + Math.random().toString(36).substring(2, 9));
+                    const id = String(f.id || f.numero || '').trim();
+                    if (!id) { facturasOmitidas++; continue; } // Saltar registros sin ID recuperable
                     if (existingFacturaIds.has(id)) {
                         facturasOmitidas++;
                         continue;
@@ -229,7 +230,11 @@ export const ImportadorModule = {
 
                     const factura = {
                         id,
-                        contactoId: f.contactoId || f.client_id || '',
+                        // Número limpio: extraer dígitos del id o del campo numero del JSON
+                        numero: parseInt(String(f.numero || f.id || '').replace(/\D/g, ''), 10) || undefined,
+                        // Normalizar clienteId: ambos campos, por compatibilidad con todos los módulos
+                        clienteId: f.clienteId || f.contactoId || f.client_id || '',
+                        contactoId: f.contactoId || f.clienteId || f.client_id || '',
                         fecha: f.fecha || f.date || fechaActual,
                         total: parseFloat(f.total || 0),
                         estado: (f.estado || f.status || 'pendiente').toLowerCase(),
@@ -292,8 +297,8 @@ export const ImportadorModule = {
                             tipo: 'ingreso',
                             monto: montoPago,
                             fecha: p.fecha || p.date || fechaActual,
-                            referencia: `Abono a Fac. ${factura.prefijo || ''}${factura.numero || factura.id}`, // For backwards comp
-                            detalle: `Abono a Fac. ${factura.prefijo || ''}${factura.numero || factura.id}`, // Normalized
+                            referencia: `Abono a Fac. ${factura.numero || factura.id}`, // For backwards comp
+                            detalle: `Abono a Fac. ${factura.numero || factura.id}`, // Normalized
                             cuenta: p.cuenta || p.account || 'Caja General', // For backwards comp
                             cuentaId: p.cuenta || p.account || 'Caja General' // Normalized
                         };

@@ -81,32 +81,32 @@ export default {
                     
                     if (tipo === 'ventas') {
                         dataToExport = filtradas.map(f => ({
-                            'Documento': (f.prefijo || '') + (f.numero || ''),
+                            'Documento': f.numero || parseInt(String(f.id).replace(/\D/g, ''), 10) || f.id,
                             'Fecha': f.fecha,
-                            'Cliente': getClienteName(f.clienteId),
+                            'Cliente': getClienteName(f.clienteId || f.contactoId),
                             'Estado': f.estado,
                             'Total de Venta': f.total
                         }));
                     } else { // Utilidad
                         dataToExport = filtradas.map(f => ({
-                            'Documento': (f.prefijo || '') + (f.numero || ''),
+                            'Documento': f.numero || parseInt(String(f.id).replace(/\D/g, ''), 10) || f.id,
                             'Fecha': f.fecha,
-                            'Cliente': getClienteName(f.clienteId),
+                            'Cliente': getClienteName(f.clienteId || f.contactoId),
                             'Total de Venta': f.total,
                             'Costo de Venta (FIFO)': f.total_costo || 0,
-                            'Utilidad Bruta': f.utilidad || 0
+                            'Utilidad Bruta': f.total - (f.total_costo || 0)
                         }));
                     }
                 } 
                 else if (tipo === 'cartera') {
                     const facturas = await DB.getAll('facturas');
-                    let pendientes = facturas.filter(f => f.tipo === 'venta' && (f.estado === 'pendiente' || f.estado === 'parcial'));
+                    let pendientes = facturas.filter(f => f.tipo === 'venta' && (f.estado === 'pendiente' || f.estado === 'por_pagar' || f.estado === 'parcial'));
                     dataToExport = pendientes.map(f => {
                         const total = parseFloat(f.total) || 0;
                         const saldo = f.saldo !== undefined ? parseFloat(f.saldo) : total;
                         return {
-                            'Cliente': getClienteName(f.clienteId),
-                            'Documento': (f.prefijo || '') + (f.numero || ''),
+                            'Cliente': getClienteName(f.clienteId || f.contactoId),
+                            'Documento': f.numero || parseInt(String(f.id).replace(/\D/g, ''), 10) || f.id,
                             'Fecha Emisión': f.fecha,
                             'Fecha Vencimiento': f.vencimiento || '',
                             'Total Factura': total,
@@ -170,7 +170,7 @@ export default {
         setTimeout(() => {
             try {
                 const headers = Object.keys(rows[0]);
-                let csvContent = headers.join(';') + '\\r\\n';
+                let csvContent = headers.join(';') + String.fromCharCode(13, 10);
                 
                 rows.forEach(row => {
                     const values = headers.map(header => {
@@ -178,10 +178,10 @@ export default {
                         val = val.replace(/"/g, '""');
                         return `"${val}"`;
                     });
-                    csvContent += values.join(';') + '\\r\\n';
+                    csvContent += values.join(';') + String.fromCharCode(13, 10);
                 });
 
-                const BOM = '\\uFEFF';
+                const BOM = String.fromCharCode(0xFEFF);
                 const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
                 const url = URL.createObjectURL(blob);
 

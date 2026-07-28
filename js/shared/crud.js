@@ -102,8 +102,7 @@ export const CoreActions = {
                 notas: cotizacion.notas || '',
                 terminosCondiciones: cotizacion.terminosCondiciones || 'Favor realizar los pagos a nuestra cuenta bancaria.',
                 origenCotizacionId: cotizacion.id,
-                prefijo: 'FAC',
-                numero: Math.floor(Math.random() * 9000) + 1000
+                numero: await DB.nextNumero('facturas')
             };
 
             await DB.save('facturas', nuevaFactura);
@@ -394,13 +393,6 @@ export const ItemEngine = {
         const metaProd = tr.querySelector('.meta-prod');
         const metaQty = tr.querySelector('.meta-qty');
 
-        // Cerrar dropdowns al hacer click fuera
-        document.addEventListener('click', (e) => {
-            if (!tr.contains(e.target)) {
-                dropdown.style.display = 'none';
-            }
-        });
-
         // ==========================================
         // Lógica de Autocompletado (Live Search)
         // ==========================================
@@ -622,7 +614,7 @@ export const PrintManager = {
         // 3. Resolutores de Datos
         const cliente = contactos.find(c => c.id === doc.clienteId) || {};
         const formatMoney = (val) => '$ ' + parseFloat(val || 0).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        const numDisplay = (doc.prefijo || '') + (doc.numero || doc.id);
+        const numDisplay = doc.numero || parseInt(String(doc.id).replace(/\D/g, ''), 10) || doc.id;
         const totalUnidades = (doc.detalles || []).reduce((sum, det) => sum + (Number(det.cantidad) || 0), 0);
 
         // 4. Generar Filas de la Tabla
@@ -772,7 +764,7 @@ export const ExportManager = {
                 // Mapear objetos a filas planas
                 const rows = dataArray.map(item => {
                     const clienteNombre = getClienteNameFunc ? getClienteNameFunc(item.clienteId) : (item.clienteId || 'N/A');
-                    const numDoc = (item.prefijo || '') + (item.numero || item.id);
+                    const numDoc = item.numero || parseInt(String(item.id).replace(/\D/g, ''), 10) || item.id;
                     const estado = item.convertidoAFactura ? 'Facturada' : 'Borrador';
 
                     return {

@@ -93,8 +93,8 @@ export const AbonoModal = {
                     tipo: 'ingreso',
                     monto: monto,
                     fecha: fecha,
-                    referencia: `Abono a Fac. ${factura.prefijo || ''}${factura.numero || factura.id}`,
-                    detalle: `Abono a Fac. ${factura.prefijo || ''}${factura.numero || factura.id}`,
+                    referencia: `Abono a Fac. ${factura.numero || factura.id}`,
+                    detalle: `Abono a Fac. ${factura.numero || factura.id}`,
                     cuenta: cuenta,
                     cuentaId: cuenta
                 };

@@ -53,7 +53,7 @@ export const CotizacionesModule = {
             filteredData = cotizacionesData.filter(c => {
                 if (!searchQuery) return true;
                 const clientName = getClienteName(c.clienteId).toLowerCase();
-                const num = (c.prefijo || '') + (c.numero || '').toString();
+                const num = (c.numero || '').toString();
                 const state = c.convertidoAFactura ? 'facturada' : 'borrador';
                 const date = c.fecha || '';
 
@@ -102,7 +102,7 @@ export const CotizacionesModule = {
                 const isFacturada = c.convertidoAFactura;
                 const badgeColor = isFacturada ? 'color: #15803d; background-color: #dcfce7;' : 'color: #b45309; background-color: #fef3c7;';
                 const labelEstado = isFacturada ? 'Facturada' : 'Borrador';
-                const numDisplay = (c.prefijo || '') + (c.numero || c.id);
+                const numDisplay = (c.numero || c.id);
                 
                 return `
                     <tr style="cursor: pointer; border-bottom: 1px solid var(--border-color); font-size: 13px; color: var(--text-body);" onclick="if(!event.target.closest('button')) window.location.hash = '#/ingresos/cotizaciones/ver/${c.id}'">
@@ -357,14 +357,6 @@ export const CotizacionesModule = {
             });
         };
 
-        // Click out to close row menus
-        document.addEventListener('click', (e) => {
-            const menu = document.querySelector('.row-action-menu');
-            if (menu && !e.target.closest('.row-action-menu') && !e.target.closest('.btn-menu-row')) {
-                menu.remove();
-            }
-        });
-
         renderGrid();
     },
 
@@ -376,7 +368,7 @@ export const CotizacionesModule = {
         // Estado por defecto
         let cotizacion = {
             id: 'cot_' + Date.now(),
-            numero: Math.floor(Math.random() * 9000) + 1000,
+            numero: await DB.nextNumero('cotizaciones'),
             fecha: new Date().toISOString().split('T')[0],
             vencimiento: new Date().toISOString().split('T')[0],
             clienteId: '',
@@ -428,7 +420,7 @@ export const CotizacionesModule = {
                                     <option>Cotización</option>
                                 </select>
                                 <div class="d-flex justify-content-between align-items-center text-muted" style="font-size: 14px;">
-                                    <span id="lbl-numero">No. <strong style="color: var(--text-main);">${cotizacion.prefijo ? cotizacion.prefijo + ' ' : ''}${cotizacion.numero}</strong></span>
+                                    <span id="lbl-numero">No. <strong style="color: var(--text-main);">${cotizacion.numero}</strong></span>
                                     ${!isViewOnly ? `<i class="bi bi-gear" id="btn-config-num" style="cursor: pointer;"></i>` : ''}
                                 </div>
                             </div>
@@ -687,7 +679,7 @@ export const CotizacionesModule = {
         // Configuración de Numeración (Engranaje)
         element.querySelector('#btn-config-num')?.addEventListener('click', () => {
             NumberingManager.openNumberingModal('cotizacion', cotizacion, (prefijo, numero) => {
-                element.querySelector('#lbl-numero').innerHTML = `No. <strong style="color: var(--text-main);">${prefijo ? prefijo + ' ' : ''}${numero}</strong>`;
+                element.querySelector('#lbl-numero').innerHTML = `No. <strong style="color: var(--text-main);">${numero}</strong>`;
             });
         });
 

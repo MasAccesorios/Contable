@@ -10,6 +10,26 @@ window.cleanupFloatingElements = function() {
     document.querySelectorAll('.dropdown-menu, .row-actions-menu, .desc-popover, .search-results-dropdown').forEach(el => el.remove());
 };
 
+// Listener global ÚNICO para cerrar menús contextuales de filas (.row-action-menu)
+// Registrado una sola vez aquí en lugar de re-registrarse en cada renderList() de facturas/cotizaciones.
+document.addEventListener('click', (e) => {
+    const menu = document.querySelector('.row-action-menu');
+    if (menu && !e.target.closest('.row-action-menu') && !e.target.closest('.btn-menu-row')) {
+        menu.remove();
+    }
+});
+
+// Listener global ÚNICO para cerrar dropdowns de autocompletado de items (.search-results-dropdown)
+// Registrado una sola vez aquí en lugar de re-registrarse por cada fila de producto en crud.js.
+document.addEventListener('click', (e) => {
+    document.querySelectorAll('.search-results-dropdown').forEach(dropdown => {
+        const tr = dropdown.closest('tr');
+        if (tr && !tr.contains(e.target)) {
+            dropdown.style.display = 'none';
+        }
+    });
+});
+
 const routes = {
     'inicio': () => import('../modules/dashboard.js'),
     'contactos': () => import('../modules/clientes/clientes.js'),
