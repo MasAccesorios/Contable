@@ -258,6 +258,18 @@ export const TesoreriaModule = {
                 const id = toggleBtn.getAttribute('data-id');
                 const estadoActual = toggleBtn.getAttribute('data-estado');
                 this.toggleEstadoCuenta(id, estadoActual);
+                return;
+            }
+
+            const conciliarBtn = e.target.closest('.btn-conciliar');
+            if (conciliarBtn) {
+                return; // Evitar que la fila dispare navegación
+            }
+
+            const row = e.target.closest('.banco-row');
+            if (row) {
+                const id = row.getAttribute('data-id');
+                window.location.hash = `#/bancos/detalle?banco_id=${encodeURIComponent(id)}`;
             }
         });
 
@@ -389,7 +401,7 @@ export const TesoreriaModule = {
             
             // Layout de Alegra: ícono gris tenue a la izquierda del nombre
             html += `
-                <tr style="font-size: 13px; color: var(--text-body); border-bottom: 1px solid var(--border-color); ${opacityStyle}">
+                <tr class="banco-row" data-id="${c.nombre || c.id || ''}" style="cursor: pointer; font-size: 13px; color: var(--text-body); border-bottom: 1px solid var(--border-color); ${opacityStyle}">
                     <td class="py-3 ps-4 d-flex align-items-center">
                         <div class="bg-light rounded-circle p-2 me-3 d-flex align-items-center justify-content-center text-muted" style="width: 32px; height: 32px; border: 1px solid #e2e8f0;">
                             <i class="bi ${icon}" style="font-size: 14px;"></i>
@@ -402,10 +414,10 @@ export const TesoreriaModule = {
                     <td class="py-3" style="color: #2cbfb7; font-weight: 500;">${formatMoney(saldo)}</td>
                     <td class="py-3 pe-4">
                         <div class="d-flex gap-2">
-                            <button class="btn btn-sm btn-light border px-3 text-muted" style="font-size: 12px; font-weight: 500; border-radius: 4px;" onclick="window.location.hash='#/bancos/conciliacion?banco_id=${c.id || ''}'">
+                            <button class="btn btn-sm btn-light border px-3 text-muted btn-conciliar" style="font-size: 12px; font-weight: 500; border-radius: 4px;" onclick="event.stopPropagation(); window.location.hash='#/bancos/conciliacion?banco_id=${c.id || c.nombre || ''}'">
                                 Conciliar
                             </button>
-                            <button class="btn btn-sm btn-light border ${actionBtnColor} btn-toggle-estado" data-id="${c.id}" data-estado="${c.estado || 'activo'}" title="${actionBtnTitle}" style="border-radius: 4px;">
+                            <button class="btn btn-sm btn-light border ${actionBtnColor} btn-toggle-estado" data-id="${c.id}" data-estado="${c.estado || 'activo'}" title="${actionBtnTitle}" style="border-radius: 4px;" onclick="event.stopPropagation();">
                                 <i class="bi ${actionBtnIcon}"></i>
                             </button>
                         </div>

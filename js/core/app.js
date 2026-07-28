@@ -22,6 +22,7 @@ const routes = {
     'ingresos/facturas': () => import('../modules/ventas/ventas.js'),
     'cartera': () => import('../modules/cartera/cartera.js'),
     'bancos/conciliacion': () => import('../modules/bancos/conciliacion.js'),
+    'bancos/detalle': () => import('../modules/bancos/detalle.js'),
     'reportes': () => import('../modules/reportes.js'),
     // Soporte para alias de compatibilidad con módulos anteriores
     'dashboard': () => import('../modules/dashboard.js'),
