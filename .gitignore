@@ -3,6 +3,9 @@
 # =============================================
 node_modules/
 .env
+*_credentials.json
+alegra_credentials.json
+.env
 .env.*
 .DS_Store
 Thumbs.db
