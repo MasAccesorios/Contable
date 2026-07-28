@@ -363,6 +363,38 @@ body {
         width: 100%; 
     }
     
+    #view-viewport {
+        padding: 12px !important;
+    }
+    
+    /* Adaptar cabecera superior (Top Bar) en columnas en móviles */
+    .module-container > .d-flex:first-of-type {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 16px !important;
+    }
+    
+    .module-container > .d-flex:first-of-type > div,
+    .module-container > .d-flex:first-of-type > .d-flex {
+        width: 100% !important;
+    }
+    
+    .module-container > .d-flex:first-of-type > .d-flex {
+        justify-content: flex-start !important;
+        gap: 12px !important;
+    }
+
+    /* Área de toque mínima de 44px para botones del Top Bar y menú móvil */
+    .module-container > .d-flex:first-of-type button,
+    .module-container > .d-flex:first-of-type .btn,
+    #mobile-menu-toggle {
+        min-height: 44px !important;
+        min-width: 44px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+    }
+    
     /* Prevenir que las tablas grandes rompan la pantalla en móvil */
     .table-responsive,
     .form-table-wrapper,
@@ -371,5 +403,101 @@ body {
         width: 100%;
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
+    }
+
+    /* Tabla de detalles responsiva estilo tarjetas en formularios */
+    #tabla-detalles, 
+    #tabla-detalles thead, 
+    #tabla-detalles tbody { 
+        display: block !important; 
+        width: 100% !important;
+    }
+    
+    #tabla-detalles thead {
+        display: none !important;
+    }
+    
+    #tabla-detalles tbody tr {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 12px 2% !important;
+        margin-bottom: 20px !important;
+        border: 1px solid var(--border-color) !important;
+        padding: 16px !important;
+        border-radius: 8px !important;
+        background-color: #f8fafc !important;
+        position: relative !important;
+        width: 100% !important;
+    }
+    
+    #tabla-detalles tbody td {
+        display: block !important;
+        padding: 0 !important;
+        border: none !important;
+        margin: 0 !important;
+    }
+
+    /* Fila 1: Número de línea (título de la tarjeta) - 100% */
+    #tabla-detalles tbody td:nth-of-type(1) {
+        width: 100% !important;
+        font-weight: 700 !important;
+        color: var(--primary) !important;
+        border-bottom: 1px solid var(--border-color) !important;
+        padding-bottom: 8px !important;
+        margin-bottom: 4px !important;
+    }
+
+    /* Fila 2: Producto o servicio - 100% */
+    #tabla-detalles tbody td:nth-of-type(2) {
+        width: 100% !important;
+        margin-bottom: 4px !important;
+    }
+    #tabla-detalles tbody td:nth-of-type(2)::before { content: "Producto o servicio"; font-size: 11px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 4px; }
+
+    /* Fila 3: Cantidad (49%) y Precio (49%) */
+    #tabla-detalles tbody td:nth-of-type(3) {
+        width: 49% !important;
+    }
+    #tabla-detalles tbody td:nth-of-type(3)::before { content: "Cantidad"; font-size: 11px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 4px; }
+    
+    #tabla-detalles tbody td:nth-of-type(4) {
+        width: 49% !important;
+    }
+    #tabla-detalles tbody td:nth-of-type(4)::before { content: "Precio"; font-size: 11px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 4px; }
+
+    /* Fila 4: Descuento (49%) e Impuesto (49%) */
+    #tabla-detalles tbody td:nth-of-type(5) {
+        width: 49% !important;
+    }
+    #tabla-detalles tbody td:nth-of-type(5)::before { content: "Descuento %"; font-size: 11px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 4px; }
+    
+    #tabla-detalles tbody td:nth-of-type(6) {
+        width: 49% !important;
+    }
+    #tabla-detalles tbody td:nth-of-type(6)::before { content: "Impuesto %"; font-size: 11px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 4px; }
+
+    /* Fila 5: Subtotal - 100% */
+    #tabla-detalles tbody td:nth-of-type(7) {
+        width: 100% !important;
+        margin-top: 8px !important;
+        border-top: 1px dashed var(--border-color) !important;
+        padding-top: 12px !important;
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+    }
+    #tabla-detalles tbody td:nth-of-type(7)::before {
+        content: "Subtotal";
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-muted);
+    }
+
+    /* Fila 6: Botón de eliminar (posicionado absoluto) */
+    #tabla-detalles tbody td:nth-of-type(8) {
+        position: absolute !important;
+        top: 16px !important;
+        right: 16px !important;
+        width: auto !important;
     }
 }

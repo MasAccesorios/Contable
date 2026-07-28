@@ -71,8 +71,10 @@ export const CoreActions = {
      */
     async convertirCotizacionAFactura(idCotizacion, onSuccessCallback) {
         try {
+            console.log("[Conversion Debug] Iniciando conversión para cotización:", idCotizacion);
             const cotizacion = await DB.get('cotizaciones', idCotizacion);
             if (!cotizacion) throw new Error("Cotización no encontrada.");
+            console.log("[Conversion Debug] Cotización obtenida:", cotizacion);
 
             // Regla de Negocio: Condición Bloqueada (Segunda vez)
             if (cotizacion.convertidoAFactura) {
@@ -81,7 +83,9 @@ export const CoreActions = {
             }
 
             // Regla de Negocio: Validar y Descontar FIFO antes de convertir
+            console.log("[Conversion Debug] Llamando a procesarSalidaInventario...");
             const invResult = await InventarioUtils.procesarSalidaInventario(cotizacion.detalles || []);
+            console.log("[Conversion Debug] Resultado de procesarSalidaInventario:", invResult);
             if (!invResult.success) {
                 this.showWarningModal("Acción interceptada: " + invResult.error);
                 return; // ABORTA LA CONVERSIÓN
@@ -106,21 +110,27 @@ export const CoreActions = {
                 numero: Math.floor(Math.random() * 9000) + 1000
             };
 
+            console.log("[Conversion Debug] Guardando nueva factura en DB:", idFactura);
             await DB.save('facturas', nuevaFactura);
+            console.log("[Conversion Debug] Factura guardada con éxito.");
 
             // Modificar estado original
             cotizacion.convertidoAFactura = true;
             cotizacion.facturaDestinoId = idFactura;
+            console.log("[Conversion Debug] Actualizando cotización original...");
             await DB.save('cotizaciones', cotizacion);
+            console.log("[Conversion Debug] Cotización actualizada con éxito.");
 
             // Callback
             if (onSuccessCallback) {
+                console.log("[Conversion Debug] Ejecutando callback de éxito...");
                 onSuccessCallback(idFactura, cotizacion);
             }
 
         } catch (error) {
-            console.error(error);
+            console.error("[Conversion Debug] Error atrapado en conversión:", error);
             this.showWarningModal("Error al convertir a factura: " + error.message);
+            throw error; // Propagar para que el botón pueda restaurar su estado
         }
     },
 
@@ -155,9 +165,20 @@ export const CoreActions = {
     bindActionEvents(element, documentData, type, callbacks = {}) {
         const btnConvertir = element.querySelector('.btn-convertir');
         if (btnConvertir && !btnConvertir.disabled) {
-            btnConvertir.addEventListener('click', (e) => {
-                const id = e.currentTarget.dataset.id;
-                this.convertirCotizacionAFactura(id, callbacks.onConvertSuccess);
+            btnConvertir.addEventListener('click', async (e) => {
+                const btn = e.currentTarget;
+                const id = btn.dataset.id;
+                const oldHtml = btn.innerHTML;
+                
+                try {
+                    btn.disabled = true;
+                    btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Guardando...`;
+                    await this.convertirCotizacionAFactura(id, callbacks.onConvertSuccess);
+                } catch (err) {
+                    console.error("[Conversion Button Error]:", err);
+                    btn.disabled = false;
+                    btn.innerHTML = oldHtml;
+                }
             });
         }
 

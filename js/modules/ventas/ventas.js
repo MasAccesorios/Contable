@@ -25,6 +25,13 @@ export const FacturasModule = {
     },
 
     async renderList(element) {
+        element.innerHTML = `
+            <div class="d-flex justify-content-center align-items-center" style="min-height: 400px;">
+                <div class="spinner-border" role="status" style="width: 3rem; height: 3rem; color: #2cbfb7;">
+                    <span class="visually-hidden">Cargando...</span>
+                </div>
+            </div>
+        `;
         let facturasData = await DB.getAll('facturas');
         const transacciones = (await DB.getAll('transacciones').catch(() => [])) || [];
         
@@ -35,9 +42,6 @@ export const FacturasModule = {
             return { ...f, estado: dinamico.estado, saldoPendiente: dinamico.saldo };
         });
 
-        // Ordenar por ID o fecha (más reciente primero)
-        facturasData.sort((a, b) => b.id.localeCompare(a.id));
-
         // Obtener contactos para mostrar los nombres
         const contactos = await DB.getAll('contactos');
         const getClienteName = (id) => {
@@ -45,7 +49,9 @@ export const FacturasModule = {
             return cliente ? cliente.nombre : 'Sin Cliente';
         };
 
-        // Estado de Paginación y Filtro
+        // Estado de Paginación, Ordenamiento y Filtro
+        let sortColumn = 'numero';
+        let sortDirection = 'desc';
         let currentPage = 1;
         let itemsPerPage = 10;
         let searchQuery = '';
@@ -58,7 +64,7 @@ export const FacturasModule = {
             // Aplicar Filtro Multi-Criterio
             filteredData = facturasData.filter(c => {
                 if (!searchQuery) return true;
-                const clientName = getClienteName(c.clienteId).toLowerCase();
+                const clientName = getClienteName(c.clienteId || c.contactoId).toLowerCase();
                 const num = (c.prefijo || '') + (c.numero || '').toString();
                 const state = c.estado || 'por_pagar';
                 const date = c.fecha || '';
@@ -70,6 +76,30 @@ export const FacturasModule = {
                 
                 // Búsqueda Transversal Global
                 return clientName.includes(searchQuery) || num.toLowerCase().includes(searchQuery) || state.includes(searchQuery) || date.includes(searchQuery);
+            });
+
+            // Aplicar Ordenamiento Dinámico
+            filteredData.sort((a, b) => {
+                let valA, valB;
+                if (sortColumn === 'numero') {
+                    valA = parseInt(String(a.numero !== undefined && a.numero !== null ? a.numero : a.id).replace(/\D/g, ''), 10) || 0;
+                    valB = parseInt(String(b.numero !== undefined && b.numero !== null ? b.numero : b.id).replace(/\D/g, ''), 10) || 0;
+                } else if (sortColumn === 'cliente') {
+                    valA = getClienteName(a.clienteId || a.contactoId).toLowerCase();
+                    valB = getClienteName(b.clienteId || b.contactoId).toLowerCase();
+                } else if (sortColumn === 'fecha') {
+                    valA = a.fecha || '';
+                    valB = b.fecha || '';
+                }
+
+                let comparison = 0;
+                if (typeof valA === 'number' && typeof valB === 'number') {
+                    comparison = valA - valB;
+                } else {
+                    comparison = String(valA).localeCompare(String(valB));
+                }
+
+                return sortDirection === 'asc' ? comparison : -comparison;
             });
 
             const totalItems = filteredData.length;
@@ -173,9 +203,15 @@ export const FacturasModule = {
                             <table class="table table-borderless align-middle mb-0">
                                 <thead style="border-bottom: 1px solid var(--border-color);">
                                     <tr style="color: var(--text-muted); font-size: 13px; font-weight: var(--weight-medium);">
-                                        <th class="py-3 fw-normal">Número</th>
-                                        <th class="py-3 fw-normal">Cliente</th>
-                                        <th class="py-3 fw-normal">Creación</th>
+                                        <th class="py-3 fw-normal sortable-header" data-column="numero" style="cursor: pointer; user-select: none;">
+                                            Número ${sortColumn === 'numero' ? (sortDirection === 'asc' ? ' ▲' : ' ▼') : ''}
+                                        </th>
+                                        <th class="py-3 fw-normal sortable-header" data-column="cliente" style="cursor: pointer; user-select: none;">
+                                            Cliente ${sortColumn === 'cliente' ? (sortDirection === 'asc' ? ' ▲' : ' ▼') : ''}
+                                        </th>
+                                        <th class="py-3 fw-normal sortable-header" data-column="fecha" style="cursor: pointer; user-select: none;">
+                                            Creación ${sortColumn === 'fecha' ? (sortDirection === 'asc' ? ' ▲' : ' ▼') : ''}
+                                        </th>
                                         <th class="py-3 fw-normal text-end">Total</th>
                                         <th class="py-3 fw-normal text-center">Estado</th>
                                         <th class="py-3 fw-normal text-end" style="width: 80px;"></th>
@@ -235,6 +271,20 @@ export const FacturasModule = {
                     renderGrid();
                 });
             }
+
+            // Ordenamiento por Columnas
+            element.querySelectorAll('.sortable-header').forEach(header => {
+                header.addEventListener('click', (e) => {
+                    const col = e.currentTarget.dataset.column;
+                    if (sortColumn === col) {
+                        sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+                    } else {
+                        sortColumn = col;
+                        sortDirection = 'desc';
+                    }
+                    renderGrid();
+                });
+            });
 
             // Cambiar Criterio de Filtro
             element.querySelectorAll('.filter-opt').forEach(opt => {
@@ -434,7 +484,7 @@ export const FacturasModule = {
                 </div>
 
                 <div class="card border-0 mb-4" style="box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.03), 0px 1px 3px rgba(0, 0, 0, 0.05); border-radius: 8px;">
-                    <div class="card-body p-5">
+                    <div class="card-body p-3 p-md-5">
                         <!-- HEADER DOCUMENTO -->
                         <div class="row mb-5 align-items-center">
                             <div class="col-md-4">
@@ -772,6 +822,9 @@ export const FacturasModule = {
 
         // Evento Guardar (Captura de Estado DOM a DB)
         element.querySelector('#btn-guardar')?.addEventListener('click', async () => {
+            const btnGuardar = element.querySelector('#btn-guardar');
+            const btnCancelar = element.querySelector('#btn-cancelar');
+            
             const clienteId = element.querySelector('#select-cliente').value;
             if (!clienteId) {
                 const searchInput = element.querySelector('#search-cliente');
@@ -787,7 +840,6 @@ export const FacturasModule = {
             // Recolectar detalles
             const arrDetalles = [];
             let hasError = false;
-            let stockError = '';
 
             const rows = tbody.querySelectorAll('tr');
             for (const tr of rows) {
@@ -801,8 +853,6 @@ export const FacturasModule = {
                     hasError = true;
                 }
 
-                // La validación de stock se delega a InventarioUtils más abajo
-                
                 arrDetalles.push({
                     id: tr.dataset.uid,
                     productoId: prodId,
@@ -819,64 +869,82 @@ export const FacturasModule = {
                 return;
             }
 
-            // Descargo FIFO de inventario si es nueva
-            let costoTotalVenta = 0;
-            if (isNew) {
-                const invResult = await InventarioUtils.procesarSalidaInventario(arrDetalles, null, productos);
-                if (!invResult.success) {
-                    CoreActions.showWarningModal(invResult.error);
-                    return; // ABORTA LA VENTA
+            try {
+                if (btnGuardar) {
+                    btnGuardar.disabled = true;
+                    btnGuardar.innerHTML = `<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Guardando...`;
                 }
-                costoTotalVenta = invResult.costoTotalVenta;
-                // Reemplazamos arrDetalles con los actualizados que ya tienen el costoTotalCalculado
-                arrDetalles.length = 0;
-                arrDetalles.push(...invResult.detallesActualizados);
-            } else {
-                // Si es edición, mantenemos el costo total previo para no recalcular
-                costoTotalVenta = factura.total_costo || 0;
-            }
+                if (btnCancelar) btnCancelar.disabled = true;
 
-            factura.clienteId = clienteId;
-            factura.tipoVenta = tipoVenta;
-            if (tipoVenta === 'contado') {
-                factura.cuentaId = element.querySelector('#select-cuenta-venta').value;
-            }
-            factura.fecha = element.querySelector('#input-fecha').value;
-            factura.vencimiento = element.querySelector('#input-vencimiento').value;
-            factura.notas = element.querySelector('#input-notas').value;
-            factura.terminosCondiciones = element.querySelector('#input-terminos').value;
-            factura.detalles = arrDetalles;
-            factura.tipo = 'venta'; // Ensure type is venta
-            
-            const rawTotal = parseFloat(element.querySelector('#tot-total').dataset.rawTotal);
-            factura.total = rawTotal;
-            factura.total_costo = costoTotalVenta;
-            factura.utilidad = rawTotal - costoTotalVenta;
-
-            // Condicional Contado vs Crédito
-            if (tipoVenta === 'contado') {
-                // Crear ingreso a Caja General si es nueva
+                // Descargo FIFO de inventario si es nueva
+                let costoTotalVenta = 0;
                 if (isNew) {
-                    const transaccion = {
-                        id: 'trx_' + Date.now(),
-                        facturaId: factura.id, // For backwards comp
-                        referenciaId: factura.id, // Normalized
-                        tipo: 'ingreso',
-                        monto: rawTotal,
-                        fecha: factura.fecha,
-                        referencia: `Venta al contado Fac. ${factura.prefijo || ''}${factura.numero}`, // For backwards comp
-                        detalle: `Venta al contado Fac. ${factura.prefijo || ''}${factura.numero}`, // Normalized
-                        cuenta: factura.cuentaId, // For backwards comp
-                        cuentaId: factura.cuentaId // Normalized
-                    };
-                    await DB.save('transacciones', transaccion);
+                    const invResult = await InventarioUtils.procesarSalidaInventario(arrDetalles, null, productos);
+                    if (!invResult.success) {
+                        CoreActions.showWarningModal(invResult.error);
+                        if (btnGuardar) {
+                            btnGuardar.disabled = false;
+                            btnGuardar.textContent = 'Guardar';
+                        }
+                        if (btnCancelar) btnCancelar.disabled = false;
+                        return; // ABORTA LA VENTA
+                    }
+                    costoTotalVenta = invResult.costoTotalVenta;
+                    arrDetalles.length = 0;
+                    arrDetalles.push(...invResult.detallesActualizados);
+                } else {
+                    costoTotalVenta = factura.total_costo || 0;
                 }
-            }
 
-            await DB.save('facturas', factura);
-            
-            // Navegar a modo lectura para bloquear edición y habilitar impresión final
-            window.location.hash = `#/ingresos/facturas/ver/${factura.id}`;
+                factura.clienteId = clienteId;
+                factura.tipoVenta = tipoVenta;
+                if (tipoVenta === 'contado') {
+                    factura.cuentaId = element.querySelector('#select-cuenta-venta').value;
+                }
+                factura.fecha = element.querySelector('#input-fecha').value;
+                factura.vencimiento = element.querySelector('#input-vencimiento').value;
+                factura.notas = element.querySelector('#input-notas').value;
+                factura.terminosCondiciones = element.querySelector('#input-terminos').value;
+                factura.detalles = arrDetalles;
+                factura.tipo = 'venta'; // Ensure type is venta
+                
+                const rawTotal = parseFloat(element.querySelector('#tot-total').dataset.rawTotal);
+                factura.total = rawTotal;
+                factura.total_costo = costoTotalVenta;
+                factura.utilidad = rawTotal - costoTotalVenta;
+
+                // Condicional Contado vs Crédito
+                if (tipoVenta === 'contado') {
+                    if (isNew) {
+                        const transaccion = {
+                            id: 'trx_' + Date.now(),
+                            facturaId: factura.id,
+                            referenciaId: factura.id,
+                            tipo: 'ingreso',
+                            monto: rawTotal,
+                            fecha: factura.fecha,
+                            referencia: `Venta al contado Fac. ${factura.prefijo || ''}${factura.numero}`,
+                            detalle: `Venta al contado Fac. ${factura.prefijo || ''}${factura.numero}`,
+                            cuenta: factura.cuentaId,
+                            cuentaId: factura.cuentaId
+                        };
+                        await DB.save('transacciones', transaccion);
+                    }
+                }
+
+                await DB.save('facturas', factura);
+                
+                // Navegar a modo lectura para bloquear edición y habilitar impresión final
+                window.location.hash = `#/ingresos/facturas/ver/${factura.id}`;
+            } catch (err) {
+                console.error("Error al guardar factura:", err);
+                CoreActions.showWarningModal("Ocurrió un error al intentar guardar la factura.");
+                if (btnGuardar) {
+                    btnGuardar.disabled = false;
+                    btnGuardar.textContent = 'Guardar';
+                }
+                if (btnCancelar) btnCancelar.disabled = false;
+            }
         });
 
         // Inicializar UI

@@ -1,7 +1,7 @@
 // js/db.js
 // M贸dulo de persistencia local indexada y sincronizaci贸n para MAS Accesorios
 
-import { db, collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc } from './firebase.js';
+import { db, collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, auth, onAuthStateChanged } from './firebase.js';
 
 const DB_NAME = 'MasAccesoriosDB';
 const DB_VERSION = 4;
@@ -148,10 +148,33 @@ const DB = {
      * Si storeName es 'productos', usa getDocs() (lectura puntual); el resto usa IndexedDB.
      */
     async getAll(storeName) {
-        // TODO: transacciones sigue en IndexedDB 鈥?bancos.js hace getAll completo para sumar saldos, migrar solo despu茅s de refactorizar a saldo acumulado para no agotar cuota de lecturas de Firestore.
+        // TODO: transacciones sigue en IndexedDB
         if (storeName === 'productos' || storeName === 'contactos' || storeName === 'cotizaciones' || storeName === 'facturas' || storeName === 'lotes_fifo' || storeName === 'cuentas_bancarias') {
-            const snap = await getDocs(collection(db, storeName));
-            return snap.docs.map(d => d.data());
+            // Asegurar que Auth se haya inicializado
+            if (!auth.currentUser) {
+                await new Promise((resolve) => {
+                    const unsubscribe = onAuthStateChanged(auth, () => {
+                        unsubscribe();
+                        resolve();
+                    });
+                    // Timeout de seguridad de 1 segundo
+                    setTimeout(() => { unsubscribe(); resolve(); }, 1000);
+                });
+            }
+            
+            // Delay de seguridad de 150ms sólo en la primera consulta para dar tiempo a Firestore de registrar el token
+            if (!window._dbInitialized) {
+                window._dbInitialized = true;
+                await new Promise(r => setTimeout(r, 150));
+            }
+
+            try {
+                const snap = await getDocs(collection(db, storeName));
+                return snap.docs.map(d => d.data());
+            } catch (error) {
+                console.error(`[DB Error] getAll en '${storeName}':`, error);
+                throw error;
+            }
         }
 
         const idb = await this.init();

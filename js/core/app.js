@@ -29,6 +29,12 @@ const routes = {
 };
 
 async function router() {
+    // Cerrar sidebar en móviles automáticamente ante cualquier cambio de ruta
+    const sidebar = document.getElementById('sidebar');
+    if (sidebar && window.innerWidth <= 768) {
+        sidebar.classList.remove('open');
+    }
+
     const hash = window.location.hash.substring(2) || 'inicio';
     const [routePath, queryString] = hash.split('?');
     const appEl = document.getElementById('view-viewport');
@@ -135,14 +141,6 @@ function initUI() {
         });
     }
 
-    // Auto-cerrar sidebar en móvil al hacer clic en cualquier enlace
-    document.querySelectorAll('#sidebar a').forEach(link => {
-        link.addEventListener('click', () => {
-            if (window.innerWidth <= 768) {
-                sidebar.classList.remove('open');
-            }
-        });
-    });
 }
 
 // Escuchadores globales de navegación y carga

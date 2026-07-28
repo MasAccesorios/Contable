@@ -21,9 +21,14 @@ export const CotizacionesModule = {
     },
 
     async renderList(element) {
+        element.innerHTML = `
+            <div class="d-flex justify-content-center align-items-center" style="min-height: 400px;">
+                <div class="spinner-border" role="status" style="width: 3rem; height: 3rem; color: #2cbfb7;">
+                    <span class="visually-hidden">Cargando...</span>
+                </div>
+            </div>
+        `;
         const cotizacionesData = await DB.getAll('cotizaciones');
-        // Ordenar por ID o fecha (más reciente primero)
-        cotizacionesData.sort((a, b) => b.id.localeCompare(a.id));
 
         // Obtener contactos para mostrar los nombres
         const contactos = await DB.getAll('contactos');
@@ -32,7 +37,9 @@ export const CotizacionesModule = {
             return cliente ? cliente.nombre : 'Sin Cliente';
         };
 
-        // Estado de Paginación y Filtro
+        // Estado de Paginación, Ordenamiento y Filtro
+        let sortColumn = 'numero';
+        let sortDirection = 'desc';
         let currentPage = 1;
         let itemsPerPage = 10;
         let searchQuery = '';
@@ -57,6 +64,30 @@ export const CotizacionesModule = {
                 
                 // Búsqueda Transversal Global
                 return clientName.includes(searchQuery) || num.toLowerCase().includes(searchQuery) || state.includes(searchQuery) || date.includes(searchQuery);
+            });
+
+            // Aplicar Ordenamiento Dinámico
+            filteredData.sort((a, b) => {
+                let valA, valB;
+                if (sortColumn === 'numero') {
+                    valA = parseInt(String(a.numero !== undefined && a.numero !== null ? a.numero : a.id).replace(/\D/g, ''), 10) || 0;
+                    valB = parseInt(String(b.numero !== undefined && b.numero !== null ? b.numero : b.id).replace(/\D/g, ''), 10) || 0;
+                } else if (sortColumn === 'cliente') {
+                    valA = getClienteName(a.clienteId || a.contactoId).toLowerCase();
+                    valB = getClienteName(b.clienteId || b.contactoId).toLowerCase();
+                } else if (sortColumn === 'fecha') {
+                    valA = a.fecha || '';
+                    valB = b.fecha || '';
+                }
+
+                let comparison = 0;
+                if (typeof valA === 'number' && typeof valB === 'number') {
+                    comparison = valA - valB;
+                } else {
+                    comparison = String(valA).localeCompare(String(valB));
+                }
+
+                return sortDirection === 'asc' ? comparison : -comparison;
             });
 
             const totalItems = filteredData.length;
@@ -148,9 +179,15 @@ export const CotizacionesModule = {
                             <table class="table table-borderless align-middle mb-0">
                                 <thead style="border-bottom: 1px solid var(--border-color);">
                                     <tr style="color: var(--text-muted); font-size: 13px; font-weight: var(--weight-medium);">
-                                        <th class="py-3 fw-normal">Número</th>
-                                        <th class="py-3 fw-normal">Cliente</th>
-                                        <th class="py-3 fw-normal">Creación</th>
+                                        <th class="py-3 fw-normal sortable-header" data-column="numero" style="cursor: pointer; user-select: none;">
+                                            Número ${sortColumn === 'numero' ? (sortDirection === 'asc' ? ' ▲' : ' ▼') : ''}
+                                        </th>
+                                        <th class="py-3 fw-normal sortable-header" data-column="cliente" style="cursor: pointer; user-select: none;">
+                                            Cliente ${sortColumn === 'cliente' ? (sortDirection === 'asc' ? ' ▲' : ' ▼') : ''}
+                                        </th>
+                                        <th class="py-3 fw-normal sortable-header" data-column="fecha" style="cursor: pointer; user-select: none;">
+                                            Creación ${sortColumn === 'fecha' ? (sortDirection === 'asc' ? ' ▲' : ' ▼') : ''}
+                                        </th>
                                         <th class="py-3 fw-normal text-end">Total</th>
                                         <th class="py-3 fw-normal text-center">Estado</th>
                                         <th class="py-3 fw-normal text-end" style="width: 80px;"></th>
@@ -210,6 +247,20 @@ export const CotizacionesModule = {
                     renderGrid();
                 });
             }
+
+            // Ordenamiento por Columnas
+            element.querySelectorAll('.sortable-header').forEach(header => {
+                header.addEventListener('click', (e) => {
+                    const col = e.currentTarget.dataset.column;
+                    if (sortColumn === col) {
+                        sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+                    } else {
+                        sortColumn = col;
+                        sortDirection = 'desc';
+                    }
+                    renderGrid();
+                });
+            });
 
             // Cambiar Criterio de Filtro
             element.querySelectorAll('.filter-opt').forEach(opt => {
@@ -318,9 +369,12 @@ export const CotizacionesModule = {
     },
 
     async renderForm(element, id = null, isViewOnly = false) {
+        console.log(`[renderForm Debug] Iniciando renderForm. id=${id}, isViewOnly=${isViewOnly}`);
         // Carga de DB
         const contactos = await DB.getAll('contactos');
+        console.log(`[renderForm Debug] Contactos cargados: ${contactos?.length || 0}`);
         const productos = await DB.getAll('productos');
+        console.log(`[renderForm Debug] Productos cargados: ${productos?.length || 0}`);
         
         // Estado por defecto
         let cotizacion = {
@@ -363,7 +417,7 @@ export const CotizacionesModule = {
                 </div>
 
                 <div class="card border-0 mb-4" style="box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.03), 0px 1px 3px rgba(0, 0, 0, 0.05); border-radius: 8px;">
-                    <div class="card-body p-5">
+                    <div class="card-body p-3 p-md-5">
                         <!-- HEADER DOCUMENTO -->
                         <div class="row mb-5 align-items-center">
                             <div class="col-md-4">
@@ -477,7 +531,13 @@ export const CotizacionesModule = {
         if (id) {
             CoreActions.bindActionEvents(element, cotizacion, 'cotizacion', {
                 onConvertSuccess: (nuevaFacturaId) => {
-                    this.renderForm(element, id);
+                    console.log("[Conversion Debug Callback] onConvertSuccess ejecutado. nuevaFacturaId:", nuevaFacturaId);
+                    try {
+                        window.location.hash = `#/ingresos/facturas/ver/${nuevaFacturaId}`;
+                        console.log("[Conversion Debug Callback] Redirección exitosa.");
+                    } catch (e) {
+                        console.error("[Conversion Debug Callback] Error en redirección:", e);
+                    }
                 }
             });
         }
@@ -670,6 +730,9 @@ export const CotizacionesModule = {
 
         // Evento Guardar (Captura de Estado DOM a DB)
         element.querySelector('#btn-guardar')?.addEventListener('click', async () => {
+            const btnGuardar = element.querySelector('#btn-guardar');
+            const btnCancelar = element.querySelector('#btn-cancelar');
+            
             const clienteId = element.querySelector('#select-cliente').value;
             if (!clienteId) {
                 const searchInput = element.querySelector('#search-cliente');
@@ -716,10 +779,26 @@ export const CotizacionesModule = {
             cotizacion.terminosCondiciones = element.querySelector('#input-terminos').value;
             cotizacion.detalles = arrDetalles;
 
-            await DB.save('cotizaciones', cotizacion);
-            
-            // Navegar a modo lectura para bloquear edición y habilitar impresión final
-            window.location.hash = `#/ingresos/cotizaciones/ver/${cotizacion.id}`;
+            try {
+                if (btnGuardar) {
+                    btnGuardar.disabled = true;
+                    btnGuardar.innerHTML = `<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Guardando...`;
+                }
+                if (btnCancelar) btnCancelar.disabled = true;
+
+                await DB.save('cotizaciones', cotizacion);
+                
+                // Navegar a modo lectura para bloquear edición y habilitar impresión final
+                window.location.hash = `#/ingresos/cotizaciones/ver/${cotizacion.id}`;
+            } catch (err) {
+                console.error("Error al guardar cotización:", err);
+                CoreActions.showWarningModal("Ocurrió un error al intentar guardar la cotización.");
+                if (btnGuardar) {
+                    btnGuardar.disabled = false;
+                    btnGuardar.textContent = 'Guardar';
+                }
+                if (btnCancelar) btnCancelar.disabled = false;
+            }
         });
 
         // Inicializar UI
