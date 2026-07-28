@@ -813,60 +813,61 @@ export const FacturasModule = {
         });
 
         // Evento Guardar (Captura de Estado DOM a DB)
-        element.querySelector('#btn-guardar')?.addEventListener('click', async () => {
-            const btnGuardar = element.querySelector('#btn-guardar');
-            const btnCancelar = element.querySelector('#btn-cancelar');
+        element.querySelector('#btn-guardar')?.addEventListener('click', async (e) => {
+            const btnGuardar = e.currentTarget;
+            if (btnGuardar.disabled) return; // Salvaguarda estricta contra doble clic
             
-            const clienteId = element.querySelector('#select-cliente').value;
-            if (!clienteId) {
-                const searchInput = element.querySelector('#search-cliente');
-                searchInput.style.borderColor = '#ef4444'; // Resalta en rojo
-                CoreActions.showWarningModal("Debes seleccionar un cliente válido de la lista.");
-                setTimeout(() => searchInput.style.borderColor = '', 3000);
-                return;
-            }
-
-            const tipoVenta = element.querySelector('#select-tipo-venta').value;
-            const isNew = !id; // Si es nueva factura, descargamos inventario
-
-            // Recolectar detalles
-            const arrDetalles = [];
-            let hasError = false;
-
-            const rows = tbody.querySelectorAll('tr');
-            for (const tr of rows) {
-                const prodId = tr.querySelector('.input-prod-id').value;
-                if (!prodId) continue;
-                
-                const inpQty = tr.querySelector('.input-qty');
-                const qty = parseFloat(inpQty.value || 0);
-                if (qty <= 0) {
-                    inpQty.style.borderColor = '#ef4444';
-                    hasError = true;
-                }
-
-                arrDetalles.push({
-                    id: tr.dataset.uid,
-                    productoId: prodId,
-                    descripcion_personalizada: tr.querySelector('.input-prod-desc').value,
-                    cantidad: qty,
-                    precio: parseFloat(tr.querySelector('.input-price').value || 0),
-                    descuento: parseFloat(tr.querySelector('.input-disc').value || 0),
-                    impuesto: parseFloat(tr.querySelector('.input-tax').value || 0)
-                });
-            }
-
-            if (arrDetalles.length === 0 || hasError || parseFloat(element.querySelector('#tot-total').dataset.rawTotal) <= 0) {
-                CoreActions.showWarningModal("Debe agregar al menos un producto válido y con cantidad mayor a cero.");
-                return;
-            }
-
+            const originalText = btnGuardar.innerHTML;
+            btnGuardar.disabled = true;
+            btnGuardar.innerHTML = `<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Guardando...`;
+            
+            const btnCancelar = element.querySelector('#btn-cancelar');
+            if (btnCancelar) btnCancelar.disabled = true;
+            
             try {
-                if (btnGuardar) {
-                    btnGuardar.disabled = true;
-                    btnGuardar.innerHTML = `<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Guardando...`;
+                const clienteId = element.querySelector('#select-cliente').value;
+                if (!clienteId) {
+                    const searchInput = element.querySelector('#search-cliente');
+                    searchInput.style.borderColor = '#ef4444'; // Resalta en rojo
+                    CoreActions.showWarningModal("Debes seleccionar un cliente válido de la lista.");
+                    setTimeout(() => searchInput.style.borderColor = '', 3000);
+                    return;
                 }
-                if (btnCancelar) btnCancelar.disabled = true;
+
+                const tipoVenta = element.querySelector('#select-tipo-venta').value;
+                const isNew = !id; // Si es nueva factura, descargamos inventario
+
+                // Recolectar detalles
+                const arrDetalles = [];
+                let hasError = false;
+
+                const rows = tbody.querySelectorAll('tr');
+                for (const tr of rows) {
+                    const prodId = tr.querySelector('.input-prod-id').value;
+                    if (!prodId) continue;
+                    
+                    const inpQty = tr.querySelector('.input-qty');
+                    const qty = parseFloat(inpQty.value || 0);
+                    if (qty <= 0) {
+                        inpQty.style.borderColor = '#ef4444';
+                        hasError = true;
+                    }
+
+                    arrDetalles.push({
+                        id: tr.dataset.uid,
+                        productoId: prodId,
+                        descripcion_personalizada: tr.querySelector('.input-prod-desc').value,
+                        cantidad: qty,
+                        precio: parseFloat(tr.querySelector('.input-price').value || 0),
+                        descuento: parseFloat(tr.querySelector('.input-disc').value || 0),
+                        impuesto: parseFloat(tr.querySelector('.input-tax').value || 0)
+                    });
+                }
+
+                if (arrDetalles.length === 0 || hasError || parseFloat(element.querySelector('#tot-total').dataset.rawTotal) <= 0) {
+                    CoreActions.showWarningModal("Debe agregar al menos un producto válido y con cantidad mayor a cero.");
+                    return;
+                }
 
                 // Descargo FIFO de inventario si es nueva
                 let costoTotalVenta = 0;
@@ -874,11 +875,6 @@ export const FacturasModule = {
                     const invResult = await InventarioUtils.procesarSalidaInventario(arrDetalles, null, productos);
                     if (!invResult.success) {
                         CoreActions.showWarningModal(invResult.error);
-                        if (btnGuardar) {
-                            btnGuardar.disabled = false;
-                            btnGuardar.textContent = 'Guardar';
-                        }
-                        if (btnCancelar) btnCancelar.disabled = false;
                         return; // ABORTA LA VENTA
                     }
                     costoTotalVenta = invResult.costoTotalVenta;
@@ -931,9 +927,11 @@ export const FacturasModule = {
             } catch (err) {
                 console.error("Error al guardar factura:", err);
                 CoreActions.showWarningModal("Ocurrió un error al intentar guardar la factura.");
+            } finally {
+                // Siempre se restaura el botón si ocurre un return prematuro o error
                 if (btnGuardar) {
                     btnGuardar.disabled = false;
-                    btnGuardar.textContent = 'Guardar';
+                    btnGuardar.innerHTML = originalText;
                 }
                 if (btnCancelar) btnCancelar.disabled = false;
             }

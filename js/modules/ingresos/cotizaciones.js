@@ -716,62 +716,63 @@ export const CotizacionesModule = {
         });
 
         // Evento Guardar (Captura de Estado DOM a DB)
-        element.querySelector('#btn-guardar')?.addEventListener('click', async () => {
-            const btnGuardar = element.querySelector('#btn-guardar');
-            const btnCancelar = element.querySelector('#btn-cancelar');
+        element.querySelector('#btn-guardar')?.addEventListener('click', async (e) => {
+            const btnGuardar = e.currentTarget;
+            if (btnGuardar.disabled) return; // Salvaguarda estricta contra doble clic
             
-            const clienteId = element.querySelector('#select-cliente').value;
-            if (!clienteId) {
-                const searchInput = element.querySelector('#search-cliente');
-                searchInput.style.borderColor = '#ef4444';
-                CoreActions.showWarningModal("Debes seleccionar un cliente válido de la lista.");
-                setTimeout(() => searchInput.style.borderColor = '', 3000);
-                return;
-            }
-
-            // Recolectar detalles
-            const arrDetalles = [];
-            let hasError = false;
-            tbody.querySelectorAll('tr').forEach(tr => {
-                const prodId = tr.querySelector('.input-prod-id').value;
-                if (!prodId) return; // Omitir filas sin producto
-                
-                const inpQty = tr.querySelector('.input-qty');
-                const qty = parseFloat(inpQty.value || 0);
-                if (qty <= 0) {
-                    inpQty.style.borderColor = '#ef4444';
-                    hasError = true;
-                }
-                
-                arrDetalles.push({
-                    id: tr.dataset.uid,
-                    productoId: prodId,
-                    descripcion_personalizada: tr.querySelector('.input-prod-desc').value,
-                    cantidad: qty,
-                    precio: parseFloat(tr.querySelector('.input-price').value || 0),
-                    descuento: parseFloat(tr.querySelector('.input-disc').value || 0),
-                    impuesto: parseFloat(tr.querySelector('.input-tax').value || 0)
-                });
-            });
-
-            if (arrDetalles.length === 0 || hasError || parseFloat(element.querySelector('#tot-total').dataset.rawTotal) <= 0) {
-                CoreActions.showWarningModal("Debe agregar al menos un producto válido y con cantidad mayor a cero.");
-                return;
-            }
-
-            cotizacion.clienteId = clienteId;
-            cotizacion.fecha = element.querySelector('#input-fecha').value;
-            cotizacion.vencimiento = element.querySelector('#input-vencimiento').value;
-            cotizacion.notas = element.querySelector('#input-notas').value;
-            cotizacion.terminosCondiciones = element.querySelector('#input-terminos').value;
-            cotizacion.detalles = arrDetalles;
+            const originalText = btnGuardar.innerHTML;
+            btnGuardar.disabled = true;
+            btnGuardar.innerHTML = `<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Guardando...`;
+            
+            const btnCancelar = element.querySelector('#btn-cancelar');
+            if (btnCancelar) btnCancelar.disabled = true;
 
             try {
-                if (btnGuardar) {
-                    btnGuardar.disabled = true;
-                    btnGuardar.innerHTML = `<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Guardando...`;
+                const clienteId = element.querySelector('#select-cliente').value;
+                if (!clienteId) {
+                    const searchInput = element.querySelector('#search-cliente');
+                    searchInput.style.borderColor = '#ef4444';
+                    CoreActions.showWarningModal("Debes seleccionar un cliente válido de la lista.");
+                    setTimeout(() => searchInput.style.borderColor = '', 3000);
+                    return;
                 }
-                if (btnCancelar) btnCancelar.disabled = true;
+
+                // Recolectar detalles
+                const arrDetalles = [];
+                let hasError = false;
+                tbody.querySelectorAll('tr').forEach(tr => {
+                    const prodId = tr.querySelector('.input-prod-id').value;
+                    if (!prodId) return; // Omitir filas sin producto
+                    
+                    const inpQty = tr.querySelector('.input-qty');
+                    const qty = parseFloat(inpQty.value || 0);
+                    if (qty <= 0) {
+                        inpQty.style.borderColor = '#ef4444';
+                        hasError = true;
+                    }
+                    
+                    arrDetalles.push({
+                        id: tr.dataset.uid,
+                        productoId: prodId,
+                        descripcion_personalizada: tr.querySelector('.input-prod-desc').value,
+                        cantidad: qty,
+                        precio: parseFloat(tr.querySelector('.input-price').value || 0),
+                        descuento: parseFloat(tr.querySelector('.input-disc').value || 0),
+                        impuesto: parseFloat(tr.querySelector('.input-tax').value || 0)
+                    });
+                });
+
+                if (arrDetalles.length === 0 || hasError || parseFloat(element.querySelector('#tot-total').dataset.rawTotal) <= 0) {
+                    CoreActions.showWarningModal("Debe agregar al menos un producto válido y con cantidad mayor a cero.");
+                    return;
+                }
+
+                cotizacion.clienteId = clienteId;
+                cotizacion.fecha = element.querySelector('#input-fecha').value;
+                cotizacion.vencimiento = element.querySelector('#input-vencimiento').value;
+                cotizacion.notas = element.querySelector('#input-notas').value;
+                cotizacion.terminosCondiciones = element.querySelector('#input-terminos').value;
+                cotizacion.detalles = arrDetalles;
 
                 await DB.save('cotizaciones', cotizacion);
                 
@@ -780,9 +781,10 @@ export const CotizacionesModule = {
             } catch (err) {
                 console.error("Error al guardar cotización:", err);
                 CoreActions.showWarningModal("Ocurrió un error al intentar guardar la cotización.");
+            } finally {
                 if (btnGuardar) {
                     btnGuardar.disabled = false;
-                    btnGuardar.textContent = 'Guardar';
+                    btnGuardar.innerHTML = originalText;
                 }
                 if (btnCancelar) btnCancelar.disabled = false;
             }
