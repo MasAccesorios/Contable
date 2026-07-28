@@ -369,12 +369,9 @@ export const CotizacionesModule = {
     },
 
     async renderForm(element, id = null, isViewOnly = false) {
-        console.log(`[renderForm Debug] Iniciando renderForm. id=${id}, isViewOnly=${isViewOnly}`);
         // Carga de DB
         const contactos = await DB.getAll('contactos');
-        console.log(`[renderForm Debug] Contactos cargados: ${contactos?.length || 0}`);
         const productos = await DB.getAll('productos');
-        console.log(`[renderForm Debug] Productos cargados: ${productos?.length || 0}`);
         
         // Estado por defecto
         let cotizacion = {
@@ -531,12 +528,10 @@ export const CotizacionesModule = {
         if (id) {
             CoreActions.bindActionEvents(element, cotizacion, 'cotizacion', {
                 onConvertSuccess: (nuevaFacturaId) => {
-                    console.log("[Conversion Debug Callback] onConvertSuccess ejecutado. nuevaFacturaId:", nuevaFacturaId);
                     try {
                         window.location.hash = `#/ingresos/facturas/ver/${nuevaFacturaId}`;
-                        console.log("[Conversion Debug Callback] Redirección exitosa.");
                     } catch (e) {
-                        console.error("[Conversion Debug Callback] Error en redirección:", e);
+                        console.error("Error al redireccionar a la nueva factura:", e);
                     }
                 }
             });

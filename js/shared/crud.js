@@ -71,10 +71,8 @@ export const CoreActions = {
      */
     async convertirCotizacionAFactura(idCotizacion, onSuccessCallback) {
         try {
-            console.log("[Conversion Debug] Iniciando conversión para cotización:", idCotizacion);
             const cotizacion = await DB.get('cotizaciones', idCotizacion);
             if (!cotizacion) throw new Error("Cotización no encontrada.");
-            console.log("[Conversion Debug] Cotización obtenida:", cotizacion);
 
             // Regla de Negocio: Condición Bloqueada (Segunda vez)
             if (cotizacion.convertidoAFactura) {
@@ -83,9 +81,7 @@ export const CoreActions = {
             }
 
             // Regla de Negocio: Validar y Descontar FIFO antes de convertir
-            console.log("[Conversion Debug] Llamando a procesarSalidaInventario...");
             const invResult = await InventarioUtils.procesarSalidaInventario(cotizacion.detalles || []);
-            console.log("[Conversion Debug] Resultado de procesarSalidaInventario:", invResult);
             if (!invResult.success) {
                 this.showWarningModal("Acción interceptada: " + invResult.error);
                 return; // ABORTA LA CONVERSIÓN
@@ -110,25 +106,20 @@ export const CoreActions = {
                 numero: Math.floor(Math.random() * 9000) + 1000
             };
 
-            console.log("[Conversion Debug] Guardando nueva factura en DB:", idFactura);
             await DB.save('facturas', nuevaFactura);
-            console.log("[Conversion Debug] Factura guardada con éxito.");
 
             // Modificar estado original
             cotizacion.convertidoAFactura = true;
             cotizacion.facturaDestinoId = idFactura;
-            console.log("[Conversion Debug] Actualizando cotización original...");
             await DB.save('cotizaciones', cotizacion);
-            console.log("[Conversion Debug] Cotización actualizada con éxito.");
 
             // Callback
             if (onSuccessCallback) {
-                console.log("[Conversion Debug] Ejecutando callback de éxito...");
                 onSuccessCallback(idFactura, cotizacion);
             }
 
         } catch (error) {
-            console.error("[Conversion Debug] Error atrapado en conversión:", error);
+            console.error("Error al convertir cotización a factura:", error);
             this.showWarningModal("Error al convertir a factura: " + error.message);
             throw error; // Propagar para que el botón pueda restaurar su estado
         }
