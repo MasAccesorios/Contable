@@ -35,6 +35,9 @@ export const ContactosModule = {
                                 <li><a class="dropdown-item" href="#">Exportar contactos</a></li>
                             </ul>
                         </div>
+                        <button id="btn-refresh-list" class="btn btn-light bg-white border me-2" style="font-weight: var(--weight-medium); font-size: 14px; color: var(--text-body);">
+                            <i class="bi bi-arrow-clockwise me-1"></i> Actualizar
+                        </button>
                         <button id="btn-nuevo-contacto" class="btn btn-primary d-flex align-items-center gap-2" style="background-color: var(--primary); border: none;">
                             <i class="bi bi-plus-lg"></i> Nuevo contacto
                         </button>
@@ -224,6 +227,19 @@ export const ContactosModule = {
         const el = this.element;
 
         el.querySelector('#btn-nuevo-contacto')?.addEventListener('click', () => this.renderForm());
+
+        el.querySelector('#btn-refresh-list')?.addEventListener('click', async (e) => {
+            const btn = e.currentTarget;
+            const originalHtml = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = `<span class="spinner-border spinner-border-sm" aria-hidden="true"></span>`;
+            
+            this.state.contactos = await DB.refreshCache('contactos');
+            this.renderTabla();
+            
+            btn.innerHTML = originalHtml;
+            btn.disabled = false;
+        });
 
         el.querySelector('#search-contacto')?.addEventListener('input', (e) => {
             this.state.searchQuery = e.target.value.toLowerCase().trim();

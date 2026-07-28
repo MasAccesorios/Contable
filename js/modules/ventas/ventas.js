@@ -162,6 +162,9 @@ export const FacturasModule = {
                             </p>
                         </div>
                         <div class="d-flex gap-2">
+                            <button id="btn-refresh-list" class="btn btn-light bg-white border me-2" style="font-weight: var(--weight-medium); font-size: 14px; color: var(--text-body);">
+                                <i class="bi bi-arrow-clockwise me-1"></i> Actualizar
+                            </button>
                             <button id="btn-export-list" class="btn btn-light bg-white border" style="font-weight: var(--weight-medium); font-size: 14px; color: var(--text-body);">
                                 <i class="bi bi-download me-1"></i> Exportar
                             </button>
@@ -306,6 +309,22 @@ export const FacturasModule = {
             // Exportar Lista a CSV
             element.querySelector('#btn-export-list')?.addEventListener('click', (e) => {
                 ExportManager.exportDataToExcel(filteredData, 'Facturas', getClienteName, e.currentTarget);
+            });
+
+            // Actualizar Caché
+            element.querySelector('#btn-refresh-list')?.addEventListener('click', async (e) => {
+                const btn = e.currentTarget;
+                const originalHtml = btn.innerHTML;
+                btn.disabled = true;
+                btn.innerHTML = `<span class="spinner-border spinner-border-sm" aria-hidden="true"></span>`;
+                
+                facturasData = await DB.refreshCache('facturas');
+                contactos = await DB.refreshCache('contactos');
+                
+                renderGrid();
+                
+                btn.innerHTML = originalHtml;
+                btn.disabled = false;
             });
 
             // Paginación

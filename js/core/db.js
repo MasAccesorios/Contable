@@ -3,6 +3,8 @@
 
 import { db, collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, deleteField, runTransaction, auth, onAuthStateChanged } from './firebase.js';
 
+const _sessionCache = {};
+
 const DB_NAME = 'MasAccesoriosDB';
 const DB_VERSION = 4;
 let dbInstance = null;
@@ -108,6 +110,7 @@ const DB = {
         if (storeName === 'productos' || storeName === 'contactos' || storeName === 'cotizaciones' || storeName === 'facturas' || storeName === 'lotes_fifo' || storeName === 'cuentas_bancarias' || storeName === 'contadores') {
             const ref = doc(db, storeName, data.id);
             await setDoc(ref, data);
+            delete _sessionCache[storeName];
             return data;
         }
 
@@ -169,8 +172,13 @@ const DB = {
             }
 
             try {
+                if (_sessionCache[storeName]) {
+                    return _sessionCache[storeName];
+                }
                 const snap = await getDocs(collection(db, storeName));
-                return snap.docs.map(d => d.data());
+                const data = snap.docs.map(d => d.data());
+                _sessionCache[storeName] = data;
+                return data;
             } catch (error) {
                 console.error(`[DB Error] getAll en '${storeName}':`, error);
                 throw error;
@@ -188,13 +196,22 @@ const DB = {
     },
 
     /**
+     * Fuerza una lectura directa desde Firestore y actualiza la caché de la sesión.
+     */
+    async refreshCache(storeName) {
+        delete _sessionCache[storeName];
+        return await this.getAll(storeName);
+    },
+
+    /**
      * Elimina un registro por su ID 煤nico.
      * Si storeName es 'productos', elimina en Firestore; el resto usa IndexedDB.
      */
     async delete(storeName, id) {
-        // TODO: transacciones sigue en IndexedDB 鈥?bancos.js hace getAll completo para sumar saldos, migrar solo despu茅s de refactorizar a saldo acumulado para no agotar cuota de lecturas de Firestore.
+        // TODO: transacciones sigue en IndexedDB ... bancos.js hace getAll completo para sumar saldos...
         if (storeName === 'productos' || storeName === 'contactos' || storeName === 'cotizaciones' || storeName === 'facturas' || storeName === 'lotes_fifo' || storeName === 'cuentas_bancarias') {
             await deleteDoc(doc(db, storeName, id));
+            delete _sessionCache[storeName];
             return true;
         }
 
@@ -702,6 +719,7 @@ window.runPriceReconciliation = async function() {
                 console.log(`\n?? RECONCILIACIóN DE PRECIOS COMPLETA.`);
                 console.log(`- Actualizaciones exitosas: ${exitosos}`);
                 if (errores > 0) console.error(`- Ocurrieron ${errores} errores.`);
+                delete _sessionCache['productos'];
                 
             } catch (err) {
                 console.error("Error al procesar el archivo JSON:", err);
