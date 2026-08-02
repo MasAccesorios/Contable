@@ -81,8 +81,6 @@ export const ConciliacionModule = {
 
         // Actualizar UI
         this.element.querySelector('#concil-saldo-anterior').textContent = this.formatMoney(saldoAnterior);
-        this.element.querySelector('#concil-entradas').textContent = this.formatMoney(entradas);
-        this.element.querySelector('#concil-salidas').textContent = this.formatMoney(salidas);
         
         const saldoTotal = saldoAnterior + entradas - salidas;
         this.element.querySelector('#concil-saldo-total').textContent = this.formatMoney(saldoTotal);
@@ -92,13 +90,17 @@ export const ConciliacionModule = {
 
     calcularDiferencia(saldoTotalCalculado) {
         const difEl = this.element.querySelector('#concil-diferencia');
-        const diferencia = this.state.saldoBancario - saldoTotalCalculado;
-        difEl.textContent = this.formatMoney(diferencia);
+        const btnAjustar = this.element.querySelector('#btn-ajustar-saldo');
         
-        if (diferencia === 0) {
+        this.state.diferenciaActual = this.state.saldoBancario - saldoTotalCalculado;
+        difEl.textContent = this.formatMoney(this.state.diferenciaActual);
+        
+        if (this.state.diferenciaActual === 0) {
             difEl.style.color = '#2cbfb7';
+            if (btnAjustar) btnAjustar.classList.add('d-none');
         } else {
             difEl.style.color = '#ef4444';
+            if (btnAjustar) btnAjustar.classList.remove('d-none');
         }
     },
 
@@ -150,35 +152,28 @@ export const ConciliacionModule = {
                         <!-- Resumen (Estilo Alegra) -->
                         <div class="card border-0 mb-4" style="box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.03), 0px 1px 3px rgba(0, 0, 0, 0.05); border-radius: 8px;">
                             <div class="card-body p-4">
-                                <div class="row text-center mb-4">
-                                    <div class="col-4 border-end">
+                                <div class="row align-items-center text-center">
+                                    <div class="col-3 border-end">
                                         <p class="text-muted mb-1" style="font-size: 12px; font-weight: 500;">Saldo anterior</p>
                                         <h4 class="fw-bold mb-0" style="color: var(--text-main);" id="concil-saldo-anterior">$0,00</h4>
                                     </div>
-                                    <div class="col-4 border-end">
-                                        <p class="text-muted mb-1" style="font-size: 12px; font-weight: 500;">Entradas</p>
-                                        <h4 class="fw-bold mb-0" style="color: #10b981;" id="concil-entradas">$0,00</h4>
-                                    </div>
-                                    <div class="col-4">
-                                        <p class="text-muted mb-1" style="font-size: 12px; font-weight: 500;">Salidas</p>
-                                        <h4 class="fw-bold mb-0" style="color: #ef4444;" id="concil-salidas">$0,00</h4>
-                                    </div>
-                                </div>
-                                <div class="row align-items-center">
-                                    <div class="col-4">
-                                        <label class="text-muted mb-1 d-block" style="font-size: 12px; font-weight: 500;">Saldo bancario <i class="bi bi-info-circle"></i></label>
+                                    <div class="col-3 border-end text-start px-4">
+                                        <label class="text-muted mb-1 d-block" style="font-size: 12px; font-weight: 500;">Saldo bancario (Extracto)</label>
                                         <div class="input-group input-group-sm">
                                             <span class="input-group-text bg-light border-end-0">$</span>
                                             <input type="number" id="concil-input-saldo" class="form-control border-start-0 ps-0 text-dark fw-medium" placeholder="0.00" value="0">
                                         </div>
                                     </div>
-                                    <div class="col-4 text-center">
-                                        <p class="text-muted mb-1" style="font-size: 12px; font-weight: 500;">Saldo total</p>
+                                    <div class="col-3 border-end">
+                                        <p class="text-muted mb-1" style="font-size: 12px; font-weight: 500;">Saldo en sistema</p>
                                         <h4 class="fw-bold mb-0" style="color: var(--text-main);" id="concil-saldo-total">$0,00</h4>
                                     </div>
-                                    <div class="col-4 text-center">
+                                    <div class="col-3">
                                         <p class="text-muted mb-1" style="font-size: 12px; font-weight: 500;">Diferencia</p>
-                                        <h4 class="fw-bold mb-0" id="concil-diferencia" style="color: #ef4444;">$0,00</h4>
+                                        <div class="d-flex flex-column align-items-center justify-content-center">
+                                            <h4 class="fw-bold mb-1" id="concil-diferencia" style="color: #ef4444;">$0,00</h4>
+                                            <button id="btn-ajustar-saldo" class="btn btn-sm btn-outline-warning d-none mt-2" style="font-size: 11px; padding: 2px 8px; border-radius: 4px;">Ajustar saldo</button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -372,6 +367,50 @@ export const ConciliacionModule = {
             const saldoTotal = this.state.saldoAnterior + this.state.entradas - this.state.salidas;
             this.calcularDiferencia(saldoTotal);
         });
+
+        const btnAjustar = this.element.querySelector('#btn-ajustar-saldo');
+        if (btnAjustar) {
+            btnAjustar.addEventListener('click', async () => {
+                if (!this.state.diferenciaActual) return;
+                
+                const dif = this.state.diferenciaActual;
+                const tipoTx = dif > 0 ? 'ingreso' : 'egreso';
+                const montoAbs = Math.abs(dif);
+                
+                const currentAccount = this.state.cuentas.find(c => String(c.id) === String(this.state.bancoId));
+                const nombreCuenta = currentAccount ? currentAccount.nombre : 'la cuenta';
+                
+                const msg = `Se creará un ${tipoTx.toUpperCase()} de ajuste por ${this.formatMoney(montoAbs)} en ${nombreCuenta}.\n\nEscribe una breve observación para este ajuste (ej. "Intereses", "4x1000"):`;
+                
+                const observacion = prompt(msg);
+                if (observacion === null) return; // Cancelado
+                
+                const detalleFinal = observacion.trim() || 'Ajuste automático de conciliación';
+                
+                const payload = {
+                    tipo: tipoTx,
+                    fecha: new Date().toISOString(),
+                    monto: montoAbs,
+                    cuenta_id: parseInt(this.state.bancoId, 10),
+                    categoria: 'Ajuste de conciliación',
+                    observaciones: detalleFinal,
+                    estado: 'open'
+                };
+                
+                try {
+                    await DB.save('transacciones', payload);
+                    alert(`Ajuste guardado correctamente.`);
+                    // Invalidar cache de DB si es necesario, pero loadData llama a getAll
+                    await this.loadData();
+                    this.calcularTotales();
+                    this.renderTabla();
+                    this.renderHistorial();
+                } catch (err) {
+                    console.error("Error guardando ajuste:", err);
+                    alert("Ocurrió un error al guardar el ajuste.");
+                }
+            });
+        }
 
         this.element.querySelector('#btn-guardar-concil').addEventListener('click', async () => {
             const checks = this.element.querySelectorAll('.concil-check:checked');

@@ -1,5 +1,6 @@
 // js/modules/dashboard.js
 import DB from '../core/db.js';
+import { supabase } from '../core/supabase.js';
 import { obtenerCarteraFiltrada } from '../shared/carteraUtils.js';
 
 export const DashboardModule = {
@@ -185,8 +186,23 @@ export const DashboardModule = {
         // Inventario Valorizado
         let inventarioValorizado = lotes.reduce((sum, l) => sum + (l.cantidadActual * l.costoUnitario), 0);
         
-        // Saldo Total Bancos
-        let saldoBancos = transacciones.reduce((sum, t) => sum + (t.tipo === 'ingreso' ? t.monto : -t.monto), 0);
+        // Saldo Total Bancos (Usando la fuente de verdad de Supabase)
+        let saldoBancos = 0;
+        const dbCuentas = await DB.getAll('cuentas_bancarias') || [];
+        const cuentasActivas = dbCuentas.filter(c => c.estado === 'active' || c.estado === 'activo');
+        
+        const saldosPorCuenta = {};
+        cuentasActivas.forEach(c => { saldosPorCuenta[c.id] = 0; });
+
+        const { data: saldosRPC } = await supabase.rpc('get_saldos_por_cuenta');
+        if (saldosRPC) {
+            saldosRPC.forEach(s => {
+                if (saldosPorCuenta[s.cuenta_id] !== undefined) {
+                    saldosPorCuenta[s.cuenta_id] = Number(s.saldo);
+                }
+            });
+        }
+        cuentasActivas.forEach(c => { saldoBancos += (saldosPorCuenta[c.id] || 0); });
 
         let cxcTotal = 0, cxcVigentes = 0, cxcVencidas = 0;
         let cxcVigentesDoc = 0, cxcVencidasDoc = 0;

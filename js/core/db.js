@@ -453,6 +453,21 @@ const DB = {
      */
     async saveWithNextNumero(storeName, data) {
         return await this.save(storeName, data, true); // forceInsert = true
+    },
+
+    /**
+     * Invalida el caché local en memoria para un store específico, forzando 
+     * a que la próxima lectura (getAll) pida los datos de nuevo a la base de datos.
+     */
+    invalidateCache(storeName) {
+        delete _sessionCache[storeName];
+        
+        // Manejar los alias de transacciones
+        if (storeName === 'transacciones' || storeName === 'pagos' || storeName === 'pagos_ingresos') {
+            delete _sessionCache['transacciones'];
+            delete _sessionCache['pagos'];
+            delete _sessionCache['pagos_ingresos'];
+        }
     }
 };
 

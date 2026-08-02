@@ -1,4 +1,5 @@
 import { supabase } from '../core/supabase.js';
+import DB from '../core/db.js';
 
 export function agruparTransaccionesPorPago(transacciones) {
     const grupos = {};
@@ -24,4 +25,9 @@ export async function anularTransaccion(id) {
         .eq('id', idInt);
         
     if (error) throw error;
+    
+    // Invalidar caché local para que otras vistas obtengan los datos frescos
+    if (DB.invalidateCache) {
+        DB.invalidateCache('transacciones');
+    }
 }
