@@ -1,5 +1,6 @@
 // js/modules/bancos/bancos.js
 import DB from '../../core/db.js';
+import { supabase } from '../../core/supabase.js';
 
 export const TesoreriaModule = {
     cuentasConfig: [
@@ -191,6 +192,8 @@ export const TesoreriaModule = {
             btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Actualizando...';
             btn.disabled = true;
             
+            // Forzar repintado visual y dar feedback
+            await new Promise(r => setTimeout(r, 400));
             await this.loadData();
             
             btn.innerHTML = originalHtml;
@@ -208,7 +211,7 @@ export const TesoreriaModule = {
             
             // 2. Construir el HTML de los options
             const cuentasOptions = (this.state.cuentasActivas || [])
-                .map(c => `<option value="${c.nombre}">${c.nombre}</option>`)
+                .map(c => `<option value="${c.id}">${c.nombre}</option>`)
                 .join('');
             
             // 3. Inyectar dinámicamente preservando los placeholders originales
@@ -314,30 +317,43 @@ export const TesoreriaModule = {
     },
 
     async loadData() {
-        this.state.transacciones = await DB.getAll('transacciones');
+        const { data: dataGrafica, error: errGrafica } = await supabase.rpc('get_ingresos_egresos_por_mes', { meses: 6 });
+        if (errGrafica) console.error('Error cargando gráfica:', errGrafica);
+        this.state.datosGrafica = dataGrafica || [];
         
         const dbCuentas = await DB.getAll('cuentas_bancarias') || [];
         this.state.todasLasCuentas = dbCuentas;
-        this.state.cuentasActivas = dbCuentas.filter(c => c.estado === 'activo');
+        this.state.cuentasActivas = dbCuentas.filter(c => c.estado === 'active' || c.estado === 'activo');
         
-        // Calcular saldos (sólo para las cuentas activas)
-        this.state.cuentasActivas.forEach(c => this.state.saldos[c.nombre] = 0);
+        // Limpiar el diccionario de saldos
+        this.state.saldos = {};
         this.state.totalConsolidado = 0;
 
-        this.state.transacciones.forEach(t => {
-            const cuenta = t.cuentaId || 'AAACaja general';
-            if (this.state.saldos[cuenta] === undefined) this.state.saldos[cuenta] = 0;
-            
-            if (t.tipo === 'ingreso') {
-                this.state.saldos[cuenta] += t.monto;
-            } else if (t.tipo === 'egreso') {
-                this.state.saldos[cuenta] -= t.monto;
-            }
+        // Calcular saldos (sólo para las cuentas activas)
+        this.state.cuentasActivas.forEach(c => {
+            const initial = parseFloat(c.saldo_inicial) || 0;
+            this.state.saldos[c.id] = initial;
+            // Fallback para legacy UI requests
+            this.state.saldos[c.nombre] = initial;
         });
 
-        // Sumar todos los saldos (el loop excluye cuentas no configuradas para el total si fuera necesario, pero aquí sumaremos todas las configuradas)
-        this.cuentasConfig.forEach(c => {
-            this.state.totalConsolidado += (this.state.saldos[c.nombre] || 0);
+        const { data: saldos, error } = await supabase.rpc('get_saldos_por_cuenta');
+        if (error) { console.error('Error cargando saldos:', error); }
+        
+        if (saldos) {
+            saldos.forEach(s => {
+                // Sumar el saldo de la BD al saldo inicial (si existe) o inicializarlo
+                if (this.state.saldos[s.cuenta_id] !== undefined) {
+                    this.state.saldos[s.cuenta_id] += Number(s.saldo);
+                } else {
+                    this.state.saldos[s.cuenta_id] = Number(s.saldo);
+                }
+            });
+        }
+
+        // Sumar todos los saldos consolidados
+        this.state.cuentasActivas.forEach(c => {
+            this.state.totalConsolidado += (this.state.saldos[c.id] || 0);
         });
 
         // Renderizar vistas
@@ -388,8 +404,8 @@ export const TesoreriaModule = {
         }
 
         cuentasFiltradas.forEach(c => {
-            const saldo = this.state.saldos[c.nombre] || 0;
-            const isEfectivo = c.tipo.toLowerCase() === 'efectivo';
+            const saldo = this.state.saldos[c.id] !== undefined ? this.state.saldos[c.id] : (this.state.saldos[c.nombre] || 0);
+            const isEfectivo = (c.tipo || '').toLowerCase() === 'efectivo';
             const icon = isEfectivo ? 'bi-cash' : 'bi-bank';
             
             const isActivo = c.estado !== 'inactivo';
@@ -401,7 +417,7 @@ export const TesoreriaModule = {
             
             // Layout de Alegra: ícono gris tenue a la izquierda del nombre
             html += `
-                <tr class="banco-row" data-id="${c.nombre || c.id || ''}" style="cursor: pointer; font-size: 13px; color: var(--text-body); border-bottom: 1px solid var(--border-color); ${opacityStyle}">
+                <tr class="banco-row" data-id="${c.id}" style="cursor: pointer; font-size: 13px; color: var(--text-body); border-bottom: 1px solid var(--border-color); ${opacityStyle}">
                     <td class="py-3 ps-4 d-flex align-items-center">
                         <div class="bg-light rounded-circle p-2 me-3 d-flex align-items-center justify-content-center text-muted" style="width: 32px; height: 32px; border: 1px solid #e2e8f0;">
                             <i class="bi ${icon}" style="font-size: 14px;"></i>
@@ -410,11 +426,11 @@ export const TesoreriaModule = {
                         ${badge}
                     </td>
                     <td class="py-3"><i class="bi bi-wallet2 me-2 text-muted"></i>${c.tipo}</td>
-                    <td class="py-3 font-monospace text-muted">${c.numero}</td>
+                    <td class="py-3 font-monospace text-muted">${c.numero || '-'}</td>
                     <td class="py-3" style="color: #2cbfb7; font-weight: 500;">${formatMoney(saldo)}</td>
                     <td class="py-3 pe-4">
                         <div class="d-flex gap-2">
-                            <button class="btn btn-sm btn-light border px-3 text-muted btn-conciliar" style="font-size: 12px; font-weight: 500; border-radius: 4px;" onclick="event.stopPropagation(); window.location.hash='#/bancos/conciliacion?banco_id=${c.id || c.nombre || ''}'">
+                            <button class="btn btn-sm btn-light border px-3 text-muted btn-conciliar" style="font-size: 12px; font-weight: 500; border-radius: 4px;" onclick="event.stopPropagation(); window.location.hash='#/bancos/conciliacion?banco_id=${c.id}'">
                                 Conciliar
                             </button>
                             <button class="btn btn-sm btn-light border ${actionBtnColor} btn-toggle-estado" data-id="${c.id}" data-estado="${c.estado || 'activo'}" title="${actionBtnTitle}" style="border-radius: 4px;" onclick="event.stopPropagation();">
@@ -438,42 +454,13 @@ export const TesoreriaModule = {
             this.state.chartInstance.destroy();
         }
 
-        // 1. Generar los últimos X meses cronológicos
-        const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-        const ultimosMeses = [];
-        const hoy = new Date();
+        // 1. Usar los datos de la base de datos
+        const datos = this.state.datosGrafica || [];
         
-        for (let i = meses - 1; i >= 0; i--) {
-            const d = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1);
-            const prefix = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-            ultimosMeses.push({
-                prefix, 
-                label: monthNames[d.getMonth()], // Nombre del mes para el gráfico
-                ingresos: 0,
-                gastos: 0
-            });
-        }
-
-        // 2. Agrupar transacciones
-        this.state.transacciones.forEach(t => {
-            // Asumimos formato t.fecha = "YYYY-MM-DD"
-            if (!t.fecha) return;
-            const prefix = t.fecha.substring(0, 7); // "YYYY-MM"
-            
-            const mesTarget = ultimosMeses.find(m => m.prefix === prefix);
-            if (mesTarget) {
-                if (t.tipo === 'ingreso') {
-                    mesTarget.ingresos += t.monto;
-                } else if (t.tipo === 'egreso') {
-                    mesTarget.gastos += t.monto;
-                }
-            }
-        });
-
-        // 3. Preparar Data para Chart.js
-        const labels = ultimosMeses.map(m => m.label);
-        const dataIngresos = ultimosMeses.map(m => m.ingresos);
-        const dataGastos = ultimosMeses.map(m => m.gastos);
+        // 2. Preparar Data para Chart.js
+        const labels = datos.map(m => m.mes);
+        const dataIngresos = datos.map(m => m.ingresos || 0);
+        const dataGastos = datos.map(m => m.egresos || 0);
 
         this.state.chartInstance = new Chart(ctx, {
             type: 'bar',
@@ -571,37 +558,49 @@ export const TesoreriaModule = {
             return false;
         }
 
-        // 1. Crear el Egreso en la cuenta Origen
+        const origenIdInt  = parseInt(origenId, 10);
+        const destinoIdInt = parseInt(destinoId, 10);
+
+        // Buscar nombres de cuenta para la nota descriptiva
+        const cuentaOrigen  = (this.state.todasLasCuentas || []).find(c => String(c.id) === String(origenId));
+        const cuentaDestino = (this.state.todasLasCuentas || []).find(c => String(c.id) === String(destinoId));
+        const nombreOrigen  = cuentaOrigen?.nombre  || String(origenId);
+        const nombreDestino = cuentaDestino?.nombre || String(destinoId);
+
+        // 1. Egreso en la cuenta Origen (tipo='out', columnas reales de pagos_ingresos)
         const egreso = {
-            id: 'trans_' + Date.now().toString(36) + Math.random().toString(36).substr(2),
-            tipo: 'egreso',
-            categoria: 'Transferencia',
-            monto: monto,
-            fecha: fecha,
-            metodo: 'Transferencia',
-            detalle: `Transferencia a ${destinoId}${nota ? ' - ' + nota : ''}`,
-            cuentaId: origenId,
-            timestamp: new Date().toISOString()
+            tipo:          'out',
+            monto:         Number(monto),
+            fecha:         fecha,
+            cuenta_id:     origenIdInt,
+            factura_id:    null,
+            categoria:     'Transferencia',
+            observaciones: `Transferencia a ${nombreDestino}${nota ? ' — ' + nota : ''}`,
+            estado:        'open'
         };
 
-        // 2. Crear el Ingreso en la cuenta Destino
+        // 2. Ingreso en la cuenta Destino (tipo='in')
         const ingreso = {
-            id: 'trans_' + (Date.now() + 1).toString(36) + Math.random().toString(36).substr(2),
-            tipo: 'ingreso',
-            categoria: 'Transferencia',
-            monto: monto,
-            fecha: fecha,
-            metodo: 'Transferencia',
-            detalle: `Transferencia desde ${origenId}${nota ? ' - ' + nota : ''}`,
-            cuentaId: destinoId,
-            timestamp: new Date().toISOString()
+            tipo:          'in',
+            monto:         Number(monto),
+            fecha:         fecha,
+            cuenta_id:     destinoIdInt,
+            factura_id:    null,
+            categoria:     'Transferencia',
+            observaciones: `Transferencia desde ${nombreOrigen}${nota ? ' — ' + nota : ''}`,
+            estado:        'open'
         };
 
-        // 3. Guardar en la base de datos (se usa el almacén 'transacciones')
-        await DB.save('transacciones', egreso);
-        await DB.save('transacciones', ingreso);
-        
-        return true;
+        // 3. Guardar ambos — DB.save('transacciones') mapea internamente a pagos_ingresos
+        try {
+            await DB.save('transacciones', egreso);
+            await DB.save('transacciones', ingreso);
+            return true;
+        } catch (err) {
+            console.error('Error al guardar transferencia:', err);
+            alert('Error al guardar la transferencia: ' + (err?.message || JSON.stringify(err)));
+            return false;
+        }
     },
 
     async toggleEstadoCuenta(id, estadoActual) {

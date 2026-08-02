@@ -112,19 +112,28 @@ export const ProductosModule = {
         let html = '';
 
         productos.forEach(p => {
-            if (p.estado === 'inactivo') return;
+            // Permitir mostrar productos activos e importados sin estado explícito
+            if (p.estado === 'inactivo' || p.estado === 'inactive') return;
 
             const lotesProd = lotes.filter(l => l.productoId === p.id && l.cantidadActual > 0);
-            const stockTotal = lotesProd.reduce((sum, l) => sum + l.cantidadActual, 0);
-            const costoTotal = lotesProd.reduce((sum, l) => sum + (l.cantidadActual * (l.costoUnitario || 0)), 0);
-            const costoPromedio = stockTotal > 0 ? (costoTotal / stockTotal) : (p.costoBase || 0);
+            
+            // Priorizar stock importado estático y sumarle los lotes nuevos si los hay
+            const stockBase = parseFloat(p.stock) || 0;
+            const stockLotes = lotesProd.reduce((sum, l) => sum + l.cantidadActual, 0);
+            const stockTotal = stockBase + stockLotes;
+
+            // Calcular costo usando el estático si no hay lotes
+            const costoLotes = lotesProd.reduce((sum, l) => sum + (l.cantidadActual * (l.costoUnitario || 0)), 0);
+            const costoPromedio = stockTotal > 0 ? 
+                (stockLotes > 0 ? costoLotes / stockLotes : (p.costoBase || 0)) 
+                : (p.costoBase || 0);
 
             const isLowStock = stockTotal <= (p.stockMinimo || 0);
             
             html += `
-                <tr style="cursor: pointer; border-bottom: 1px solid var(--border-color); font-size: 13px; color: var(--text-body);" onclick="if(!event.target.closest('button')) window.location.hash = '#/inventario/items/ver/${p.id}'">
-                    <td class="py-3 ps-4" style="color: var(--text-main); font-weight: var(--weight-medium);">${p.sku}</td>
-                    <td class="py-3 text-truncate" style="max-width: 300px;">${p.nombre}</td>
+                <tr data-id="${p.id}" style="cursor: pointer; border-bottom: 1px solid var(--border-color); font-size: 13px; color: var(--text-body);" onclick="if(!event.target.closest('button')) window.location.hash = '#/inventario/items/ver/${p.id}'">
+                    <td class="py-3 ps-4 td-sku" style="color: var(--text-main); font-weight: var(--weight-medium);">${p.sku}</td>
+                    <td class="py-3 text-truncate td-nombre" style="max-width: 300px;">${p.nombre}</td>
                     <td class="py-3 text-end">$${(p.precioVenta || 0).toLocaleString('es-CO', {minimumFractionDigits: 2})}</td>
                     <td class="py-3 text-end">
                         <span style="${isLowStock ? 'color: #ef4444; background-color: #fee2e2;' : 'color: #15803d; background-color: #dcfce7;'} padding: 4px 12px; border-radius: 12px; font-size: 11px; font-weight: var(--weight-medium);" ${isLowStock ? 'title="¡Alerta: Stock por debajo del mínimo!"' : ''}>
@@ -384,7 +393,9 @@ export const ProductosModule = {
             if (alertEl) {
                 alertEl.textContent = 'Lote guardado e integrado con éxito al FIFO.';
                 alertEl.classList.remove('d-none');
-                setTimeout(() => alertEl.classList.add('d-none'), 3000);
+                
+                if (window._productosAlertTimeout) clearTimeout(window._productosAlertTimeout);
+                window._productosAlertTimeout = setTimeout(() => alertEl.classList.add('d-none'), 3000);
             }
 
             // Limpiar campos de cantidad y referencia
@@ -405,8 +416,8 @@ export const ProductosModule = {
         // en lugar de recargar la base de datos en cada pulsación (evita bloqueos)
         const rows = tbody.querySelectorAll('tr[data-id]');
         rows.forEach(row => {
-            const sku = row.querySelector('code')?.textContent.toLowerCase() || '';
-            const nombre = row.querySelector('strong')?.textContent.toLowerCase() || '';
+            const sku = row.querySelector('.td-sku')?.textContent.toLowerCase() || '';
+            const nombre = row.querySelector('.td-nombre')?.textContent.toLowerCase() || '';
             
             if (sku.includes(query) || nombre.includes(query)) {
                 row.style.display = '';

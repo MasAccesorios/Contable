@@ -1,7 +1,6 @@
 import DB from '../../core/db.js';
 import { CoreActions } from '../../shared/crud.js';
-import { TesoreriaModule } from '../bancos/bancos.js';
-import { calcularEstadoFactura } from '../../shared/carteraUtils.js';
+import { obtenerCarteraFiltrada } from '../../shared/carteraUtils.js';
 import { AbonoModal } from '../../shared/abonoModal.js';
 
 export default {
@@ -16,15 +15,10 @@ export default {
         const contactos = await DB.getAll('contactos');
         const transacciones = (await DB.getAll('transacciones').catch(() => [])) || [];
         
-        // Decorar facturas con métricas en tiempo real
-        const facturasDecoradas = facturasRaw.map(f => {
-            if (f.tipo !== 'venta') return f;
-            const dinamico = calcularEstadoFactura(f, transacciones);
-            return { ...f, estado: dinamico.estado, saldo: dinamico.saldo, totalPagado: dinamico.totalPagado };
-        });
+        // 1. Obtener Cartera Filtrada Centralizada
+        let facturasPendientes = obtenerCarteraFiltrada(facturasRaw, transacciones, contactos, 'cxc');
 
-        // Solo facturas de venta pendientes
-        let facturasPendientes = facturasDecoradas.filter(f => f.tipo === 'venta' && f.estado !== 'pagada' && f.estado !== 'anulada');
+        // 2. Filtro Adicional de Periodo (específico de esta vista)
 
         if (fechaInicio && fechaFin) {
             const fStart = new Date(fechaInicio);
@@ -79,7 +73,7 @@ export default {
                     
                     <!-- INPUT DISPARADOR DEL PICKER -->
                     <div id="input-date-range-trigger" class="form-control form-control-sm border-light-subtle d-flex justify-content-between align-items-center" style="font-size: 12px; cursor: pointer; background-color: #fff; padding: 6px 12px;">
-                        <span id="lbl-rango-activo">01/01/2000 - 22/07/2026</span>
+                        <span id="lbl-rango-activo">01/01/2000 - Hoy</span>
                         <span class="text-muted">📅</span>
                     </div>
 
@@ -112,7 +106,7 @@ export default {
                                     <div class="d-flex gap-1">
                                         <input type="date" id="picker-fecha-inicio" class="form-control form-control-sm py-0 px-1" style="font-size: 11px; width: 110px;" value="2000-01-01">
                                         <span class="text-muted">-</span>
-                                        <input type="date" id="picker-fecha-fin" class="form-control form-control-sm py-0 px-1" style="font-size: 11px; width: 110px;" value="2026-07-22">
+                                        <input type="date" id="picker-fecha-fin" class="form-control form-control-sm py-0 px-1" style="font-size: 11px; width: 110px;" value="">
                                     </div>
                                 </div>
                                 
@@ -123,7 +117,7 @@ export default {
                                         <div class="text-muted small">◄ Mes Incial</div>
                                     </div>
                                     <div class="flex-fill border rounded p-2">
-                                        <div class="fw-bold text-dark mb-1" style="font-size: 11px;">Julio 2026</div>
+                                        <div class="fw-bold text-dark mb-1" style="font-size: 11px;">Mes Final</div>
                                         <div class="text-muted small">Mes Final ►</div>
                                     </div>
                                 </div>
@@ -180,7 +174,7 @@ export default {
                                 ${facturasPendientes.map(f => {
                                     const total = parseFloat(f.total) || 0;
                                     const saldo = parseFloat(f.saldo !== undefined ? f.saldo : total);
-                                    const cobrado = total - saldo;
+                                    const cobrado = f.totalPagado !== undefined ? f.totalPagado : (total - saldo);
                                     const cliente = getCliente(f.clienteId);
                                     const isVencida = new Date(f.vencimiento) < new Date();
                                     
@@ -229,9 +223,8 @@ export default {
         element.querySelectorAll('.btn-abonar').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const facturaId = e.currentTarget.dataset.id;
-                const saldo = parseFloat(e.currentTarget.dataset.saldo);
                 
-                AbonoModal.show(facturaId, saldo, () => {
+                AbonoModal.show(facturaId, () => {
                     setTimeout(() => this.renderList(element), 500);
                 });
             });
@@ -296,9 +289,13 @@ export default {
         const inputInicio = document.getElementById('picker-fecha-inicio');
         const inputFin = document.getElementById('picker-fecha-fin');
 
-        // Estado inicial de la UI indica rango 2000-01-01 a 2026-07-22 si no está definido
-        const fechaInicio = inputInicio ? inputInicio.value : '2000-01-01';
-        const fechaFin = inputFin ? inputFin.value : '2026-07-22';
+        // Obtener la fecha de hoy en formato YYYY-MM-DD
+        const hoyObj = new Date();
+        const hoyStr = hoyObj.toISOString().split('T')[0];
+
+        // Estado inicial de la UI indica rango 2000-01-01 hasta hoy si no está definido
+        const fechaInicio = (inputInicio && inputInicio.value) ? inputInicio.value : '2000-01-01';
+        const fechaFin = (inputFin && inputFin.value) ? inputFin.value : hoyStr;
 
         // Feedback visual inmediato en el botón
         const btnGenerar = document.getElementById('btn-generar-reporte');
@@ -322,28 +319,32 @@ export default {
     },
 
     calcularRangoSegunAtajo(tipo) {
-        const hoy = new Date("2026-07-22");
+        const hoy = new Date();
+        const hoyStr = hoy.toISOString().split('T')[0];
+        const primerDiaMesStr = new Date(hoy.getFullYear(), hoy.getMonth(), 1).toISOString().split('T')[0];
+        const primerDiaAnoStr = new Date(hoy.getFullYear(), 0, 1).toISOString().split('T')[0];
+        
         let inicio, fin;
 
         switch(tipo) {
             case 'inicio':
                 inicio = "2000-01-01";
-                fin = "2026-07-22";
+                fin = hoyStr;
                 break;
             case 'hoy':
-                inicio = fin = "2026-07-22";
+                inicio = fin = hoyStr;
                 break;
             case 'este_mes':
-                inicio = "2026-07-01";
-                fin = "2026-07-31";
+                inicio = primerDiaMesStr;
+                fin = hoyStr; // O el último día del mes, pero usualmente reportes son hasta hoy
                 break;
             case 'este_ano':
-                inicio = "2026-01-01";
-                fin = "2026-12-31";
+                inicio = primerDiaAnoStr;
+                fin = hoyStr;
                 break;
             default:
                 inicio = "2000-01-01";
-                fin = "2026-07-22";
+                fin = hoyStr;
         }
 
         document.getElementById('picker-fecha-inicio').value = inicio;

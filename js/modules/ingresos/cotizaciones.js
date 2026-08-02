@@ -1,4 +1,5 @@
 import DB from '../../core/db.js';
+import { supabase } from '../../core/supabase.js';
 import { CoreActions, ItemEngine, NumberingManager, ExportManager, PrintManager } from '../../shared/crud.js';
 import { ContactosModule } from '../clientes/clientes.js';
 import { UI } from '../../shared/combobox.js';
@@ -70,8 +71,12 @@ export const CotizacionesModule = {
             filteredData.sort((a, b) => {
                 let valA, valB;
                 if (sortColumn === 'numero') {
-                    valA = parseInt(String(a.numero !== undefined && a.numero !== null ? a.numero : a.id).replace(/\D/g, ''), 10) || 0;
-                    valB = parseInt(String(b.numero !== undefined && b.numero !== null ? b.numero : b.id).replace(/\D/g, ''), 10) || 0;
+                    valA = parseInt(String(a.numero !== undefined && a.numero !== null && String(a.numero).trim() !== '' ? a.numero : 0).replace(/\D/g, ''), 10) || 0;
+                    valB = parseInt(String(b.numero !== undefined && b.numero !== null && String(b.numero).trim() !== '' ? b.numero : 0).replace(/\D/g, ''), 10) || 0;
+                    if (valA === valB) {
+                        valA = parseInt(String(a.id).replace(/\D/g, ''), 10) || 0;
+                        valB = parseInt(String(b.id).replace(/\D/g, ''), 10) || 0;
+                    }
                 } else if (sortColumn === 'cliente') {
                     valA = getClienteName(a.clienteId || a.contactoId).toLowerCase();
                     valB = getClienteName(b.clienteId || b.contactoId).toLowerCase();
@@ -381,15 +386,18 @@ export const CotizacionesModule = {
 
     async renderForm(element, id = null, isViewOnly = false) {
         // Carga de DB
-        const contactos = await DB.getAll('contactos');
+        // Forzar refresh de contactos en modo edición para incluir contactos recién creados
+        const contactos = (!id || !isViewOnly)
+            ? await DB.refreshCache('contactos')
+            : await DB.getAll('contactos');
         const productos = await DB.getAll('productos');
         
         // Estado por defecto
         let cotizacion = {
             id: 'cot_' + Date.now(),
-            numero: await DB.nextNumero('cotizaciones'),
+            numero: undefined,
             fecha: new Date().toISOString().split('T')[0],
-            vencimiento: new Date().toISOString().split('T')[0],
+            vencimiento: '',
             clienteId: '',
             detalles: [{ id: Date.now(), productoId: '', cantidad: 0, precio: 0, descuento: 0, impuesto: 0 }],
             notas: '',
@@ -403,6 +411,26 @@ export const CotizacionesModule = {
             if (dbData) cotizacion = dbData;
             if (!cotizacion.detalles || cotizacion.detalles.length === 0) {
                 cotizacion.detalles = [{ id: Date.now(), productoId: '', cantidad: 0, precio: 0, descuento: 0, impuesto: 0 }];
+            }
+            
+            // Buscar si esta cotización ya fue convertida a factura dinámicamente
+            try {
+                const idNum = parseInt(id, 10);
+                if (!isNaN(idNum)) {
+                    const { data: facturasAsociadas, error: facErr } = await supabase
+                        .from('facturas')
+                        .select('id, numero, cotizacion_origen_id')
+                        .eq('cotizacion_origen_id', idNum)
+                        .limit(1);
+                        
+                    if (facturasAsociadas && facturasAsociadas.length > 0) {
+                        cotizacion.convertidoAFactura = true;
+                        cotizacion.facturaDestinoId = facturasAsociadas[0].id;
+                        cotizacion.facturaDestinoNumero = facturasAsociadas[0].numero;
+                    }
+                }
+            } catch (e) {
+                console.error("Error al buscar factura asociada:", e);
             }
         }
 
@@ -439,7 +467,7 @@ export const CotizacionesModule = {
                                     <option>Cotización</option>
                                 </select>
                                 <div class="d-flex justify-content-between align-items-center text-muted" style="font-size: 14px;">
-                                    <span id="lbl-numero">No. <strong style="color: var(--text-main);">${cotizacion.numero}</strong></span>
+                                    <span id="lbl-numero">No. <strong style="color: var(--text-main);">${cotizacion.numero || '[Autogenerado al guardar]'}</strong></span>
                                     ${!isViewOnly ? `<i class="bi bi-gear" id="btn-config-num" style="cursor: pointer;"></i>` : ''}
                                 </div>
                             </div>
@@ -512,17 +540,34 @@ export const CotizacionesModule = {
                             </div>
                         </div>
 
-                        <!-- TEXTAREAS ADICIONALES -->
-                        <div class="mb-4">
-                            <h6 class="fw-bold mb-1" style="font-size: 14px; color: var(--text-main);">Notas</h6>
-                            <textarea id="input-notas" class="form-control text-muted" rows="2" style="font-size: 13px; border-color: var(--border-color); resize: none;" placeholder="Agrega comentarios para aclarar datos de la cotización, serán visibles para tus clientes" ${isViewOnly ? 'disabled' : ''}>${cotizacion.notas}</textarea>
-                        </div>
-                        <div>
-                            <h6 class="fw-bold mb-1" style="font-size: 14px; color: var(--text-main);">Términos y condiciones</h6>
-                            <textarea id="input-terminos" class="form-control text-muted" rows="2" style="font-size: 13px; border-color: var(--border-color); resize: none;" placeholder="Define los términos y condiciones, y/o las posibles cláusulas en caso de reclamos" ${isViewOnly ? 'disabled' : ''}>${cotizacion.terminosCondiciones}</textarea>
+                    </div>
+                </div>
+
+                <!-- DOCUMENTOS RELACIONADOS (Solo Vista) -->
+                ${isViewOnly && cotizacion.convertidoAFactura && cotizacion.facturaDestinoId ? `
+                <div class="mt-5">
+                    <h6 class="fw-bold mb-3" style="color: var(--text-main);">Documentos relacionados</h6>
+                    <ul class="nav nav-tabs mb-3" role="tablist" style="border-bottom: 2px solid var(--border-color);">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-factura" type="button" role="tab" style="font-size: 13px; font-weight: var(--weight-medium); color: var(--text-main); border-bottom-color: transparent;">Factura relacionada</button>
+                        </li>
+                    </ul>
+                    
+                    <div class="tab-content border-0 p-0">
+                        <div class="tab-pane fade show active" id="tab-factura" role="tabpanel">
+                            <div class="card border border-light shadow-sm" style="max-width:300px; cursor:pointer;" onclick="sessionStorage.setItem('origenVolver', JSON.stringify({hash: '#/ingresos/cotizaciones/ver/${cotizacion.id}', label: 'Volver a la cotización'})); window.location.hash='#/ingresos/facturas/ver/${cotizacion.facturaDestinoId}'">
+                                <div class="card-body py-3 px-3 d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <small class="text-muted d-block" style="font-size:11px;">Ver documento destino</small>
+                                        <span class="fw-medium text-dark" style="font-size:14px; color: var(--primary) !important;">Factura</span>
+                                    </div>
+                                    <i class="bi bi-box-arrow-up-right text-muted" style="font-size: 12px;"></i>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
+                ` : ''}
 
                 <!-- FOOTER ACTIONS -->
                 ${!isViewOnly ? `
@@ -564,7 +609,7 @@ export const CotizacionesModule = {
             tr.innerHTML = `
                 <td class="text-muted text-center num-linea align-top pt-3">${contadorLineas}</td>
                 <td class="align-top">
-                    ${ItemEngine.renderProductSearchBox(detalle, productos)}
+                    ${ItemEngine.renderProductSearchBox(detalle, productos, isViewOnly)}
                     <div class="meta-prod ps-1"></div>
                 </td>
                 <td class="align-top">
@@ -665,10 +710,13 @@ export const CotizacionesModule = {
         // Función Helper: Cálculo de Fecha de Vencimiento
         const calcularVencimiento = (cliente) => {
             const plazos = parseInt(cliente.plazosPago || 0);
+            const inputVencimiento = element.querySelector('#input-vencimiento');
             if (plazos > 0) {
                 const fechaCreacion = new Date(element.querySelector('#input-fecha').value);
                 fechaCreacion.setDate(fechaCreacion.getDate() + plazos);
-                element.querySelector('#input-vencimiento').value = fechaCreacion.toISOString().split('T')[0];
+                if (inputVencimiento) inputVencimiento.value = fechaCreacion.toISOString().split('T')[0];
+            } else {
+                if (inputVencimiento) inputVencimiento.value = '';
             }
         };
 
@@ -710,6 +758,7 @@ export const CotizacionesModule = {
 
         // Evento Cancelar
         element.querySelector('#btn-cancelar')?.addEventListener('click', () => {
+            window.hayCambiosSinGuardar = false;
             window.location.hash = '#/ingresos/cotizaciones';
         });
 
@@ -789,13 +838,16 @@ export const CotizacionesModule = {
                 cotizacion.clienteId = clienteId;
                 cotizacion.fecha = element.querySelector('#input-fecha').value;
                 cotizacion.vencimiento = element.querySelector('#input-vencimiento').value;
-                cotizacion.notas = element.querySelector('#input-notas').value;
-                cotizacion.terminosCondiciones = element.querySelector('#input-terminos').value;
                 cotizacion.detalles = arrDetalles;
 
-                await DB.save('cotizaciones', cotizacion);
+                if (!cotizacion.numero) {
+                    cotizacion = await DB.saveWithNextNumero('cotizaciones', cotizacion);
+                } else {
+                    await DB.save('cotizaciones', cotizacion);
+                }
                 
                 // Navegar a modo lectura para bloquear edición y habilitar impresión final
+                window.hayCambiosSinGuardar = false;
                 window.location.hash = `#/ingresos/cotizaciones/ver/${cotizacion.id}`;
             } catch (err) {
                 console.error("Error al guardar cotización:", err);
@@ -812,5 +864,15 @@ export const CotizacionesModule = {
         // Inicializar UI
         cotizacion.detalles.forEach(det => addRow(det));
         calcEngine(); // Primer cálculo
+
+        if (!isViewOnly) {
+            window.hayCambiosSinGuardar = false;
+            element.addEventListener('input', (e) => { 
+                window.hayCambiosSinGuardar = true; 
+            });
+            element.addEventListener('change', (e) => { 
+                window.hayCambiosSinGuardar = true; 
+            });
+        }
     }
 };

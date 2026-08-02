@@ -1,4 +1,5 @@
 import DB from '../../core/db.js';
+import { supabase } from '../../core/supabase.js';
 import { CoreActions, ItemEngine, NumberingManager, ExportManager, PrintManager } from '../../shared/crud.js';
 import { TesoreriaModule } from '../bancos/bancos.js';
 import { ContactosModule } from '../clientes/clientes.js';
@@ -8,8 +9,14 @@ import { AbonoModal } from '../../shared/abonoModal.js';
 import { InventarioUtils } from '../../shared/inventarioUtils.js';
 
 export const FacturasModule = {
+    cache: { contactos: null, productos: null },
+    
     async init(element) {
         if (!element) return;
+
+        // Cargar catálogos base una sola vez por renderizado del módulo
+        this.cache.contactos = await DB.getAll('contactos');
+        this.cache.productos = await DB.getAll('productos');
 
         const hashParts = window.location.hash.split('/');
         const action = hashParts[3];
@@ -37,13 +44,12 @@ export const FacturasModule = {
         
         // Decorar con estado en tiempo real
         facturasData = facturasData.map(f => {
-            if (f.tipo !== 'venta') return f;
             const dinamico = calcularEstadoFactura(f, transacciones);
-            return { ...f, estado: dinamico.estado, saldoPendiente: dinamico.saldo };
+            return { ...f, estado: dinamico.estado, saldoPendiente: dinamico.saldo, totalPagado: dinamico.totalPagado };
         });
 
         // Obtener contactos para mostrar los nombres
-        const contactos = await DB.getAll('contactos');
+        const contactos = this.cache.contactos;
         const getClienteName = (id) => {
             const cliente = contactos.find(c => c.id === id);
             return cliente ? cliente.nombre : 'Sin Cliente';
@@ -82,8 +88,12 @@ export const FacturasModule = {
             filteredData.sort((a, b) => {
                 let valA, valB;
                 if (sortColumn === 'numero') {
-                    valA = parseInt(String(a.numero !== undefined && a.numero !== null ? a.numero : a.id).replace(/\D/g, ''), 10) || 0;
-                    valB = parseInt(String(b.numero !== undefined && b.numero !== null ? b.numero : b.id).replace(/\D/g, ''), 10) || 0;
+                    valA = parseInt(String(a.numero !== undefined && a.numero !== null && String(a.numero).trim() !== '' ? a.numero : 0).replace(/\D/g, ''), 10) || 0;
+                    valB = parseInt(String(b.numero !== undefined && b.numero !== null && String(b.numero).trim() !== '' ? b.numero : 0).replace(/\D/g, ''), 10) || 0;
+                    if (valA === valB) {
+                        valA = parseInt(String(a.id).replace(/\D/g, ''), 10) || 0;
+                        valB = parseInt(String(b.id).replace(/\D/g, ''), 10) || 0;
+                    }
                 } else if (sortColumn === 'cliente') {
                     valA = getClienteName(a.clienteId || a.contactoId).toLowerCase();
                     valB = getClienteName(b.clienteId || b.contactoId).toLowerCase();
@@ -112,30 +122,43 @@ export const FacturasModule = {
 
             const tbodyHtml = currentItems.length > 0 ? currentItems.map(c => {
                 const estado = c.estado || 'por_pagar';
-                let badgeColor = '';
+                let textEstadoColor = '';
                 let labelEstado = '';
                 
-                if (estado === 'pagada') {
-                    badgeColor = 'color: #15803d; background-color: #dcfce7;';
-                    labelEstado = 'Pagada';
-                } else if (estado === 'anulada') {
-                    badgeColor = 'color: #ef4444; background-color: #fee2e2;';
+                if (estado === 'anulada' || estado === 'voided' || estado === 'void') {
+                    textEstadoColor = 'color: #ef4444;';
                     labelEstado = 'Anulada';
+                } else if (c.saldoPendiente <= 0) {
+                    textEstadoColor = 'color: #2cbfb7;';
+                    labelEstado = 'Cobrada';
                 } else {
-                    badgeColor = 'color: #b45309; background-color: #fef3c7;';
-                    labelEstado = 'Por Pagar';
+                    textEstadoColor = 'color: #ef4444;';
+                    labelEstado = 'Por cobrar';
                 }
 
                 const numDisplay = c.numero || parseInt(String(c.id).replace(/\D/g, ''), 10) || c.id;
                 
+                let vencimientoColor = 'var(--text-body)';
+                if (c.vencimiento) {
+                    const vDate = new Date(c.vencimiento);
+                    const hoy = new Date();
+                    hoy.setHours(0,0,0,0);
+                    if (vDate < hoy && labelEstado === 'Por cobrar') {
+                        vencimientoColor = '#ef4444';
+                    }
+                }
+                
                 return `
                     <tr style="cursor: pointer; border-bottom: 1px solid var(--border-color); font-size: 13px; color: var(--text-body);" onclick="if(!event.target.closest('button')) window.location.hash = '#/ingresos/facturas/ver/${c.id}'">
                         <td class="py-3">${numDisplay}</td>
-                        <td class="py-3" style="color: var(--text-main); font-weight: var(--weight-medium);">${getClienteName(c.clienteId)}</td>
-                        <td class="py-3">${c.fecha}</td>
+                        <td class="py-3">${c.fecha || ''}</td>
+                        <td class="py-3" style="color: ${vencimientoColor};">${c.vencimiento || ''}</td>
+                        <td class="py-3" style="color: var(--text-main); font-weight: var(--weight-medium);">${getClienteName(c.clienteId || c.contacto_id || c.contactoId)}</td>
                         <td class="py-3 text-end">${formatMoney(c.total)}</td>
-                        <td class="py-3 text-center">
-                            <span style="${badgeColor} padding: 4px 12px; border-radius: 12px; font-size: 11px; font-weight: var(--weight-medium);">${labelEstado}</span>
+                        <td class="py-3 text-end">${formatMoney(c.totalPagado)}</td>
+                        <td class="py-3 text-end">${formatMoney(c.saldoPendiente)}</td>
+                        <td class="py-3 text-center" style="${textEstadoColor} font-weight: 500;">
+                            ${labelEstado}
                         </td>
                         <td class="py-3 text-end" style="position: relative;">
                             <button class="btn btn-link text-muted p-0 me-2 btn-imprimir-row" data-id="${c.id}">
@@ -147,7 +170,7 @@ export const FacturasModule = {
                         </td>
                     </tr>
                 `;
-            }).join('') : `<tr><td colspan="6" class="text-center py-5 text-muted">No se encontraron facturas</td></tr>`;
+            }).join('') : `<tr><td colspan="9" class="text-center py-5 text-muted">No se encontraron facturas</td></tr>`;
 
             element.innerHTML = `
                 <div class="module-container p-4" style="max-width: 1200px; margin: 0 auto;">
@@ -209,13 +232,16 @@ export const FacturasModule = {
                                         <th class="py-3 fw-normal sortable-header" data-column="numero" style="cursor: pointer; user-select: none;">
                                             Número ${sortColumn === 'numero' ? (sortDirection === 'asc' ? ' ▲' : ' ▼') : ''}
                                         </th>
-                                        <th class="py-3 fw-normal sortable-header" data-column="cliente" style="cursor: pointer; user-select: none;">
-                                            Cliente ${sortColumn === 'cliente' ? (sortDirection === 'asc' ? ' ▲' : ' ▼') : ''}
-                                        </th>
                                         <th class="py-3 fw-normal sortable-header" data-column="fecha" style="cursor: pointer; user-select: none;">
                                             Creación ${sortColumn === 'fecha' ? (sortDirection === 'asc' ? ' ▲' : ' ▼') : ''}
                                         </th>
+                                        <th class="py-3 fw-normal">Vencimiento</th>
+                                        <th class="py-3 fw-normal sortable-header" data-column="cliente" style="cursor: pointer; user-select: none;">
+                                            Cliente ${sortColumn === 'cliente' ? (sortDirection === 'asc' ? ' ▲' : ' ▼') : ''}
+                                        </th>
                                         <th class="py-3 fw-normal text-end">Total</th>
+                                        <th class="py-3 fw-normal text-end">Cobrado</th>
+                                        <th class="py-3 fw-normal text-end">Por cobrar</th>
                                         <th class="py-3 fw-normal text-center">Estado</th>
                                         <th class="py-3 fw-normal text-end" style="width: 80px;"></th>
                                     </tr>
@@ -386,9 +412,8 @@ export const FacturasModule = {
                         menu.querySelector('.btn-abonar-factura').addEventListener('click', (ev) => {
                             ev.preventDefault();
                             const facId = ev.currentTarget.dataset.id;
-                            const saldo = parseFloat(ev.currentTarget.dataset.saldo);
                             menu.remove();
-                            AbonoModal.show(facId, saldo, () => {
+                            AbonoModal.show(facId, () => {
                                 renderGrid(); // Recargar grid para reflejar estado
                             });
                         });
@@ -415,8 +440,7 @@ export const FacturasModule = {
                     const id = e.currentTarget.dataset.id;
                     const doc = facturasData.find(c => c.id === id);
                     if (doc) {
-                        const productos = await DB.getAll('productos');
-                        PrintManager.printDocument(doc, 'Factura de venta', contactos, productos);
+                        PrintManager.printDocument(doc, 'Factura de venta', this.cache.contactos, this.cache.productos);
                     }
                 });
             });
@@ -427,16 +451,21 @@ export const FacturasModule = {
 
     async renderForm(element, id = null, isViewOnly = false) {
         // Carga de DB
-        const contactos = await DB.getAll('contactos');
-        const productos = await DB.getAll('productos');
-        const transacciones = (await DB.getAll('transacciones').catch(() => [])) || [];
+        const contactos = this.cache.contactos;
+        const productos = this.cache.productos;
+
+        const facturaIdTransacciones = id ? [id] : [];
+        const { data: transaccionesData } = facturaIdTransacciones.length > 0
+            ? await supabase.from('pagos_ingresos').select('*').in('factura_id', facturaIdTransacciones)
+            : { data: [] };
+        const transacciones = transaccionesData || [];
         
         // Estado por defecto
         let factura = {
             id: 'fac_' + Date.now(),
-            numero: await DB.nextNumero('facturas'),
+            numero: undefined,
             fecha: new Date().toISOString().split('T')[0],
-            vencimiento: new Date().toISOString().split('T')[0],
+            vencimiento: '',
             clienteId: '',
             detalles: [{ id: Date.now(), productoId: '', cantidad: 0, precio: 0, descuento: 0, impuesto: 0 }],
             notas: '',
@@ -509,7 +538,7 @@ export const FacturasModule = {
                                     <option>Factura de venta</option>
                                 </select>
                                 <div class="d-flex justify-content-between align-items-center text-muted" style="font-size: 14px;">
-                                    <span id="lbl-numero">No. <strong style="color: var(--text-main);">${factura.numero}</strong></span>
+                                    <span id="lbl-numero">No. <strong style="color: var(--text-main);">${factura.numero || '[Autogenerado al guardar]'}</strong></span>
                                     ${!isViewOnly ? `<i class="bi bi-gear" id="btn-config-num" style="cursor: pointer;"></i>` : ''}
                                 </div>
                             </div>
@@ -595,17 +624,65 @@ export const FacturasModule = {
                             </div>
                         </div>
 
-                        <!-- TEXTAREAS ADICIONALES -->
-                        <div class="mb-4">
-                            <h6 class="fw-bold mb-1" style="font-size: 14px; color: var(--text-main);">Notas</h6>
-                            <textarea id="input-notas" class="form-control text-muted" rows="2" style="font-size: 13px; border-color: var(--border-color); resize: none;" placeholder="Agrega comentarios para aclarar datos de la factura, serán visibles para tus clientes" ${isViewOnly ? 'disabled' : ''}>${factura.notas}</textarea>
-                        </div>
-                        <div>
-                            <h6 class="fw-bold mb-1" style="font-size: 14px; color: var(--text-main);">Términos y condiciones</h6>
-                            <textarea id="input-terminos" class="form-control text-muted" rows="2" style="font-size: 13px; border-color: var(--border-color); resize: none;" placeholder="Define los términos y condiciones, y/o las posibles cláusulas en caso de reclamos" ${isViewOnly ? 'disabled' : ''}>${factura.terminosCondiciones}</textarea>
-                        </div>
                     </div>
                 </div>
+
+                <!-- DOCUMENTOS RELACIONADOS (Solo Vista) -->
+                ${isViewOnly ? `
+                <div class="mt-5">
+                    <h6 class="fw-bold mb-3" style="color: var(--text-main);">Documentos relacionados</h6>
+                    <ul class="nav nav-tabs mb-3" role="tablist" style="border-bottom: 2px solid var(--border-color);">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-pagos" type="button" role="tab" style="font-size: 13px; font-weight: var(--weight-medium); color: var(--text-main); border-bottom-color: transparent;">Pagos recibidos</button>
+                        </li>
+                        ${factura.cotizacion_origen_id ? `
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link text-muted" data-bs-toggle="tab" data-bs-target="#tab-cotizacion" type="button" role="tab" style="font-size: 13px; font-weight: var(--weight-medium); border-bottom-color: transparent;">Cotización origen</button>
+                        </li>` : ''}
+                    </ul>
+                    
+                    <div class="tab-content border-0 p-0">
+                        <div class="tab-pane fade show active" id="tab-pagos" role="tabpanel">
+                            <div class="table-responsive">
+                                <table class="table table-sm align-middle mb-0" style="font-size: 13px;">
+                                    <thead>
+                                        <tr class="text-muted" style="border-bottom: 1px solid var(--border-color);">
+                                            <th class="fw-medium pb-2">Fecha</th>
+                                            <th class="fw-medium pb-2">Cuenta</th>
+                                            <th class="fw-medium pb-2">Método</th>
+                                            <th class="fw-medium pb-2 text-end">Monto</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${(transacciones && transacciones.length > 0) ? transacciones.map(p => `
+                                        <tr style="border-bottom: 1px solid #f0f0f0;">
+                                            <td class="py-2 text-muted">${p.fecha || p.created_at?.split('T')[0] || ''}</td>
+                                            <td class="py-2">${p.cuentaId || p.cuenta_id || '-'}</td>
+                                            <td class="py-2">${p.metodo_pago || p.metodoPago || '-'}</td>
+                                            <td class="py-2 text-end fw-medium">$${Number(p.monto || p.valor || 0).toLocaleString()}</td>
+                                        </tr>`).join('') : `
+                                        <tr><td colspan="4" class="text-muted text-center py-4">No hay pagos registrados para esta factura</td></tr>
+                                        `}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        
+                        ${factura.cotizacion_origen_id ? `
+                        <div class="tab-pane fade" id="tab-cotizacion" role="tabpanel">
+                            <div class="card border border-light shadow-sm" style="max-width:300px; cursor:pointer;" onclick="sessionStorage.setItem('origenVolver', JSON.stringify({hash: '#/ingresos/facturas/ver/${factura.id}', label: 'Volver a la factura'})); window.location.hash='#/ingresos/cotizaciones/ver/${factura.cotizacion_origen_id}'">
+                                <div class="card-body py-3 px-3 d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <small class="text-muted d-block" style="font-size:11px;">Ver documento origen</small>
+                                        <span class="fw-medium text-dark" style="font-size:14px; color: var(--primary) !important;">Cotización</span>
+                                    </div>
+                                    <i class="bi bi-box-arrow-up-right text-muted" style="font-size: 12px;"></i>
+                                </div>
+                            </div>
+                        </div>` : ''}
+                    </div>
+                </div>
+                ` : ''}
 
                 <!-- FOOTER ACTIONS -->
                 ${!isViewOnly ? `
@@ -640,7 +717,7 @@ export const FacturasModule = {
             tr.innerHTML = `
                 <td class="text-muted text-center num-linea align-top pt-3">${contadorLineas}</td>
                 <td class="align-top">
-                    ${ItemEngine.renderProductSearchBox(detalle, productos)}
+                    ${ItemEngine.renderProductSearchBox(detalle, productos, isViewOnly)}
                     <div class="meta-prod ps-1"></div>
                 </td>
                 <td class="align-top">
@@ -741,10 +818,13 @@ export const FacturasModule = {
         // Función Helper: Cálculo de Fecha de Vencimiento
         const calcularVencimiento = (cliente) => {
             const plazos = parseInt(cliente.plazosPago || 0);
+            const inputVencimiento = element.querySelector('#input-vencimiento');
             if (plazos > 0) {
                 const fechaCreacion = new Date(element.querySelector('#input-fecha').value);
                 fechaCreacion.setDate(fechaCreacion.getDate() + plazos);
-                element.querySelector('#input-vencimiento').value = fechaCreacion.toISOString().split('T')[0];
+                if (inputVencimiento) inputVencimiento.value = fechaCreacion.toISOString().split('T')[0];
+            } else {
+                if (inputVencimiento) inputVencimiento.value = '';
             }
         };
 
@@ -797,6 +877,7 @@ export const FacturasModule = {
 
         // Evento Cancelar
         element.querySelector('#btn-cancelar')?.addEventListener('click', () => {
+            window.hayCambiosSinGuardar = false;
             window.location.hash = '#/ingresos/facturas';
         });
 
@@ -819,8 +900,7 @@ export const FacturasModule = {
         element.querySelector('.btn-abonar-detalle')?.addEventListener('click', (e) => {
             e.preventDefault();
             const facId = e.currentTarget.dataset.id;
-            const saldo = parseFloat(e.currentTarget.dataset.saldo);
-            AbonoModal.show(facId, saldo, () => {
+            AbonoModal.show(facId, () => {
                 this.renderForm(element, facId, true); // Recargar la vista de detalle para reflejar el pago
             });
         });
@@ -910,15 +990,17 @@ export const FacturasModule = {
                 }
                 factura.fecha = element.querySelector('#input-fecha').value;
                 factura.vencimiento = element.querySelector('#input-vencimiento').value;
-                factura.notas = element.querySelector('#input-notas').value;
-                factura.terminosCondiciones = element.querySelector('#input-terminos').value;
                 factura.detalles = arrDetalles;
                 factura.tipo = 'venta'; // Ensure type is venta
                 
                 const rawTotal = parseFloat(element.querySelector('#tot-total').dataset.rawTotal);
                 factura.total = rawTotal;
-                factura.total_costo = costoTotalVenta;
-                factura.utilidad = rawTotal - costoTotalVenta;
+
+                if (!factura.numero) {
+                    factura = await DB.saveWithNextNumero('facturas', factura);
+                } else {
+                    await DB.save('facturas', factura);
+                }
 
                 // Condicional Contado vs Crédito
                 if (tipoVenta === 'contado') {
@@ -938,10 +1020,9 @@ export const FacturasModule = {
                         await DB.save('transacciones', transaccion);
                     }
                 }
-
-                await DB.save('facturas', factura);
                 
                 // Navegar a modo lectura para bloquear edición y habilitar impresión final
+                window.hayCambiosSinGuardar = false;
                 window.location.hash = `#/ingresos/facturas/ver/${factura.id}`;
             } catch (err) {
                 console.error("Error al guardar factura:", err);
@@ -959,5 +1040,15 @@ export const FacturasModule = {
         // Inicializar UI
         factura.detalles.forEach(det => addRow(det));
         calcEngine(); // Primer cálculo
+
+        if (!isViewOnly) {
+            window.hayCambiosSinGuardar = false;
+            element.addEventListener('input', (e) => { 
+                window.hayCambiosSinGuardar = true; 
+            });
+            element.addEventListener('change', (e) => { 
+                window.hayCambiosSinGuardar = true; 
+            });
+        }
     }
 };

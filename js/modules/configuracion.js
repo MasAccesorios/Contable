@@ -1,5 +1,6 @@
 // js/modules/configuracion.js
-import { db, doc, getDoc, setDoc } from '../core/firebase.js';
+// Migrado a Supabase — ya no usa Firebase/Firestore
+import { supabase } from '../core/supabase.js';
 
 export const ConfiguracionModule = {
     async init(element) {
@@ -86,49 +87,56 @@ export const ConfiguracionModule = {
 
     async loadData() {
         try {
-            // Leer valores reales desde Firestore simultáneamente
-            const [snapFacturas, snapCotizaciones] = await Promise.all([
-                getDoc(doc(db, 'contadores', 'facturas')),
-                getDoc(doc(db, 'contadores', 'cotizaciones'))
+            // Leer el MAX(numero) actual de cada tabla en Supabase para mostrar el próximo número
+            const [resFacturas, resCotizaciones] = await Promise.all([
+                supabase.from('facturas').select('numero').order('numero', { ascending: false }).limit(1).single(),
+                supabase.from('cotizaciones').select('numero').order('numero', { ascending: false }).limit(1).single()
             ]);
 
-            // Precargar el valor real almacenado
-            this.inputFactura.value = snapFacturas.exists() ? snapFacturas.data().siguiente : 1;
-            this.inputCotizacion.value = snapCotizaciones.exists() ? snapCotizaciones.data().siguiente : 1;
+            const maxFactura = resFacturas.data?.numero ?? 0;
+            const maxCotizacion = resCotizaciones.data?.numero ?? 0;
+
+            // Mostrar el PRÓXIMO número (max actual + 1)
+            this.inputFactura.value = maxFactura + 1;
+            this.inputCotizacion.value = maxCotizacion + 1;
 
             // Mostrar el formulario
             this.loader.classList.add('d-none');
             this.content.classList.remove('d-none');
         } catch (error) {
-            console.error('Error al cargar contadores:', error);
+            console.error('[Config] Error al cargar contadores desde Supabase:', error);
             this.showToast('Error al cargar la configuración', 'danger');
         }
     },
 
-    async saveCounter(coleccion, valStr) {
-        const value = parseInt(valStr, 10);
-        if (isNaN(value) || value < 1) {
+    async saveCounter(tabla, valStr) {
+        const nuevoSiguiente = parseInt(valStr, 10);
+        if (isNaN(nuevoSiguiente) || nuevoSiguiente < 1) {
             this.showToast('Por favor ingrese un número válido mayor a 0', 'warning');
             return;
         }
 
-        const btn = coleccion === 'facturas' ? this.btnSaveFactura : this.btnSaveCotizacion;
+        const btn = tabla === 'facturas' ? this.btnSaveFactura : this.btnSaveCotizacion;
         const originalText = btn.innerHTML;
         
         try {
             btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
             btn.disabled = true;
 
-            const contadorRef = doc(db, 'contadores', coleccion);
-            await setDoc(contadorRef, {
-                siguiente: value,
-                coleccion: coleccion,
-                actualizadoEn: new Date().toISOString()
+            // En Supabase no existe colección "contadores" — el próximo número se
+            // controla insertando un registro fantasma con numero = (nuevoSiguiente - 1),
+            // de forma que el RPC hará MAX + 1 = nuevoSiguiente en el próximo guardado.
+            // La forma más limpia: actualizar la sequence de Postgres vía RPC.
+            const { error } = await supabase.rpc('set_next_numero', {
+                p_table: tabla,
+                p_next: nuevoSiguiente
             });
 
-            this.showToast(`Contador de ${coleccion} actualizado correctamente a ${value}`, 'success');
+            if (error) throw error;
+
+            this.showToast(`Numeración de ${tabla} actualizada. Próximo número: ${nuevoSiguiente}`, 'success');
         } catch (error) {
-            console.error(`Error al guardar contador de ${coleccion}:`, error);
+            console.error(`[Config] Error al guardar contador de ${tabla}:`, error);
             this.showToast(`Error al guardar: ${error.message}`, 'danger');
         } finally {
             btn.innerHTML = originalText;
@@ -172,3 +180,4 @@ export const ConfiguracionModule = {
         });
     }
 };
+

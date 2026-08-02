@@ -1,5 +1,6 @@
 // js/modules/dashboard.js
 import DB from '../core/db.js';
+import { obtenerCarteraFiltrada } from '../shared/carteraUtils.js';
 
 export const DashboardModule = {
     async init(element) {
@@ -31,7 +32,7 @@ export const DashboardModule = {
                         <div class="card border-0 shadow-sm h-100" style="border-radius:10px;">
                             <div class="card-body p-4">
                                 <h6 class="text-dark mb-3 text-body">Cuentas por cobrar</h6>
-                                <h3 class="text-metric text-dark mb-3 mt-2" id="kpi-cxc-total">$2.291.444,00</h3>
+                                <h3 class="text-metric text-dark mb-3 mt-2" id="kpi-cxc-total"><span class="spinner-border spinner-border-sm text-secondary"></span></h3>
                                 
                                 <div class="progress mb-4" style="height: 6px; border-radius: 3px;" id="kpi-cxc-progress">
                                     <div class="progress-bar" role="progressbar" style="width: 87%; background-color: #2dbda8;" aria-valuenow="87" aria-valuemin="0" aria-valuemax="100"></div>
@@ -41,13 +42,13 @@ export const DashboardModule = {
                                 <div class="d-flex gap-4 mt-2">
                                     <div style="border-left: 3px solid #2dbda8; padding-left: 10px; flex: 1;">
                                         <span class="text-muted d-block mb-1 text-subtext">Vigentes</span>
-                                        <span class="text-body fw-bold d-block text-dark" id="kpi-cxc-vigentes">$2.006.444,00</span>
-                                        <span class="text-muted text-subtext" id="kpi-cxc-vigentes-doc">6 documentos</span>
+                                        <span class="text-body fw-bold d-block text-dark" id="kpi-cxc-vigentes"><span class="spinner-border spinner-border-sm text-secondary"></span></span>
+                                        <span class="text-muted text-subtext" id="kpi-cxc-vigentes-doc">...</span>
                                     </div>
                                     <div style="border-left: 3px solid #f06548; padding-left: 10px; flex: 1;">
                                         <span class="text-muted d-block mb-1 text-subtext">Vencidas</span>
-                                        <span class="text-body fw-bold d-block text-dark" id="kpi-cxc-vencidas">$285.000,00</span>
-                                        <span class="text-muted text-subtext" id="kpi-cxc-vencidas-doc">1 documento</span>
+                                        <span class="text-body fw-bold d-block text-dark" id="kpi-cxc-vencidas"><span class="spinner-border spinner-border-sm text-secondary"></span></span>
+                                        <span class="text-muted text-subtext" id="kpi-cxc-vencidas-doc">...</span>
                                     </div>
                                 </div>
                             </div>
@@ -59,7 +60,7 @@ export const DashboardModule = {
                         <div class="card border-0 shadow-sm h-100" style="border-radius:10px;">
                             <div class="card-body p-4">
                                 <h6 class="text-dark mb-3 text-body">Cuentas por pagar</h6>
-                                <h3 class="text-metric text-dark mb-3 mt-2" id="kpi-cxp-total">$0,00</h3>
+                                <h3 class="text-metric text-dark mb-3 mt-2" id="kpi-cxp-total"><span class="spinner-border spinner-border-sm text-secondary"></span></h3>
                                 
                                 <div class="progress mb-4" style="height: 6px; border-radius: 3px;" id="kpi-cxp-progress">
                                     <div class="progress-bar" role="progressbar" style="width: 100%; background-color: #e9ecef;" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>
@@ -68,13 +69,13 @@ export const DashboardModule = {
                                 <div class="d-flex gap-4 mt-2">
                                     <div style="border-left: 3px solid #ced4da; padding-left: 10px; flex: 1;">
                                         <span class="text-muted d-block mb-1 text-subtext">Vigentes</span>
-                                        <span class="text-body fw-bold d-block text-dark" id="kpi-cxp-vigentes">$0,00</span>
-                                        <span class="text-muted text-subtext" id="kpi-cxp-vigentes-doc">0 documentos</span>
+                                        <span class="text-body fw-bold d-block text-dark" id="kpi-cxp-vigentes"><span class="spinner-border spinner-border-sm text-secondary"></span></span>
+                                        <span class="text-muted text-subtext" id="kpi-cxp-vigentes-doc">...</span>
                                     </div>
                                     <div style="border-left: 3px solid #ced4da; padding-left: 10px; flex: 1;">
                                         <span class="text-muted d-block mb-1 text-subtext">Vencidas</span>
-                                        <span class="text-body fw-bold d-block text-dark" id="kpi-cxp-vencidas">$0,00</span>
-                                        <span class="text-muted text-subtext" id="kpi-cxp-vencidas-doc">0 documentos</span>
+                                        <span class="text-body fw-bold d-block text-dark" id="kpi-cxp-vencidas"><span class="spinner-border spinner-border-sm text-secondary"></span></span>
+                                        <span class="text-muted text-subtext" id="kpi-cxp-vencidas-doc">...</span>
                                     </div>
                                 </div>
                             </div>
@@ -88,7 +89,7 @@ export const DashboardModule = {
                                 <div class="card border-0 shadow-sm h-100" style="border-radius:10px;">
                                     <div class="card-body p-3">
                                         <h6 class="text-dark mb-3 text-subtext fw-bold">Utilidad (Mes Actual)</h6>
-                                        <h5 class="text-title mb-0 text-success" id="kpi-utilidad-mes">$0,00</h5>
+                                        <h5 class="text-title mb-0 text-success" id="kpi-utilidad-mes"><span class="spinner-border spinner-border-sm text-secondary"></span></h5>
                                     </div>
                                 </div>
                             </div>
@@ -97,7 +98,7 @@ export const DashboardModule = {
                                     <div class="card-body p-3">
                                         <h6 class="text-dark mb-3 text-subtext fw-bold">Productos vendidos</h6>
                                         <div class="d-flex justify-content-between align-items-end">
-                                            <h5 class="text-title mb-0 text-dark" id="kpi-productos">0</h5>
+                                            <h5 class="text-title mb-0 text-dark" id="kpi-productos"><span class="spinner-border spinner-border-sm text-secondary"></span></h5>
                                         </div>
                                     </div>
                                 </div>
@@ -107,7 +108,7 @@ export const DashboardModule = {
                                     <div class="card-body p-3">
                                         <h6 class="text-dark mb-1 text-subtext fw-bold" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Inventario Valorizado</h6>
                                         <span class="text-muted mb-2 d-block text-subtext">Costo total (Stock Real)</span>
-                                        <h5 class="text-title mb-0 text-primary" id="kpi-inventario-valorizado">$0,00</h5>
+                                        <h5 class="text-title mb-0 text-primary" id="kpi-inventario-valorizado"><span class="spinner-border spinner-border-sm text-secondary"></span></h5>
                                     </div>
                                 </div>
                             </div>
@@ -115,7 +116,7 @@ export const DashboardModule = {
                                 <div class="card border-0 shadow-sm h-100" style="border-radius:10px;">
                                     <div class="card-body p-3">
                                         <h6 class="text-dark mb-3 text-subtext fw-bold">Saldo Total Bancos</h6>
-                                        <h5 class="text-title mb-0 text-info" id="kpi-saldo-bancos">$0,00</h5>
+                                        <h5 class="text-title mb-0 text-info" id="kpi-saldo-bancos"><span class="spinner-border spinner-border-sm text-secondary"></span></h5>
                                     </div>
                                 </div>
                             </div>
@@ -133,7 +134,7 @@ export const DashboardModule = {
                             </div>
                             <div class="text-end">
                                 <div class="d-flex align-items-center justify-content-end">
-                                    <h4 class="text-metric mb-0 text-dark" id="kpi-total-ventas">$0,00</h4>
+                                    <h4 class="text-metric mb-0 text-dark" id="kpi-total-ventas"><span class="spinner-border spinner-border-sm text-secondary"></span></h4>
                                 </div>
                             </div>
                         </div>
@@ -158,11 +159,23 @@ export const DashboardModule = {
     },
 
     async loadData(element) {
-        const [facturas, transacciones, lotes] = await Promise.all([
-            DB.getAll('facturas'),
-            DB.getAll('transacciones'),
-            DB.getAll('lotes_fifo')
-        ]);
+        console.time('dashboard-total-load');
+        
+        console.time('fetch-facturas');
+        const facturas = await DB.getAll('facturas');
+        console.timeEnd('fetch-facturas');
+
+        console.time('fetch-transacciones');
+        const transacciones = await DB.getAll('transacciones');
+        console.timeEnd('fetch-transacciones');
+
+        console.time('fetch-lotes');
+        const lotes = await DB.getAll('lotes_fifo');
+        console.timeEnd('fetch-lotes');
+
+        console.time('fetch-contactos');
+        const contactos = await DB.getAll('contactos');
+        console.timeEnd('fetch-contactos');
 
         // Extract KPIs
         let ventasMes = 0;
@@ -194,47 +207,51 @@ export const DashboardModule = {
             dailySales[`${currentMonthPrefix}-${String(i).padStart(2, '0')}`] = 0;
         }
 
+        console.time('calc-ventas-utilidad-productos');
         facturas.forEach(f => {
-            if (f.tipo === 'venta') {
-                if (f.fecha.startsWith(currentMonthPrefix)) {
-                    ventasMes += f.total;
-                    utilidadMes += (f.utilidad || 0);
-                    
-                    if (f.detalles) {
-                        f.detalles.forEach(d => { productosVendidos += d.cantidad; });
-                    }
-                    
-                    if (dailySales[f.fecha] !== undefined) {
-                        dailySales[f.fecha] += f.total;
-                    }
-                }
-            }
+            // Ignorar facturas anuladas para no inflar las ventas ni los productos
+            if (f.estado === 'void' || f.estado === 'anulada') return;
 
-            // Calculo de Cartera (CxC y CxP)
-            if (f.estado === 'pendiente' || f.estado === 'parcial') {
-                const pagos = transacciones
-                    .filter(t => t.referenciaId === f.id && t.tipo === (f.tipo === 'venta' ? 'ingreso' : 'egreso'))
-                    .reduce((sum, t) => sum + t.monto, 0);
+            // Se asume que toda factura es de venta (para el cálculo de ingresos del mes)
+            if (f.fecha && f.fecha.startsWith(currentMonthPrefix)) {
+                ventasMes += (f.total || 0);
+                utilidadMes += (f.utilidad || 0);
                 
-                const saldoPendiente = f.total - pagos;
-                if (saldoPendiente > 0.01) {
-                    const dueDate = new Date(f.fecha);
-                    dueDate.setDate(dueDate.getDate() + 30); // 30 días de plazo por defecto
-                    const isVencida = dueDate < hoy;
-
-                    if (f.tipo === 'venta') {
-                        cxcTotal += saldoPendiente;
-                        if (isVencida) { cxcVencidas += saldoPendiente; cxcVencidasDoc++; }
-                        else { cxcVigentes += saldoPendiente; cxcVigentesDoc++; }
-                    } else if (f.tipo === 'compra') {
-                        cxpTotal += saldoPendiente;
-                        if (isVencida) { cxpVencidas += saldoPendiente; cxpVencidasDoc++; }
-                        else { cxpVigentes += saldoPendiente; cxpVigentesDoc++; }
-                    }
+                if (f.detalles) {
+                    f.detalles.forEach(d => { productosVendidos += (d.cantidad || 0); });
+                }
+                
+                if (dailySales[f.fecha] !== undefined) {
+                    dailySales[f.fecha] += (f.total || 0);
                 }
             }
         });
+        console.timeEnd('calc-ventas-utilidad-productos');
 
+        console.time('obtener-cartera-filtrada-ambas');
+        // 1 y 2. Obtener Cartera CxC y CxP en una sola pasada (Optimización O(1))
+        const { cxc: carteraCxC, cxp: carteraCxP } = obtenerCarteraFiltrada(facturas, transacciones, contactos, 'ambas');
+        console.timeEnd('obtener-cartera-filtrada-ambas');
+        
+        console.time('iteracion-cxc');
+        carteraCxC.forEach(f => {
+            const isVencida = new Date(f.vencimiento) < hoy;
+            cxcTotal += f.saldo;
+            if (isVencida) { cxcVencidas += f.saldo; cxcVencidasDoc++; }
+            else { cxcVigentes += f.saldo; cxcVigentesDoc++; }
+        });
+        console.timeEnd('iteracion-cxc');
+
+        console.time('iteracion-cxp');
+        carteraCxP.forEach(f => {
+            const isVencida = new Date(f.vencimiento) < hoy;
+            cxpTotal += f.saldo;
+            if (isVencida) { cxpVencidas += f.saldo; cxpVencidasDoc++; }
+            else { cxpVigentes += f.saldo; cxpVigentesDoc++; }
+        });
+        console.timeEnd('iteracion-cxp');
+
+        console.time('render-dom-updates');
         // Update KPI values in DOM
         const formatMoney = val => '$' + (val || 0).toLocaleString('es-CO', {minimumFractionDigits: 2});
         
@@ -283,6 +300,9 @@ export const DashboardModule = {
 
         // Render Chart
         this.renderChart(dailySales);
+
+        console.timeEnd('render-dom-updates');
+        console.timeEnd('dashboard-total-load');
     },
 
     renderChart(dailySales) {
@@ -305,8 +325,8 @@ export const DashboardModule = {
         
         const dataVentas = Object.values(dailySales);
         
-        // Mocking a secondary dashed line like in the screenshot
-        const dataAnterior = dataVentas.map(v => v > 0 ? v * (0.3 + Math.random()*0.9) : Math.random() * 500000);
+        // Mocking eliminado temporalmente para evitar datos falsos
+        const dataAnterior = dataVentas.map(() => 0); // Todo en 0 temporalmente
 
         window.myVentasChart = new Chart(ctx, {
             type: 'line',
@@ -325,8 +345,9 @@ export const DashboardModule = {
                         pointBorderColor: '#fff',
                         pointBorderWidth: 1,
                         borderDash: []
-                    },
-                    {
+                    }
+                    /* Dataset de ventas del año pasado oculto temporalmente
+                    ,{
                         label: `Ventas de ${currentMonthName} de ${currentYear - 1}`,
                         data: dataAnterior,
                         borderColor: '#2dbda8', // Verde punteado
@@ -338,6 +359,7 @@ export const DashboardModule = {
                         pointBackgroundColor: '#2dbda8',
                         borderDash: [5, 5] // Dashed line
                     }
+                    */
                 ]
             },
             options: {

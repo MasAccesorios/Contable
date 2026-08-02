@@ -85,16 +85,16 @@ export default {
                             'Fecha': f.fecha,
                             'Cliente': getClienteName(f.clienteId || f.contactoId),
                             'Estado': f.estado,
-                            'Total de Venta': f.total
+                            'Total de Venta': Math.round(f.total || 0)
                         }));
                     } else { // Utilidad
                         dataToExport = filtradas.map(f => ({
                             'Documento': f.numero || parseInt(String(f.id).replace(/\D/g, ''), 10) || f.id,
                             'Fecha': f.fecha,
                             'Cliente': getClienteName(f.clienteId || f.contactoId),
-                            'Total de Venta': f.total,
-                            'Costo de Venta (FIFO)': f.total_costo || 0,
-                            'Utilidad Bruta': f.total - (f.total_costo || 0)
+                            'Total de Venta': Math.round(f.total || 0),
+                            'Costo de Venta (FIFO)': Math.round(f.total_costo || 0),
+                            'Utilidad Bruta': Math.round((f.total || 0) - (f.total_costo || 0))
                         }));
                     }
                 } 
@@ -109,8 +109,8 @@ export default {
                             'Documento': f.numero || parseInt(String(f.id).replace(/\D/g, ''), 10) || f.id,
                             'Fecha Emisión': f.fecha,
                             'Fecha Vencimiento': f.vencimiento || '',
-                            'Total Factura': total,
-                            'Saldo Pendiente': saldo
+                            'Total Factura': Math.round(total),
+                            'Saldo Pendiente': Math.round(saldo)
                         };
                     });
                 }
@@ -132,8 +132,8 @@ export default {
                         'Lote/Ref': l.id,
                         'Fecha de Ingreso': l.fechaIngreso,
                         'Stock Disponible': l.cantidadActual,
-                        'Costo Unitario': l.costoUnitario,
-                        'Valor Total': (l.cantidadActual * l.costoUnitario)
+                        'Costo Unitario': Math.round(l.costoUnitario || 0),
+                        'Valor Total': Math.round(l.cantidadActual * (l.costoUnitario || 0))
                     }));
                 }
                 else if (tipo === 'gastos') {
@@ -144,7 +144,7 @@ export default {
                         'Cuenta de Salida': t.cuentaId || t.cuenta || '',
                         'Concepto/Detalle': t.detalle || t.referencia || '',
                         'Referencia Documento': t.referenciaId || '',
-                        'Monto ($)': t.monto
+                        'Monto ($)': Math.round(t.monto || 0)
                     }));
                 }
 
@@ -167,44 +167,42 @@ export default {
         btnElement.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Procesando...';
         btnElement.disabled = true;
 
-        setTimeout(() => {
-            try {
-                const headers = Object.keys(rows[0]);
-                let csvContent = headers.join(';') + String.fromCharCode(13, 10);
-                
-                rows.forEach(row => {
-                    const values = headers.map(header => {
-                        let val = row[header] !== null && row[header] !== undefined ? String(row[header]) : '';
-                        val = val.replace(/"/g, '""');
-                        return `"${val}"`;
-                    });
-                    csvContent += values.join(';') + String.fromCharCode(13, 10);
+        try {
+            const headers = Object.keys(rows[0]);
+            let csvContent = headers.join(';') + String.fromCharCode(13, 10);
+            
+            rows.forEach(row => {
+                const values = headers.map(header => {
+                    let val = row[header] !== null && row[header] !== undefined ? String(row[header]) : '';
+                    val = val.replace(/"/g, '""');
+                    return `"${val}"`;
                 });
+                csvContent += values.join(';') + String.fromCharCode(13, 10);
+            });
 
-                const BOM = String.fromCharCode(0xFEFF);
-                const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
-                const url = URL.createObjectURL(blob);
+            const BOM = new Uint8Array([0xEF, 0xBB, 0xBF]);
+            const blob = new Blob([BOM, csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
 
-                const dateStr = new Date().toISOString().split('T')[0];
-                const filename = `Reporte_${tipoModulo}_${dateStr}.csv`;
+            const dateStr = new Date().toISOString().split('T')[0];
+            const filename = `Reporte_${tipoModulo}_${dateStr}.csv`;
 
-                const link = document.createElement('a');
-                link.href = url;
-                link.setAttribute('download', filename);
-                link.style.display = 'none';
-                document.body.appendChild(link);
-                
-                link.click();
-                
-                document.body.removeChild(link);
-                URL.revokeObjectURL(url);
-            } catch (error) {
-                console.error('Error generando reporte:', error);
-                CoreActions.showWarningModal('Ocurrió un error al generar el archivo. Por favor, intenta de nuevo.');
-            } finally {
-                btnElement.innerHTML = originalText;
-                btnElement.disabled = false;
-            }
-        }, 300);
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', filename);
+            link.style.display = 'none';
+            document.body.appendChild(link);
+            
+            link.click();
+            
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error('Error generando reporte:', error);
+            CoreActions.showWarningModal('Ocurrió un error al generar el archivo. Por favor, intenta de nuevo.');
+        } finally {
+            btnElement.innerHTML = originalText;
+            btnElement.disabled = false;
+        }
     }
 };

@@ -1,5 +1,6 @@
 import DB from '../../core/db.js';
 import { TesoreriaModule } from '../tesoreria.js';
+import { AbonoModal } from '../../shared/abonoModal.js';
 
 export const PagosListModule = {
     state: {
@@ -66,11 +67,11 @@ export const PagosListModule = {
         this.element.innerHTML = `
             <div class="py-3 px-4" style="font-family: 'Inter', sans-serif; background-color: #f8f9fa; min-height: 100vh; font-size: 13px;">
                 
-                <!-- ENCABEZADO CON BOTÓN NUEVO PAGO -->
+                <!-- ENCABEZADO CON BOT脫N NUEVO PAGO -->
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <div>
                         <h2 class="fw-bold text-dark m-0" style="font-size: 22px; color: #0c1a30 !important;">Pagos recibidos</h2>
-                        <p class="text-muted m-0 mt-1" style="font-size: 13px;">Registra y organiza todos los pagos que recibes en tu empresa. <a href="#" class="text-info text-decoration-none" style="color: #2cbfb7 !important;">Saber más</a></p>
+                        <p class="text-muted m-0 mt-1" style="font-size: 13px;">Registra y organiza todos los pagos que recibes en tu empresa. <a href="#" class="text-info text-decoration-none" style="color: #2cbfb7 !important;">Saber m谩s</a></p>
                     </div>
                     <button id="btn-nuevo-pago" class="btn text-white px-3 py-2 fw-medium shadow-sm" style="background-color: #2cbfb7; border-color: #2cbfb7; border-radius: 4px; font-size: 13px;">+ Nuevo pago recibido</button>
                 </div>
@@ -81,7 +82,7 @@ export const PagosListModule = {
                     <!-- BARRA DE FILTRAR ACCESIBLE -->
                     <div class="card-header bg-white border-bottom-0 p-3">
                         <button class="btn btn-sm btn-white border border-light-subtle rounded text-secondary d-flex align-items-center gap-1 bg-white px-3" style="padding-top: 5px; padding-bottom: 5px;">
-                            <span>🔍</span> Filtrar
+                            <span>馃攳</span> Filtrar
                         </button>
                     </div>
 
@@ -91,10 +92,10 @@ export const PagosListModule = {
                             <thead class="table-light text-secondary fw-semibold border-bottom" style="--bs-table-bg: #f9fbfd; font-size: 12px;">
                                 <tr>
                                     <th style="width: 40px;" class="ps-3"><input type="checkbox" class="form-check-input"></th>
-                                    <th class="py-2.5">Número</th>
+                                    <th class="py-2.5">N煤mero</th>
                                     <th>Cliente</th>
                                     <th>Detalles</th>
-                                    <th>Creación</th>
+                                    <th>Creaci贸n</th>
                                     <th>Cuenta bancaria</th>
                                     <th>Estado</th>
                                     <th class="text-end pe-4">Monto</th>
@@ -113,11 +114,11 @@ export const PagosListModule = {
                                             <td class="text-muted btn-ver-pago text-truncate" style="max-width: 150px;">${pago.cliente}</td>
                                             <td class="text-muted btn-ver-pago text-truncate" style="max-width: 150px;">${pago.detalles}</td>
                                             <td class="text-muted btn-ver-pago">${pago.creacion}</td>
-                                            <!-- SOLUCIÓN DEL ERROR: Inyección limpia del valor evaluado -->
+                                            <!-- SOLUCI脫N DEL ERROR: Inyecci贸n limpia del valor evaluado -->
                                             <td class="text-dark fw-medium btn-ver-pago text-truncate" style="max-width: 150px;">${nombreCuenta}</td>
                                             <td class="btn-ver-pago">
                                                 <span class="d-flex align-items-center gap-1.5">
-                                                    <span style="color: ${esConciliado ? '#22c55e' : '#cbd5e1'}; font-size: 14px;">${esConciliado ? '�? : '�?}</span>
+                                                    <span style="color: ${esConciliado ? '#22c55e' : '#cbd5e1'}; font-size: 14px;">${esConciliado ? '鉁? : '鈼?}</span>
                                                     <span class="text-secondary" style="font-size: 12.5px;">${pago.estado}</span>
                                                 </span>
                                             </td>
@@ -125,7 +126,7 @@ export const PagosListModule = {
                                                 $ ${(pago.monto || 0).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                             </td>
                                             <td class="pe-3 position-relative">
-                                                <button class="btn btn-sm btn-link text-secondary p-0 border-0 dropdown-toggle-acciones" style="text-decoration: none; font-size: 16px;">�?/button>
+                                                <button class="btn btn-sm btn-link text-secondary p-0 border-0 btn-menu-row" style="text-decoration: none; font-size: 16px;">⋮</button>
                                             </td>
                                         </tr>
                                     `;
@@ -154,8 +155,8 @@ export const PagosListModule = {
                         <div class="d-flex align-items-center gap-3">
                             <span>Página <input type="text" value="1" class="form-control form-control-sm d-inline-block text-center" style="width: 35px; font-size: 12px; padding-top: 2px; padding-bottom: 2px;"> de 1</span>
                             <div class="d-flex gap-1">
-                                <button class="btn btn-sm btn-light border py-0 px-2" disabled>�?/button>
-                                <button class="btn btn-sm btn-light border py-0 px-2" disabled>�?/button>
+                                <button class="btn btn-sm btn-light border py-0 px-2" disabled>❮</button>
+                                <button class="btn btn-sm btn-light border py-0 px-2" disabled>❯</button>
                             </div>
                         </div>
                     </div>
@@ -170,7 +171,9 @@ export const PagosListModule = {
         const btnNuevo = this.element.querySelector('#btn-nuevo-pago');
         if (btnNuevo) {
             btnNuevo.addEventListener('click', () => {
-                window.location.hash = '#/ingresos/pagos/nuevo';
+                AbonoModal.show(null, () => {
+                    this.cargarPagos();
+                });
             });
         }
 
@@ -186,7 +189,7 @@ export const PagosListModule = {
         });
 
         // Manejador del menú de acciones flotantes rápidas
-        this.element.querySelectorAll('.dropdown-toggle-acciones').forEach(btn => {
+        this.element.querySelectorAll('.btn-menu-row').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 
@@ -202,7 +205,7 @@ export const PagosListModule = {
                 if (!pago) return;
 
                 const menu = document.createElement('div');
-                menu.className = 'dropdown-menu row-actions-menu show shadow-sm border border-light-subtle';
+                menu.className = 'dropdown-menu row-action-menu show shadow-sm border border-light-subtle';
                 menu.style.position = 'fixed';
                 menu.style.top = `${rect.bottom + window.scrollY}px`;
                 menu.style.left = `${rect.left - 120}px`;
@@ -229,7 +232,7 @@ export const PagosListModule = {
 
                 document.body.appendChild(menu);
 
-                // Eventos del menú
+                // Eventos del men煤
                 document.getElementById(`action-print-${id}`)?.addEventListener('click', async (ev) => {
                     ev.preventDefault();
                     ev.stopPropagation();
@@ -246,7 +249,7 @@ export const PagosListModule = {
                     ev.preventDefault();
                     ev.stopPropagation();
                     import('../../shared/crud.js').then(m => {
-                        m.CoreActions.showWarningModal('La función de anular está actualmente en desarrollo. Pronto estará disponible.');
+                        m.CoreActions.showWarningModal('La funci贸n de anular est谩 actualmente en desarrollo. Pronto estar谩 disponible.');
                     });
                     window.cleanupFloatingElements();
                 });
@@ -254,21 +257,12 @@ export const PagosListModule = {
                 document.getElementById(`action-eliminar-${id}`)?.addEventListener('click', async (ev) => {
                     ev.preventDefault();
                     ev.stopPropagation();
-                    if(confirm('¿Estás seguro de eliminar este pago recibido de forma permanente?')) {
+                    if(confirm('驴Est谩s seguro de eliminar este pago recibido de forma permanente?')) {
                         await DB.delete('pagos', id);
                         this.cargarPagos(); // Recargar listado
                     }
                     window.cleanupFloatingElements();
                 });
-
-                // Cerrar al hacer clic fuera
-                const closeMenu = (ev) => {
-                    if (!menu.contains(ev.target)) {
-                        window.cleanupFloatingElements();
-                        document.removeEventListener('click', closeMenu);
-                    }
-                };
-                setTimeout(() => document.addEventListener('click', closeMenu), 0);
             });
         });
         
@@ -278,3 +272,4 @@ export const PagosListModule = {
         });
     }
 };
+

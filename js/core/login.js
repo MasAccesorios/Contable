@@ -1,4 +1,4 @@
-import { auth, signInWithEmailAndPassword } from './firebase.js';
+import { supabase } from './supabase.js';
 
 export function renderLogin(container) {
     container.innerHTML = `
@@ -46,11 +46,16 @@ export function renderLogin(container) {
         errorDiv.classList.add('d-none');
 
         try {
-            await signInWithEmailAndPassword(auth, email, password);
-            // El éxito dispara onAuthStateChanged automáticamente en app.js
+            const { error } = await supabase.auth.signInWithPassword({
+                email: email,
+                password: password,
+            });
+            
+            if (error) throw error;
+            // El éxito dispara onAuthStateChange automáticamente en app.js
         } catch (error) {
             console.error("Error de login:", error);
-            errorDiv.textContent = error.code === 'auth/invalid-credential' 
+            errorDiv.textContent = error.message.includes('Invalid login credentials') 
                 ? 'Correo o contraseña incorrectos.' 
                 : 'Ocurrió un error al intentar ingresar.';
             errorDiv.classList.remove('d-none');

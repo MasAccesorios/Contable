@@ -1,12 +1,11 @@
 // js/core/auth.js
-// Manejo de sesión y roles (Firebase Auth)
+// Manejo de sesión y roles (Supabase Auth)
 
 export const Auth = {
     user: null,
     
     init() {
-        console.log("Auth module initialized.");
-        // Aquí se conectará con Firebase Auth más adelante
+        // Sesión gestionada por supabase.auth.onAuthStateChange en app.js
     },
     
     canAccess(moduleName) {

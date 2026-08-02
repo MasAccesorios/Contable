@@ -141,18 +141,26 @@ export const ValorizacionModule = {
         const rawProductos = await DB.getAll('productos');
         const rawLotes = await DB.getAll('lotes_fifo');
 
-        // Solo productos activos
-        this.state.productos = rawProductos.filter(p => p.estado !== 'inactivo');
+        // Permitir mostrar productos activos e importados
+        this.state.productos = rawProductos.filter(p => p.estado !== 'inactivo' && p.estado !== 'inactive');
         
         let granTotalAcumulado = 0;
         
         this.state.datosCalculados = this.state.productos.map(p => {
             const lotesProd = rawLotes.filter(l => l.productoId === p.id && l.cantidadActual > 0);
-            const stockTotal = lotesProd.reduce((sum, l) => sum + l.cantidadActual, 0);
-            const costoTotal = lotesProd.reduce((sum, l) => sum + (l.cantidadActual * (l.costoUnitario || 0)), 0);
+            
+            // Priorizar stock importado estático y sumarle los lotes nuevos si los hay
+            const stockBase = parseFloat(p.stock) || 0;
+            const stockLotes = lotesProd.reduce((sum, l) => sum + l.cantidadActual, 0);
+            const stockTotal = stockBase + stockLotes;
+            
+            // Calcular costo usando el estático si no hay lotes
+            const costoLotes = lotesProd.reduce((sum, l) => sum + (l.cantidadActual * (l.costoUnitario || 0)), 0);
             
             // Si el stock es 0, hace fallback al costo base para no mostrar $0 en promedio
-            const costoPromedio = stockTotal > 0 ? (costoTotal / stockTotal) : (p.costoBase || 0);
+            const costoPromedio = stockTotal > 0 ? 
+                (stockLotes > 0 ? costoLotes / stockLotes : (p.costoBase || 0)) 
+                : (p.costoBase || 0);
             
             // Pero el Total siempre debe ser 0 si el stock es 0 (stockTotal * costoPromedio)
             const valorTotal = stockTotal * costoPromedio; 

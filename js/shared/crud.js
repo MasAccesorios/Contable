@@ -10,12 +10,24 @@ export const CoreActions = {
      * @returns {string} HTML del encabezado
      */
     renderDocumentHeader(parentHash, label = 'Volver') {
+        const origen = sessionStorage.getItem('origenVolver');
+        let hashFinal = `#/${parentHash}`;
+        let labelFinal = label;
+        if (origen) {
+            try {
+                const o = JSON.parse(origen);
+                hashFinal = o.hash;
+                labelFinal = o.label;
+            } catch(e) {}
+            sessionStorage.removeItem('origenVolver');
+        }
+
         return `
             <div class="d-flex align-items-center mb-4">
                 <button class="btn btn-link text-decoration-none p-0 me-3 d-flex align-items-center text-muted" 
-                        onclick="window.location.hash = '#/${parentHash}'" 
+                        onclick="window.location.hash = '${hashFinal}'" 
                         style="color: var(--text-body) !important; font-weight: var(--weight-medium); transition: color 0.2s;">
-                    <i class="bi bi-arrow-left me-2"></i>${label}
+                    <i class="bi bi-arrow-left me-2"></i>${labelFinal}
                 </button>
             </div>
         `;
@@ -52,12 +64,21 @@ export const CoreActions = {
             // Lógica Exclusiva: Conversión de Cotización
             if (type === 'cotizacion') {
                 const isConverted = documentData.convertidoAFactura === true;
-                buttons += `
-                    <button class="btn ${isConverted ? 'btn-secondary' : 'btn-primary'} btn-sm btn-convertir" 
-                            data-id="${docId}" ${isConverted || !isViewOnly ? 'disabled style="opacity: 0.6; cursor: not-allowed;"' : ''}>
-                        <i class="bi bi-receipt me-1"></i>Convertir a Factura
-                    </button>
-                `;
+                if (isConverted && documentData.facturaDestinoId) {
+                    buttons += `
+                        <button class="btn btn-outline-primary btn-sm btn-ver-factura" 
+                                onclick="sessionStorage.setItem('origenVolver', JSON.stringify({hash: '#/ingresos/cotizaciones/ver/${docId}', label: 'Volver a la cotización'})); window.location.hash='#/ingresos/facturas/ver/${documentData.facturaDestinoId}'">
+                            <i class="bi bi-box-arrow-up-right me-1"></i>Ver Factura
+                        </button>
+                    `;
+                } else {
+                    buttons += `
+                        <button class="btn btn-primary btn-sm btn-convertir" 
+                                data-id="${docId}" ${!isViewOnly ? 'disabled style="opacity: 0.6; cursor: not-allowed;"' : ''}>
+                            <i class="bi bi-receipt me-1"></i>Convertir a Factura
+                        </button>
+                    `;
+                }
             }
         }
 
@@ -101,20 +122,21 @@ export const CoreActions = {
                 total_costo: invResult.costoTotalVenta,
                 notas: cotizacion.notas || '',
                 terminosCondiciones: cotizacion.terminosCondiciones || 'Favor realizar los pagos a nuestra cuenta bancaria.',
-                origenCotizacionId: cotizacion.id,
-                numero: await DB.nextNumero('facturas')
+                cotizacion_origen_id: parseInt(cotizacion.id, 10) || cotizacion.id,
+                numero: undefined
             };
 
-            await DB.save('facturas', nuevaFactura);
+            const facturaGuardada = await DB.saveWithNextNumero('facturas', nuevaFactura);
+            const idReal = facturaGuardada.id;
 
             // Modificar estado original
             cotizacion.convertidoAFactura = true;
-            cotizacion.facturaDestinoId = idFactura;
+            cotizacion.facturaDestinoId = idReal;
             await DB.save('cotizaciones', cotizacion);
 
             // Callback
             if (onSuccessCallback) {
-                onSuccessCallback(idFactura, cotizacion);
+                onSuccessCallback(idReal, cotizacion);
             }
 
         } catch (error) {
@@ -361,7 +383,7 @@ export const CoreActions = {
  * Centraliza la inyección de precios, stock y autocompletado.
  */
 export const ItemEngine = {
-    renderProductSearchBox(detalle, productos) {
+    renderProductSearchBox(detalle, productos, isViewOnly = false) {
         // Encontrar producto inicial si existe
         const prod = productos.find(p => p.id === detalle.productoId);
         const initialText = prod ? `[${prod.sku || 'S/N'}] - ${prod.nombre}` : '';
@@ -370,9 +392,9 @@ export const ItemEngine = {
             <div class="position-relative">
                 <input type="hidden" class="input-prod-id" value="${detalle.productoId || ''}">
                 <input type="text" class="form-control form-control-sm text-muted border-0 bg-light input-prod-search mb-1" 
-                       placeholder="Escriba código o nombre..." autocomplete="off" value="${initialText}">
+                       placeholder="Escriba código o nombre..." autocomplete="off" value="${initialText}" ${isViewOnly ? 'disabled' : ''}>
                 <input type="text" class="form-control form-control-sm border-0 bg-light mt-1 input-prod-desc" 
-                       placeholder="Ej. iPhone 17 Pro Max" value="${detalle.descripcion_personalizada || ''}">
+                       placeholder="Ej. iPhone 17 Pro Max" value="${detalle.descripcion_personalizada || ''}" ${isViewOnly ? 'disabled' : ''}>
                 <div class="search-results-dropdown position-absolute w-100 bg-white shadow-sm" 
                      style="display: none; z-index: 1050; max-height: 250px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 4px; top: 100%;">
                 </div>

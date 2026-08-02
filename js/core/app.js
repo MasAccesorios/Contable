@@ -2,8 +2,10 @@
  * SPA Shell Router - MAS Accesorios
  * Arquitectura Vanilla JS (Sin dependencias externas)
  */
-import { auth, onAuthStateChanged, signOut } from './firebase.js';
+import { supabase } from './supabase.js';
 import { renderLogin } from './login.js';
+import { GlobalSearch } from '../shared/globalSearch.js';
+import { QuickActions } from '../shared/quickActions.js';
 
 
 window.cleanupFloatingElements = function() {
@@ -39,7 +41,9 @@ const routes = {
     'inventario/valor': () => import('../modules/inventario/valorizacion.js'),
     'importador': () => import('../modules/integracion-alegra/importador.js'),
     'ingresos/cotizaciones': () => import('../modules/ingresos/cotizaciones.js'),
+    'ingresos/operativos': () => import('../modules/gastos/ingresos_operativos.js'),
     'ingresos/facturas': () => import('../modules/ventas/ventas.js'),
+    'ingresos/pagos/nuevo': () => import('../modules/ingresos/pagos_nuevo.js'),
     'cartera': () => import('../modules/cartera/cartera.js'),
     'bancos/conciliacion': () => import('../modules/bancos/conciliacion.js'),
     'bancos/detalle': () => import('../modules/bancos/detalle.js'),
@@ -56,6 +60,8 @@ async function router() {
     if (sidebar && window.innerWidth <= 768) {
         sidebar.classList.remove('open');
     }
+
+    GlobalSearch.clear();
 
     const hash = window.location.hash.substring(2) || 'inicio';
     const [routePath, queryString] = hash.split('?');
@@ -112,7 +118,15 @@ async function router() {
                 if (typeof window.cleanupFloatingElements === 'function') {
                     window.cleanupFloatingElements();
                 }
-                await initFn(appEl);
+                
+                // 1. Resetear el flag incondicionalmente al cargar una vista nueva (previene falsos positivos)
+                window.hayCambiosSinGuardar = false;
+                
+                // 2. Clonar nodo para purgar event listeners acumulados del módulo anterior (memory leak fix)
+                const newAppEl = appEl.cloneNode(false);
+                appEl.parentNode.replaceChild(newAppEl, appEl);
+
+                await initFn(newAppEl);
             } else {
                 renderPlaceholder(appEl, routePath, "El módulo se cargó correctamente, pero no expone un método init().");
             }
@@ -165,32 +179,83 @@ function initUI() {
 
 }
 
+// Guardián estricto para clicks en menús/enlaces (Evita la navegación asíncrona)
+document.addEventListener('click', (e) => {
+    const link = e.target.closest('a[href^="#/"]');
+    if (link && window.hayCambiosSinGuardar) {
+        const resultado = confirm('Tienes cambios sin guardar. ¿Deseas salir de todas formas?');
+        if (!resultado) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+        } else {
+            window.hayCambiosSinGuardar = false;
+        }
+    }
+}, { capture: true });
+
 // Escuchadores globales de navegación y carga
-window.addEventListener('hashchange', () => {
+let currentHash = window.location.hash;
+let isRevertingHash = false;
+
+window.addEventListener('hashchange', async () => {
+    if (isRevertingHash) {
+        isRevertingHash = false;
+        return;
+    }
+    
+    if (window.hayCambiosSinGuardar) {
+        const resultado = confirm('Tienes cambios sin guardar. ¿Deseas salir de todas formas?');
+        if (!resultado) {
+            isRevertingHash = true;
+            window.location.hash = currentHash;
+            return;
+        }
+        window.hayCambiosSinGuardar = false;
+    }
+    currentHash = window.location.hash;
+
     // Proteger cambios de ruta directos en la barra del navegador
-    if (auth.currentUser) {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
         router();
+    }
+});
+
+// Proteger al recargar o cerrar pestaña
+window.addEventListener('beforeunload', (e) => {
+    if (window.hayCambiosSinGuardar) {
+        e.preventDefault();
+        e.returnValue = '';
     }
 });
 
 window.addEventListener('DOMContentLoaded', () => {
     initUI();
+    GlobalSearch.init();
+    QuickActions.init();
     
     const sidebar = document.getElementById('sidebar');
     const navbar = document.getElementById('navbar');
     const viewport = document.getElementById('view-viewport');
 
-    // Firebase Auth Observer (El verdadero guardián de las rutas)
-    onAuthStateChanged(auth, (user) => {
-        if (user) {
+    let yaHuboSesionInicial = false;
+
+    // Monitorear sesión centralizadamente
+    supabase.auth.onAuthStateChange((event, session) => {
+        if (session) {
             // Usuario Autenticado: Restauramos la UI normal
             sidebar.style.display = 'block'; 
             navbar.style.display = 'flex';
             document.getElementById('app-container').classList.remove('unauthenticated');
             
             // Dejamos que el enrutador lea la URL actual y cargue el módulo
-            router(); 
+            // SOLO si es la primera vez que se detecta sesión
+            if (!yaHuboSesionInicial) {
+                yaHuboSesionInicial = true;
+                router(); 
+            }
         } else {
+            yaHuboSesionInicial = false;
             // Usuario No Autenticado
             // Ocultamos el cascarón de la app y liberamos el margen del sidebar
             sidebar.style.display = 'none';

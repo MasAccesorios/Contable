@@ -75,7 +75,9 @@ export const SistemaModule = {
             alertEl.className = `alert alert-${type} mb-4 py-2`;
             alertEl.innerHTML = msg;
             alertEl.classList.remove('d-none');
-            setTimeout(() => alertEl.classList.add('d-none'), 5000);
+            
+            if (window._sistemaAlertTimeout) clearTimeout(window._sistemaAlertTimeout);
+            window._sistemaAlertTimeout = setTimeout(() => alertEl.classList.add('d-none'), 5000);
         };
 
         const STORES = ['contactos', 'productos', 'lotes_fifo', 'cotizaciones', 'facturas', 'transacciones'];

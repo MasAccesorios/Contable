@@ -1,16 +1,23 @@
 // js/modules/bancos/detalle.js
 import DB from '../../core/db.js';
 import { CoreActions } from '../../shared/crud.js';
+import { supabase } from '../../core/supabase.js';
+import { agruparTransaccionesPorPago } from '../../shared/transaccionesUtils.js';
+import { mostrarDetalleTransaccion } from '../../shared/transaccionModal.js';
 
 export const DetalleBancoModule = {
     state: {
-        bancoId: null, // Nombre de la cuenta
+        bancoId: null, // Nombre de la cuenta o ID
         cuenta: null,
         transacciones: [],
         saldo: 0,
         totalIngresos: 0,
         totalEgresos: 0,
-        filteredTransacciones: []
+        filteredTransacciones: [],
+        offset: 0,
+        limit: 50,
+        hasMore: true,
+        isLoading: false
     },
 
     async init(element) {
@@ -20,53 +27,97 @@ export const DetalleBancoModule = {
         const urlParams = new URLSearchParams(window.location.hash.split('?')[1]);
         this.state.bancoId = urlParams.get('banco_id');
 
+        this.state.offset = 0;
+        this.state.hasMore = true;
+        this.state.transacciones = [];
+        
         await this.loadData();
         this.render();
     },
 
-    async loadData() {
-        const dbCuentas = await DB.getAll('cuentas_bancarias') || [];
-        this.state.cuenta = dbCuentas.find(c => c.nombre === this.state.bancoId || c.id === this.state.bancoId);
+    async loadData(isLoadMore = false) {
+        if (this.state.isLoading) return;
+        this.state.isLoading = true;
+
+        const urlParams = new URLSearchParams(window.location.hash.split('?')[1] || '');
+        const bancoIdParam = urlParams.get('banco_id');
+        let cuentaRealId = null;
         
-        // Si no se encuentra en DB, construimos una cuenta temporal para efectos de visualización
-        if (!this.state.cuenta) {
-            this.state.cuenta = {
-                nombre: this.state.bancoId,
-                tipo: 'Banco',
-                numero: '-',
-                estado: 'activo'
-            };
+        if (!isLoadMore) {
+            const dbCuentas = await DB.getAll('cuentas_bancarias') || [];
+            this.state.cuenta = dbCuentas.find(c => String(c.id) === String(bancoIdParam));
+            
+            if (!this.state.cuenta) {
+                console.error("No se encontró la cuenta con banco_id:", bancoIdParam, "en dbCuentas:", dbCuentas);
+            }
         }
 
-        const todasTrx = await DB.getAll('transacciones') || [];
-        
-        // Filtrar transacciones para esta cuenta
-        this.state.transacciones = todasTrx.filter(t => {
-            const trxCuenta = t.cuentaId || t.cuenta || 'AAACaja general';
-            return trxCuenta === this.state.bancoId;
-        });
+        if (this.state.cuenta && this.state.cuenta.id) {
+            cuentaRealId = this.state.cuenta.id;
+            
+            // 1. Obtener transacciones paginadas
+            const { data: pagos, error } = await supabase
+                .from('pagos_ingresos')
+                .select('*')
+                .eq('cuenta_id', cuentaRealId)
+                .neq('estado', 'anulado') // Excluir anulados de la vista
+                .order('fecha', { ascending: false })
+                .range(this.state.offset, this.state.offset + this.state.limit - 1);
+            
+            if (!error && pagos) {
+                const mapped = pagos.map(item => ({
+                    ...item,
+                    tipo: item.tipo === 'in' ? 'ingreso' : 'egreso',
+                    monto: Number(item.monto),
+                    referenciaId: item.factura_id ? String(item.factura_id) : null,
+                    cuentaId: String(item.cuenta_id),
+                    detalle: item.observaciones || item.categoria || item.referencia || 'Sin detalle'
+                }));
 
-        // Ordenar por fecha descendente por defecto (más reciente primero)
-        this.state.transacciones.sort((a, b) => {
-            const dateA = a.fecha || '';
-            const dateB = b.fecha || '';
-            return dateB.localeCompare(dateA);
-        });
+                if (!isLoadMore) {
+                    this.state.transacciones = mapped;
+                } else {
+                    this.state.transacciones = this.state.transacciones.concat(mapped);
+                }
 
-        // Calcular totales
-        this.state.saldo = 0;
-        this.state.totalIngresos = 0;
-        this.state.totalEgresos = 0;
-
-        this.state.transacciones.forEach(t => {
-            if (t.tipo === 'ingreso') {
-                this.state.saldo += t.monto;
-                this.state.totalIngresos += t.monto;
-            } else if (t.tipo === 'egreso' || t.tipo === 'gasto') {
-                this.state.saldo -= t.monto;
-                this.state.totalEgresos += t.monto;
+                this.state.offset += pagos.length;
+                this.state.hasMore = pagos.length === this.state.limit;
             }
-        });
+
+            // 2. Calcular Saldos (solo en la primera carga)
+            if (!isLoadMore) {
+                let movimientos = [];
+                let desde = 0;
+                while (true) {
+                    const { data } = await supabase
+                        .from('pagos_ingresos')
+                        .select('tipo, monto')
+                        .eq('cuenta_id', cuentaRealId)
+                        .neq('estado', 'anulado') // Excluir anulados del cálculo de saldo
+                        .range(desde, desde + 999);
+                    
+                    if (!data || data.length === 0) break;
+                    movimientos = movimientos.concat(data);
+                    if (data.length < 1000) break;
+                    desde += 1000;
+                }
+                
+    
+                const saldoCalculado = movimientos.reduce((acc, t) => {
+                    const esIngreso = t.tipo === 'in' || t.tipo === 'ingreso';
+                    return acc + (esIngreso ? Number(t.monto) : -Number(t.monto));
+                }, 0);
+                
+                const saldoInicial = parseFloat(this.state.cuenta.saldo_inicial) || 0;
+                this.state.saldo = saldoInicial + saldoCalculado;
+            }
+        } else {
+            // Caso fallback (cuenta no encontrada por ID)
+            if (!isLoadMore) this.state.transacciones = [];
+            this.state.hasMore = false;
+        }
+
+        this.state.isLoading = false;
     },
 
     render() {
@@ -74,14 +125,12 @@ export const DetalleBancoModule = {
         const formatMoney = val => '$ ' + parseFloat(val || 0).toLocaleString('es-CO', {minimumFractionDigits: 2, maximumFractionDigits: 2});
         const headerHtml = CoreActions.renderDocumentHeader('bancos', 'Volver a Bancos');
 
-        // Estado local de paginación y filtro
-        let currentPage = 1;
-        let itemsPerPage = 10;
         let searchQuery = '';
         let filterTipo = 'todos'; // todos, ingreso, egreso
+        let transaccionesAgrupadas = [];
 
         const renderGrid = () => {
-            // Filtrar
+            // Filtrar localmente sobre lo que ya está cargado
             this.state.filteredTransacciones = this.state.transacciones.filter(t => {
                 const desc = (t.detalle || t.referencia || t.categoria || '').toLowerCase();
                 const matchesSearch = !searchQuery || desc.includes(searchQuery);
@@ -89,13 +138,8 @@ export const DetalleBancoModule = {
                 return matchesSearch && matchesTipo;
             });
 
-            const totalItems = this.state.filteredTransacciones.length;
-            const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
-            if (currentPage > totalPages) currentPage = totalPages;
-            if (currentPage < 1) currentPage = 1;
-
-            const startIndex = (currentPage - 1) * itemsPerPage;
-            const currentItems = this.state.filteredTransacciones.slice(startIndex, startIndex + itemsPerPage);
+            transaccionesAgrupadas = agruparTransaccionesPorPago(this.state.filteredTransacciones);
+            const currentItems = transaccionesAgrupadas;
 
             const tbodyHtml = currentItems.length > 0 ? currentItems.map(t => {
                 const isIngreso = t.tipo === 'ingreso';
@@ -103,7 +147,7 @@ export const DetalleBancoModule = {
                 const labelTipo = isIngreso ? 'Ingreso' : 'Egreso';
                 
                 return `
-                    <tr style="border-bottom: 1px solid var(--border-color); font-size: 13px; color: var(--text-body);">
+                    <tr style="border-bottom: 1px solid var(--border-color); font-size: 13px; color: var(--text-body); cursor: pointer;" data-id="${t.id}">
                         <td class="py-3">${t.fecha || '-'}</td>
                         <td class="py-3" style="color: var(--text-main); font-weight: 500;">
                             ${t.detalle || t.referencia || t.categoria || 'Sin detalle'}
@@ -116,7 +160,7 @@ export const DetalleBancoModule = {
                         </td>
                     </tr>
                 `;
-            }).join('') : `<tr><td colspan="4" class="text-center py-5 text-muted">No se encontraron movimientos.</td></tr>`;
+            }).join('') : `<tr><td colspan="4" class="text-center py-5 text-muted">No se encontraron movimientos o no coinciden con la búsqueda.</td></tr>`;
 
             this.element.innerHTML = `
                 <div class="module-container p-4" style="max-width: 1100px; margin: 0 auto;">
@@ -137,22 +181,6 @@ export const DetalleBancoModule = {
                                 <div class="card-body p-4">
                                     <p class="text-muted mb-1" style="font-size: 13px;">Saldo en Libros</p>
                                     <h3 class="fw-bold mb-0" style="color: #2cbfb7;">${formatMoney(this.state.saldo)}</h3>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="card border-0" style="box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.03), 0px 1px 3px rgba(0, 0, 0, 0.05); border-radius: 8px; border-top: 4px solid #10b981;">
-                                <div class="card-body p-4">
-                                    <p class="text-muted mb-1" style="font-size: 13px;">Total Ingresos</p>
-                                    <h3 class="fw-bold mb-0" style="color: #10b981;">${formatMoney(this.state.totalIngresos)}</h3>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="card border-0" style="box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.03), 0px 1px 3px rgba(0, 0, 0, 0.05); border-radius: 8px; border-top: 4px solid #ef4444;">
-                                <div class="card-body p-4">
-                                    <p class="text-muted mb-1" style="font-size: 13px;">Total Egresos</p>
-                                    <h3 class="fw-bold mb-0" style="color: #ef4444;">${formatMoney(this.state.totalEgresos)}</h3>
                                 </div>
                             </div>
                         </div>
@@ -194,29 +222,15 @@ export const DetalleBancoModule = {
                             </table>
                         </div>
 
-                        <!-- PAGINATION FOOTER -->
-                        <div class="card-footer bg-white border-top p-3 d-flex justify-content-between align-items-center" style="border-radius: 0 0 8px 8px;">
-                            <div class="d-flex align-items-center gap-3" style="font-size: 13px; color: var(--text-body);">
-                                <div class="d-flex align-items-center gap-2">
-                                    <span>Resultados por página:</span>
-                                    <select class="form-select form-select-sm text-muted" id="detail-per-page" style="width: 70px;">
-                                        <option value="10" ${itemsPerPage === 10 ? 'selected' : ''}>10</option>
-                                        <option value="20" ${itemsPerPage === 20 ? 'selected' : ''}>20</option>
-                                        <option value="50" ${itemsPerPage === 50 ? 'selected' : ''}>50</option>
-                                    </select>
-                                </div>
-                                <span class="text-muted border-start ps-3">${totalItems > 0 ? startIndex + 1 : 0}-${Math.min(startIndex + itemsPerPage, totalItems)} de ${totalItems}</span>
-                            </div>
-
-                            <div class="d-flex align-items-center gap-2" style="font-size: 13px; color: var(--text-body);">
-                                <span>Página</span>
-                                <input type="number" id="detail-page" class="form-control form-control-sm text-center text-muted" value="${currentPage}" min="1" max="${totalPages}" style="width: 50px;">
-                                <span>de ${totalPages}</span>
-                                <div class="ms-2">
-                                    <button class="btn btn-link text-muted p-0 me-1" id="detail-btn-prev" ${currentPage === 1 ? 'disabled' : ''}><i class="bi bi-chevron-left"></i></button>
-                                    <button class="btn btn-link text-muted p-0" id="detail-btn-next" ${currentPage === totalPages ? 'disabled' : ''}><i class="bi bi-chevron-right"></i></button>
-                                </div>
-                            </div>
+                        <!-- FOOTER (CARGAR MÁS) -->
+                        <div class="card-footer bg-white border-top p-3 text-center" style="border-radius: 0 0 8px 8px;">
+                            ${this.state.hasMore ? 
+                                `<button id="detail-btn-loadmore" class="btn btn-sm btn-outline-secondary px-4 py-2" ${this.state.isLoading ? 'disabled' : ''}>
+                                    ${this.state.isLoading ? 'Cargando...' : 'Cargar más movimientos'}
+                                </button>` 
+                            : 
+                                `<span class="text-muted" style="font-size: 13px;">No hay más movimientos.</span>`
+                            }
                         </div>
                     </div>
                 </div>
@@ -235,44 +249,32 @@ export const DetalleBancoModule = {
 
                 searchInput.addEventListener('input', (e) => {
                     searchQuery = e.target.value.toLowerCase().trim();
-                    currentPage = 1;
                     renderGrid();
                 });
             }
 
             this.element.querySelector('#detail-filter-tipo')?.addEventListener('change', (e) => {
                 filterTipo = e.target.value;
-                currentPage = 1;
                 renderGrid();
             });
 
-            this.element.querySelector('#detail-per-page')?.addEventListener('change', (e) => {
-                itemsPerPage = parseInt(e.target.value, 10);
-                currentPage = 1;
+            this.element.querySelector('#detail-btn-loadmore')?.addEventListener('click', async (e) => {
+                const btn = e.currentTarget;
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Cargando...';
+                await this.loadData(true);
                 renderGrid();
             });
 
-            this.element.querySelector('#detail-page')?.addEventListener('change', (e) => {
-                const page = parseInt(e.target.value, 10);
-                if (page >= 1 && page <= Math.ceil(this.state.filteredTransacciones.length / itemsPerPage)) {
-                    currentPage = page;
-                    renderGrid();
-                }
-            });
-
-            this.element.querySelector('#detail-btn-prev')?.addEventListener('click', () => {
-                if (currentPage > 1) {
-                    currentPage--;
-                    renderGrid();
-                }
-            });
-
-            this.element.querySelector('#detail-btn-next')?.addEventListener('click', () => {
-                const totalPages = Math.ceil(this.state.filteredTransacciones.length / itemsPerPage);
-                if (currentPage < totalPages) {
-                    currentPage++;
-                    renderGrid();
-                }
+            this.element.querySelectorAll('tbody tr[data-id]').forEach(row => {
+                row.addEventListener('click', async () => {
+                    const tId = row.dataset.id;
+                    const t = transaccionesAgrupadas.find(x => String(x.id) === String(tId));
+                    if (!t) return;
+                    await mostrarDetalleTransaccion(t, () => {
+                        this.loadData().then(() => this.render());
+                    });
+                });
             });
         };
 

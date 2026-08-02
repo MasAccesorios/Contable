@@ -2,6 +2,12 @@
 // Módulo de Gestión de Contactos (Clientes y Proveedores) - Hoja Completa
 
 import DB from '../../core/db.js';
+import { supabase } from '../../core/supabase.js';
+import { AbonoModal } from '../../shared/abonoModal.js';
+import { calcularEstadoFactura } from '../../shared/carteraUtils.js';
+import { CATEGORIAS_GASTO } from '../gastos/gastos.js';
+import { agruparTransaccionesPorPago } from '../../shared/transaccionesUtils.js';
+import { mostrarDetalleTransaccion } from '../../shared/transaccionModal.js';
 
 export const ContactosModule = {
     state: {
@@ -15,6 +21,10 @@ export const ContactosModule = {
     async init(element) {
         if (!element) return;
         this.element = element;
+
+        this.state.searchQuery = '';
+        this.state.currentFilter = 'todos';
+        this.state.currentPage = 1;
         
         // Renderizar contenedor principal de hoja completa
         element.innerHTML = `
@@ -123,6 +133,10 @@ export const ContactosModule = {
 
         if (action === 'ver' && routeId) {
             await this.renderDetalle(routeId);
+        } else if (action === 'nueva') {
+            await this.cargarDatos(); // Carga inicial
+            this.renderTabla();       // Render inicial
+            this.renderForm();        // Abre el modal de nuevo contacto
         } else {
             await this.cargarDatos(); // Carga inicial
             this.renderTabla();       // Render inicial
@@ -234,7 +248,7 @@ export const ContactosModule = {
             btn.disabled = true;
             btn.innerHTML = `<span class="spinner-border spinner-border-sm" aria-hidden="true"></span>`;
             
-            this.state.contactos = await DB.refreshCache('contactos');
+            this.state.contactosData = await DB.refreshCache('contactos');
             this.renderTabla();
             
             btn.innerHTML = originalHtml;
@@ -336,9 +350,15 @@ export const ContactosModule = {
 
         container.innerHTML = `
             <div class="form-hoja-completa bg-white p-4 rounded border">
+                <div class="d-flex align-items-center mb-3">
+                    <button id="btn-cancelar-contacto"
+                        class="btn btn-link text-decoration-none p-0 me-3 d-flex align-items-center"
+                        style="color: var(--text-body) !important; font-weight: var(--weight-medium); transition: color 0.2s;">
+                        <i class="bi bi-arrow-left me-2"></i>Volver a Contactos
+                    </button>
+                </div>
                 <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
                     <h3 class="h5 m-0 fw-bold">${id ? 'Editar Contacto' : 'Crear Nuevo Contacto'}</h3>
-                    <button id="btn-cancelar-contacto" class="btn btn-light btn-sm text-muted">Volver</button>
                 </div>
                 <form id="form-contacto-data">
                     <div class="row g-3">
@@ -437,14 +457,62 @@ export const ContactosModule = {
         const contacto = await DB.get('contactos', id);
         if (!contacto) return;
 
+        const { data: facturasCliente } = await supabase
+            .from('facturas')
+            .select('id, numero, fecha, vencimiento, total, saldo_original, estado')
+            .eq('contacto_id', id)
+            .order('fecha', { ascending: false })
+            .limit(50);
+
+        const facturaIdsCliente = (facturasCliente || []).map(f => f.id);
+        const { data: todasLasTransacciones } = facturaIdsCliente.length > 0
+            ? await supabase.from('pagos_ingresos').select('*').in('factura_id', facturaIdsCliente)
+            : { data: [] };
+
+        const { data: cotizacionesCliente } = await supabase
+            .from('cotizaciones')
+            .select('id, numero, fecha, total, estado')
+            .eq('contacto_id', id)
+            .order('fecha', { ascending: false })
+            .limit(50);
+
+        const { data: transaccionesCliente } = await supabase
+            .from('pagos_ingresos')
+            .select('id, tipo, monto, fecha, categoria, observaciones, grupo_pago_id, cuenta_id')
+            .eq('contacto_id', id)
+            .neq('estado', 'void')
+            .order('fecha', { ascending: false })
+            .limit(50);
+
+        const transaccionesAgrupadas = agruparTransaccionesPorPago(transaccionesCliente);
+
+        let saldoPorCobrarTotal = 0;
+        (facturasCliente || []).forEach(f => {
+            const estadoCalc = calcularEstadoFactura(f, todasLasTransacciones || []);
+            if (estadoCalc.estado !== 'anulada' && estadoCalc.estado !== 'void') {
+                saldoPorCobrarTotal += estadoCalc.saldo;
+            }
+        });
+
+        const colorSaldo = saldoPorCobrarTotal > 0 ? '#e74c3c' : '#2cbfb7';
+
         container.innerHTML = `
             <div class="perfil-hoja-completa bg-white p-4 rounded border">
+                <div class="d-flex align-items-center mb-3">
+                    <button id="btn-volver-perfil"
+                        class="btn btn-link text-decoration-none p-0 me-3 d-flex align-items-center"
+                        style="color: var(--text-body) !important; font-weight: var(--weight-medium); transition: color 0.2s;">
+                        <i class="bi bi-arrow-left me-2"></i>Volver a Contactos
+                    </button>
+                </div>
                 <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
                     <h3 class="h5 m-0 fw-bold">${contacto.nombre}</h3>
-                    <button id="btn-volver-perfil" class="btn btn-light btn-sm text-muted">Volver al listado</button>
+                    <button class="btn btn-sm btn-light btn-editar-contacto-detalle" data-id="${contacto.id}">
+                        <i class="bi bi-pencil me-1"></i>Editar
+                    </button>
                 </div>
                 <div class="row g-4">
-                    <div class="col-md-6">
+                    <div class="col-lg-4 col-md-6">
                         <div class="card border-0 shadow-sm h-100">
                             <div class="card-body">
                                 <h4 class="h6 fw-bold text-dark mb-3">Datos Básicos</h4>
@@ -456,7 +524,7 @@ export const ContactosModule = {
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-lg-4 col-md-6">
                         <div class="card border-0 shadow-sm h-100">
                             <div class="card-body">
                                 <h4 class="h6 fw-bold text-dark mb-3">Condiciones Comerciales</h4>
@@ -466,16 +534,223 @@ export const ContactosModule = {
                             </div>
                         </div>
                     </div>
+                    <div class="col-lg-4 col-md-12">
+                        <div class="card border-0 shadow-sm h-100" style="border-left: 4px solid ${colorSaldo} !important;">
+                            <div class="card-body d-flex flex-column justify-content-center align-items-center text-center">
+                                <h4 class="h6 fw-bold text-muted mb-2">Saldo por Cobrar</h4>
+                                <h2 class="m-0 fw-bold" style="color: ${colorSaldo}; font-size: 28px; word-break: break-all;">
+                                    $${saldoPorCobrarTotal.toLocaleString('es-CO', {minimumFractionDigits: 0})}
+                                </h2>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <ul class="nav nav-tabs flex-nowrap overflow-auto" id="tabs-detalle-cliente" style="white-space: nowrap;">
+                        <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-facturas" style="font-size: 14px; white-space: nowrap;">Facturas</button></li>
+                        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-cotizaciones" style="font-size: 14px; white-space: nowrap;">Cotizaciones</button></li>
+                        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-transacciones" style="font-size: 14px; white-space: nowrap;">Transacciones</button></li>
+                    </ul>
+                    <div class="tab-content border border-top-0 p-3">
+
+                        <div class="tab-pane fade show active" id="tab-facturas">
+                            <div class="d-flex align-items-center justify-content-between mb-3">
+                                <div class="input-group" style="max-width: 280px;">
+                                    <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                                    <input type="text" class="form-control border-start-0" placeholder="Número" style="box-shadow:none;">
+                                </div>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table align-middle mb-0" style="font-size: 14px;">
+                                    <thead>
+                                        <tr class="text-muted" style="font-size: 12px; background-color: #fafbfc; border-bottom: 2px solid #eee;">
+                                            <th class="fw-medium pb-2">Número</th>
+                                            <th class="fw-medium pb-2">Creación</th>
+                                            <th class="fw-medium pb-2">Vencimiento</th>
+                                            <th class="fw-medium pb-2">Total</th>
+                                            <th class="fw-medium pb-2">Cobrado</th>
+                                            <th class="fw-medium pb-2">Por cobrar</th>
+                                            <th class="fw-medium pb-2">Estado</th>
+                                            <th class="fw-medium pb-2 text-end">Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${(facturasCliente || []).map(f => {
+                                            const estadoCalc = calcularEstadoFactura(f, todasLasTransacciones);
+                                            const porCobrar = estadoCalc.saldo;
+                                            const cobrado = estadoCalc.totalPagado;
+                                            
+                                            const esAnulada = estadoCalc.estado === 'anulada';
+                                            const esCerrada = estadoCalc.estado === 'pagada';
+                                            const esBloqueada = esCerrada || esAnulada;
+
+                                            let estadoLabel, estadoColor;
+                                            if (esAnulada) {
+                                                estadoLabel = 'Anulada'; estadoColor = '#999';
+                                            } else if (porCobrar <= 0) {
+                                                estadoLabel = 'Cobrada'; estadoColor = '#2cbfb7';
+                                            } else if (porCobrar < Number(f.total)) {
+                                                estadoLabel = 'Parcial'; estadoColor = '#f39c12';
+                                            } else {
+                                                estadoLabel = 'Por cobrar'; estadoColor = '#e74c3c';
+                                            }
+                                            return `
+                                            <tr style="border-bottom: 1px solid #f0f0f0; cursor:pointer;" onclick="sessionStorage.setItem('origenVolver', JSON.stringify({hash: '#/contactos/ver/${id}', label: 'Volver al cliente'})); if(!event.target.closest('button') && !event.target.closest('a')) window.location.hash='#/ingresos/facturas/ver/${f.id}'">
+                                                <td class="py-3 fw-medium">${f.numero}</td>
+                                                <td class="py-3 text-muted">${f.fecha}</td>
+                                                <td class="py-3 ${!esCerrada ? 'text-danger' : 'text-muted'}">${f.vencimiento || f.fecha}</td>
+                                                <td class="py-3">$${Number(f.total).toLocaleString()}</td>
+                                                <td class="py-3 text-muted">$${cobrado.toLocaleString()}</td>
+                                                <td class="py-3 text-muted">$${porCobrar.toLocaleString()}</td>
+                                                <td class="py-3"><span style="color: ${estadoColor}; font-weight: 500;">${estadoLabel}</span></td>
+                                                <td class="py-3 text-end">
+                                                    ${esBloqueada 
+                                                        ? `<i class="bi bi-pencil text-muted opacity-25 me-2" title="Factura ${esAnulada ? 'anulada' : 'cerrada'}, no editable"></i>
+                                                           <i class="bi bi-wallet2 text-muted opacity-25 me-2" title="No se puede abonar"></i>
+                                                           <i class="bi bi-trash text-muted opacity-25" title="No se puede eliminar"></i>`
+                                                        : `<a href="#/ingresos/facturas/editar/${f.id}" class="btn btn-sm btn-link text-dark p-1" title="Editar"><i class="bi bi-pencil"></i></a>
+                                                           <a href="#" class="btn btn-sm btn-link text-dark p-1 btn-abonar-factura" data-id="${f.id}" data-saldo="${porCobrar}" title="Registrar pago"><i class="bi bi-wallet2"></i></a>
+                                                           <button class="btn btn-sm btn-link text-danger p-1 btn-delete-row-cliente" data-tabla="facturas" data-id="${f.id}" title="Eliminar"><i class="bi bi-trash"></i></button>`
+                                                    }
+                                                </td>
+                                            </tr>`;
+                                        }).join('') || '<tr><td colspan="8" class="text-muted small text-center py-4">Sin facturas</td></tr>'}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="tab-pane fade" id="tab-cotizaciones">
+                            <div class="d-flex align-items-center justify-content-between mb-3">
+                                <div class="input-group" style="max-width: 280px;">
+                                    <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                                    <input type="text" class="form-control border-start-0" placeholder="Número" style="box-shadow:none;">
+                                </div>
+                            </div>
+                            <div class="table-responsive" style="font-size: 13px;">
+                                <table class="table align-middle mb-0" style="font-size: 14px;">
+                                    <thead>
+                                        <tr class="text-muted" style="font-size: 12px; background-color: #fafbfc; border-bottom: 2px solid #eee;">
+                                            <th class="fw-medium pb-2">Número</th>
+                                            <th class="fw-medium pb-2">Creación</th>
+                                            <th class="fw-medium pb-2">Total</th>
+                                            <th class="fw-medium pb-2">Estado</th>
+                                            <th class="fw-medium pb-2 text-end">Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${(cotizacionesCliente || []).map(c => {
+                                            const esAnuladaCot = c.estado === 'void' || c.estado === 'anulada';
+                                            return `
+                                            <tr style="border-bottom: 1px solid #f0f0f0; cursor:pointer;" onclick="sessionStorage.setItem('origenVolver', JSON.stringify({hash: '#/contactos/ver/${id}', label: 'Volver al cliente'})); if(!event.target.closest('button') && !event.target.closest('a')) window.location.hash='#/ingresos/cotizaciones/ver/${c.id}'">
+                                                <td class="py-3 fw-medium">${c.numero}</td>
+                                                <td class="py-3 text-muted">${c.fecha}</td>
+                                                <td class="py-3">$${Number(c.total).toLocaleString()}</td>
+                                                <td class="py-3"><span style="color: ${esAnuladaCot ? '#999' : '#4b5563'};">${c.estado}</span></td>
+                                                <td class="py-3 text-end">
+                                                    ${esAnuladaCot 
+                                                        ? `<i class="bi bi-pencil text-muted opacity-25 me-2"></i><i class="bi bi-trash text-muted opacity-25"></i>`
+                                                        : `<a href="#/ingresos/cotizaciones/editar/${c.id}" class="btn btn-sm btn-link text-dark p-1" title="Editar"><i class="bi bi-pencil"></i></a>
+                                                           <button class="btn btn-sm btn-link text-danger p-1 btn-delete-row-cliente" data-tabla="cotizaciones" data-id="${c.id}" title="Eliminar"><i class="bi bi-trash"></i></button>`
+                                                    }
+                                                </td>
+                                            </tr>`;
+                                        }).join('') || '<tr><td colspan="5" class="text-muted small text-center py-4">Sin cotizaciones</td></tr>'}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="tab-pane fade" id="tab-transacciones">
+                            <div class="table-responsive" style="font-size: 13px;">
+                                <table class="table align-middle mb-0" style="font-size: 14px;">
+                                    <thead>
+                                        <tr class="text-muted" style="font-size: 12px; background-color: #fafbfc; border-bottom: 2px solid #eee;">
+                                            <th class="fw-medium pb-2">Fecha</th>
+                                            <th class="fw-medium pb-2">Concepto</th>
+                                            <th class="fw-medium pb-2">Monto</th>
+                                            <th class="fw-medium pb-2 text-end">Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${(transaccionesAgrupadas || []).map(t => `
+                                            <tr style="border-bottom: 1px solid #f0f0f0; cursor:pointer;" data-id="${t.id}">
+                                                <td class="py-3 text-muted">${t.fecha}</td>
+                                                <td class="py-3">${t.categoria || t.observaciones || ''}</td>
+                                                <td class="py-3" style="color: ${t.tipo === 'in' ? '#2cbfb7' : '#e74c3c'}; font-weight: 500;">${t.tipo === 'in' ? '+' : '-'}$${Number(t.monto).toLocaleString()}</td>
+                                                <td class="py-3 text-end">
+                                                    <button class="btn btn-sm btn-link text-dark p-1 btn-editar-transaccion-cliente" data-id="${t.id}" title="Editar"><i class="bi bi-pencil"></i></button>
+                                                    <button class="btn btn-sm btn-link text-danger p-1 btn-anular-transaccion-cliente" data-id="${t.id}" title="Anular"><i class="bi bi-trash"></i></button>
+                                                </td>
+                                            </tr>`).join('') || '<tr><td colspan="4" class="text-muted small text-center py-4">Sin transacciones</td></tr>'}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                    </div>
                 </div>
             </div>
         `;
+
+        this.element.querySelectorAll('.btn-editar-transaccion-cliente').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                const tId = btn.dataset.id;
+                const t = (transaccionesAgrupadas || []).find(x => String(x.id) === String(tId));
+                if (!t) return;
+                await mostrarDetalleTransaccion(t, () => this.renderDetalle(id));
+            });
+        });
+
+        this.element.querySelectorAll('#tab-transacciones tbody tr[data-id]').forEach(row => {
+            row.addEventListener('click', async (e) => {
+                if (e.target.closest('button')) return;
+                const tId = row.dataset.id;
+                const t = (transaccionesAgrupadas || []).find(x => String(x.id) === String(tId));
+                if (!t) return;
+                await mostrarDetalleTransaccion(t, () => this.renderDetalle(id));
+            });
+        });
+
+        this.element.querySelector('.btn-editar-contacto-detalle')?.addEventListener('click', () => {
+            this.renderForm(id);
+        });
+
+        this.element.querySelectorAll('.btn-abonar-factura').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                const facId = btn.dataset.id;
+                AbonoModal.show(facId, () => this.renderDetalle(id));
+            });
+        });
+
+        this.element.querySelectorAll('.btn-delete-row-cliente').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                if (!confirm('¿Eliminar este registro?')) return;
+                await DB.delete(btn.dataset.tabla, btn.dataset.id);
+                this.renderDetalle(id);
+            });
+        });
+
+        this.element.querySelectorAll('.btn-anular-transaccion-cliente').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                if (!confirm('¿Seguro que deseas anular este movimiento?')) return;
+                await supabase.from('pagos_ingresos').update({ estado: 'anulado' }).eq('id', btn.dataset.id);
+                this.renderDetalle(id);
+            });
+        });
 
         this.element.querySelector('#btn-volver-perfil')?.addEventListener('click', () => {
             this.restaurarVistaTabla();
         });
     },
 
-    restaurarVistaTabla() {
+    async restaurarVistaTabla() {
+        await this.cargarDatos();
         const tabs = this.element.querySelector('#contactos-tabs');
         if (tabs) tabs.style.display = 'flex';
         

@@ -4,9 +4,9 @@ import { UI } from '../../shared/combobox.js';
 
 import { supabase } from '../../core/supabase.js';
 
-export const CATEGORIAS_GASTO = ["Arriendo", "Servicios", "Nómina", "Insumos Menores", "Cuentas por Cobrar", "Otros"];
+const CATEGORIAS_INGRESO = ["Arriendo", "Servicios", "Nómina", "Insumos Menores", "Cuentas por Cobrar", "Otros"];
 
-export const GastosModule = {
+export const IngresosOperativosModule = {
     async init(element) {
         // Cargar contactos para el selector de proveedor
         const contactos = await DB.getAll('contactos');
@@ -18,30 +18,30 @@ export const GastosModule = {
         element.innerHTML = `
             <div class="container-fluid py-4">
                 <div class="d-flex justify-content-between flex-wrap pt-3 pb-2 mb-3 border-bottom">
-                    <h1 class="h2">Gastos Operativos</h1>
+                    <h1 class="h2">Ingresos Operativos</h1>
                 </div>
 
                 <!-- Panel Superior: Creación Rápida -->
                 <div class="card mb-4 shadow-sm border-0">
                     <div class="card-header bg-white border-bottom-0 pt-4 pb-0">
-                        <h5 class="mb-0 text-primary"><i class="bi bi-receipt me-2"></i>Registrar Nuevo Gasto</h5>
+                        <h5 class="mb-0 text-primary"><i class="bi bi-receipt me-2"></i>Registrar Nuevo Ingreso</h5>
                     </div>
                     <div class="card-body">
-                        <form id="form-nuevo-gasto" class="row g-4 align-items-end">
+                        <form id="form-nuevo-ingreso" class="row g-4 align-items-end">
                             <div class="col-md-2">
                                 <label class="form-label text-muted small fw-semibold mb-1">Fecha *</label>
-                                <input type="date" class="form-control" id="gasto-fecha" required>
+                                <input type="date" class="form-control" id="ingreso-fecha" required>
                             </div>
                             <div class="col-md-2">
                                 <label class="form-label text-muted small fw-semibold mb-1">Categoría *</label>
-                                <select class="form-select" id="gasto-categoria" required>
+                                <select class="form-select" id="ingreso-categoria" required>
                                     <option value="">Seleccione...</option>
-                                    ${CATEGORIAS_GASTO.map(c => `<option value="${c}">${c}</option>`).join('')}
+                                    ${CATEGORIAS_INGRESO.map(c => `<option value="${c}">${c}</option>`).join('')}
                                 </select>
                             </div>
                             <div class="col-md-2">
                                 <label class="form-label text-muted small fw-semibold mb-1">Monto ($) *</label>
-                                <input type="number" class="form-control" id="gasto-monto" min="1" required>
+                                <input type="number" class="form-control" id="ingreso-monto" min="1" required>
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label text-muted small fw-semibold mb-1">Proveedor (Opcional)</label>
@@ -53,20 +53,20 @@ export const GastosModule = {
                             <div class="col-md-3">
                                 <label class="form-label text-muted small fw-semibold mb-1">Cuenta Bancaria *</label>
                                 <div class="custom-combobox" id="combo-cuenta-container">
-                                    <input type="text" class="form-control" id="gasto-cuenta" placeholder="Buscar cuenta..." required autocomplete="off">
-                                    <input type="hidden" id="gasto-cuenta-id" required>
+                                    <input type="text" class="form-control" id="ingreso-cuenta" placeholder="Buscar cuenta..." required autocomplete="off">
+                                    <input type="hidden" id="ingreso-cuenta-id" required>
                                 </div>
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label text-muted small fw-semibold mb-1">Referencia (Opcional)</label>
-                                <input type="text" class="form-control" id="gasto-referencia" placeholder="Nro Factura / Recibo">
+                                <input type="text" class="form-control" id="ingreso-referencia" placeholder="Nro Factura / Recibo">
                             </div>
                             <div class="col-md-7">
                                 <label class="form-label text-muted small fw-semibold mb-1">Descripción *</label>
-                                <input type="text" class="form-control" id="gasto-descripcion" placeholder="Ej. Pago servicio de internet" required minlength="3">
+                                <input type="text" class="form-control" id="ingreso-descripcion" placeholder="Ej. Pago servicio de internet" required minlength="3">
                             </div>
                             <div class="col-md-2">
-                                <button type="submit" class="btn btn-primary w-100" id="btn-guardar-gasto">
+                                <button type="submit" class="btn btn-primary w-100" id="btn-guardar-ingreso">
                                     <i class="bi bi-plus-circle me-1"></i>Registrar
                                 </button>
                             </div>
@@ -77,8 +77,8 @@ export const GastosModule = {
                 <!-- Panel Inferior: Gestión y Listado -->
                 <div class="card shadow-sm border-0">
                     <div class="card-header bg-white border-bottom-0 pt-4 pb-2 d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0 text-secondary"><i class="bi bi-list-ul me-2"></i>Historial de Gastos</h5>
-                        <h4 class="mb-0 text-danger fw-bold" id="kpi-total-gastos">$0</h4>
+                        <h5 class="mb-0 text-secondary"><i class="bi bi-list-ul me-2"></i>Historial de Ingresos</h5>
+                        <h4 class="mb-0 text-success fw-bold" id="kpi-total-ingresos">$0</h4>
                     </div>
                     <div class="card-body">
                         <!-- Filtros -->
@@ -86,7 +86,7 @@ export const GastosModule = {
                             <div class="col-md-3">
                                 <select class="form-select form-select-sm" id="filtro-categoria">
                                     <option value="todas">Todas las categorías</option>
-                                    ${CATEGORIAS_GASTO.map(c => `<option value="${c}">${c}</option>`).join('')}
+                                    ${CATEGORIAS_INGRESO.map(c => `<option value="${c}">${c}</option>`).join('')}
                                 </select>
                             </div>
                             <div class="col-md-2">
@@ -115,7 +115,7 @@ export const GastosModule = {
                                         <th class="border-0 py-3 text-center">Acciones</th>
                                     </tr>
                                 </thead>
-                                <tbody id="tbody-gastos">
+                                <tbody id="tbody-ingresos">
                                     <!-- Contenido dinámico -->
                                 </tbody>
                             </table>
@@ -140,8 +140,8 @@ export const GastosModule = {
         });
 
         // ── Combobox de Cuentas ──
-        const inputCuenta = element.querySelector('#gasto-cuenta');
-        const hiddenCuentaId = element.querySelector('#gasto-cuenta-id');
+        const inputCuenta = element.querySelector('#ingreso-cuenta');
+        const hiddenCuentaId = element.querySelector('#ingreso-cuenta-id');
         
         // Transformar la data de cuentas para el combobox
         const bancosData = this.cuentasActivas.map(b => ({
@@ -159,7 +159,7 @@ export const GastosModule = {
 
         // Set fecha actual por defecto
         const fechaHoy = new Date().toISOString().split('T')[0];
-        element.querySelector('#gasto-fecha').value = fechaHoy;
+        element.querySelector('#ingreso-fecha').value = fechaHoy;
         
         // Default mes actual para filtros
         const primerDiaMes = new Date();
@@ -180,10 +180,10 @@ export const GastosModule = {
         });
 
         // Event Listener Formulario
-        const form = element.querySelector('#form-nuevo-gasto');
+        const form = element.querySelector('#form-nuevo-ingreso');
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const btn = element.querySelector('#btn-guardar-gasto');
+            const btn = element.querySelector('#btn-guardar-ingreso');
             const cuentaIdRaw = hiddenCuentaId.value.trim();
 
             // Validar que la cuenta existe en config usando el ID
@@ -194,13 +194,13 @@ export const GastosModule = {
             }
 
             const datos = {
-                fecha: element.querySelector('#gasto-fecha').value,
-                categoria: element.querySelector('#gasto-categoria').value,
-                monto: parseFloat(element.querySelector('#gasto-monto').value),
+                fecha: element.querySelector('#ingreso-fecha').value,
+                categoria: element.querySelector('#ingreso-categoria').value,
+                monto: parseFloat(element.querySelector('#ingreso-monto').value),
                 cuentaId: parseInt(cuentaIdRaw, 10),
                 proveedorId: element.querySelector('#select-proveedor-id').value || null,
-                referencia: element.querySelector('#gasto-referencia').value.trim(),
-                descripcion: element.querySelector('#gasto-descripcion').value.trim(),
+                referencia: element.querySelector('#ingreso-referencia').value.trim(),
+                descripcion: element.querySelector('#ingreso-descripcion').value.trim(),
                 estado: 'activo'
             };
 
@@ -208,16 +208,16 @@ export const GastosModule = {
                 btn.disabled = true;
                 btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Guardando...';
                 
-                await this.registrarGasto(datos);
+                await this.registrarIngreso(datos);
                 
                 // Reset form
                 form.reset();
-                element.querySelector('#gasto-fecha').value = fechaHoy; // Restaurar fecha hoy
+                element.querySelector('#ingreso-fecha').value = fechaHoy; // Restaurar fecha hoy
                 hiddenCuentaId.value = '';
                 
                 await this.renderTabla(element);
             } catch (err) {
-                alert('Error al guardar el gasto: ' + err.message);
+                alert('Error al guardar el ingreso: ' + err.message);
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = '<i class="bi bi-plus-circle me-1"></i>Registrar';
@@ -225,64 +225,64 @@ export const GastosModule = {
         });
     },
 
-    async registrarGasto(datosPrevios) {
+    async registrarIngreso(datosPrevios) {
         // Validaciones defensivas
         if (!datosPrevios.cuentaId || datosPrevios.monto <= 0 || !datosPrevios.categoria || !datosPrevios.descripcion) {
-            throw new Error("Datos inválidos o incompletos para registrar el gasto.");
+            throw new Error("Datos inválidos o incompletos para registrar el ingreso.");
         }
 
         try {
             const transaccion = {
                 cuenta_id: parseInt(datosPrevios.cuentaId, 10),
                 fecha: datosPrevios.fecha,
-                tipo: 'egreso', // Salida de dinero
+                tipo: 'ingreso', // Salida de dinero
                 monto: datosPrevios.monto,
                 categoria: datosPrevios.categoria, // Va directo a la nueva columna 'categoria'
                 referencia: datosPrevios.referencia || null, // Nueva columna
-                observaciones: datosPrevios.descripcion, // El detalle del gasto va en 'observaciones'
+                observaciones: datosPrevios.descripcion, // El detalle del ingreso va en 'observaciones'
                 contacto_id: datosPrevios.proveedorId ? parseInt(datosPrevios.proveedorId, 10) : null
             };
 
             await DB.save('transacciones', transaccion);
             return transaccion;
         } catch (error) {
-            console.error("Fallo al registrar el gasto operativo en pagos_ingresos.", error);
-            throw new Error("No se pudo registrar el gasto operativo en el sistema.");
+            console.error("Fallo al registrar el ingreso operativo en pagos_ingresos.", error);
+            throw new Error("No se pudo registrar el ingreso operativo en el sistema.");
         }
     },
 
     async renderTabla(element) {
-        const tbody = element.querySelector('#tbody-gastos');
-        const kpiTotal = element.querySelector('#kpi-total-gastos');
+        const tbody = element.querySelector('#tbody-ingresos');
+        const kpiTotal = element.querySelector('#kpi-total-ingresos');
         
         const catFiltro = element.querySelector('#filtro-categoria').value;
         const fechaDesde = element.querySelector('#filtro-fecha-desde').value;
         const fechaHasta = element.querySelector('#filtro-fecha-hasta').value;
 
-        let todosGastos = [];
+        let todosIngresos = [];
         let desde = 0;
         
         while (true) {
             const { data, error } = await supabase
                 .from('pagos_ingresos')
                 .select('*')
-                .eq('tipo', 'out')
+                .eq('tipo', 'in')
                 .is('factura_id', null)
                 .range(desde, desde + 999);
                 
             if (error) {
-                console.error("Error cargando historial de gastos:", error);
+                console.error("Error cargando historial de ingresos:", error);
                 break;
             }
             
             if (!data || data.length === 0) break;
-            todosGastos = todosGastos.concat(data);
+            todosIngresos = todosIngresos.concat(data);
             if (data.length < 1000) break;
             desde += 1000;
         }
         
         // Mapear los campos devueltos por BD a lo que espera la tabla
-        todosGastos = todosGastos.map(g => ({
+        todosIngresos = todosIngresos.map(g => ({
             id: g.id,
             fecha: g.fecha,
             categoria: g.categoria || 'Sin Categoría',
@@ -294,7 +294,7 @@ export const GastosModule = {
             estado: g.estado
         }));
         // Aplicar Filtros
-        const gastosFiltrados = todosGastos.filter(g => {
+        const ingresosFiltrados = todosIngresos.filter(g => {
             if (g.estado === 'anulado') return false; // No mostrar anulados (soft delete) en el listado activo
             if (catFiltro !== 'todas' && g.categoria !== catFiltro) return false;
             if (fechaDesde && g.fecha < fechaDesde) return false;
@@ -303,18 +303,18 @@ export const GastosModule = {
         });
 
         // Ordenar por fecha descendente
-        gastosFiltrados.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+        ingresosFiltrados.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
 
         // Calcular KPI
-        const total = gastosFiltrados.reduce((sum, g) => sum + parseFloat(g.monto || 0), 0);
+        const total = ingresosFiltrados.reduce((sum, g) => sum + parseFloat(g.monto || 0), 0);
         kpiTotal.textContent = `$${total.toLocaleString()}`;
 
-        if (gastosFiltrados.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="8" class="text-center text-muted py-4">No se encontraron gastos en este período.</td></tr>`;
+        if (ingresosFiltrados.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="8" class="text-center text-muted py-4">No se encontraron ingresos en este período.</td></tr>`;
             return;
         }
 
-        tbody.innerHTML = gastosFiltrados.map(g => {
+        tbody.innerHTML = ingresosFiltrados.map(g => {
             const proveedorNombre = g.proveedorId
                 ? (this.proveedores || []).find(p => String(p.id) === String(g.proveedorId))?.nombre || '-'
                 : '-';
@@ -329,9 +329,9 @@ export const GastosModule = {
                 <td class="py-3 text-muted">${proveedorNombre}</td>
                 <td class="py-3 text-muted">${cuentaNombre}</td>
                 <td class="py-3 text-muted">${g.referencia || '-'}</td>
-                <td class="py-3 text-end fw-bold text-danger">-$${g.monto.toLocaleString()}</td>
+                <td class="py-3 text-end fw-bold text-success">+$${g.monto.toLocaleString()}</td>
                 <td class="py-3 text-center">
-                    <button class="btn btn-sm btn-light text-danger btn-eliminar-gasto" data-id="${g.id}" title="Eliminar/Anular">
+                    <button class="btn btn-sm btn-light text-success btn-eliminar-ingreso" data-id="${g.id}" title="Eliminar/Anular">
                         <i class="bi bi-trash"></i>
                     </button>
                 </td>
@@ -339,26 +339,26 @@ export const GastosModule = {
         }).join('');
 
         // Eventos Eliminar
-        tbody.querySelectorAll('.btn-eliminar-gasto').forEach(btn => {
+        tbody.querySelectorAll('.btn-eliminar-ingreso').forEach(btn => {
             btn.addEventListener('click', async (e) => {
                 const id = e.currentTarget.dataset.id;
-                if (confirm('¿Está seguro de anular este gasto? Esta acción revertirá el movimiento bancario correspondiente.')) {
+                if (confirm('¿Está seguro de anular este ingreso? Esta acción revertirá el movimiento bancario correspondiente.')) {
                     try {
-                        await this.anularGasto(id);
+                        await this.anularIngreso(id);
                         await this.renderTabla(element);
                     } catch (err) {
-                        alert("Error al anular el gasto: " + err.message);
+                        alert("Error al anular el ingreso: " + err.message);
                     }
                 }
             });
         });
     },
 
-    async anularGasto(gastoId) {
+    async anularIngreso(ingresoId) {
         // En vez de soft delete, borramos la transacción.
         // O podríamos marcarla como 'anulado' en el campo estado de pagos_ingresos.
-        const idInt = parseInt(gastoId, 10);
-        if (isNaN(idInt)) throw new Error("ID de gasto inválido");
+        const idInt = parseInt(ingresoId, 10);
+        if (isNaN(idInt)) throw new Error("ID de ingreso inválido");
 
         // Soft Delete actualizando el estado
         const { error } = await supabase
