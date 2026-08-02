@@ -40,7 +40,6 @@ export const FacturasModule = {
             </div>
         `;
         
-        let transacciones = (await DB.getAll('transacciones').catch(() => [])) || [];
         let contactos = this.cache.contactos;
         
         const getClienteName = (id) => {
@@ -69,9 +68,18 @@ export const FacturasModule = {
             }
 
             try {
-                const { data: pageData, count } = await DB.getPage('facturas', currentPage, itemsPerPage, sortColumn, sortDirection, searchQuery, filterCriteria);
+                const { data: pageData, error } = await supabase.rpc('get_facturas_con_saldos', {
+                    p_page: currentPage,
+                    p_limit: itemsPerPage,
+                    p_sort_col: sortColumn,
+                    p_sort_dir: sortDirection,
+                    p_search: searchQuery,
+                    p_filter_criteria: filterCriteria
+                });
                 
-                totalItems = count || 0;
+                if (error) throw error;
+                
+                totalItems = pageData && pageData.length > 0 ? pageData[0].total_count : 0;
                 totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
                 
                 if (currentPage > totalPages && totalPages > 0) {
@@ -80,8 +88,8 @@ export const FacturasModule = {
                 }
 
                 currentItems = pageData.map(f => {
-                    const dinamico = calcularEstadoFactura(f, transacciones);
-                    return { ...f, estado: dinamico.estado, saldoPendiente: dinamico.saldo, totalPagado: dinamico.totalPagado };
+                    // El RPC ya devuelve estado_dinamico, saldo_pendiente y total_pagado
+                    return { ...f, estado: f.estado_dinamico, saldoPendiente: f.saldo_pendiente, totalPagado: f.total_pagado };
                 });
             } catch (err) {
                 console.error(err);
@@ -312,10 +320,18 @@ export const FacturasModule = {
                 btn.innerHTML = `<span class="spinner-border spinner-border-sm" aria-hidden="true"></span>`;
                 
                 try {
-                    const { data: allFiltered } = await DB.getPage('facturas', 1, 10000, sortColumn, sortDirection, searchQuery, filterCriteria);
+                    const { data: allFiltered, error } = await supabase.rpc('get_facturas_con_saldos', {
+                        p_page: 1,
+                        p_limit: 10000,
+                        p_sort_col: sortColumn,
+                        p_sort_dir: sortDirection,
+                        p_search: searchQuery,
+                        p_filter_criteria: filterCriteria
+                    });
+                    if (error) throw error;
+                    
                     const allDecorated = allFiltered.map(f => {
-                        const dinamico = calcularEstadoFactura(f, transacciones);
-                        return { ...f, estado: dinamico.estado, saldoPendiente: dinamico.saldo, totalPagado: dinamico.totalPagado };
+                        return { ...f, estado: f.estado_dinamico, saldoPendiente: f.saldo_pendiente, totalPagado: f.total_pagado };
                     });
                     ExportManager.exportDataToExcel(allDecorated, 'Facturas', getClienteName, btn);
                 } catch(err) { console.error(err); }
