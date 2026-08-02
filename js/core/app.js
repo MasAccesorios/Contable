@@ -132,7 +132,9 @@ async function router() {
             }
         } catch (err) {
             console.error('Error al instanciar el módulo:', err);
-            renderPlaceholder(appEl, routePath, `Error de Carga: ${err.message}`);
+            // IMPORTANTE: usar newAppEl (si existe) o appEl, porque appEl pudo haber sido reemplazado
+            const targetEl = document.getElementById('view-viewport') || appEl;
+            renderPlaceholder(targetEl, routePath, `Error de Carga: ${err.message}`);
         }
     } else {
         // Generador automático de Placeholders

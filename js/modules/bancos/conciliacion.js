@@ -40,7 +40,7 @@ export const ConciliacionModule = {
 
     async loadData() {
         const dbCuentas = await DB.getAll('cuentas_bancarias') || [];
-        this.state.cuentas = dbCuentas.filter(c => c.estado === 'activo');
+        this.state.cuentas = dbCuentas.filter(c => c.estado === 'active' || c.estado === 'activo');
         if (!this.state.bancoId && this.state.cuentas.length > 0) {
             this.state.bancoId = this.state.cuentas[0].id;
         }
@@ -62,6 +62,7 @@ export const ConciliacionModule = {
 
         this.state.transacciones.forEach(t => {
             if (t.cuentaId !== this.state.bancoId) return;
+            if (t.estado === 'anulado') return;
             const fechaTx = (t.fecha || '').substring(0, 10);
 
             if (fechaTx < this.state.fechaDesde) {
@@ -103,7 +104,7 @@ export const ConciliacionModule = {
 
     renderBase() {
         let opcionesCuentas = this.state.cuentas.map(c => 
-            `<option value="${c.id}" ${c.id === this.state.bancoId ? 'selected' : ''}>${c.nombre}</option>`
+            `<option value="${c.id}" ${String(c.id) === String(this.state.bancoId) ? 'selected' : ''}>${c.nombre}</option>`
         ).join('');
 
         this.element.innerHTML = `
@@ -194,7 +195,10 @@ export const ConciliacionModule = {
                                                 <th class="py-3 text-muted" style="font-size: 12px; font-weight: 600;">Descripción</th>
                                                 <th class="py-3 text-muted" style="font-size: 12px; font-weight: 600;">Tipo</th>
                                                 <th class="py-3 text-muted" style="font-size: 12px; font-weight: 600;">Monto</th>
-                                                <th class="py-3 pe-4 text-center text-muted" style="font-size: 12px; font-weight: 600;">Conciliado</th>
+                                                <th class="py-3 pe-4 text-center text-muted" style="font-size: 12px; font-weight: 600;">
+                                                    <input type="checkbox" id="chk-select-all" class="form-check-input me-1" title="Seleccionar todo" style="cursor: pointer;">
+                                                    Conciliado
+                                                </th>
                                             </tr>
                                         </thead>
                                         <tbody id="tbody-conciliacion">
@@ -338,6 +342,12 @@ export const ConciliacionModule = {
     },
 
     attachEvents() {
+        this.element.querySelector('#chk-select-all')?.addEventListener('change', (e) => {
+            const isChecked = e.target.checked;
+            const checks = this.element.querySelectorAll('.concil-check');
+            checks.forEach(cb => cb.checked = isChecked);
+        });
+
         this.element.querySelector('#concil-cuenta').addEventListener('change', (e) => {
             this.state.bancoId = e.target.value;
             this.calcularTotales();
@@ -368,7 +378,6 @@ export const ConciliacionModule = {
             const movimientosConciliados = Array.from(checks).map(cb => cb.dataset.id);
 
             const concil = {
-                id: this.state.editingConciliacionId || `concil_${Date.now()}`,
                 banco_id: this.state.bancoId,
                 fecha_desde: this.state.fechaDesde,
                 fecha_hasta: this.state.fechaHasta,
@@ -376,8 +385,12 @@ export const ConciliacionModule = {
                 saldo_sistema: this.state.saldoAnterior + this.state.entradas - this.state.salidas,
                 diferencia: this.state.saldoBancario - (this.state.saldoAnterior + this.state.entradas - this.state.salidas),
                 fecha_guardado: new Date().toISOString(),
-                movimientos_conciliados: movimientosConciliados
+                movimientos_conciliados: movimientosConciliados.map(id => parseInt(id, 10))
             };
+
+            if (this.state.editingConciliacionId) {
+                concil.id = this.state.editingConciliacionId;
+            }
 
             try {
                 await DB.save('conciliaciones', concil);
