@@ -465,9 +465,16 @@ export const ContactosModule = {
             .limit(50);
 
         const facturaIdsCliente = (facturasCliente || []).map(f => f.id);
-        const { data: todasLasTransacciones } = facturaIdsCliente.length > 0
+        const { data: rawTransacciones } = facturaIdsCliente.length > 0
             ? await supabase.from('pagos_ingresos').select('*').in('factura_id', facturaIdsCliente)
             : { data: [] };
+            
+        // TRADUCCIÓN OBLIGATORIA: El query crudo a Supabase devuelve 'in' / 'out'. 
+        // calcularEstadoFactura exige el contrato 'ingreso' / 'egreso'.
+        const todasLasTransacciones = (rawTransacciones || []).map(t => ({
+            ...t,
+            tipo: t.tipo === 'in' ? 'ingreso' : 'egreso'
+        }));
 
         const { data: cotizacionesCliente } = await supabase
             .from('cotizaciones')

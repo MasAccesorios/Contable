@@ -455,10 +455,16 @@ export const FacturasModule = {
         const productos = this.cache.productos;
 
         const facturaIdTransacciones = id ? [id] : [];
-        const { data: transaccionesData } = facturaIdTransacciones.length > 0
+        const { data: rawTransaccionesData } = facturaIdTransacciones.length > 0
             ? await supabase.from('pagos_ingresos').select('*').in('factura_id', facturaIdTransacciones)
             : { data: [] };
-        const transacciones = transaccionesData || [];
+            
+        // TRADUCCIÓN OBLIGATORIA: El query crudo a Supabase devuelve 'in' / 'out'. 
+        // calcularEstadoFactura exige el contrato 'ingreso' / 'egreso'.
+        const transacciones = (rawTransaccionesData || []).map(t => ({
+            ...t,
+            tipo: t.tipo === 'in' ? 'ingreso' : 'egreso'
+        }));
         
         // Estado por defecto
         let factura = {

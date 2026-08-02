@@ -28,6 +28,7 @@ export const calcularEstadoFactura = (factura, todasLasTransacciones) => {
 
     // 1. Filtrar solo las transacciones correspondientes
     const tipoTransaccion = (factura.tipo === 'compra' || factura.tipo === 'gasto') ? 'egreso' : 'ingreso';
+    
     const transaccionesFactura = todasLasTransacciones.filter(t => 
         (String(t.referenciaId) === String(factura.id) || String(t.factura_id) === String(factura.id)) && 
         t.tipo === tipoTransaccion
@@ -118,6 +119,7 @@ export const obtenerCarteraFiltrada = (facturasRaw, transacciones, contactos, ti
     const facturasDecoradas = facturasRaw.map(f => {
         // En lugar de pasar las 24.000, pasamos solo las suyas (O(1))
         const tFactura = transaccionesPorFactura.get(String(f.id)) || [];
+        
         const dinamico = calcularEstadoFactura(f, tFactura);
         return { ...f, estado: dinamico.estado, saldo: dinamico.saldo, totalPagado: dinamico.totalPagado };
     });
