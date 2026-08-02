@@ -365,7 +365,16 @@ const DB = {
                     const num = parseInt(searchQuery.replace(/\D/g, ''), 10);
                     if (!isNaN(num)) query = query.eq('numero', num);
                 } else if (filterCriteria === 'fecha') {
-                    query = query.ilike('fecha', sq);
+                    // Supabase no soporta ilike en campos DATE. Parseamos el input:
+                    if (/^\d{4}-\d{2}-\d{2}$/.test(searchQuery)) {
+                        query = query.eq('fecha', searchQuery);
+                    } else if (/^\d{4}-\d{2}$/.test(searchQuery)) {
+                        query = query.gte('fecha', `${searchQuery}-01`).lte('fecha', `${searchQuery}-31`);
+                    } else if (/^\d{4}$/.test(searchQuery)) {
+                        query = query.gte('fecha', `${searchQuery}-01-01`).lte('fecha', `${searchQuery}-12-31`);
+                    } else {
+                        query = query.eq('id', -1); // Falla segura si no es un formato de fecha válido
+                    }
                 } else if (filterCriteria === 'estado') {
                     query = query.ilike('estado', sq);
                 } else if (filterCriteria === 'cliente' || filterCriteria === 'todos') {
@@ -376,7 +385,11 @@ const DB = {
                     if (filterCriteria === 'todos') {
                         let orConditions = [];
                         orConditions.push(`estado.ilike.${sq}`);
-                        orConditions.push(`fecha.ilike.${sq}`);
+                        
+                        // Validar si el texto es una fecha exacta para poder incluirla en el OR
+                        if (/^\d{4}-\d{2}-\d{2}$/.test(searchQuery)) {
+                            orConditions.push(`fecha.eq.${searchQuery}`);
+                        }
                         
                         const num = parseInt(searchQuery.replace(/\D/g, ''), 10);
                         if (!isNaN(num)) orConditions.push(`numero.eq.${num}`);
