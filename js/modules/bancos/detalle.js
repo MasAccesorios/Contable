@@ -65,14 +65,52 @@ export const DetalleBancoModule = {
                 .range(this.state.offset, this.state.offset + this.state.limit - 1);
             
             if (!error && pagos) {
-                const mapped = pagos.map(item => ({
-                    ...item,
-                    tipo: item.tipo === 'in' ? 'ingreso' : 'egreso',
-                    monto: Number(item.monto),
-                    referenciaId: item.factura_id ? String(item.factura_id) : null,
-                    cuentaId: String(item.cuenta_id),
-                    detalle: item.observaciones || item.categoria || item.referencia || 'Sin detalle'
-                }));
+                // ENRICHMENT: Fetch contacts and invoices
+                const contactoIds = [...new Set(pagos.map(p => p.contacto_id).filter(Boolean))];
+                const facturaIds = [...new Set(pagos.map(p => p.factura_id).filter(Boolean))];
+                
+                let contactosMap = {};
+                if (contactoIds.length > 0) {
+                    const { data: contactos } = await supabase.from('contactos').select('id, nombre, identificacion').in('id', contactoIds);
+                    if (contactos) {
+                        contactos.forEach(c => contactosMap[c.id] = c);
+                    }
+                }
+                
+                let facturasMap = {};
+                if (facturaIds.length > 0) {
+                    const { data: facturas } = await supabase.from('facturas').select('id, numero').in('id', facturaIds);
+                    if (facturas) {
+                        facturas.forEach(f => facturasMap[f.id] = f);
+                    }
+                }
+
+                const mapped = pagos.map(item => {
+                    const contacto = contactosMap[item.contacto_id];
+                    let terceroNombre = contacto ? contacto.nombre : (item.referencia || 'Desconocido');
+                    let terceroNit = contacto && contacto.identificacion ? contacto.identificacion : '';
+                    
+                    let cuentaContable = 'Otros movimientos';
+                    if (item.factura_id && facturasMap[item.factura_id]) {
+                        cuentaContable = `Facturas: ${facturasMap[item.factura_id].numero}`;
+                    } else if (item.categoria) {
+                        cuentaContable = item.categoria;
+                    } else if (item.observaciones) {
+                        cuentaContable = item.observaciones;
+                    }
+                    
+                    return {
+                        ...item,
+                        tipo: item.tipo === 'in' ? 'ingreso' : 'egreso',
+                        monto: Number(item.monto),
+                        referenciaId: item.factura_id ? String(item.factura_id) : null,
+                        cuentaId: String(item.cuenta_id),
+                        detalle: item.observaciones || item.categoria || item.referencia || 'Sin detalle',
+                        terceroNombre,
+                        terceroNit,
+                        cuentaContable
+                    };
+                });
 
                 if (!isLoadMore) {
                     this.state.transacciones = mapped;
@@ -143,24 +181,35 @@ export const DetalleBancoModule = {
 
             const tbodyHtml = currentItems.length > 0 ? currentItems.map(t => {
                 const isIngreso = t.tipo === 'ingreso';
-                const badgeColor = isIngreso ? 'color: #15803d; background-color: #dcfce7;' : 'color: #b91c1c; background-color: #fee2e2;';
-                const labelTipo = isIngreso ? 'Ingreso' : 'Egreso';
+                const valorColor = isIngreso ? '#2cbfb7' : '#e74c3c';
                 
                 return `
-                    <tr style="border-bottom: 1px solid var(--border-color); font-size: 13px; color: var(--text-body); cursor: pointer;" data-id="${t.id}">
+                    <tr style="border-bottom: 1px solid var(--border-color); font-size: 13px; color: var(--text-body);" data-id="${t.id}">
                         <td class="py-3">${t.fecha || '-'}</td>
-                        <td class="py-3" style="color: var(--text-main); font-weight: 500;">
-                            ${t.detalle || t.referencia || t.categoria || 'Sin detalle'}
+                        <td class="py-3">
+                            <div style="color: var(--text-main); font-weight: 500;">${t.terceroNombre || 'Sin tercero'}</div>
+                            ${t.terceroNit ? `<div style="font-size: 11px; color: #888;">${t.terceroNit}</div>` : ''}
+                        </td>
+                        <td class="py-3" style="color: var(--text-main);">
+                            ${t.cuentaContable}
+                        </td>
+                        <td class="py-3 text-end fw-medium" style="color: ${valorColor};">
+                            ${formatMoney(t.monto)}
                         </td>
                         <td class="py-3 text-center">
-                            <span style="${badgeColor} padding: 4px 12px; border-radius: 12px; font-size: 11px; font-weight: var(--weight-medium);">${labelTipo}</span>
-                        </td>
-                        <td class="py-3 text-end fw-medium ${isIngreso ? 'text-success' : 'text-danger'}">
-                            ${isIngreso ? '+' : '-'} ${formatMoney(t.monto)}
+                            <button class="btn btn-sm btn-link p-0 text-muted mx-1" onclick="import('../../shared/transaccionModal.js').then(m => m.mostrarDetalleTransaccion('${t.id}'))" title="Ver detalle" style="color: #6c757d !important; transition: opacity 0.2s;" onmouseover="this.style.opacity=0.7" onmouseout="this.style.opacity=1">
+                                <i class="bi bi-eye fs-6"></i>
+                            </button>
+                            <button class="btn btn-sm btn-link p-0 text-muted mx-1" onclick="alert('Funcionalidad en desarrollo')" title="Imprimir" style="color: #6c757d !important; transition: opacity 0.2s;" onmouseover="this.style.opacity=0.7" onmouseout="this.style.opacity=1">
+                                <i class="bi bi-printer fs-6"></i>
+                            </button>
+                            <button class="btn btn-sm btn-link p-0 text-muted mx-1" onclick="alert('Funcionalidad en desarrollo')" title="Más opciones" style="color: #6c757d !important; transition: opacity 0.2s;" onmouseover="this.style.opacity=0.7" onmouseout="this.style.opacity=1">
+                                <i class="bi bi-three-dots-vertical fs-6"></i>
+                            </button>
                         </td>
                     </tr>
                 `;
-            }).join('') : `<tr><td colspan="4" class="text-center py-5 text-muted">No se encontraron movimientos o no coinciden con la búsqueda.</td></tr>`;
+            }).join('') : `<tr><td colspan="5" class="text-center py-5 text-muted">No se encontraron movimientos o no coinciden con la búsqueda.</td></tr>`;
 
             this.element.innerHTML = `
                 <div class="module-container p-4" style="max-width: 1100px; margin: 0 auto;">
@@ -210,10 +259,11 @@ export const DetalleBancoModule = {
                             <table class="table table-borderless align-middle mb-0">
                                 <thead style="border-bottom: 1px solid var(--border-color);">
                                     <tr style="color: var(--text-muted); font-size: 13px; font-weight: var(--weight-medium);">
-                                        <th class="py-3 fw-normal">Fecha</th>
-                                        <th class="py-3 fw-normal">Descripción</th>
-                                        <th class="py-3 fw-normal text-center" style="width: 150px;">Tipo</th>
-                                        <th class="py-3 fw-normal text-end" style="width: 200px;">Monto</th>
+                                        <th class="py-3 fw-normal" style="width: 100px;">Fecha</th>
+                                        <th class="py-3 fw-normal">Tercero</th>
+                                        <th class="py-3 fw-normal">Cuenta contable</th>
+                                        <th class="py-3 fw-normal text-end" style="width: 130px;">Valor</th>
+                                        <th class="py-3 fw-normal text-center" style="width: 120px;">Acciones</th>
                                     </tr>
                                 </thead>
                                 <tbody>
