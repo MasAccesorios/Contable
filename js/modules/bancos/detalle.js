@@ -96,7 +96,11 @@ export const DetalleBancoModule = {
                     } else if (item.categoria) {
                         cuentaContable = item.categoria;
                     } else if (item.observaciones) {
-                        cuentaContable = item.observaciones;
+                        const obs = String(item.observaciones).trim();
+                        // Si la observación es EXCLUSIVAMENTE la basura de migración, la ignoramos. Si tiene texto real, la mostramos.
+                        if (!/^\(\s*Alegra ID:\s*\d+\s*\)$/i.test(obs)) {
+                            cuentaContable = obs;
+                        }
                     }
                     
                     return {
