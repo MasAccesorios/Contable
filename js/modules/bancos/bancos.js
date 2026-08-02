@@ -331,10 +331,9 @@ export const TesoreriaModule = {
 
         // Calcular saldos (sólo para las cuentas activas)
         this.state.cuentasActivas.forEach(c => {
-            const initial = parseFloat(c.saldo_inicial) || 0;
-            this.state.saldos[c.id] = initial;
+            this.state.saldos[c.id] = 0;
             // Fallback para legacy UI requests
-            this.state.saldos[c.nombre] = initial;
+            this.state.saldos[c.nombre] = 0;
         });
 
         const { data: saldos, error } = await supabase.rpc('get_saldos_por_cuenta');
@@ -342,12 +341,8 @@ export const TesoreriaModule = {
         
         if (saldos) {
             saldos.forEach(s => {
-                // Sumar el saldo de la BD al saldo inicial (si existe) o inicializarlo
-                if (this.state.saldos[s.cuenta_id] !== undefined) {
-                    this.state.saldos[s.cuenta_id] += Number(s.saldo);
-                } else {
-                    this.state.saldos[s.cuenta_id] = Number(s.saldo);
-                }
+                // Asignar directamente el saldo de la BD, ignorando saldo_inicial obsoleto
+                this.state.saldos[s.cuenta_id] = Number(s.saldo);
             });
         }
 

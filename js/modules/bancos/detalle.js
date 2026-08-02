@@ -128,30 +128,17 @@ export const DetalleBancoModule = {
 
             // 2. Calcular Saldos (solo en la primera carga)
             if (!isLoadMore) {
-                let movimientos = [];
-                let desde = 0;
-                while (true) {
-                    const { data } = await supabase
-                        .from('pagos_ingresos')
-                        .select('tipo, monto')
-                        .eq('cuenta_id', cuentaRealId)
-                        .neq('estado', 'anulado') // Excluir anulados del cálculo de saldo
-                        .range(desde, desde + 999);
-                    
-                    if (!data || data.length === 0) break;
-                    movimientos = movimientos.concat(data);
-                    if (data.length < 1000) break;
-                    desde += 1000;
+                const { data: saldos, error: errorSaldos } = await supabase.rpc('get_saldos_por_cuenta');
+                let saldoCalculado = 0;
+                
+                if (!errorSaldos && saldos) {
+                    const saldoCuenta = saldos.find(s => String(s.cuenta_id) === String(cuentaRealId));
+                    if (saldoCuenta) {
+                        saldoCalculado = Number(saldoCuenta.saldo);
+                    }
                 }
                 
-    
-                const saldoCalculado = movimientos.reduce((acc, t) => {
-                    const esIngreso = t.tipo === 'in' || t.tipo === 'ingreso';
-                    return acc + (esIngreso ? Number(t.monto) : -Number(t.monto));
-                }, 0);
-                
-                const saldoInicial = parseFloat(this.state.cuenta.saldo_inicial) || 0;
-                this.state.saldo = saldoInicial + saldoCalculado;
+                this.state.saldo = saldoCalculado;
             }
         } else {
             // Caso fallback (cuenta no encontrada por ID)
