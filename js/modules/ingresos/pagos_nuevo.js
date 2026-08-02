@@ -1,4 +1,4 @@
-import DB from '../../core/db.js';
+import DB, { getLocalDate } from '../../core/db.js';
 import { CoreActions } from '../../shared/crud.js';
 import { calcularEstadoFactura } from '../../shared/carteraUtils.js';
 
@@ -141,7 +141,7 @@ export default {
 
                                 <div class="mb-4">
                                     <label class="form-label text-muted small fw-bold">Fecha de Pago</label>
-                                    <input type="date" id="pago-fecha" class="form-control border-2 bg-light" value="${new Date().toISOString().split('T')[0]}">
+                                    <input type="date" id="pago-fecha" class="form-control border-2 bg-light" value="${getLocalDate()}">
                                 </div>
 
                                 <div class="p-3 bg-success bg-opacity-10 rounded-3 mb-4 text-center border border-success border-opacity-25">

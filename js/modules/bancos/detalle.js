@@ -2,7 +2,7 @@
 import DB from '../../core/db.js';
 import { CoreActions } from '../../shared/crud.js';
 import { supabase } from '../../core/supabase.js';
-import { agruparTransaccionesPorPago } from '../../shared/transaccionesUtils.js';
+import { agruparTransaccionesPorPago, anularTransaccion } from '../../shared/transaccionesUtils.js';
 import { mostrarDetalleTransaccion } from '../../shared/transaccionModal.js';
 
 export const DetalleBancoModule = {
@@ -207,9 +207,14 @@ export const DetalleBancoModule = {
                             <button class="btn btn-sm btn-link p-0 text-muted mx-1" onclick="alert('Funcionalidad en desarrollo')" title="Imprimir" style="color: #6c757d !important; transition: opacity 0.2s;" onmouseover="this.style.opacity=0.7" onmouseout="this.style.opacity=1">
                                 <i class="bi bi-printer fs-6"></i>
                             </button>
-                            <button class="btn btn-sm btn-link p-0 text-muted mx-1" onclick="alert('Funcionalidad en desarrollo')" title="Más opciones" style="color: #6c757d !important; transition: opacity 0.2s;" onmouseover="this.style.opacity=0.7" onmouseout="this.style.opacity=1">
-                                <i class="bi bi-three-dots-vertical fs-6"></i>
-                            </button>
+                            <div class="dropdown d-inline-block">
+                                <button class="btn btn-sm btn-link p-0 text-muted mx-1" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Más opciones" style="color: #6c757d !important; transition: opacity 0.2s;" onmouseover="this.style.opacity=0.7" onmouseout="this.style.opacity=1">
+                                    <i class="bi bi-three-dots-vertical fs-6"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end shadow border-0" style="font-size: 13px;">
+                                    <li><a class="dropdown-item text-danger btn-eliminar-banco" href="javascript:void(0)" data-id="${t.id}" data-monto="${t.monto}" data-fecha="${t.fecha}">Eliminar</a></li>
+                                </ul>
+                            </div>
                         </td>
                     </tr>
                 `;
@@ -320,8 +325,30 @@ export const DetalleBancoModule = {
                 renderGrid();
             });
 
+            this.element.querySelectorAll('.btn-eliminar-banco').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const id = e.currentTarget.dataset.id;
+                    const monto = e.currentTarget.dataset.monto;
+                    const fecha = e.currentTarget.dataset.fecha;
+                    const montoFormat = '$ ' + parseFloat(monto || 0).toLocaleString('es-CO', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                    
+                    if (confirm(`¿Está seguro que desea eliminar este movimiento por valor de ${montoFormat} del ${fecha}? Esta acción revertirá el saldo de la cuenta.`)) {
+                        try {
+                            await anularTransaccion(id);
+                            await this.loadData(false);
+                            renderGrid();
+                        } catch (err) {
+                            alert("Error al anular el movimiento: " + err.message);
+                        }
+                    }
+                });
+            });
+
             this.element.querySelectorAll('tbody tr[data-id]').forEach(row => {
-                row.addEventListener('click', async () => {
+                row.addEventListener('click', async (e) => {
+                    if (e.target.closest('button') || e.target.closest('.dropdown-menu')) return;
                     const tId = row.dataset.id;
                     const t = transaccionesAgrupadas.find(x => String(x.id) === String(tId));
                     if (!t) return;

@@ -1,4 +1,4 @@
-import DB from '../../core/db.js';
+import DB, { getLocalDate } from '../../core/db.js';
 import { CoreActions } from '../../shared/crud.js';
 import { obtenerCarteraFiltrada } from '../../shared/carteraUtils.js';
 import { AbonoModal } from '../../shared/abonoModal.js';
@@ -92,6 +92,7 @@ export default {
                                     <button type="button" class="list-group-item list-group-item-action border-0 px-2 py-1 text-secondary bg-transparent" data-range="semana_anterior">Semana Anterior</button>
                                     <button type="button" class="list-group-item list-group-item-action border-0 px-2 py-1 text-secondary bg-transparent" data-range="este_mes">Este Mes</button>
                                     <button type="button" class="list-group-item list-group-item-action border-0 px-2 py-1 text-secondary bg-transparent" data-range="mes_anterior">Mes Anterior</button>
+                                    <button type="button" class="list-group-item list-group-item-action border-0 px-2 py-1 text-secondary bg-transparent" data-range="ultimos_3_meses">Últimos 3 Meses</button>
                                     <button type="button" class="list-group-item list-group-item-action border-0 px-2 py-1 text-secondary bg-transparent" data-range="este_trimestre">Este Trimestre</button>
                                     <button type="button" class="list-group-item list-group-item-action border-0 px-2 py-1 text-secondary bg-transparent" data-range="trimestre_anterior">Trimestre Anterior</button>
                                     <button type="button" class="list-group-item list-group-item-action border-0 px-2 py-1 text-secondary bg-transparent" data-range="este_ano">Este Año</button>
@@ -291,7 +292,7 @@ export default {
 
         // Obtener la fecha de hoy en formato YYYY-MM-DD
         const hoyObj = new Date();
-        const hoyStr = hoyObj.toISOString().split('T')[0];
+        const hoyStr = getLocalDate(hoyObj);
 
         // Estado inicial de la UI indica rango 2000-01-01 hasta hoy si no está definido
         const fechaInicio = (inputInicio && inputInicio.value) ? inputInicio.value : '2000-01-01';
@@ -320,9 +321,12 @@ export default {
 
     calcularRangoSegunAtajo(tipo) {
         const hoy = new Date();
-        const hoyStr = hoy.toISOString().split('T')[0];
-        const primerDiaMesStr = new Date(hoy.getFullYear(), hoy.getMonth(), 1).toISOString().split('T')[0];
-        const primerDiaAnoStr = new Date(hoy.getFullYear(), 0, 1).toISOString().split('T')[0];
+        const hoyStr = getLocalDate(hoy);
+        const primerDiaMesStr = getLocalDate(new Date(hoy.getFullYear(), hoy.getMonth(), 1));
+        const hace3Meses = new Date(hoy);
+        hace3Meses.setMonth(hace3Meses.getMonth() - 3);
+        const ultimos3MesesStr = getLocalDate(hace3Meses);
+        const primerDiaAnoStr = getLocalDate(new Date(hoy.getFullYear(), 0, 1));
         
         let inicio, fin;
 
@@ -337,6 +341,10 @@ export default {
             case 'este_mes':
                 inicio = primerDiaMesStr;
                 fin = hoyStr; // O el último día del mes, pero usualmente reportes son hasta hoy
+                break;
+            case 'ultimos_3_meses':
+                inicio = ultimos3MesesStr;
+                fin = hoyStr;
                 break;
             case 'este_ano':
                 inicio = primerDiaAnoStr;

@@ -1,3 +1,5 @@
+import { supabase } from '../core/supabase.js';
+
 export function agruparTransaccionesPorPago(transacciones) {
     const grupos = {};
     (transacciones || []).forEach(t => {
@@ -10,4 +12,16 @@ export function agruparTransaccionesPorPago(transacciones) {
         if (t.factura_id) grupos[key].facturaIdsIncluidas.push(t.factura_id);
     });
     return Object.values(grupos);
+}
+
+export async function anularTransaccion(id) {
+    const idInt = parseInt(id, 10);
+    if (isNaN(idInt)) throw new Error("ID de transacción inválido");
+    
+    const { error } = await supabase
+        .from('pagos_ingresos')
+        .update({ estado: 'anulado' })
+        .eq('id', idInt);
+        
+    if (error) throw error;
 }

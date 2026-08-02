@@ -1,5 +1,5 @@
 // js/shared/abonoModal.js
-import DB from '../core/db.js';
+import DB, { getLocalDate } from './../core/db.js';
 import { CoreActions } from './crud.js';
 import { calcularEstadoFactura } from './carteraUtils.js';
 
@@ -67,7 +67,7 @@ export const AbonoModal = {
                                     <label class="form-label text-muted small fw-medium mb-1">Fecha</label>
                                     <div class="input-group">
                                         <span class="input-group-text bg-white border-end-0 text-muted" style="border-radius: 8px 0 0 8px;"><i class="bi bi-calendar3"></i></span>
-                                        <input type="date" id="abono-fecha-shared" class="form-control border-start-0 ps-0" value="${new Date().toISOString().split('T')[0]}" style="border-radius: 0 8px 8px 0; box-shadow: none;" required>
+                                        <input type="date" id="abono-fecha-shared" class="form-control border-start-0 ps-0" value="${getLocalDate()}" style="border-radius: 0 8px 8px 0; box-shadow: none;" required>
                                     </div>
                                 </div>
                                 <div class="col-6">

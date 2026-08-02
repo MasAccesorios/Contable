@@ -1,4 +1,4 @@
-import DB from '../../core/db.js';
+import DB, { getLocalDate } from '../../core/db.js';
 import { supabase } from '../../core/supabase.js';
 import { CoreActions, ItemEngine, NumberingManager, ExportManager, PrintManager } from '../../shared/crud.js';
 import { TesoreriaModule } from '../bancos/bancos.js';
@@ -470,7 +470,7 @@ export const FacturasModule = {
         let factura = {
             id: 'fac_' + Date.now(),
             numero: undefined,
-            fecha: new Date().toISOString().split('T')[0],
+            fecha: getLocalDate(),
             vencimiento: '',
             clienteId: '',
             detalles: [{ id: Date.now(), productoId: '', cantidad: 0, precio: 0, descuento: 0, impuesto: 0 }],
@@ -828,7 +828,7 @@ export const FacturasModule = {
             if (plazos > 0) {
                 const fechaCreacion = new Date(element.querySelector('#input-fecha').value);
                 fechaCreacion.setDate(fechaCreacion.getDate() + plazos);
-                if (inputVencimiento) inputVencimiento.value = fechaCreacion.toISOString().split('T')[0];
+                if (inputVencimiento) inputVencimiento.value = getLocalDate(fechaCreacion);
             } else {
                 if (inputVencimiento) inputVencimiento.value = '';
             }

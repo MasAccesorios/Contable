@@ -1,5 +1,5 @@
 // js/modules/bancos/bancos.js
-import DB from '../../core/db.js';
+import DB, { getLocalDate } from '../../core/db.js';
 import { supabase } from '../../core/supabase.js';
 
 export const TesoreriaModule = {
@@ -161,7 +161,7 @@ export const TesoreriaModule = {
                                     </div>
                                     <div class="col-6">
                                         <label class="form-label text-muted small fw-semibold">Fecha *</label>
-                                        <input type="date" class="form-control" id="transf-fecha" value="${new Date().toISOString().split('T')[0]}" required>
+                                        <input type="date" class="form-control" id="transf-fecha" value="${getLocalDate()}" required>
                                     </div>
                                 </div>
                                 <div class="mb-4">
@@ -306,7 +306,7 @@ export const TesoreriaModule = {
                 
                 // Limpiar form
                 document.getElementById('form-transferir').reset();
-                document.getElementById('transf-fecha').value = new Date().toISOString().split('T')[0];
+                document.getElementById('transf-fecha').value = getLocalDate();
 
                 // Recargar datos
                 await this.loadData();

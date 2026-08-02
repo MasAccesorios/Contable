@@ -1,12 +1,14 @@
-import DB from '../core/db.js';
+import DB, { getLocalDate } from '../core/db.js';
 import { CoreActions } from '../shared/crud.js';
 
 export default {
     async init(element) {
         if (!element) return;
 
-        const hoy = new Date().toISOString().split('T')[0];
-        const inicioMes = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
+        const hoy = getLocalDate();
+        const hace3MesesDate = new Date();
+        hace3MesesDate.setMonth(hace3MesesDate.getMonth() - 3);
+        const inicioRango = getLocalDate(hace3MesesDate);
 
         element.innerHTML = `
             <div class="p-4" style="max-width: 800px; margin: 0 auto;">
@@ -29,11 +31,11 @@ export default {
                             <div class="row g-3 mb-4" id="rango-fechas">
                                 <div class="col-md-6">
                                     <label class="form-label text-muted small fw-bold">Fecha Inicio</label>
-                                    <input type="date" id="rep-inicio" class="form-control" value="${inicioMes}">
+                                    <input type="date" class="form-control" id="rep-inicio" value="${inicioRango}" required>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label text-muted small fw-bold">Fecha Fin</label>
-                                    <input type="date" id="rep-fin" class="form-control" value="${hoy}">
+                                    <input type="date" class="form-control" id="rep-fin" value="${hoy}" required>
                                 </div>
                             </div>
 
@@ -184,7 +186,7 @@ export default {
             const blob = new Blob([BOM, csvContent], { type: 'text/csv;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
 
-            const dateStr = new Date().toISOString().split('T')[0];
+            const dateStr = getLocalDate();
             const filename = `Reporte_${tipoModulo}_${dateStr}.csv`;
 
             const link = document.createElement('a');

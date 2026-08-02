@@ -1,4 +1,4 @@
-import DB from '../core/db.js';
+import DB, { getLocalDate } from '../core/db.js';
 
 export const InventarioUtils = {
     /**
@@ -35,7 +35,7 @@ export const InventarioUtils = {
                 const nuevoLote = {
                     id: 'lote_neg_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
                     productoId: det.productoId,
-                    fechaIngreso: new Date().toISOString().split('T')[0],
+                    fechaIngreso: getLocalDate(),
                     cantidadInicial: 0,
                     cantidadActual: -qtyRestante,
                     costoUnitario: costoUnitario

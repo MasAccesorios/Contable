@@ -1,5 +1,5 @@
 // js/modules/sistema.js
-import DB from '../core/db.js';
+import DB, { getLocalDate } from '../core/db.js';
 
 export const SistemaModule = {
     async init(element) {
@@ -140,7 +140,7 @@ export const SistemaModule = {
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `respaldo_contable_${new Date().toISOString().split('T')[0]}.json`;
+                a.download = `respaldo_contable_${getLocalDate()}.json`;
                 a.click();
                 URL.revokeObjectURL(url);
                 

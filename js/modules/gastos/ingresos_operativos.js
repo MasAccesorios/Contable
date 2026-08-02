@@ -1,10 +1,12 @@
-import DB from '../../core/db.js';
+import DB, { getLocalDate } from '../../core/db.js';
 
 import { UI } from '../../shared/combobox.js';
 
 import { supabase } from '../../core/supabase.js';
 
-const CATEGORIAS_INGRESO = ["Arriendo", "Servicios", "Nómina", "Insumos Menores", "Cuentas por Cobrar", "Otros"];
+import { anularTransaccion } from '../../shared/transaccionesUtils.js';
+
+const CATEGORIAS_INGRESO = ["Ventas de Mostrador", "Servicios Adicionales", "Intereses", "Otros Ingresos"];
 
 export const IngresosOperativosModule = {
     async init(element) {
@@ -158,13 +160,13 @@ export const IngresosOperativosModule = {
         });
 
         // Set fecha actual por defecto
-        const fechaHoy = new Date().toISOString().split('T')[0];
+        const fechaHoy = getLocalDate();
         element.querySelector('#ingreso-fecha').value = fechaHoy;
         
-        // Default mes actual para filtros
-        const primerDiaMes = new Date();
-        primerDiaMes.setDate(1);
-        element.querySelector('#filtro-fecha-desde').value = primerDiaMes.toISOString().split('T')[0];
+        // Default últimos 3 meses para filtros
+        const hace3Meses = new Date();
+        hace3Meses.setMonth(hace3Meses.getMonth() - 3);
+        element.querySelector('#filtro-fecha-desde').value = getLocalDate(hace3Meses);
         element.querySelector('#filtro-fecha-hasta').value = fechaHoy;
 
         // Event Listeners Filtros
@@ -174,7 +176,7 @@ export const IngresosOperativosModule = {
 
         element.querySelector('#btn-limpiar-filtros').addEventListener('click', () => {
             element.querySelector('#filtro-categoria').value = 'todas';
-            element.querySelector('#filtro-fecha-desde').value = primerDiaMes.toISOString().split('T')[0];
+            element.querySelector('#filtro-fecha-desde').value = getLocalDate(hace3Meses);
             element.querySelector('#filtro-fecha-hasta').value = fechaHoy;
             this.renderTabla(element);
         });
@@ -331,9 +333,14 @@ export const IngresosOperativosModule = {
                 <td class="py-3 text-muted">${g.referencia || '-'}</td>
                 <td class="py-3 text-end fw-bold text-success">+$${g.monto.toLocaleString()}</td>
                 <td class="py-3 text-center">
-                    <button class="btn btn-sm btn-light text-success btn-eliminar-ingreso" data-id="${g.id}" title="Eliminar/Anular">
-                        <i class="bi bi-trash"></i>
-                    </button>
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-link p-0 text-muted mx-1" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Más opciones" style="color: #6c757d !important; transition: opacity 0.2s;" onmouseover="this.style.opacity=0.7" onmouseout="this.style.opacity=1">
+                            <i class="bi bi-three-dots-vertical fs-6"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end shadow border-0" style="font-size: 13px;">
+                            <li><a class="dropdown-item text-danger btn-eliminar-ingreso" href="javascript:void(0)" data-id="${g.id}">Eliminar</a></li>
+                        </ul>
+                    </div>
                 </td>
             </tr>`;
         }).join('');
@@ -355,19 +362,7 @@ export const IngresosOperativosModule = {
     },
 
     async anularIngreso(ingresoId) {
-        // En vez de soft delete, borramos la transacción.
-        // O podríamos marcarla como 'anulado' en el campo estado de pagos_ingresos.
-        const idInt = parseInt(ingresoId, 10);
-        if (isNaN(idInt)) throw new Error("ID de ingreso inválido");
-
-        // Soft Delete actualizando el estado
-        const { error } = await supabase
-            .from('pagos_ingresos')
-            .update({ estado: 'anulado' })
-            .eq('id', idInt);
-            
-        if (error) throw error;
-        
+        await anularTransaccion(ingresoId);
         // No creamos reversión bancaria, simplemente marcamos este como anulado
         // y como 'bancos/detalle.js' lee de 'pagos_ingresos' filtrando estado='activo', 
         // automáticamente desaparecerá del saldo del banco sin necesidad de reversión doble.

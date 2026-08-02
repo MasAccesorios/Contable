@@ -5,6 +5,12 @@ import { supabase } from './supabase.js';
 
 let _sessionCache = {};
 
+// Utilidad global de zona horaria para prevenir saltos de día por el UTC en Colombia
+export const getLocalDate = (d = new Date()) => {
+    const pad = n => n.toString().padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+};
+
 const DB = {
     // Helper interno para mapear nombres de columnas de Supabase a las propiedades esperadas por la UI
     _mapToFrontend(storeName, item) {

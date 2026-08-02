@@ -1,4 +1,4 @@
-import DB from '../../core/db.js';
+import DB, { getLocalDate } from '../../core/db.js';
 
 export const ConciliacionModule = {
     state: {
@@ -25,8 +25,10 @@ export const ConciliacionModule = {
         this.state.bancoId = urlParams.get('banco_id');
 
         const hoy = new Date();
-        this.state.fechaDesde = new Date(hoy.getFullYear(), hoy.getMonth(), 1).toISOString().split('T')[0];
-        this.state.fechaHasta = hoy.toISOString().split('T')[0];
+        const hace3MesesDate = new Date(hoy);
+        hace3MesesDate.setMonth(hace3MesesDate.getMonth() - 3);
+        this.state.fechaDesde = getLocalDate(hace3MesesDate);
+        this.state.fechaHasta = getLocalDate(hoy);
 
         await this.loadData();
         this.renderBase();

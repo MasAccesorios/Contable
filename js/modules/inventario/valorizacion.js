@@ -1,4 +1,4 @@
-import DB from '../../core/db.js';
+import DB, { getLocalDate } from '../../core/db.js';
 
 export const ValorizacionModule = {
     state: {
@@ -15,7 +15,7 @@ export const ValorizacionModule = {
         if (!element) return;
         this.element = element;
 
-        const hoy = new Date().toISOString().split('T')[0];
+        const hoy = getLocalDate();
         
         element.innerHTML = `
             <div class="module-container p-4" style="max-width: 1200px; margin: 0 auto;">
@@ -280,7 +280,7 @@ export const ValorizacionModule = {
         
         a.setAttribute('hidden', '');
         a.setAttribute('href', url);
-        a.setAttribute('download', `Valor_Inventario_${new Date().toISOString().split('T')[0]}.csv`);
+        a.setAttribute('download', `Valor_Inventario_${getLocalDate()}.csv`);
         
         document.body.appendChild(a);
         a.click();

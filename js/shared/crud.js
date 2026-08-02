@@ -1,5 +1,5 @@
 // js/utils/core-actions.js
-import DB from '../core/db.js';
+import DB, { getLocalDate } from '../core/db.js';
 import { InventarioUtils } from './inventarioUtils.js';
 
 export const CoreActions = {
@@ -113,7 +113,7 @@ export const CoreActions = {
             const nuevaFactura = {
                 id: idFactura,
                 clienteId: cotizacion.clienteId,
-                fecha: new Date().toISOString().split('T')[0],
+                fecha: getLocalDate(),
                 vencimiento: cotizacion.vencimiento,
                 total: cotizacion.total || 0,
                 estado: 'por_pagar',
@@ -821,7 +821,7 @@ export const ExportManager = {
                 const url = URL.createObjectURL(blob);
 
                 // 6. Generación de Nombre Dinámico y Gatillo de Descarga
-                const dateStr = new Date().toISOString().split('T')[0];
+                const dateStr = getLocalDate();
                 const filename = `Reporte_${tipoModulo}_${dateStr}.csv`;
 
                 const link = document.createElement('a');

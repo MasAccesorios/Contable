@@ -1,6 +1,6 @@
 // js/modules/productos.js
 // Módulo de Gestión de Productos e Inventarios (Lotes FIFO) - Hoja Completa
-import DB from '../../core/db.js';
+import DB, { getLocalDate } from '../../core/db.js';
 
 export const ProductosModule = {
     async init(element) {
@@ -245,7 +245,7 @@ export const ProductosModule = {
                     cantidadInicial: 0,
                     cantidadActual: 0,
                     costoUnitario: nuevoProducto.costoBase,
-                    fechaIngreso: new Date().toISOString().split('T')[0],
+                    fechaIngreso: getLocalDate(),
                     referencia: 'Inventario Inicial'
                 };
                 await DB.save('lotes_fifo', loteInicial);
@@ -318,7 +318,7 @@ export const ProductosModule = {
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label text-muted small fw-semibold">Fecha de Ingreso *</label>
-                                    <input type="date" id="lote-fecha" class="form-control" required value="${new Date().toISOString().split('T')[0]}">
+                                    <input type="date" id="lote-fecha" class="form-control" required value="${getLocalDate()}">
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label text-muted small fw-semibold">Referencia / Documento</label>
