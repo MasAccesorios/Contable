@@ -39,86 +39,57 @@ export const FacturasModule = {
                 </div>
             </div>
         `;
-        let facturasData = await DB.getAll('facturas');
-        const transacciones = (await DB.getAll('transacciones').catch(() => [])) || [];
         
-        // Decorar con estado en tiempo real
-        facturasData = facturasData.map(f => {
-            const dinamico = calcularEstadoFactura(f, transacciones);
-            return { ...f, estado: dinamico.estado, saldoPendiente: dinamico.saldo, totalPagado: dinamico.totalPagado };
-        });
-
-        // Obtener contactos para mostrar los nombres
-        const contactos = this.cache.contactos;
+        let transacciones = (await DB.getAll('transacciones').catch(() => [])) || [];
+        let contactos = this.cache.contactos;
+        
         const getClienteName = (id) => {
-            const cliente = contactos.find(c => c.id === id);
+            const cliente = contactos.find(c => c.id == id);
             return cliente ? cliente.nombre : 'Sin Cliente';
         };
 
-        // Estado de Paginación, Ordenamiento y Filtro
+        // Estado de Paginación, Ordenamiento y Filtro Server-Side
         let sortColumn = 'numero';
         let sortDirection = 'desc';
         let currentPage = 1;
         let itemsPerPage = 10;
         let searchQuery = '';
-        let filterCriteria = 'todos'; // todos, numero, cliente, fecha, estado
-        let filteredData = [];
+        let filterCriteria = 'todos';
+        
+        let currentItems = [];
+        let totalItems = 0;
+        let totalPages = 1;
 
         const formatMoney = (val) => '$ ' + parseFloat(val || 0).toLocaleString('es-CO', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 
-        const renderGrid = () => {
-            // Aplicar Filtro Multi-Criterio
-            filteredData = facturasData.filter(c => {
-                if (!searchQuery) return true;
-                const clientName = getClienteName(c.clienteId || c.contactoId).toLowerCase();
-                const num = (c.numero || '').toString();
-                const state = c.estado || 'por_pagar';
-                const date = c.fecha || '';
+        const renderGrid = async () => {
+            // Spinner while loading
+            if (element.querySelector('tbody')) {
+                element.querySelector('tbody').innerHTML = `<tr><td colspan="9" class="text-center py-5"><div class="spinner-border spinner-border-sm text-primary"></div> Cargando...</td></tr>`;
+            }
 
-                if (filterCriteria === 'numero') return num.toLowerCase().includes(searchQuery);
-                if (filterCriteria === 'cliente') return clientName.includes(searchQuery);
-                if (filterCriteria === 'fecha') return date.includes(searchQuery);
-                if (filterCriteria === 'estado') return state.includes(searchQuery);
+            try {
+                const { data: pageData, count } = await DB.getPage('facturas', currentPage, itemsPerPage, sortColumn, sortDirection, searchQuery, filterCriteria);
                 
-                // Búsqueda Transversal Global
-                return clientName.includes(searchQuery) || num.toLowerCase().includes(searchQuery) || state.includes(searchQuery) || date.includes(searchQuery);
-            });
-
-            // Aplicar Ordenamiento Dinámico
-            filteredData.sort((a, b) => {
-                let valA, valB;
-                if (sortColumn === 'numero') {
-                    valA = parseInt(String(a.numero !== undefined && a.numero !== null && String(a.numero).trim() !== '' ? a.numero : 0).replace(/\D/g, ''), 10) || 0;
-                    valB = parseInt(String(b.numero !== undefined && b.numero !== null && String(b.numero).trim() !== '' ? b.numero : 0).replace(/\D/g, ''), 10) || 0;
-                    if (valA === valB) {
-                        valA = parseInt(String(a.id).replace(/\D/g, ''), 10) || 0;
-                        valB = parseInt(String(b.id).replace(/\D/g, ''), 10) || 0;
-                    }
-                } else if (sortColumn === 'cliente') {
-                    valA = getClienteName(a.clienteId || a.contactoId).toLowerCase();
-                    valB = getClienteName(b.clienteId || b.contactoId).toLowerCase();
-                } else if (sortColumn === 'fecha') {
-                    valA = a.fecha || '';
-                    valB = b.fecha || '';
+                totalItems = count || 0;
+                totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
+                
+                if (currentPage > totalPages && totalPages > 0) {
+                    currentPage = totalPages;
+                    return renderGrid();
                 }
 
-                let comparison = 0;
-                if (typeof valA === 'number' && typeof valB === 'number') {
-                    comparison = valA - valB;
-                } else {
-                    comparison = String(valA).localeCompare(String(valB));
+                currentItems = pageData.map(f => {
+                    const dinamico = calcularEstadoFactura(f, transacciones);
+                    return { ...f, estado: dinamico.estado, saldoPendiente: dinamico.saldo, totalPagado: dinamico.totalPagado };
+                });
+            } catch (err) {
+                console.error(err);
+                if (element.querySelector('tbody')) {
+                    element.querySelector('tbody').innerHTML = `<tr><td colspan="9" class="text-center py-5 text-danger">Error al cargar datos</td></tr>`;
                 }
-
-                return sortDirection === 'asc' ? comparison : -comparison;
-            });
-
-            const totalItems = filteredData.length;
-            const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
-            if (currentPage > totalPages) currentPage = totalPages;
-            if (currentPage < 1) currentPage = 1;
-
-            const startIndex = (currentPage - 1) * itemsPerPage;
-            const currentItems = filteredData.slice(startIndex, startIndex + itemsPerPage);
+                return;
+            }
 
             const tbodyHtml = currentItems.length > 0 ? currentItems.map(c => {
                 const estado = c.estado || 'por_pagar';
@@ -172,16 +143,16 @@ export const FacturasModule = {
                 `;
             }).join('') : `<tr><td colspan="9" class="text-center py-5 text-muted">No se encontraron facturas</td></tr>`;
 
+            const startIndex = (currentPage - 1) * itemsPerPage;
+
             element.innerHTML = `
                 <div class="module-container p-4" style="max-width: 1200px; margin: 0 auto;">
-                    
                     <!-- TOP BAR -->
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <div>
                             <h2 class="h3 fw-bold mb-1" style="color: var(--text-main);">Facturas de venta</h2>
                             <p class="text-muted mb-0" style="font-size: 14px;">
                                 Gestiona las facturas generadas por ventas a tus clientes. 
-                                <a href="#" style="color: #2cbfb7; text-decoration: none;">Saber más</a>
                             </p>
                         </div>
                         <div class="d-flex gap-2">
@@ -202,16 +173,15 @@ export const FacturasModule = {
 
                     <!-- DATA TABLE CARD -->
                     <div class="card border-0" style="box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.03), 0px 1px 3px rgba(0, 0, 0, 0.05); border-radius: 8px;">
-                        
                         <!-- FILTERS -->
                         <div class="card-header bg-white border-bottom p-3 d-flex gap-3 align-items-center" style="border-radius: 8px 8px 0 0;">
                             <div class="input-group input-group-sm" style="width: 250px;">
                                 <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
-                                <input type="text" class="form-control border-start-0 ps-0 text-muted" id="search-input" placeholder="Buscar cliente" value="${searchQuery}" style="font-size: 13px; box-shadow: none;">
+                                <input type="text" class="form-control border-start-0 ps-0 text-muted" id="search-input" placeholder="Buscar..." value="${searchQuery}" style="font-size: 13px; box-shadow: none;">
                             </div>
                             <div class="dropdown">
                                 <button class="btn btn-link text-decoration-none text-muted p-0 dropdown-toggle" data-bs-toggle="dropdown" style="font-size: 14px;">
-                                    <i class="bi bi-funnel me-1"></i> Filtrar <span id="lbl-filtro-actual" style="font-size: 12px; font-weight: 500; color: #2cbfb7;"></span>
+                                    <i class="bi bi-funnel me-1"></i> Filtrar <span id="lbl-filtro-actual" style="font-size: 12px; font-weight: 500; color: #2cbfb7;">${filterCriteria !== 'todos' ? '('+filterCriteria+')' : ''}</span>
                                 </button>
                                 <ul class="dropdown-menu shadow border-0" style="font-size: 13px;">
                                     <li><a class="dropdown-item filter-opt" href="#" data-criteria="todos">Todos los campos</a></li>
@@ -294,10 +264,14 @@ export const FacturasModule = {
                 searchInput.value = '';
                 searchInput.value = val;
 
+                let debounceTimer;
                 searchInput.addEventListener('input', (e) => {
-                    searchQuery = e.target.value.toLowerCase().trim();
-                    currentPage = 1;
-                    renderGrid();
+                    clearTimeout(debounceTimer);
+                    debounceTimer = setTimeout(() => {
+                        searchQuery = e.target.value.toLowerCase().trim();
+                        currentPage = 1;
+                        renderGrid();
+                    }, 400);
                 });
             }
 
@@ -320,8 +294,6 @@ export const FacturasModule = {
                 opt.addEventListener('click', (e) => {
                     e.preventDefault();
                     filterCriteria = e.target.dataset.criteria;
-                    const lbl = element.querySelector('#lbl-filtro-actual');
-                    if (lbl) lbl.textContent = filterCriteria !== 'todos' ? `(${e.target.textContent})` : '';
                     currentPage = 1;
                     renderGrid();
                 });
@@ -332,9 +304,24 @@ export const FacturasModule = {
                 window.location.hash = '#/ingresos/facturas/nueva';
             });
 
-            // Exportar Lista a CSV
-            element.querySelector('#btn-export-list')?.addEventListener('click', (e) => {
-                ExportManager.exportDataToExcel(filteredData, 'Facturas', getClienteName, e.currentTarget);
+            // Exportar Lista a CSV (descarga completa de filtros actuales)
+            element.querySelector('#btn-export-list')?.addEventListener('click', async (e) => {
+                const btn = e.currentTarget;
+                const originalHtml = btn.innerHTML;
+                btn.disabled = true;
+                btn.innerHTML = `<span class="spinner-border spinner-border-sm" aria-hidden="true"></span>`;
+                
+                try {
+                    const { data: allFiltered } = await DB.getPage('facturas', 1, 10000, sortColumn, sortDirection, searchQuery, filterCriteria);
+                    const allDecorated = allFiltered.map(f => {
+                        const dinamico = calcularEstadoFactura(f, transacciones);
+                        return { ...f, estado: dinamico.estado, saldoPendiente: dinamico.saldo, totalPagado: dinamico.totalPagado };
+                    });
+                    ExportManager.exportDataToExcel(allDecorated, 'Facturas', getClienteName, btn);
+                } catch(err) { console.error(err); }
+                
+                btn.innerHTML = originalHtml;
+                btn.disabled = false;
             });
 
             // Actualizar Caché
@@ -344,10 +331,11 @@ export const FacturasModule = {
                 btn.disabled = true;
                 btn.innerHTML = `<span class="spinner-border spinner-border-sm" aria-hidden="true"></span>`;
                 
-                facturasData = await DB.refreshCache('facturas');
+                await DB.refreshCache('facturas');
+                transacciones = (await DB.getAll('transacciones').catch(() => [])) || [];
                 contactos = await DB.refreshCache('contactos');
                 
-                renderGrid();
+                await renderGrid();
                 
                 btn.innerHTML = originalHtml;
                 btn.disabled = false;
@@ -371,7 +359,7 @@ export const FacturasModule = {
             });
 
             element.querySelector('#btn-next-page')?.addEventListener('click', () => {
-                currentPage++; renderGrid();
+                if (currentPage < totalPages) { currentPage++; renderGrid(); }
             });
 
             // Row Menu Actions (Popovers Flotantes)
@@ -384,8 +372,7 @@ export const FacturasModule = {
                     const id = e.currentTarget.dataset.id;
                     const rect = e.currentTarget.getBoundingClientRect();
 
-                    // Find current factura's dynamic state from facturasData
-                    const factData = facturasData.find(f => f.id === id);
+                    const factData = currentItems.find(f => f.id == id);
                     const canAbonar = factData && factData.estado !== 'pagada' && factData.estado !== 'anulada';
                     
                     const menuHtml = `
@@ -424,10 +411,7 @@ export const FacturasModule = {
                         if (confirm('¿Estás seguro de eliminar esta factura de forma permanente?')) {
                             await DB.delete('facturas', id);
                             menu.remove();
-                            // Recargar DB local
-                            const idx = facturasData.findIndex(c => c.id === id);
-                            if (idx > -1) facturasData.splice(idx, 1);
-                            renderGrid();
+                            await renderGrid();
                         }
                     });
                 });
@@ -438,15 +422,15 @@ export const FacturasModule = {
                 btn.addEventListener('click', async (e) => {
                     e.stopPropagation();
                     const id = e.currentTarget.dataset.id;
-                    const doc = facturasData.find(c => c.id === id);
+                    const doc = currentItems.find(c => c.id == id);
                     if (doc) {
-                        PrintManager.printDocument(doc, 'Factura de venta', this.cache.contactos, this.cache.productos);
+                        PrintManager.printDocument(doc, 'Factura de venta', contactos, this.cache.productos);
                     }
                 });
             });
         };
 
-        renderGrid();
+        await renderGrid();
     },
 
     async renderForm(element, id = null, isViewOnly = false) {

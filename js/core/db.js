@@ -343,6 +343,85 @@ const DB = {
     },
 
     /**
+     * Obtiene una página de registros directamente desde Supabase (Paginación Real)
+     * Delegando filtros y ordenamientos al servidor.
+     */
+    async getPage(storeName, page = 1, limit = 50, sortColumn = 'numero', sortDirection = 'desc', searchQuery = '', filterCriteria = 'todos') {
+        const table = storeName === 'pagos' ? 'pagos_ingresos' : storeName;
+        try {
+            let cols = '*';
+            // Optimización de columnas
+            if (table === 'facturas' || table === 'cotizaciones') {
+                cols = 'id, numero, fecha, vencimiento, contacto_id, total, estado, observaciones';
+            }
+
+            let query = supabase.from(table).select(cols, { count: 'exact' });
+
+            // 1. Filtros (Search)
+            if (searchQuery) {
+                const sq = `%${searchQuery}%`;
+                
+                if (filterCriteria === 'numero') {
+                    const num = parseInt(searchQuery.replace(/\D/g, ''), 10);
+                    if (!isNaN(num)) query = query.eq('numero', num);
+                } else if (filterCriteria === 'fecha') {
+                    query = query.ilike('fecha', sq);
+                } else if (filterCriteria === 'estado') {
+                    query = query.ilike('estado', sq);
+                } else if (filterCriteria === 'cliente' || filterCriteria === 'todos') {
+                    // Para buscar por cliente, primero obtenemos los IDs que hacen match
+                    const { data: contactsData } = await supabase.from('contactos').select('id').ilike('nombre', sq);
+                    const matchingContactIds = contactsData && contactsData.length > 0 ? contactsData.map(c => c.id) : [];
+
+                    if (filterCriteria === 'todos') {
+                        let orConditions = [];
+                        orConditions.push(`estado.ilike.${sq}`);
+                        orConditions.push(`fecha.ilike.${sq}`);
+                        
+                        const num = parseInt(searchQuery.replace(/\D/g, ''), 10);
+                        if (!isNaN(num)) orConditions.push(`numero.eq.${num}`);
+                        
+                        if (matchingContactIds.length > 0) {
+                            orConditions.push(`contacto_id.in.(${matchingContactIds.join(',')})`);
+                        }
+                        
+                        query = query.or(orConditions.join(','));
+                    } else {
+                        // Solo por cliente
+                        if (matchingContactIds.length > 0) {
+                            query = query.in('contacto_id', matchingContactIds);
+                        } else {
+                            query = query.in('contacto_id', [-1]); // Fuerza resultado vacío
+                        }
+                    }
+                }
+            }
+
+            // 2. Ordenamiento
+            const dbSortCol = sortColumn === 'cliente' ? 'contacto_id' : sortColumn;
+            query = query.order(dbSortCol, { ascending: sortDirection === 'asc' });
+            // Siempre añadir un orden secundario por ID para desempate seguro
+            query = query.order('id', { ascending: sortDirection === 'asc' });
+
+            // 3. Paginación
+            const from = (page - 1) * limit;
+            const to = from + limit - 1;
+            query = query.range(from, to);
+
+            const { data, count, error } = await query;
+            if (error) throw error;
+
+            return {
+                data: data.map(item => this._mapToFrontend(storeName, item)),
+                count
+            };
+        } catch (error) {
+            console.error(`[DB Error] getPage en '${storeName}':`, error);
+            throw error;
+        }
+    },
+
+    /**
      * Obtiene un registro por su ID único.
      */
     async get(storeName, id) {
