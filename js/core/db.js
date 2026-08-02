@@ -247,7 +247,16 @@ const DB = {
             
             // Función auxiliar para construir el query base
             const createQuery = (withCount = false) => {
-                let q = supabase.from(table).select('*', withCount ? { count: 'exact' } : undefined);
+                let cols = '*';
+                
+                // Etapa 1 - Optimización de listados (eliminar columnas pesadas o uniones en getAll)
+                if (table === 'facturas') {
+                    cols = 'id, numero, fecha, vencimiento, contacto_id, total, estado, observaciones';
+                } else if (table === 'cotizaciones') {
+                    cols = 'id, numero, fecha, vencimiento, contacto_id, total, estado';
+                }
+
+                let q = supabase.from(table).select(cols, withCount ? { count: 'exact' } : undefined);
                 if (table === 'lotes_fifo' || table === 'pagos_ingresos' || table === 'facturas' || table === 'cotizaciones') {
                     q = q.order('id', { ascending: false });
                 }
