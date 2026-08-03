@@ -188,9 +188,7 @@ export const DetalleBancoModule = {
                             ${formatMoney(t.monto)}
                         </td>
                         <td class="py-3 text-center">
-                            <button class="btn btn-sm btn-link p-0 text-muted mx-1 btn-ver-transaccion" data-id="${t.id}" title="Ver detalle" style="color: #6c757d !important; transition: opacity 0.2s;" onmouseover="this.style.opacity=0.7" onmouseout="this.style.opacity=1">
-                                <i class="bi bi-eye fs-6"></i>
-                            </button>
+
                             <div class="dropdown d-inline-block">
                                 <button class="btn btn-sm btn-link p-0 text-muted mx-1" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Más opciones" style="color: #6c757d !important; transition: opacity 0.2s;" onmouseover="this.style.opacity=0.7" onmouseout="this.style.opacity=1">
                                     <i class="bi bi-three-dots-vertical fs-6"></i>
