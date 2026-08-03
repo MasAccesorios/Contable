@@ -248,12 +248,15 @@ export default {
         });
 
         // Ocultar al hacer clic fuera
-        document.addEventListener('click', (e) => {
+        if (this._outsideClickListener) {
+            document.removeEventListener('click', this._outsideClickListener);
+        }
+        this._outsideClickListener = (e) => {
             if (!popover?.contains(e.target) && !trigger?.contains(e.target)) {
                 popover?.classList.add('d-none');
             }
-        });
-
+        };
+        document.addEventListener('click', this._outsideClickListener);
         // Eventos de atajos predefinidos
         document.querySelectorAll('#lista-atajos-fecha button').forEach(btn => {
             btn.addEventListener('click', (e) => {
