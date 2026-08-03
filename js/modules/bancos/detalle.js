@@ -175,7 +175,7 @@ export const DetalleBancoModule = {
                 const valorColor = isIngreso ? '#2cbfb7' : '#e74c3c';
                 
                 return `
-                    <tr style="border-bottom: 1px solid var(--border-color); font-size: 13px; color: var(--text-body);" data-id="${t.id}">
+                    <tr class="movimiento-row" style="border-bottom: 1px solid var(--border-color); font-size: 13px; color: var(--text-body); cursor: pointer; transition: background-color 0.2s;" data-id="${t.id}" onmouseover="this.style.backgroundColor='#f8f9fa'" onmouseout="this.style.backgroundColor='transparent'">
                         <td class="py-3">${t.fecha || '-'}</td>
                         <td class="py-3">
                             <div style="color: var(--text-main); font-weight: 500;">${t.terceroNombre || 'Sin tercero'}</div>
