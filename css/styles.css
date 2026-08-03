@@ -512,6 +512,6 @@ body {
     }
     #resumen-conciliacion-row > .col-3:nth-child(2),
     #resumen-conciliacion-row > .col-3:nth-child(4) {
-        border-end: none !important;
+        border-right: none !important;
     }
 }
