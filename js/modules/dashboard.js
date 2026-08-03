@@ -223,6 +223,7 @@ export const DashboardModule = {
             dailySales[`${currentMonthPrefix}-${String(i).padStart(2, '0')}`] = 0;
         }
 
+        const facturasMesIds = [];
         console.time('calc-ventas-utilidad-productos');
         facturas.forEach(f => {
             // Ignorar facturas anuladas para no inflar las ventas ni los productos
@@ -232,10 +233,7 @@ export const DashboardModule = {
             if (f.fecha && f.fecha.startsWith(currentMonthPrefix)) {
                 ventasMes += (f.total || 0);
                 utilidadMes += (f.utilidad || 0);
-                
-                if (f.detalles) {
-                    f.detalles.forEach(d => { productosVendidos += (d.cantidad || 0); });
-                }
+                facturasMesIds.push(f.id);
                 
                 if (dailySales[f.fecha] !== undefined) {
                     dailySales[f.fecha] += (f.total || 0);
@@ -243,6 +241,19 @@ export const DashboardModule = {
             }
         });
         console.timeEnd('calc-ventas-utilidad-productos');
+
+        console.time('fetch-productos-vendidos');
+        if (facturasMesIds.length > 0) {
+            const { data: detallesMes } = await supabase
+                .from('factura_detalles')
+                .select('cantidad')
+                .in('factura_id', facturasMesIds);
+            
+            if (detallesMes) {
+                productosVendidos = detallesMes.reduce((sum, d) => sum + (d.cantidad || 0), 0);
+            }
+        }
+        console.timeEnd('fetch-productos-vendidos');
 
         console.time('obtener-cartera-filtrada-ambas');
         // 1 y 2. Obtener Cartera CxC y CxP en una sola pasada (Optimización O(1))
