@@ -116,7 +116,7 @@ export const TesoreriaModule = {
                     <div class="table-responsive">
                         <table class="table table-borderless align-middle mb-0 table-hover">
                             <thead style="border-bottom: 1px solid var(--border-color);">
-                                <tr style="color: var(--text-muted); font-size: 13px; font-weight: var(--weight-medium);">
+                                <tr style="color: var(--text-muted); font-size: 13px; font-weight: var(--weight-medium); white-space: nowrap;">
                                     <th class="py-3 fw-normal ps-4">Nombre</th>
                                     <th class="py-3 fw-normal">Tipo de cuenta</th>
                                     <th class="py-3 fw-normal">Número de cuenta</th>
@@ -425,16 +425,16 @@ export const TesoreriaModule = {
             // Layout de Alegra: ícono gris tenue a la izquierda del nombre
             html += `
                 <tr class="banco-row" data-id="${c.id}" style="cursor: pointer; font-size: 13px; color: var(--text-body); border-bottom: 1px solid var(--border-color); ${opacityStyle}">
-                    <td class="py-3 ps-4 d-flex align-items-center">
-                        <div class="bg-light rounded-circle p-2 me-3 d-flex align-items-center justify-content-center text-muted" style="width: 32px; height: 32px; border: 1px solid #e2e8f0;">
+                    <td class="py-3 ps-4 d-flex align-items-center" style="white-space: nowrap;">
+                        <div class="bg-light rounded-circle p-2 me-3 d-flex align-items-center justify-content-center text-muted" style="width: 32px; height: 32px; border: 1px solid #e2e8f0; flex-shrink: 0;">
                             <i class="bi ${icon}" style="font-size: 14px;"></i>
                         </div>
                         <span style="color: var(--text-main); font-weight: 500;">${c.nombre}</span>
                         ${badge}
                     </td>
-                    <td class="py-3"><i class="bi bi-wallet2 me-2 text-muted"></i>${c.tipo}</td>
-                    <td class="py-3 font-monospace text-muted">${c.numero || '-'}</td>
-                    <td class="py-3" style="color: #2cbfb7; font-weight: 500;">${formatMoney(saldo)}</td>
+                    <td class="py-3" style="white-space: nowrap;"><i class="bi bi-wallet2 me-2 text-muted"></i>${c.tipo}</td>
+                    <td class="py-3 font-monospace text-muted" style="white-space: nowrap;">${c.numero || '-'}</td>
+                    <td class="py-3" style="color: #2cbfb7; font-weight: 500; white-space: nowrap;">${formatMoney(saldo)}</td>
                     <td class="py-3 pe-4">
                         <div class="d-flex gap-2">
                             <button class="btn btn-sm btn-light border px-3 text-muted btn-conciliar" style="font-size: 12px; font-weight: 500; border-radius: 4px;" onclick="event.stopPropagation(); window.location.hash='#/bancos/conciliacion?banco_id=${c.id}'">
