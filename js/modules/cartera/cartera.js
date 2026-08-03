@@ -226,7 +226,12 @@ export default {
                 const facturaId = e.currentTarget.dataset.id;
                 
                 AbonoModal.show(facturaId, () => {
-                    setTimeout(() => this.renderList(element), 500);
+                    if (this._abonoTimeout) clearTimeout(this._abonoTimeout);
+                    this._abonoTimeout = setTimeout(() => {
+                        if (document.body.contains(element)) {
+                            this.renderList(element);
+                        }
+                    }, 500);
                 });
             });
         });
@@ -306,7 +311,8 @@ export default {
         }
 
         // Ejecutar la búsqueda/filtrado
-        setTimeout(() => {
+        if (this._filterTimeout) clearTimeout(this._filterTimeout);
+        this._filterTimeout = setTimeout(() => {
             if (typeof this.filtrarDatosPorRango === 'function') {
                 this.filtrarDatosPorRango(fechaInicio, fechaFin);
             }

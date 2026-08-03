@@ -893,9 +893,12 @@ export const FacturasModule = {
                 e.currentTarget.style.borderColor = '#ef4444';
                 e.currentTarget.style.color = '#ef4444';
                 CoreActions.showWarningModal("Primero debes guardar o finalizar la factura para poder generar su formato de impresión oficial.");
-                setTimeout(() => {
-                    e.currentTarget.style.borderColor = '';
-                    e.currentTarget.style.color = '';
+                if (window._ventasPrintBtnTimeout) clearTimeout(window._ventasPrintBtnTimeout);
+                window._ventasPrintBtnTimeout = setTimeout(() => {
+                    if (document.body.contains(e.currentTarget)) {
+                        e.currentTarget.style.borderColor = '';
+                        e.currentTarget.style.color = '';
+                    }
                 }, 3000);
                 return;
             }
@@ -935,7 +938,12 @@ export const FacturasModule = {
                     const searchInput = element.querySelector('#search-cliente');
                     searchInput.style.borderColor = '#ef4444'; // Resalta en rojo
                     CoreActions.showWarningModal("Debes seleccionar un cliente válido de la lista.");
-                    setTimeout(() => searchInput.style.borderColor = '', 3000);
+                    if (window._ventasSearchClientTimeout) clearTimeout(window._ventasSearchClientTimeout);
+                    window._ventasSearchClientTimeout = setTimeout(() => {
+                        if (document.body.contains(searchInput)) {
+                            searchInput.style.borderColor = '';
+                        }
+                    }, 3000);
                     return;
                 }
 

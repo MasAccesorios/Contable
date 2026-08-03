@@ -193,7 +193,10 @@ export const TesoreriaModule = {
             btn.disabled = true;
             
             // Forzar repintado visual y dar feedback
-            await new Promise(r => setTimeout(r, 400));
+            await new Promise(r => {
+                if (window._bancosRefreshTimeout) clearTimeout(window._bancosRefreshTimeout);
+                window._bancosRefreshTimeout = setTimeout(r, 400);
+            });
             await this.loadData();
             
             btn.innerHTML = originalHtml;

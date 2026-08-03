@@ -768,9 +768,12 @@ export const CotizacionesModule = {
                 e.currentTarget.style.borderColor = '#ef4444';
                 e.currentTarget.style.color = '#ef4444';
                 CoreActions.showWarningModal("Primero debes guardar o finalizar la cotización para poder generar su formato de impresión oficial.");
-                setTimeout(() => {
-                    e.currentTarget.style.borderColor = '';
-                    e.currentTarget.style.color = '';
+                if (window._cotizacionesPrintBtnTimeout) clearTimeout(window._cotizacionesPrintBtnTimeout);
+                window._cotizacionesPrintBtnTimeout = setTimeout(() => {
+                    if (document.body.contains(e.currentTarget)) {
+                        e.currentTarget.style.borderColor = '';
+                        e.currentTarget.style.color = '';
+                    }
                 }, 3000);
                 return;
             }
@@ -801,7 +804,12 @@ export const CotizacionesModule = {
                     const searchInput = element.querySelector('#search-cliente');
                     searchInput.style.borderColor = '#ef4444';
                     CoreActions.showWarningModal("Debes seleccionar un cliente válido de la lista.");
-                    setTimeout(() => searchInput.style.borderColor = '', 3000);
+                    if (window._cotizacionesSearchClientTimeout) clearTimeout(window._cotizacionesSearchClientTimeout);
+                    window._cotizacionesSearchClientTimeout = setTimeout(() => {
+                        if (document.body.contains(searchInput)) {
+                            searchInput.style.borderColor = '';
+                        }
+                    }, 3000);
                     return;
                 }
 

@@ -370,10 +370,11 @@ export const CoreActions = {
         document.body.appendChild(printSandbox);
 
         // 4. Retraso de macrotarea para asegurar el correcto renderizado del DOM de impresión
-        setTimeout(() => {
+        if (window._crudPrintTimeout1) clearTimeout(window._crudPrintTimeout1);
+        window._crudPrintTimeout1 = setTimeout(() => {
             window.print();
             // Limpiar el DOM inmediatamente después de cerrar el cuadro de diálogo
-            printSandbox.remove();
+            if (document.body.contains(printSandbox)) printSandbox.remove();
         }, 250);
     }
 };
@@ -745,10 +746,12 @@ export const PrintManager = {
         document.body.appendChild(container);
 
         // 6. Ejecutar impresión simple y directa
-        setTimeout(() => {
+        if (window._crudPrintTimeout2) clearTimeout(window._crudPrintTimeout2);
+        window._crudPrintTimeout2 = setTimeout(() => {
             window.print();
             // Limpiar el DOM 1 segundo después de que se cierre el cuadro de impresión
-            setTimeout(() => {
+            if (window._crudPrintCleanTimeout) clearTimeout(window._crudPrintCleanTimeout);
+            window._crudPrintCleanTimeout = setTimeout(() => {
                 if (document.body.contains(container)) {
                     container.remove();
                 }
@@ -778,7 +781,8 @@ export const ExportManager = {
         }
 
         // 2. Mapeo Asíncrono Simulado (para permitir el repintado del DOM del spinner)
-        setTimeout(() => {
+        if (window._crudExportTimeout) clearTimeout(window._crudExportTimeout);
+        window._crudExportTimeout = setTimeout(() => {
             try {
                 // Formateadores locales
                 const formatMoney = (val) => parseFloat(val || 0).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });

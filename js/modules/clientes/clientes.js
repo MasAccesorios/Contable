@@ -303,7 +303,12 @@ export const ContactosModule = {
             if(icon) icon.classList.add('spin-animation');
             await this.cargarDatos();
             this.renderTabla();
-            if(icon) setTimeout(() => icon.classList.remove('spin-animation'), 500);
+            if(icon) {
+                if (window._clientesRefreshTimeout) clearTimeout(window._clientesRefreshTimeout);
+                window._clientesRefreshTimeout = setTimeout(() => {
+                    if (document.body.contains(icon)) icon.classList.remove('spin-animation');
+                }, 500);
+            }
         });
     },
 
