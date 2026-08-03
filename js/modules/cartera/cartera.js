@@ -157,7 +157,7 @@ export default {
                     
                     <div class="table-responsive">
                         <table class="table align-middle table-hover m-0" style="font-size: 12px;">
-                            <thead class="table-light text-secondary fw-semibold border-bottom" style="--bs-table-bg: #f9fbfd;">
+                            <thead class="table-light text-secondary fw-semibold border-bottom" style="--bs-table-bg: #f9fbfd; white-space: nowrap;">
                                 <tr>
                                     <th style="width: 35px;" class="ps-3"><input type="checkbox" class="form-check-input"></th>
                                     <th>Número</th>
@@ -182,15 +182,15 @@ export default {
                                     return `
                                     <tr>
                                         <td class="ps-3"><input type="checkbox" class="form-check-input"></td>
-                                        <td class="text-primary fw-medium" style="cursor: pointer;">${f.numero || f.id}</td>
-                                        <td class="text-muted">Factura de venta</td>
-                                        <td class="text-dark">${cliente.nombre}</td>
-                                        <td class="text-muted">${f.fecha || 'N/A'}</td>
-                                        <td class="${isVencida ? 'text-danger fw-semibold' : 'text-muted'}">${f.vencimiento || 'N/A'}</td>
-                                        <td class="text-end text-dark">$ ${total.toLocaleString('es-CO', {minimumFractionDigits: 2})}</td>
-                                        <td class="text-end text-muted">$ ${cobrado.toLocaleString('es-CO', {minimumFractionDigits: 2})}</td>
-                                        <td class="text-end fw-bold text-dark pe-3">$ ${saldo.toLocaleString('es-CO', {minimumFractionDigits: 2})}</td>
-                                        <td class="text-center">
+                                        <td class="text-primary fw-medium" style="cursor: pointer; white-space: nowrap;">${f.numero || f.id}</td>
+                                        <td class="text-muted" style="white-space: nowrap;">Factura de venta</td>
+                                        <td class="text-dark" style="white-space: nowrap;">${cliente.nombre}</td>
+                                        <td class="text-muted" style="white-space: nowrap;">${f.fecha || 'N/A'}</td>
+                                        <td class="${isVencida ? 'text-danger fw-semibold' : 'text-muted'}" style="white-space: nowrap;">${f.vencimiento || 'N/A'}</td>
+                                        <td class="text-end text-dark" style="white-space: nowrap;">$ ${total.toLocaleString('es-CO', {minimumFractionDigits: 2})}</td>
+                                        <td class="text-end text-muted" style="white-space: nowrap;">$ ${cobrado.toLocaleString('es-CO', {minimumFractionDigits: 2})}</td>
+                                        <td class="text-end fw-bold text-dark pe-3" style="white-space: nowrap;">$ ${saldo.toLocaleString('es-CO', {minimumFractionDigits: 2})}</td>
+                                        <td class="text-center" style="white-space: nowrap;">
                                             <button class="btn btn-sm text-white btn-abonar" style="background-color: #2cbfb7;" data-id="${f.id}" data-saldo="${saldo}">Registrar Pago</button>
                                         </td>
                                     </tr>
