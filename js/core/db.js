@@ -251,9 +251,9 @@ const DB = {
                 
                 // Etapa 1 - Optimización de listados (eliminar columnas pesadas o uniones en getAll)
                 if (table === 'facturas') {
-                    cols = 'id, numero, fecha, vencimiento, contacto_id, total, estado, observaciones';
+                    cols = 'id, numero, fecha, vencimiento, contacto_id, total, estado, observaciones, saldo_original, created_at';
                 } else if (table === 'cotizaciones') {
-                    cols = 'id, numero, fecha, vencimiento, contacto_id, total, estado';
+                    cols = 'id, numero, fecha, vencimiento, contacto_id, total, estado, observaciones, created_at';
                 }
 
                 let q = supabase.from(table).select(cols, withCount ? { count: 'exact' } : undefined);
@@ -350,9 +350,10 @@ const DB = {
         const table = storeName === 'pagos' ? 'pagos_ingresos' : storeName;
         try {
             let cols = '*';
-            // Optimización de columnas
-            if (table === 'facturas' || table === 'cotizaciones') {
-                cols = 'id, numero, fecha, vencimiento, contacto_id, total, estado, observaciones';
+            if (table === 'facturas') {
+                cols = 'id, numero, fecha, vencimiento, contacto_id, total, estado, observaciones, saldo_original, created_at';
+            } else if (table === 'cotizaciones') {
+                cols = 'id, numero, fecha, vencimiento, contacto_id, total, estado, observaciones, created_at';
             }
 
             let query = supabase.from(table).select(cols, { count: 'exact' });
