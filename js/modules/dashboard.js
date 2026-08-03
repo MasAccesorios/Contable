@@ -12,7 +12,7 @@ export const DashboardModule = {
                 <div class="d-flex justify-content-between align-items-center mb-4" style="max-width: 1100px; margin: 0 auto;">
                     <h3 class="text-title text-dark mb-0">Resumen del negocio</h3>
                     <div class="d-flex gap-2">
-                        <select class="form-select form-select-sm shadow-sm border-0 text-dark fw-semibold" style="width:130px; border-radius:6px; font-size:14px; padding: 0.35rem 1.8rem 0.35rem 0.75rem;">
+                        <select id="dashboard-rango-filtro" class="form-select form-select-sm shadow-sm border-0 text-dark fw-semibold" style="width:130px; border-radius:6px; font-size:14px; padding: 0.35rem 1.8rem 0.35rem 0.75rem;">
                             <option>Mes actual</option>
                             <option>1 mes</option>
                             <option>3 meses</option>
@@ -152,10 +152,23 @@ export const DashboardModule = {
         if (typeof Chart === 'undefined') {
             const script = document.createElement('script');
             script.src = 'https://cdn.jsdelivr.net/npm/chart.js';
-            script.onload = () => this.loadData(element);
+            script.onload = async () => {
+                await this.loadData(element);
+                this.setupFilters(element);
+            };
             document.head.appendChild(script);
         } else {
             await this.loadData(element);
+            this.setupFilters(element);
+        }
+    },
+
+    setupFilters(element) {
+        const select = element.querySelector('#dashboard-rango-filtro');
+        if (select) {
+            select.addEventListener('change', (e) => {
+                this.renderDynamicContent(element, e.target.value);
+            });
         }
     },
 
@@ -163,20 +176,40 @@ export const DashboardModule = {
         console.time('dashboard-total-load');
         
         console.time('fetch-facturas');
-        const facturas = await DB.getAll('facturas');
+        this.facturas = await DB.getAll('facturas');
         console.timeEnd('fetch-facturas');
 
         console.time('fetch-transacciones');
-        const transacciones = await DB.getAll('transacciones');
+        this.transacciones = await DB.getAll('transacciones');
         console.timeEnd('fetch-transacciones');
 
         console.time('fetch-lotes');
-        const lotes = await DB.getAll('lotes_fifo');
+        this.lotes = await DB.getAll('lotes_fifo');
         console.timeEnd('fetch-lotes');
 
         console.time('fetch-contactos');
-        const contactos = await DB.getAll('contactos');
+        this.contactos = await DB.getAll('contactos');
         console.timeEnd('fetch-contactos');
+
+        const dbCuentas = await DB.getAll('cuentas_bancarias') || [];
+        this.cuentasActivas = dbCuentas.filter(c => c.estado === 'active' || c.estado === 'activo');
+        
+        const { data: saldosRPC } = await supabase.rpc('get_saldos_por_cuenta');
+        this.saldosRPC = saldosRPC;
+
+        console.timeEnd('dashboard-total-load');
+
+        const select = element.querySelector('#dashboard-rango-filtro');
+        await this.renderDynamicContent(element, select ? select.value : 'Mes actual');
+    },
+
+    async renderDynamicContent(element, rango) {
+        console.time('render-dynamic-content');
+        
+        const facturas = this.facturas || [];
+        const transacciones = this.transacciones || [];
+        const lotes = this.lotes || [];
+        const contactos = this.contactos || [];
 
         // Extract KPIs
         let ventasMes = 0;
@@ -188,21 +221,20 @@ export const DashboardModule = {
         
         // Saldo Total Bancos (Usando la fuente de verdad de Supabase)
         let saldoBancos = 0;
-        const dbCuentas = await DB.getAll('cuentas_bancarias') || [];
-        const cuentasActivas = dbCuentas.filter(c => c.estado === 'active' || c.estado === 'activo');
-        
         const saldosPorCuenta = {};
-        cuentasActivas.forEach(c => { saldosPorCuenta[c.id] = 0; });
-
-        const { data: saldosRPC } = await supabase.rpc('get_saldos_por_cuenta');
-        if (saldosRPC) {
-            saldosRPC.forEach(s => {
+        if (this.cuentasActivas) {
+            this.cuentasActivas.forEach(c => { saldosPorCuenta[c.id] = 0; });
+        }
+        if (this.saldosRPC) {
+            this.saldosRPC.forEach(s => {
                 if (saldosPorCuenta[s.cuenta_id] !== undefined) {
                     saldosPorCuenta[s.cuenta_id] = Number(s.saldo);
                 }
             });
         }
-        cuentasActivas.forEach(c => { saldoBancos += (saldosPorCuenta[c.id] || 0); });
+        if (this.cuentasActivas) {
+            this.cuentasActivas.forEach(c => { saldoBancos += (saldosPorCuenta[c.id] || 0); });
+        }
 
         let cxcTotal = 0, cxcVigentes = 0, cxcVencidas = 0;
         let cxcVigentesDoc = 0, cxcVencidasDoc = 0;
@@ -213,14 +245,27 @@ export const DashboardModule = {
         const hoy = new Date();
         hoy.setHours(0,0,0,0);
 
-        // Ventas del mes actual dinámico
-        const currentMonthPrefix = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}`;
+        let startDate = new Date(hoy);
+        let endDate = new Date(hoy);
+
+        if (rango === 'Mes actual') {
+            startDate.setDate(1);
+            endDate = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0); // Last day of month
+        } else {
+            const months = parseInt(rango.split(' ')[0]) || 1;
+            startDate.setMonth(startDate.getMonth() - months);
+        }
+
+        const startDateStr = `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, '0')}-${String(startDate.getDate()).padStart(2, '0')}`;
+        const endDateStr = `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}`;
         
         // Prepare chart data grouped by day for current month
         const dailySales = {};
-        const daysInMonth = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0).getDate();
-        for(let i=1; i<=daysInMonth; i++) {
-            dailySales[`${currentMonthPrefix}-${String(i).padStart(2, '0')}`] = 0;
+        const iterDate = new Date(startDate);
+        while (iterDate <= endDate) {
+            const dStr = `${iterDate.getFullYear()}-${String(iterDate.getMonth() + 1).padStart(2, '0')}-${String(iterDate.getDate()).padStart(2, '0')}`;
+            dailySales[dStr] = 0;
+            iterDate.setDate(iterDate.getDate() + 1);
         }
 
         const facturasMesIds = [];
@@ -230,7 +275,7 @@ export const DashboardModule = {
             if (f.estado === 'void' || f.estado === 'anulada') return;
 
             // Se asume que toda factura es de venta (para el cálculo de ingresos del mes)
-            if (f.fecha && f.fecha.startsWith(currentMonthPrefix)) {
+            if (f.fecha && f.fecha >= startDateStr && f.fecha <= endDateStr) {
                 ventasMes += (f.total || 0);
                 utilidadMes += (f.utilidad || 0);
                 facturasMesIds.push(f.id);
@@ -326,13 +371,13 @@ export const DashboardModule = {
         updateProgress(cxpTotal, cxpVigentes, cxpVencidas, '#kpi-cxp-progress');
 
         // Render Chart
-        this.renderChart(dailySales);
+        this.renderChart(dailySales, rango);
 
         console.timeEnd('render-dom-updates');
-        console.timeEnd('dashboard-total-load');
+        console.timeEnd('render-dynamic-content');
     },
 
-    renderChart(dailySales) {
+    renderChart(dailySales, rango) {
         const canvas = document.getElementById('ventasChart');
         if (!canvas) return;
         
@@ -354,6 +399,8 @@ export const DashboardModule = {
         
         // Mocking eliminado temporalmente para evitar datos falsos
         const dataAnterior = dataVentas.map(() => 0); // Todo en 0 temporalmente
+        
+        const datasetLabel = rango === 'Mes actual' ? `Ventas de ${currentMonthName} de ${currentYear}` : `Ventas últimos ${rango}`;
 
         window.myVentasChart = new Chart(ctx, {
             type: 'line',
@@ -361,7 +408,7 @@ export const DashboardModule = {
                 labels: labels,
                 datasets: [
                     {
-                        label: `Ventas de ${currentMonthName} de ${currentYear}`,
+                        label: datasetLabel,
                         data: dataVentas,
                         borderColor: '#1e5dd1', // Azul oscuro de la imagen
                         backgroundColor: '#1e5dd1',
