@@ -118,7 +118,7 @@ export class CrudFinanciero {
                         <div class="table-responsive mt-3">
                             <table class="table table-hover align-middle border-0" style="font-size: 0.875rem;">
                                 <thead class="bg-white text-muted border-bottom">
-                                    <tr class="small text-uppercase fw-semibold text-secondary" style="letter-spacing: 0.5px;">
+                                    <tr class="small text-uppercase fw-semibold text-secondary" style="letter-spacing: 0.5px; white-space: nowrap;">
                                         <th class="border-0 py-3">Fecha</th>
                                         <th class="border-0 py-3">Categoría</th>
                                         <th class="border-0 py-3">Descripción</th>
@@ -326,14 +326,14 @@ export class CrudFinanciero {
                 : '-';
             return `
             <tr style="border-bottom: 1px solid #f1f5f9;">
-                <td class="py-3 text-muted">${g.fecha}</td>
-                <td class="py-3"><span class="badge bg-light text-dark border">${g.categoria}</span></td>
-                <td class="py-3">${g.descripcion}</td>
-                <td class="py-3 text-muted">${proveedorNombre}</td>
-                <td class="py-3 text-muted">${cuentaNombre}</td>
-                <td class="py-3 text-muted">${g.referencia || '-'}</td>
-                <td class="py-3 text-end fw-bold ${this.config.colorMonto}">${this.config.prefijoMonto}$${g.monto.toLocaleString()}</td>
-                <td class="py-3 text-center">
+                <td class="py-3 text-muted" style="white-space: nowrap;">${g.fecha}</td>
+                <td class="py-3" style="white-space: nowrap;"><span class="badge bg-light text-dark border">${g.categoria}</span></td>
+                <td class="py-3" style="white-space: nowrap;">${g.descripcion}</td>
+                <td class="py-3 text-muted" style="white-space: nowrap;">${proveedorNombre}</td>
+                <td class="py-3 text-muted" style="white-space: nowrap;">${cuentaNombre}</td>
+                <td class="py-3 text-muted" style="white-space: nowrap;">${g.referencia || '-'}</td>
+                <td class="py-3 text-end fw-bold ${this.config.colorMonto}" style="white-space: nowrap;">${this.config.prefijoMonto}$${g.monto.toLocaleString()}</td>
+                <td class="py-3 text-center" style="white-space: nowrap;">
                     <div class="dropdown">
                         <button class="btn btn-sm btn-link p-0 text-muted mx-1" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Más opciones" style="color: #6c757d !important; transition: opacity 0.2s;" onmouseover="this.style.opacity=0.7" onmouseout="this.style.opacity=1">
                             <i class="bi bi-three-dots-vertical fs-6"></i>
