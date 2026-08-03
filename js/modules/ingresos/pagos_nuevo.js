@@ -1,6 +1,8 @@
 import DB, { getLocalDate } from '../../core/db.js';
 import { CoreActions } from '../../shared/crud.js';
+import { CoreActions } from '../../shared/crud.js';
 import { calcularEstadoFactura } from '../../shared/carteraUtils.js';
+import { applyCurrencyFormatting, parseCurrencyValue } from '../../shared/formatters.js';
 
 export default {
     async init(element) {
@@ -86,8 +88,8 @@ export default {
                 <td class="align-middle">
                     <div class="input-group input-group-sm" style="max-width: 150px; margin-left:auto;">
                         <span class="input-group-text">$</span>
-                        <input type="number" class="form-control monto-abono text-end fw-bold" 
-                            data-id="${f.id}" data-saldo="${f.saldo}" min="0" max="${f.saldo}" step="0.01" value="0">
+                        <input type="text" class="form-control monto-abono text-end fw-bold" 
+                            data-id="${f.id}" data-saldo="${f.saldo}" value="0">
                     </div>
                 </td>
             </tr>
@@ -200,11 +202,11 @@ export default {
         const updateSum = () => {
             let sum = 0;
             inputs.forEach(input => {
-                let val = parseFloat(input.value) || 0;
+                let val = parseCurrencyValue(input.value);
                 let max = parseFloat(input.getAttribute('data-saldo')) || 0;
                 
                 // Autocorrección si el usuario digita más del saldo
-                if (val > max) { val = max; input.value = max; }
+                if (val > max) { val = max; input.value = val; applyCurrencyFormatting(input); }
                 if (val < 0) { val = 0; input.value = 0; }
                 
                 sum += val;
@@ -214,6 +216,7 @@ export default {
         };
 
         inputs.forEach(input => {
+            applyCurrencyFormatting(input);
             input.addEventListener('input', updateSum);
             input.addEventListener('focus', function() { this.select(); });
         });
@@ -231,7 +234,7 @@ export default {
 
             const abonos = [];
             inputs.forEach(input => {
-                const val = parseFloat(input.value) || 0;
+                const val = parseCurrencyValue(input.value);
                 if (val > 0) {
                     abonos.push({
                         factura_id: input.getAttribute('data-id'),

@@ -730,7 +730,7 @@ export const FacturasModule = {
                     <input type="number" min="0" class="form-control form-control-sm border-0 bg-light input-qty mb-1" value="${detalle.cantidad}" ${isViewOnly ? 'disabled' : ''}>
                     <div class="meta-qty ps-1"></div>
                 </td>
-                <td class="align-top"><input type="number" step="any" min="0" class="form-control form-control-sm border-0 bg-light input-price" value="${detalle.precio}" placeholder="$" ${isViewOnly ? 'disabled' : ''}></td>
+                <td class="align-top"><input type="text" class="form-control form-control-sm border-0 bg-light input-price" value="${detalle.precio}" placeholder="$" ${isViewOnly ? 'disabled' : ''}></td>
                 <td class="align-top"><input type="number" step="any" min="0" max="100" class="form-control form-control-sm border-0 bg-light input-disc" value="${detalle.descuento}" placeholder="0 %" ${isViewOnly ? 'disabled' : ''}></td>
                 <td class="align-top"><input type="number" step="any" min="0" max="100" class="form-control form-control-sm border-0 bg-light input-tax" value="${detalle.impuesto}" placeholder="%" ${isViewOnly ? 'disabled' : ''}></td>
                 <td class="text-end fw-bold calc-subtotal align-top pt-3" style="color: var(--text-main);">$0,00</td>
@@ -751,7 +751,13 @@ export const FacturasModule = {
                 const inpPrice = tr.querySelector('.input-price');
                 const inpDisc = tr.querySelector('.input-disc');
                 const inpTax = tr.querySelector('.input-tax');
-                [inpQty, inpPrice, inpDisc, inpTax].forEach(el => el.addEventListener('input', calcEngine));
+                
+                import('../../shared/formatters.js').then(fmt => {
+                    fmt.applyCurrencyFormatting(inpPrice);
+                    [inpQty, inpPrice, inpDisc, inpTax].forEach(el => {
+                        el.addEventListener('input', () => calcEngine());
+                    });
+                });
 
                 // Eliminar línea
                 tr.querySelector('.btn-eliminar-linea').addEventListener('click', () => {
@@ -790,35 +796,38 @@ export const FacturasModule = {
             let sumSubtotal = 0;
             let sumDescuento = 0;
             let sumImpuestos = 0;
+            const formRows = Array.from(tbody.querySelectorAll('tr'));
+            
+            import('../../shared/formatters.js').then(fmt => {
+                formRows.forEach(tr => {
+                    const qty = parseFloat(tr.querySelector('.input-qty').value || 0);
+                    const price = fmt.parseCurrencyValue(tr.querySelector('.input-price').value);
+                    const discPct = parseFloat(tr.querySelector('.input-disc').value || 0);
+                    const taxPct = parseFloat(tr.querySelector('.input-tax').value || 0);
 
-            tbody.querySelectorAll('tr').forEach(tr => {
-                const qty = parseFloat(tr.querySelector('.input-qty').value || 0);
-                const price = parseFloat(tr.querySelector('.input-price').value || 0);
-                const discPct = parseFloat(tr.querySelector('.input-disc').value || 0);
-                const taxPct = parseFloat(tr.querySelector('.input-tax').value || 0);
+                    const baseLine = qty * price;
+                    const discAmount = baseLine * (discPct / 100);
+                    const subLine = baseLine - discAmount;
+                    const taxAmount = subLine * (taxPct / 100);
 
-                const baseLine = qty * price;
-                const discAmount = baseLine * (discPct / 100);
-                const subLine = baseLine - discAmount;
-                const taxAmount = subLine * (taxPct / 100);
+                    tr.querySelector('.calc-subtotal').textContent = formatMoney(subLine);
 
-                tr.querySelector('.calc-subtotal').textContent = formatMoney(subLine);
+                    sumSubtotal += baseLine;
+                    sumDescuento += discAmount;
+                    sumImpuestos += taxAmount;
+                });
 
-                sumSubtotal += baseLine;
-                sumDescuento += discAmount;
-                sumImpuestos += taxAmount;
+                const totalFinal = sumSubtotal - sumDescuento + sumImpuestos;
+                
+                element.querySelector('#tot-subtotal').textContent = formatMoney(sumSubtotal);
+                element.querySelector('#tot-descuento').textContent = formatMoney(sumDescuento);
+                element.querySelector('#tot-impuestos').textContent = formatMoney(sumImpuestos);
+                const totalLbl = element.querySelector('#tot-total');
+                totalLbl.textContent = formatMoney(totalFinal);
+                totalLbl.dataset.rawTotal = totalFinal.toString();
+                
+                factura.total = totalFinal; // Mantener en estado global para guardado rápido
             });
-
-            const totalFinal = sumSubtotal - sumDescuento + sumImpuestos;
-            
-            element.querySelector('#tot-subtotal').textContent = formatMoney(sumSubtotal);
-            element.querySelector('#tot-descuento').textContent = formatMoney(sumDescuento);
-            element.querySelector('#tot-impuestos').textContent = formatMoney(sumImpuestos);
-            const totalLbl = element.querySelector('#tot-total');
-            totalLbl.textContent = formatMoney(totalFinal);
-            totalLbl.dataset.rawTotal = totalFinal.toString();
-            
-            factura.total = totalFinal; // Mantener en estado global para guardado rápido
         };
 
         // Función Helper: Cálculo de Fecha de Vencimiento
@@ -927,128 +936,120 @@ export const FacturasModule = {
             
             const originalText = btnGuardar.innerHTML;
             btnGuardar.disabled = true;
-            btnGuardar.innerHTML = `<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Guardando...`;
+            btnGuardar.innerHTML = `<span class="spinner-border spinner-border-sm"></span>`;
             
             const btnCancelar = element.querySelector('#btn-cancelar');
             if (btnCancelar) btnCancelar.disabled = true;
             
-            try {
-                const clienteId = element.querySelector('#select-cliente').value;
-                if (!clienteId) {
-                    const searchInput = element.querySelector('#search-cliente');
-                    searchInput.style.borderColor = '#ef4444'; // Resalta en rojo
-                    CoreActions.showWarningModal("Debes seleccionar un cliente válido de la lista.");
-                    if (window._ventasSearchClientTimeout) clearTimeout(window._ventasSearchClientTimeout);
-                    window._ventasSearchClientTimeout = setTimeout(() => {
-                        if (document.body.contains(searchInput)) {
-                            searchInput.style.borderColor = '';
-                        }
-                    }, 3000);
-                    return;
-                }
+            import('../../shared/formatters.js').then(async fmt => {
+                const parseP = (v) => fmt.parseCurrencyValue(v);
 
-                const tipoVenta = element.querySelector('#select-tipo-venta').value;
-                const isNew = !id; // Si es nueva factura, descargamos inventario
-
-                // Recolectar detalles
-                const arrDetalles = [];
-                let hasError = false;
-
-                const rows = tbody.querySelectorAll('tr');
-                for (const tr of rows) {
-                    const prodId = tr.querySelector('.input-prod-id').value;
-                    if (!prodId) continue;
-                    
-                    const inpQty = tr.querySelector('.input-qty');
-                    const qty = parseFloat(inpQty.value || 0);
-                    if (qty <= 0) {
-                        inpQty.style.borderColor = '#ef4444';
-                        hasError = true;
+                try {
+                    const clienteId = element.querySelector('#select-cliente').value;
+                    if (!clienteId) {
+                        const searchInput = element.querySelector('#search-cliente');
+                        searchInput.style.borderColor = '#ef4444'; // Resalta en rojo
+                        CoreActions.showWarningModal("Debes seleccionar un cliente válido de la lista.");
+                        if (window._ventasSearchClientTimeout) clearTimeout(window._ventasSearchClientTimeout);
+                        window._ventasSearchClientTimeout = setTimeout(() => {
+                            if (document.body.contains(searchInput)) {
+                                searchInput.style.borderColor = '';
+                            }
+                        }, 3000);
+                        btnGuardar.disabled = false;
+                        btnGuardar.innerHTML = originalText;
+                        return;
                     }
 
-                    arrDetalles.push({
-                        id: tr.dataset.uid,
-                        productoId: prodId,
-                        descripcion_personalizada: tr.querySelector('.input-prod-desc').value,
-                        cantidad: qty,
-                        precio: parseFloat(tr.querySelector('.input-price').value || 0),
-                        descuento: parseFloat(tr.querySelector('.input-disc').value || 0),
-                        impuesto: parseFloat(tr.querySelector('.input-tax').value || 0)
-                    });
-                }
+                    const tipoVenta = element.querySelector('#select-tipo-venta').value;
+                    const isNew = !id; // Si es nueva factura, descargamos inventario
 
-                if (arrDetalles.length === 0 || hasError || parseFloat(element.querySelector('#tot-total').dataset.rawTotal) <= 0) {
-                    CoreActions.showWarningModal("Debe agregar al menos un producto válido y con cantidad mayor a cero.");
-                    return;
-                }
-
-                // Descargo FIFO de inventario si es nueva
-                let costoTotalVenta = 0;
-                if (isNew) {
-                    const invResult = await InventarioUtils.procesarSalidaInventario(arrDetalles, null, productos);
-                    if (!invResult.success) {
-                        CoreActions.showWarningModal(invResult.error);
-                        return; // ABORTA LA VENTA
-                    }
-                    costoTotalVenta = invResult.costoTotalVenta;
-                    arrDetalles.length = 0;
-                    arrDetalles.push(...invResult.detallesActualizados);
-                } else {
-                    costoTotalVenta = factura.total_costo || 0;
-                }
-
-                factura.clienteId = clienteId;
-                factura.tipoVenta = tipoVenta;
-                if (tipoVenta === 'contado') {
-                    factura.cuentaId = element.querySelector('#select-cuenta-venta').value;
-                }
-                factura.fecha = element.querySelector('#input-fecha').value;
-                factura.vencimiento = element.querySelector('#input-vencimiento').value;
-                factura.detalles = arrDetalles;
-                factura.tipo = 'venta'; // Ensure type is venta
-                
-                const rawTotal = parseFloat(element.querySelector('#tot-total').dataset.rawTotal);
-                factura.total = rawTotal;
-
-                if (!factura.numero) {
-                    factura = await DB.saveWithNextNumero('facturas', factura);
-                } else {
-                    await DB.save('facturas', factura);
-                }
-
-                // Condicional Contado vs Crédito
-                if (tipoVenta === 'contado') {
-                    if (isNew) {
-                        const transaccion = {
-                            id: 'trx_' + Date.now(),
-                            facturaId: factura.id,
-                            referenciaId: factura.id,
-                            tipo: 'ingreso',
-                            monto: rawTotal,
-                            fecha: factura.fecha,
-                            referencia: `Venta al contado Fac. ${factura.numero}`,
-                            detalle: `Venta al contado Fac. ${factura.numero}`,
-                            cuenta: factura.cuentaId,
-                            cuentaId: factura.cuentaId
+                    // Recolectar detalles
+                    const arrDetalles = Array.from(element.querySelectorAll('#tbody-detalles tr')).map(r => {
+                        return {
+                            id: r.dataset.uid,
+                            productoId: parseInt(r.querySelector('.input-prod-id').value),
+                            cantidad: parseFloat(r.querySelector('.input-qty').value) || 0,
+                            precio: parseP(r.querySelector('.input-price').value),
+                            descuento: parseFloat(r.querySelector('.input-disc').value) || 0,
+                            impuesto: parseFloat(r.querySelector('.input-tax').value) || 0
                         };
-                        await DB.save('transacciones', transaccion);
+                    });
+
+                    if (arrDetalles.length === 0 || parseFloat(element.querySelector('#tot-total').dataset.rawTotal) <= 0) {
+                        CoreActions.showWarningModal("Debe agregar al menos un producto válido y con cantidad mayor a cero.");
+                        btnGuardar.disabled = false;
+                        btnGuardar.innerHTML = originalText;
+                        return;
                     }
-                }
-                
-                // Navegar a modo lectura para bloquear edición y habilitar impresión final
-                window.hayCambiosSinGuardar = false;
-                window.location.hash = `#/ingresos/facturas/ver/${factura.id}`;
-            } catch (err) {
-                console.error("Error al guardar factura:", err);
-                CoreActions.showWarningModal("Ocurrió un error al intentar guardar la factura.");
-            } finally {
-                // Siempre se restaura el botón si ocurre un return prematuro o error
-                if (btnGuardar) {
+
+                    // Descargo FIFO de inventario si es nueva
+                    let costoTotalVenta = 0;
+                    if (isNew) {
+                        const invResult = await InventarioUtils.procesarSalidaInventario(arrDetalles, null, productos);
+                        if (!invResult.success) {
+                            CoreActions.showWarningModal(invResult.error);
+                            btnGuardar.disabled = false;
+                            btnGuardar.innerHTML = originalText;
+                            return; // ABORTA LA VENTA
+                        }
+                        costoTotalVenta = invResult.costoTotalVenta;
+                        arrDetalles.length = 0;
+                        arrDetalles.push(...invResult.detallesActualizados);
+                    } else {
+                        costoTotalVenta = factura.total_costo || 0;
+                    }
+
+                    factura.clienteId = clienteId;
+                    factura.tipoVenta = tipoVenta;
+                    if (tipoVenta === 'contado') {
+                        factura.cuentaId = element.querySelector('#select-cuenta-venta').value;
+                    }
+                    factura.fecha = element.querySelector('#input-fecha').value;
+                    factura.vencimiento = element.querySelector('#input-vencimiento').value;
+                    factura.detalles = arrDetalles;
+                    factura.tipo = 'venta'; // Ensure type is venta
+                    
+                    const rawTotal = parseFloat(element.querySelector('#tot-total').dataset.rawTotal);
+                    factura.total = rawTotal;
+
+                    if (!factura.numero) {
+                        factura = await DB.saveWithNextNumero('facturas', factura);
+                    } else {
+                        await DB.save('facturas', factura);
+                    }
+
+                    // Condicional Contado vs Crédito
+                    if (tipoVenta === 'contado') {
+                        if (isNew) {
+                            const transaccion = {
+                                id: 'trx_' + Date.now(),
+                                facturaId: factura.id,
+                                referenciaId: factura.id,
+                                tipo: 'ingreso',
+                                monto: rawTotal,
+                                fecha: factura.fecha,
+                                referencia: `Venta al contado Fac. ${factura.numero}`,
+                                detalle: `Venta al contado Fac. ${factura.numero}`,
+                                cuenta: factura.cuentaId,
+                                cuentaId: factura.cuentaId
+                            };
+                            await DB.save('transacciones', transaccion);
+                        }
+                    }
+                    
+                    // Navegar a modo lectura para bloquear edición y habilitar impresión final
+                    window.hayCambiosSinGuardar = false;
+                    window.location.hash = `#/ingresos/facturas/ver/${factura.id}`;
+                } catch (error) {
+                    console.error("Fallo general de guardado:", error);
+                    alert("Error en el sistema al guardar: " + error.message);
                     btnGuardar.disabled = false;
                     btnGuardar.innerHTML = originalText;
+                } finally {
+                    if (btnCancelar) btnCancelar.disabled = false;
                 }
-                if (btnCancelar) btnCancelar.disabled = false;
-            }
+            });
         });
 
         // Inicializar UI

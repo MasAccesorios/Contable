@@ -161,7 +161,7 @@ export const ConciliacionModule = {
                                         <label class="text-muted mb-1 d-block" style="font-size: 12px; font-weight: 500;">Saldo bancario (Extracto)</label>
                                         <div class="input-group input-group-sm">
                                             <span class="input-group-text bg-light border-end-0">$</span>
-                                            <input type="number" id="concil-input-saldo" class="form-control border-start-0 ps-0 text-dark fw-medium" placeholder="0.00" value="0">
+                                            <input type="text" id="concil-input-saldo" class="form-control border-start-0 ps-0 text-dark fw-medium" placeholder="0.00" value="0">
                                         </div>
                                     </div>
                                     <div class="col-3 border-end">
@@ -362,10 +362,14 @@ export const ConciliacionModule = {
             this.renderTabla();
         });
 
-        this.element.querySelector('#concil-input-saldo').addEventListener('input', (e) => {
-            this.state.saldoBancario = parseFloat(e.target.value) || 0;
-            const saldoTotal = this.state.saldoAnterior + this.state.entradas - this.state.salidas;
-            this.calcularDiferencia(saldoTotal);
+        const saldoInput = this.element.querySelector('#concil-input-saldo');
+        import('../../shared/formatters.js').then(fmt => {
+            fmt.applyCurrencyFormatting(saldoInput);
+            saldoInput.addEventListener('input', (e) => {
+                this.state.saldoBancario = fmt.parseCurrencyValue(e.target.value) || 0;
+                const saldoTotal = this.state.saldoAnterior + this.state.entradas - this.state.salidas;
+                this.calcularDiferencia(saldoTotal);
+            });
         });
 
         const btnAjustar = this.element.querySelector('#btn-ajustar-saldo');
@@ -508,7 +512,10 @@ export const ConciliacionModule = {
                 
                 if (inputDesde) inputDesde.value = concil.fecha_desde;
                 if (inputHasta) inputHasta.value = concil.fecha_hasta;
-                if (inputSaldo) inputSaldo.value = concil.saldo_bancario;
+                if (inputSaldo) {
+                    inputSaldo.value = concil.saldo_bancario;
+                    import('../../shared/formatters.js').then(fmt => fmt.applyCurrencyFormatting(inputSaldo));
+                }
                 
                 this.state.fechaDesde = concil.fecha_desde;
                 this.state.fechaHasta = concil.fecha_hasta;

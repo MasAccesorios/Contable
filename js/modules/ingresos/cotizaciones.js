@@ -616,7 +616,7 @@ export const CotizacionesModule = {
                     <input type="number" min="0" class="form-control form-control-sm border-0 bg-light input-qty mb-1" value="${detalle.cantidad}" ${isViewOnly ? 'disabled' : ''}>
                     <div class="meta-qty ps-1"></div>
                 </td>
-                <td class="align-top"><input type="number" step="any" min="0" class="form-control form-control-sm border-0 bg-light input-price" value="${detalle.precio}" placeholder="$" ${isViewOnly ? 'disabled' : ''}></td>
+                <td class="align-top"><input type="text" class="form-control form-control-sm border-0 bg-light input-price" value="${detalle.precio}" placeholder="$" ${isViewOnly ? 'disabled' : ''}></td>
                 <td class="align-top"><input type="number" step="any" min="0" max="100" class="form-control form-control-sm border-0 bg-light input-disc" value="${detalle.descuento}" placeholder="0 %" ${isViewOnly ? 'disabled' : ''}></td>
                 <td class="align-top"><input type="number" step="any" min="0" max="100" class="form-control form-control-sm border-0 bg-light input-tax" value="${detalle.impuesto}" placeholder="%" ${isViewOnly ? 'disabled' : ''}></td>
                 <td class="text-end fw-bold calc-subtotal align-top pt-3" style="color: var(--text-main);">$0,00</td>
@@ -637,7 +637,12 @@ export const CotizacionesModule = {
                 const inpPrice = tr.querySelector('.input-price');
                 const inpDisc = tr.querySelector('.input-disc');
                 const inpTax = tr.querySelector('.input-tax');
-                [inpQty, inpPrice, inpDisc, inpTax].forEach(el => el.addEventListener('input', calcEngine));
+                import('../../shared/formatters.js').then(fmt => {
+                    fmt.applyCurrencyFormatting(inpPrice);
+                    [inpQty, inpPrice, inpDisc, inpTax].forEach(el => {
+                        el.addEventListener('input', () => calcEngine());
+                    });
+                });
 
                 // Eliminar línea
                 tr.querySelector('.btn-eliminar-linea').addEventListener('click', () => {
@@ -677,34 +682,38 @@ export const CotizacionesModule = {
             let sumDescuento = 0;
             let sumImpuestos = 0;
 
-            tbody.querySelectorAll('tr').forEach(tr => {
-                const qty = parseFloat(tr.querySelector('.input-qty').value || 0);
-                const price = parseFloat(tr.querySelector('.input-price').value || 0);
-                const discPct = parseFloat(tr.querySelector('.input-disc').value || 0);
-                const taxPct = parseFloat(tr.querySelector('.input-tax').value || 0);
+            const formRows = Array.from(tbody.querySelectorAll('tr'));
+            
+            import('../../shared/formatters.js').then(fmt => {
+                formRows.forEach(tr => {
+                    const qty = parseFloat(tr.querySelector('.input-qty').value || 0);
+                    const price = fmt.parseCurrencyValue(tr.querySelector('.input-price').value);
+                    const discPct = parseFloat(tr.querySelector('.input-disc').value || 0);
+                    const taxPct = parseFloat(tr.querySelector('.input-tax').value || 0);
 
-                const baseLine = qty * price;
-                const discAmount = baseLine * (discPct / 100);
-                const subLine = baseLine - discAmount;
-                const taxAmount = subLine * (taxPct / 100);
+                    const baseLine = qty * price;
+                    const discAmount = baseLine * (discPct / 100);
+                    const subLine = baseLine - discAmount;
+                    const taxAmount = subLine * (taxPct / 100);
 
-                tr.querySelector('.calc-subtotal').textContent = formatMoney(subLine);
+                    tr.querySelector('.calc-subtotal').textContent = formatMoney(subLine);
 
-                sumSubtotal += baseLine;
-                sumDescuento += discAmount;
-                sumImpuestos += taxAmount;
+                    sumSubtotal += baseLine;
+                    sumDescuento += discAmount;
+                    sumImpuestos += taxAmount;
+                });
+
+                const totalFinal = sumSubtotal - sumDescuento + sumImpuestos;
+                
+                element.querySelector('#tot-subtotal').textContent = formatMoney(sumSubtotal);
+                element.querySelector('#tot-descuento').textContent = formatMoney(sumDescuento);
+                element.querySelector('#tot-impuestos').textContent = formatMoney(sumImpuestos);
+                const totalLbl = element.querySelector('#tot-total');
+                totalLbl.textContent = formatMoney(totalFinal);
+                totalLbl.dataset.rawTotal = totalFinal.toString();
+                
+                cotizacion.total = totalFinal; // Mantener en estado global para guardado rápido
             });
-
-            const totalFinal = sumSubtotal - sumDescuento + sumImpuestos;
-            
-            element.querySelector('#tot-subtotal').textContent = formatMoney(sumSubtotal);
-            element.querySelector('#tot-descuento').textContent = formatMoney(sumDescuento);
-            element.querySelector('#tot-impuestos').textContent = formatMoney(sumImpuestos);
-            const totalLbl = element.querySelector('#tot-total');
-            totalLbl.textContent = formatMoney(totalFinal);
-            totalLbl.dataset.rawTotal = totalFinal.toString();
-            
-            cotizacion.total = totalFinal; // Mantener en estado global para guardado rápido
         };
 
         // Función Helper: Cálculo de Fecha de Vencimiento
@@ -789,84 +798,73 @@ export const CotizacionesModule = {
         // Evento Guardar (Captura de Estado DOM a DB)
         element.querySelector('#btn-guardar')?.addEventListener('click', async (e) => {
             const btnGuardar = e.currentTarget;
-            if (btnGuardar.disabled) return; // Salvaguarda estricta contra doble clic
-            
+            if (btnGuardar.disabled) return;
             const originalText = btnGuardar.innerHTML;
             btnGuardar.disabled = true;
-            btnGuardar.innerHTML = `<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Guardando...`;
-            
-            const btnCancelar = element.querySelector('#btn-cancelar');
-            if (btnCancelar) btnCancelar.disabled = true;
+            btnGuardar.innerHTML = `<span class="spinner-border spinner-border-sm"></span>`;
 
-            try {
-                const clienteId = element.querySelector('#select-cliente').value;
-                if (!clienteId) {
-                    const searchInput = element.querySelector('#search-cliente');
-                    searchInput.style.borderColor = '#ef4444';
-                    CoreActions.showWarningModal("Debes seleccionar un cliente válido de la lista.");
-                    if (window._cotizacionesSearchClientTimeout) clearTimeout(window._cotizacionesSearchClientTimeout);
-                    window._cotizacionesSearchClientTimeout = setTimeout(() => {
-                        if (document.body.contains(searchInput)) {
-                            searchInput.style.borderColor = '';
-                        }
-                    }, 3000);
-                    return;
-                }
+            import('../../shared/formatters.js').then(async fmt => {
+                const parseP = (v) => fmt.parseCurrencyValue(v);
 
-                // Recolectar detalles
-                const arrDetalles = [];
-                let hasError = false;
-                tbody.querySelectorAll('tr').forEach(tr => {
-                    const prodId = tr.querySelector('.input-prod-id').value;
-                    if (!prodId) return; // Omitir filas sin producto
-                    
-                    const inpQty = tr.querySelector('.input-qty');
-                    const qty = parseFloat(inpQty.value || 0);
-                    if (qty <= 0) {
-                        inpQty.style.borderColor = '#ef4444';
-                        hasError = true;
+                try {
+                    const clienteId = element.querySelector('#select-cliente').value;
+                    if (!clienteId) {
+                        const searchInput = element.querySelector('#search-cliente');
+                        searchInput.style.borderColor = '#ef4444';
+                        CoreActions.showWarningModal("Debes seleccionar un cliente válido de la lista.");
+                        if (window._cotizaSearchClientTimeout) clearTimeout(window._cotizaSearchClientTimeout);
+                        window._cotizaSearchClientTimeout = setTimeout(() => {
+                            if (document.body.contains(searchInput)) {
+                                searchInput.style.borderColor = '';
+                            }
+                        }, 3000);
+                        btnGuardar.disabled = false;
+                        btnGuardar.innerHTML = originalText;
+                        return;
+                    }
+
+                    const arrDetalles = Array.from(tbody.querySelectorAll('tr')).map(r => {
+                        return {
+                            id: r.dataset.uid,
+                            productoId: r.querySelector('.input-prod-id').value,
+                            descripcion_personalizada: r.querySelector('.input-prod-desc')?.value || '',
+                            cantidad: parseFloat(r.querySelector('.input-qty').value || 0),
+                            precio: parseP(r.querySelector('.input-price').value),
+                            descuento: parseFloat(r.querySelector('.input-disc').value || 0),
+                            impuesto: parseFloat(r.querySelector('.input-tax').value || 0)
+                        };
+                    }).filter(d => d.productoId);
+
+                    if (arrDetalles.length === 0 || parseFloat(element.querySelector('#tot-total').dataset.rawTotal) <= 0) {
+                        CoreActions.showWarningModal("Debe agregar al menos un producto válido y con cantidad mayor a cero.");
+                        btnGuardar.disabled = false;
+                        btnGuardar.innerHTML = originalText;
+                        return;
+                    }
+
+                    cotizacion.clienteId = clienteId;
+                    cotizacion.fecha = element.querySelector('#input-fecha').value;
+                    cotizacion.vencimiento = element.querySelector('#input-vencimiento').value;
+                    cotizacion.detalles = arrDetalles;
+
+                    if (!cotizacion.numero) {
+                        cotizacion = await DB.saveWithNextNumero('cotizaciones', cotizacion);
+                    } else {
+                        await DB.save('cotizaciones', cotizacion);
                     }
                     
-                    arrDetalles.push({
-                        id: tr.dataset.uid,
-                        productoId: prodId,
-                        descripcion_personalizada: tr.querySelector('.input-prod-desc').value,
-                        cantidad: qty,
-                        precio: parseFloat(tr.querySelector('.input-price').value || 0),
-                        descuento: parseFloat(tr.querySelector('.input-disc').value || 0),
-                        impuesto: parseFloat(tr.querySelector('.input-tax').value || 0)
-                    });
-                });
-
-                if (arrDetalles.length === 0 || hasError || parseFloat(element.querySelector('#tot-total').dataset.rawTotal) <= 0) {
-                    CoreActions.showWarningModal("Debe agregar al menos un producto válido y con cantidad mayor a cero.");
-                    return;
-                }
-
-                cotizacion.clienteId = clienteId;
-                cotizacion.fecha = element.querySelector('#input-fecha').value;
-                cotizacion.vencimiento = element.querySelector('#input-vencimiento').value;
-                cotizacion.detalles = arrDetalles;
-
-                if (!cotizacion.numero) {
-                    cotizacion = await DB.saveWithNextNumero('cotizaciones', cotizacion);
-                } else {
-                    await DB.save('cotizaciones', cotizacion);
-                }
-                
-                // Navegar a modo lectura para bloquear edición y habilitar impresión final
-                window.hayCambiosSinGuardar = false;
-                window.location.hash = `#/ingresos/cotizaciones/ver/${cotizacion.id}`;
-            } catch (err) {
-                console.error("Error al guardar cotización:", err);
-                CoreActions.showWarningModal("Ocurrió un error al intentar guardar la cotización.");
-            } finally {
-                if (btnGuardar) {
+                    window.hayCambiosSinGuardar = false;
+                    window.location.hash = `#/ingresos/cotizaciones/ver/${cotizacion.id}`;
+                } catch (error) {
+                    console.error("Fallo general de guardado:", error);
+                    CoreActions.showWarningModal("Error al guardar: " + error.message);
                     btnGuardar.disabled = false;
                     btnGuardar.innerHTML = originalText;
+                } finally {
+                    const btnCancelar = element.querySelector('#btn-cancelar');
+                    if (btnCancelar) btnCancelar.disabled = false;
                 }
-                if (btnCancelar) btnCancelar.disabled = false;
-            }
+            });
         });
 
         // Inicializar UI

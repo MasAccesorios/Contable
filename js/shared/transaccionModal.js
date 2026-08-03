@@ -1,6 +1,7 @@
 import DB from '../core/db.js';
 import { supabase } from '../core/supabase.js';
 import { CATEGORIAS_GASTO } from '../modules/gastos/gastos.js';
+import { applyCurrencyFormatting, parseCurrencyValue } from './formatters.js';
 
 export async function mostrarDetalleTransaccion(t, onSuccess) {
     let facturasAsociadasHtml = '';
@@ -73,7 +74,7 @@ export async function mostrarDetalleTransaccion(t, onSuccess) {
                             </div>
                             <div class="col-6">
                                 <label class="form-label text-muted small">Monto total</label>
-                                <input type="number" step="any" id="edit-trans-monto" class="form-control" value="${t.monto}" disabled required>
+                                <input type="text" id="edit-trans-monto" class="form-control" value="${t.monto}" disabled required>
                             </div>
                         </div>
                         <div class="mb-3">
@@ -96,6 +97,8 @@ export async function mostrarDetalleTransaccion(t, onSuccess) {
     const selectCuentaEdit = document.getElementById('edit-trans-cuenta');
     selectCuentaEdit.innerHTML = dbCuentasEdit.map(c => `<option value="${c.id}" ${String(c.id) === String(t.cuenta_id) ? 'selected' : ''}>${c.nombre}</option>`).join('');
 
+    applyCurrencyFormatting(document.getElementById('edit-trans-monto'));
+
     const modalInstance = new bootstrap.Modal(document.getElementById('modalDetalleTransaccion'));
     modalInstance.show();
 
@@ -112,7 +115,7 @@ export async function mostrarDetalleTransaccion(t, onSuccess) {
         try {
             const { error } = await supabase.from('pagos_ingresos').update({
                 fecha: document.getElementById('edit-trans-fecha').value,
-                monto: parseFloat(document.getElementById('edit-trans-monto').value),
+                monto: parseCurrencyValue(document.getElementById('edit-trans-monto').value),
                 cuenta_id: parseInt(document.getElementById('edit-trans-cuenta').value, 10),
                 categoria: document.getElementById('edit-trans-categoria').value || null,
                 observaciones: document.getElementById('edit-trans-observaciones').value

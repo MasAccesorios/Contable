@@ -188,17 +188,15 @@ export const DetalleBancoModule = {
                             ${formatMoney(t.monto)}
                         </td>
                         <td class="py-3 text-center">
-                            <button class="btn btn-sm btn-link p-0 text-muted mx-1" onclick="import('../../shared/transaccionModal.js').then(m => m.mostrarDetalleTransaccion('${t.id}'))" title="Ver detalle" style="color: #6c757d !important; transition: opacity 0.2s;" onmouseover="this.style.opacity=0.7" onmouseout="this.style.opacity=1">
+                            <button class="btn btn-sm btn-link p-0 text-muted mx-1 btn-ver-transaccion" data-id="${t.id}" title="Ver detalle" style="color: #6c757d !important; transition: opacity 0.2s;" onmouseover="this.style.opacity=0.7" onmouseout="this.style.opacity=1">
                                 <i class="bi bi-eye fs-6"></i>
-                            </button>
-                            <button class="btn btn-sm btn-link p-0 text-muted mx-1" onclick="alert('Funcionalidad en desarrollo')" title="Imprimir" style="color: #6c757d !important; transition: opacity 0.2s;" onmouseover="this.style.opacity=0.7" onmouseout="this.style.opacity=1">
-                                <i class="bi bi-printer fs-6"></i>
                             </button>
                             <div class="dropdown d-inline-block">
                                 <button class="btn btn-sm btn-link p-0 text-muted mx-1" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Más opciones" style="color: #6c757d !important; transition: opacity 0.2s;" onmouseover="this.style.opacity=0.7" onmouseout="this.style.opacity=1">
                                     <i class="bi bi-three-dots-vertical fs-6"></i>
                                 </button>
                                 <ul class="dropdown-menu dropdown-menu-end shadow border-0" style="font-size: 13px;">
+                                    <li><a class="dropdown-item btn-editar-transaccion" href="javascript:void(0)" data-id="${t.id}">Editar</a></li>
                                     <li><a class="dropdown-item text-danger btn-eliminar-banco" href="javascript:void(0)" data-id="${t.id}" data-monto="${t.monto}" data-fecha="${t.fecha}">Eliminar</a></li>
                                 </ul>
                             </div>
@@ -323,6 +321,7 @@ export const DetalleBancoModule = {
                     
                     if (confirm(`¿Está seguro que desea eliminar este movimiento por valor de ${montoFormat} del ${fecha}? Esta acción revertirá el saldo de la cuenta.`)) {
                         try {
+                            const { anularTransaccion } = await import('../../shared/transaccionesUtils.js');
                             await anularTransaccion(id);
                             await this.loadData(false);
                             renderGrid();
@@ -333,15 +332,43 @@ export const DetalleBancoModule = {
                 });
             });
 
+            const openModal = async (tId, autoEdit = false) => {
+                const t = transaccionesAgrupadas.find(x => String(x.id) === String(tId));
+                if (!t) return;
+                const modalModule = await import('../../shared/transaccionModal.js');
+                await modalModule.mostrarDetalleTransaccion(t, () => {
+                    this.loadData().then(() => this.render());
+                });
+                
+                if (autoEdit) {
+                    setTimeout(() => {
+                        const btnEdit = document.getElementById('btn-activar-edicion');
+                        if (btnEdit) btnEdit.click();
+                    }, 200);
+                }
+            };
+
+            this.element.querySelectorAll('.btn-ver-transaccion').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    openModal(e.currentTarget.dataset.id, false);
+                });
+            });
+
+            this.element.querySelectorAll('.btn-editar-transaccion').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    openModal(e.currentTarget.dataset.id, true);
+                });
+            });
+
             this.element.querySelectorAll('tbody tr[data-id]').forEach(row => {
                 row.addEventListener('click', async (e) => {
-                    if (e.target.closest('button') || e.target.closest('.dropdown-menu')) return;
+                    if (e.target.closest('button') || e.target.closest('.dropdown-menu') || e.target.closest('a')) return;
                     const tId = row.dataset.id;
-                    const t = transaccionesAgrupadas.find(x => String(x.id) === String(tId));
-                    if (!t) return;
-                    await mostrarDetalleTransaccion(t, () => {
-                        this.loadData().then(() => this.render());
-                    });
+                    openModal(tId, false);
                 });
             });
         };

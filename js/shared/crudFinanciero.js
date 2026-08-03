@@ -2,6 +2,7 @@ import DB, { getLocalDate } from '../core/db.js';
 import { UI } from './combobox.js';
 import { supabase } from '../core/supabase.js';
 import { anularTransaccion } from './transaccionesUtils.js';
+import { applyCurrencyFormatting, parseCurrencyValue } from './formatters.js';
 
 export class CrudFinanciero {
     constructor(config) {
@@ -54,7 +55,7 @@ export class CrudFinanciero {
                             </div>
                             <div class="col-md-2">
                                 <label class="form-label text-muted small fw-semibold mb-1">Monto ($) *</label>
-                                <input type="number" class="form-control" id="transaccion-monto" min="1" required>
+                                <input type="text" class="form-control" id="transaccion-monto" required>
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label text-muted small fw-semibold mb-1">Proveedor (Opcional)</label>
@@ -186,6 +187,8 @@ export class CrudFinanciero {
             this.renderTabla(element);
         });
 
+        applyCurrencyFormatting(element.querySelector('#transaccion-monto'));
+
         const form = element.querySelector(`#${this.config.formId}`);
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -201,7 +204,7 @@ export class CrudFinanciero {
             const datos = {
                 fecha: element.querySelector('#transaccion-fecha').value,
                 categoria: element.querySelector('#transaccion-categoria').value,
-                monto: parseFloat(element.querySelector('#transaccion-monto').value),
+                monto: parseCurrencyValue(element.querySelector('#transaccion-monto').value),
                 cuentaId: parseInt(cuentaIdRaw, 10),
                 proveedorId: element.querySelector('#select-proveedor-id').value || null,
                 referencia: element.querySelector('#transaccion-referencia').value.trim(),

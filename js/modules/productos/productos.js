@@ -194,11 +194,11 @@ export const ProductosModule = {
                         <div class="row mb-3">
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold text-muted small">Precio de Venta ($) *</label>
-                                <input type="number" step="any" id="form-precio" class="form-control" value="${producto.precioVenta}" required>
+                                <input type="text" id="form-precio" class="form-control" value="${producto.precioVenta}" required>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold text-muted small">Costo Base Inicial ($) *</label>
-                                <input type="number" step="any" id="form-costo" class="form-control" value="${producto.costoBase}" ${id ? 'disabled' : 'required'}>
+                                <input type="text" id="form-costo" class="form-control" value="${producto.costoBase}" ${id ? 'disabled' : 'required'}>
                             </div>
                         </div>
                         <div class="row mb-4">
@@ -220,17 +220,32 @@ export const ProductosModule = {
             </div>
         `;
 
+        import('../../shared/formatters.js').then(fmt => {
+            fmt.applyCurrencyFormatting(element.querySelector('#form-precio'));
+            fmt.applyCurrencyFormatting(element.querySelector('#form-costo'));
+        });
+
         element.querySelector('#btn-cancelar-producto')?.addEventListener('click', () => this.renderTabla(element));
         element.querySelector('#form-producto-data')?.addEventListener('submit', async (e) => {
             e.preventDefault();
             
             const prodId = id || 'prod_' + Date.now();
+            let pVenta = 0, cBase = 0;
+            try {
+                const fmt = await import('../../shared/formatters.js');
+                pVenta = fmt.parseCurrencyValue(element.querySelector('#form-precio').value);
+                cBase = fmt.parseCurrencyValue(element.querySelector('#form-costo').value);
+            } catch(e) {
+                pVenta = parseFloat(element.querySelector('#form-precio').value) || 0;
+                cBase = parseFloat(element.querySelector('#form-costo').value) || 0;
+            }
+
             const nuevoProducto = {
                 id: prodId,
                 sku: element.querySelector('#form-sku').value,
                 nombre: element.querySelector('#form-nombre').value,
-                precioVenta: parseFloat(element.querySelector('#form-precio').value) || 0,
-                costoBase: parseFloat(element.querySelector('#form-costo').value) || 0,
+                precioVenta: pVenta,
+                costoBase: cBase,
                 stockMinimo: parseInt(element.querySelector('#form-minimo').value) || 0,
                 ubicacion: element.querySelector('#form-ubicacion').value
             };
@@ -314,7 +329,7 @@ export const ProductosModule = {
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label text-muted small fw-semibold">Costo Unitario ($) *</label>
-                                    <input type="number" step="any" id="lote-costo" class="form-control" required min="0">
+                                    <input type="text" id="lote-costo" class="form-control" required>
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label text-muted small fw-semibold">Fecha de Ingreso *</label>
@@ -365,6 +380,10 @@ export const ProductosModule = {
             </div>
         `;
 
+        import('../../shared/formatters.js').then(fmt => {
+            fmt.applyCurrencyFormatting(element.querySelector('#lote-costo'));
+        });
+
         element.querySelector('#btn-volver-prod')?.addEventListener('click', () => this.renderTabla(element));
         
         // Manejador del submit de nuevo lote
@@ -373,18 +392,23 @@ export const ProductosModule = {
             const alertEl = element.querySelector('#lote-alert');
             
             const qty = parseInt(element.querySelector('#lote-cantidad').value) || 0;
-            const cost = parseFloat(element.querySelector('#lote-costo').value) || 0;
-            const date = element.querySelector('#lote-fecha').value;
-            const ref = element.querySelector('#lote-ref').value || 'Ajuste Manual';
+            
+            let lCosto = 0;
+            try {
+                const fmt = await import('../../shared/formatters.js');
+                lCosto = fmt.parseCurrencyValue(element.querySelector('#lote-costo').value);
+            } catch(e) {
+                lCosto = parseFloat(element.querySelector('#lote-costo').value) || 0;
+            }
 
             const nuevoLote = {
                 id: 'lote_' + Date.now(),
                 productoId: id,
                 cantidadInicial: qty,
                 cantidadActual: qty,
-                costoUnitario: cost,
-                fechaIngreso: date,
-                referencia: ref
+                costoUnitario: lCosto,
+                fechaIngreso: element.querySelector('#lote-fecha').value,
+                referencia: element.querySelector('#lote-ref').value.trim()
             };
 
             await DB.save('lotes_fifo', nuevoLote);

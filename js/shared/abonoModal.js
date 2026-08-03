@@ -1,5 +1,6 @@
 // js/shared/abonoModal.js
 import DB, { getLocalDate } from './../core/db.js';
+import { applyCurrencyFormatting, parseCurrencyValue } from './formatters.js';
 import { CoreActions } from './crud.js';
 import { calcularEstadoFactura } from './carteraUtils.js';
 
@@ -16,19 +17,20 @@ export const AbonoModal = {
 
         let clienteNombre = 'N/A (Ve al formulario avanzado)';
         let numDoc = 'N/A';
+        let facturaData = null;
 
         if (facturaId) {
-            const factura = await DB.get('facturas', facturaId);
-            if (!factura) {
+            facturaData = await DB.get('facturas', facturaId);
+            if (!facturaData) {
                 CoreActions.showWarningModal("No se pudo cargar la información de la factura.");
                 return;
             }
 
             const transacciones = await DB.getAll('transacciones') || [];
-            const estadoDinamico = calcularEstadoFactura(factura, transacciones);
+            const estadoDinamico = calcularEstadoFactura(facturaData, transacciones);
             this.currentSaldo = estadoDinamico.saldo;
-            this.clienteId = factura.contacto_id || factura.clienteId;
-            numDoc = factura.numero || factura.id;
+            this.clienteId = facturaData.contacto_id || facturaData.clienteId;
+            numDoc = facturaData.numero || facturaData.id;
 
             if (this.clienteId) {
                 const cliente = await DB.get('contactos', this.clienteId);
@@ -80,7 +82,7 @@ export const AbonoModal = {
                                     <label class="form-label text-muted small fw-medium mb-1">Valor</label>
                                     <div class="input-group">
                                         <span class="input-group-text bg-white border-end-0 text-muted" style="border-radius: 8px 0 0 8px;">$</span>
-                                        <input type="number" step="any" id="abono-monto-shared" class="form-control border-start-0 ps-0" style="border-radius: 0 8px 8px 0; box-shadow: none;" required>
+                                        <input type="text" id="abono-monto-shared" class="form-control border-start-0 ps-0" style="border-radius: 0 8px 8px 0; box-shadow: none;" required>
                                     </div>
                                 </div>
                                 <div class="col-6">
@@ -91,6 +93,10 @@ export const AbonoModal = {
                                         <option value="tarjeta">Tarjeta</option>
                                     </select>
                                 </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label text-muted small fw-medium mb-1">Nota</label>
+                                <input type="text" id="abono-nota-shared" class="form-control" style="border-radius: 8px; box-shadow: none;">
                             </div>
                             
                             <div class="d-flex justify-content-between align-items-center mt-2 pt-3 border-top">
@@ -114,7 +120,8 @@ export const AbonoModal = {
 
         // Prellenar datos
         const montoInput = document.getElementById('abono-monto-shared');
-        montoInput.value = this.currentSaldo;
+        montoInput.value = this.currentSaldo.toString();
+        applyCurrencyFormatting(montoInput);
         montoInput.max = this.currentSaldo;
         
         // Mostrar Modal
@@ -146,6 +153,9 @@ export const AbonoModal = {
         }
 
         const form = document.getElementById('form-abono-shared');
+        const montoInput = document.getElementById('abono-monto-shared');
+        if (montoInput) applyCurrencyFormatting(montoInput);
+
         if (!form) return;
         
         form.addEventListener('submit', async (e) => {
@@ -156,13 +166,14 @@ export const AbonoModal = {
                 return;
             }
             
-            const monto = parseFloat(document.getElementById('abono-monto-shared').value);
             const fecha = document.getElementById('abono-fecha-shared').value;
             const cuentaSelect = document.getElementById('abono-cuenta-shared');
             const cuentaId = cuentaSelect.value;
             const metodoPago = document.getElementById('abono-metodo-shared').value;
+            let montoAbono = parseCurrencyValue(montoInput.value);
+            const nota = document.getElementById('abono-nota-shared').value.trim();
 
-            if (monto <= 0 || monto > this.currentSaldo) {
+            if (montoAbono <= 0 || montoAbono > this.currentSaldo) {
                 CoreActions.showWarningModal("El monto del abono es inválido o supera el saldo pendiente.");
                 return;
             }
@@ -173,7 +184,7 @@ export const AbonoModal = {
                     id: 'trx_' + Date.now(),
                     factura_id: factura.id,
                     tipo: 'ingreso',
-                    monto: monto,
+                    monto: montoAbono,
                     fecha: fecha,
                     cuenta_id: cuentaId
                 };

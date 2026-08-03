@@ -157,7 +157,7 @@ export const TesoreriaModule = {
                                 <div class="row g-3 mb-3">
                                     <div class="col-6">
                                         <label class="form-label text-muted small fw-semibold">Monto *</label>
-                                        <input type="number" class="form-control fw-bold fs-5" id="transf-monto" min="0.01" step="any" required>
+                                        <input type="text" class="form-control fw-bold fs-5" id="transf-monto" required>
                                     </div>
                                     <div class="col-6">
                                         <label class="form-label text-muted small fw-semibold">Fecha *</label>
@@ -235,6 +235,9 @@ export const TesoreriaModule = {
                     modalEl.classList.add('show', 'd-block');
                     modalEl.style.backgroundColor = 'rgba(0,0,0,0.5)';
                 }
+                import('../../shared/formatters.js').then(fmt => {
+                    fmt.applyCurrencyFormatting(document.getElementById('transf-monto'));
+                });
             }
         });
 
@@ -291,7 +294,13 @@ export const TesoreriaModule = {
 
             const origenId = document.getElementById('transf-origen').value;
             const destinoId = document.getElementById('transf-destino').value;
-            const monto = parseFloat(document.getElementById('transf-monto').value);
+            let monto = 0;
+            try {
+                const fmt = await import('../../shared/formatters.js');
+                monto = fmt.parseCurrencyValue(document.getElementById('transf-monto').value);
+            } catch(e) {
+                monto = parseFloat(document.getElementById('transf-monto').value.replace(/\./g, '').replace(/,/g, '.'));
+            }
             const fecha = document.getElementById('transf-fecha').value;
             const nota = document.getElementById('transf-nota').value.trim();
 
