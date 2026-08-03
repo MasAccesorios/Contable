@@ -500,4 +500,18 @@ body {
         right: 16px !important;
         width: auto !important;
     }
+
+    /* Layout resumen conciliacion móvil */
+    #resumen-conciliacion-row {
+        flex-wrap: wrap !important;
+    }
+    #resumen-conciliacion-row > .col-3 {
+        width: 50% !important;
+        margin-bottom: 16px !important;
+        border-bottom: 1px solid var(--border-color) !important;
+    }
+    #resumen-conciliacion-row > .col-3:nth-child(2),
+    #resumen-conciliacion-row > .col-3:nth-child(4) {
+        border-end: none !important;
+    }
 }

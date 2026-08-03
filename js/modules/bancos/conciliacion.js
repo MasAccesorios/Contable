@@ -152,7 +152,7 @@ export const ConciliacionModule = {
                         <!-- Resumen (Estilo Alegra) -->
                         <div class="card border-0 mb-4" style="box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.03), 0px 1px 3px rgba(0, 0, 0, 0.05); border-radius: 8px;">
                             <div class="card-body p-4">
-                                <div class="row align-items-center text-center">
+                                <div class="row align-items-center text-center" id="resumen-conciliacion-row">
                                     <div class="col-3 border-end">
                                         <p class="text-muted mb-1" style="font-size: 12px; font-weight: 500;">Saldo anterior</p>
                                         <h4 class="fw-bold mb-0" style="color: var(--text-main);" id="concil-saldo-anterior">$0,00</h4>
@@ -184,7 +184,7 @@ export const ConciliacionModule = {
                             <div class="card-body p-0">
                                 <div class="table-responsive">
                                     <table class="table table-hover align-middle mb-0">
-                                        <thead style="background-color: #f8fafc;">
+                                        <thead style="background-color: #f8fafc; white-space: nowrap;">
                                             <tr>
                                                 <th class="py-3 ps-4 text-muted" style="font-size: 12px; font-weight: 600;">Fecha</th>
                                                 <th class="py-3 text-muted" style="font-size: 12px; font-weight: 600;">Descripción</th>
@@ -273,15 +273,15 @@ export const ConciliacionModule = {
 
             html += `
                 <tr style="font-size: 13px; color: var(--text-body);">
-                    <td class="py-3 ps-4">${(m.fecha || '').substring(0, 10)}</td>
-                    <td class="py-3 fw-medium" style="color: var(--text-main);">${m.detalle || m.referencia || m.descripcion || '-'}</td>
-                    <td class="py-3">
+                    <td class="py-3 ps-4" style="white-space: nowrap;">${(m.fecha || '').substring(0, 10)}</td>
+                    <td class="py-3 fw-medium" style="color: var(--text-main); white-space: nowrap;">${m.detalle || m.referencia || m.descripcion || '-'}</td>
+                    <td class="py-3" style="white-space: nowrap;">
                         <span class="badge" style="background-color: ${badgeBg}; color: ${badgeColor}; font-weight: 500;">
                             ${m.tipo.toUpperCase()}
                         </span>
                     </td>
-                    <td class="py-3" style="font-weight: 500;">${this.formatMoney(m.monto)}</td>
-                    <td class="py-3 pe-4 text-center">
+                    <td class="py-3" style="font-weight: 500; white-space: nowrap;">${this.formatMoney(m.monto)}</td>
+                    <td class="py-3 pe-4 text-center" style="white-space: nowrap;">
                         <input class="form-check-input concil-check" type="checkbox" data-id="${m.id}" ${this.state.editingConciliacionMovimientos.includes(m.id) ? 'checked' : ''} style="width: 18px; height: 18px; cursor: pointer;">
                     </td>
                 </tr>
