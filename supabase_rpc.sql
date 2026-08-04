@@ -1,26 +1,25 @@
 -- ========================================================
--- 1. UNIFICAR SECUENCIAS
--- ========================================================
--- Eliminar las secuencias antiguas si existen
-DROP SEQUENCE IF EXISTS facturas_numero_seq;
-DROP SEQUENCE IF EXISTS cotizaciones_numero_seq;
-
--- Crear la nueva secuencia compartida
-CREATE SEQUENCE IF NOT EXISTS documentos_numero_seq;
-
--- Inicializarla en 6761 (el último número verificado en facturas)
-SELECT setval('documentos_numero_seq', 6761);
-
-
--- ========================================================
--- 2. RPC: set_next_numero
+-- 1. RPC: set_next_numero
 -- ========================================================
 CREATE OR REPLACE FUNCTION set_next_numero(p_table text, p_next bigint)
 RETURNS void
 LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
+DECLARE
+    v_max_factura bigint;
+    v_max_cotizacion bigint;
+    v_max_global bigint;
 BEGIN
+    SELECT COALESCE(MAX(numero), 0) INTO v_max_factura FROM facturas;
+    SELECT COALESCE(MAX(numero), 0) INTO v_max_cotizacion FROM cotizaciones;
+    
+    v_max_global := GREATEST(v_max_factura, v_max_cotizacion);
+    
+    IF p_next <= v_max_global THEN
+        RAISE EXCEPTION 'El número % es menor o igual al máximo actual en uso (%)', p_next, v_max_global;
+    END IF;
+
     -- Ignoramos p_table, todas las peticiones (sean de factura o cotización)
     -- afectan a la misma secuencia unificada.
     PERFORM setval('documentos_numero_seq', p_next - 1, true);
@@ -29,7 +28,7 @@ $$;
 
 
 -- ========================================================
--- 3. RPC: save_document_with_details
+-- 2. RPC: save_document_with_details
 -- ========================================================
 CREATE OR REPLACE FUNCTION save_document_with_details(
     p_table text,
@@ -59,6 +58,7 @@ BEGIN
                 contacto_id = (p_header->>'contacto_id')::bigint,
                 total = (p_header->>'total')::numeric,
                 estado = p_header->>'estado',
+                tipo = p_header->>'tipo',
                 observaciones = p_header->>'observaciones',
                 cotizacion_origen_id = (p_header->>'cotizacion_origen_id')::bigint
             WHERE id = v_id
@@ -84,7 +84,7 @@ BEGIN
         v_numero := nextval('documentos_numero_seq');
         
         IF p_table = 'facturas' THEN
-            INSERT INTO facturas (numero, fecha, vencimiento, contacto_id, total, estado, observaciones, cotizacion_origen_id)
+            INSERT INTO facturas (numero, fecha, vencimiento, contacto_id, total, estado, tipo, observaciones, cotizacion_origen_id)
             VALUES (
                 v_numero, 
                 (p_header->>'fecha')::date, 
@@ -92,6 +92,7 @@ BEGIN
                 (p_header->>'contacto_id')::bigint, 
                 (p_header->>'total')::numeric, 
                 p_header->>'estado', 
+                COALESCE(p_header->>'tipo', 'venta'),
                 p_header->>'observaciones',
                 (p_header->>'cotizacion_origen_id')::bigint
             ) RETURNING to_jsonb(facturas.*) INTO v_result;

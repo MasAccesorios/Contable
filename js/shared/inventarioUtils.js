@@ -76,5 +76,44 @@ export const InventarioUtils = {
         }
 
         return { success: true, costoTotalVenta, detallesActualizados: detalles };
+    },
+
+    /**
+     * Valida y revierte los lotes de inventario generados por una factura de compra.
+     * Si algún lote ya fue vendido parcialmente, bloquea la operación.
+     * @param {string|number} facturaNumero - El número de la factura de compra
+     * @returns {Object} { success: boolean, error: string }
+     */
+    async revertirLotesPorCompra(facturaNumero) {
+        // 1. Buscar los lotes asociados a esta factura
+        const { data: lotes, error: getError } = await supabase
+            .from('lotes_fifo')
+            .select('*')
+            .eq('referencia', `Factura Compra ${facturaNumero}`);
+            
+        if (getError) return { success: false, error: getError.message };
+        if (!lotes || lotes.length === 0) return { success: true }; // No hay lotes que revertir
+        
+        // 2. Validación Estricta: Verificar si algún lote ya fue tocado/vendido
+        for (const lote of lotes) {
+            if (lote.cantidad_actual < lote.cantidad_inicial) {
+                return { 
+                    success: false, 
+                    error: `No se puede anular la compra. La mercancía ya está comprometida en ventas (Producto ID: ${lote.producto_id} tiene ${lote.cantidad_actual} disponibles de los ${lote.cantidad_inicial} originales).` 
+                };
+            }
+        }
+        
+        // 3. Reversión: Eliminamos los lotes completos de la base de datos
+        const lotesIds = lotes.map(l => l.id);
+        const { error: deleteError } = await supabase
+            .from('lotes_fifo')
+            .delete()
+            .in('id', lotesIds);
+            
+        if (deleteError) return { success: false, error: deleteError.message };
+        
+        await DB.refreshCache('lotes_fifo');
+        return { success: true };
     }
 };

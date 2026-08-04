@@ -404,9 +404,13 @@ export const FacturasModule = {
                             <a href="#/ingresos/facturas/editar/${id}" class="d-block px-3 py-1 text-decoration-none" style="color: var(--text-body); font-size: 13px;">
                                 <i class="bi bi-pencil me-2"></i> Editar
                             </a>
+                            ${factData.tipo === 'compra' ? `
+                            <a href="#" class="d-block px-3 py-1 text-decoration-none mt-1 btn-anular-compra" data-id="${id}" style="color: #ef4444; font-size: 13px;">
+                                <i class="bi bi-x-circle me-2"></i> Anular Compra
+                            </a>` : `
                             <a href="#" class="d-block px-3 py-1 text-decoration-none mt-1 btn-delete-row" data-id="${id}" style="color: #ef4444; font-size: 13px;">
                                 <i class="bi bi-trash me-2"></i> Eliminar
-                            </a>
+                            </a>`}
                         </div>
                     `;
                     document.body.insertAdjacentHTML('beforeend', menuHtml);
@@ -424,14 +428,56 @@ export const FacturasModule = {
                         });
                     }
 
-                    menu.querySelector('.btn-delete-row').addEventListener('click', async (ev) => {
-                        ev.preventDefault();
-                        if (confirm('¿Estás seguro de eliminar esta factura de forma permanente?')) {
-                            await DB.delete('facturas', id);
-                            menu.remove();
-                            await renderGrid();
-                        }
-                    });
+                    const btnDeleteRow = menu.querySelector('.btn-delete-row');
+                    if (btnDeleteRow) {
+                        btnDeleteRow.addEventListener('click', async (ev) => {
+                            ev.preventDefault();
+                            if (confirm('¿Estás seguro de eliminar esta factura de forma permanente?')) {
+                                await DB.delete('facturas', id);
+                                menu.remove();
+                                await renderGrid();
+                            }
+                        });
+                    }
+
+                    const btnAnularCompra = menu.querySelector('.btn-anular-compra');
+                    if (btnAnularCompra) {
+                        btnAnularCompra.addEventListener('click', async (ev) => {
+                            ev.preventDefault();
+                            if (confirm('¿Estás seguro de anular esta factura de compra? Se revertirá el inventario ingresado.')) {
+                                menu.remove();
+                                
+                                try {
+                                    const factura = await DB.get('facturas', id);
+                                    if (!factura) throw new Error("Factura no encontrada.");
+                                    
+                                    if (factura.estado === 'anulada') {
+                                        CoreActions.showWarningModal("Esta factura ya se encuentra anulada.");
+                                        return;
+                                    }
+
+                                    const revertResult = await InventarioUtils.revertirLotesPorCompra(factura.numero);
+                                    if (!revertResult.success) {
+                                        CoreActions.showWarningModal(revertResult.error);
+                                        return;
+                                    }
+
+                                    factura.estado = 'anulada';
+                                    await DB.save('facturas', factura);
+                                    
+                                    if (typeof window.anularTransaccion === 'function') {
+                                        await window.anularTransaccion(factura.id);
+                                    }
+                                    
+                                    CoreActions.showSuccessModal('Factura de compra anulada e inventario revertido con éxito.');
+                                    await renderGrid();
+                                } catch (err) {
+                                    console.error('Error al anular compra:', err);
+                                    CoreActions.showErrorModal('Error: ' + err.message);
+                                }
+                            }
+                        });
+                    }
                 });
             });
 

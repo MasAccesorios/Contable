@@ -405,7 +405,7 @@ export const ComprasModule = {
                                 <i class="bi bi-pencil me-2"></i> Editar
                             </a>
                             <a href="#" class="d-block px-3 py-1 text-decoration-none mt-1 btn-delete-row" data-id="${id}" style="color: #ef4444; font-size: 13px;">
-                                <i class="bi bi-trash me-2"></i> Eliminar
+                                <i class="bi bi-x-circle me-2"></i> Anular
                             </a>
                         </div>
                     `;
@@ -426,10 +426,43 @@ export const ComprasModule = {
 
                     menu.querySelector('.btn-delete-row').addEventListener('click', async (ev) => {
                         ev.preventDefault();
-                        if (confirm('¿Estás seguro de eliminar esta factura de forma permanente?')) {
-                            await DB.delete('facturas', id);
+                        if (confirm('¿Estás seguro de anular esta factura de compra? Se revertirá el inventario ingresado.')) {
                             menu.remove();
-                            await renderGrid();
+                            
+                            try {
+                                const factura = await DB.get('facturas', id);
+                                if (!factura) throw new Error("Factura no encontrada.");
+                                
+                                if (factura.estado === 'anulada') {
+                                    CoreActions.showWarningModal("Esta factura ya se encuentra anulada.");
+                                    return;
+                                }
+
+                                // 1. Revertir inventario (Bloquea si ya se vendió algo)
+                                const revertResult = await InventarioUtils.revertirLotesPorCompra(factura.numero);
+                                if (!revertResult.success) {
+                                    CoreActions.showWarningModal(revertResult.error);
+                                    return;
+                                }
+
+                                // 2. Cambiar estado a 'anulada'
+                                factura.estado = 'anulada';
+                                await DB.save('facturas', factura);
+
+                                // 3. Anular pagos asociados
+                                const { data: pagos } = await supabase.from('pagos_ingresos').select('id').eq('factura_id', id);
+                                if (pagos && pagos.length > 0) {
+                                    const { anularTransaccion } = await import('../../shared/transaccionesUtils.js');
+                                    for (const p of pagos) {
+                                        await anularTransaccion(p.id);
+                                    }
+                                }
+                                
+                                await renderGrid();
+                            } catch (error) {
+                                console.error("Error al anular factura de compra:", error);
+                                CoreActions.showWarningModal("Error crítico al anular: " + error.message);
+                            }
                         }
                     });
                 });
@@ -1134,7 +1167,7 @@ export const ComprasModule = {
                                     <input type="text" id="cp-sku" class="form-control">
                                 </div>
                                 <div class="col-6">
-                                    <label class="form-label text-muted small">Precio Venta (Sugerido)</label>
+                                    <label class="form-label text-muted small">Precio de venta futuro</label>
                                     <div class="input-group">
                                         <span class="input-group-text">$</span>
                                         <input type="text" id="cp-precio" class="form-control text-end" value="0">
