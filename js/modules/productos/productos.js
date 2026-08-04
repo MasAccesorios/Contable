@@ -192,24 +192,36 @@ export const ProductosModule = {
                             <input type="text" id="form-nombre" class="form-control" value="${producto.nombre}" required>
                         </div>
                         <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold text-muted small">Precio de Venta ($) *</label>
-                                <input type="text" id="form-precio" class="form-control" value="${producto.precioVenta ? Number(producto.precioVenta).toLocaleString('es-CO', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '0,00'}" required>
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold text-muted small">Cantidad Inicial *</label>
+                                <input type="text" id="form-cantidad-inicial" class="form-control" value="0,00" ${id ? 'disabled' : 'required'}>
                             </div>
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold text-muted small">Costo Base Inicial ($) *</label>
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold text-muted small">Costo Inicial ($) *</label>
                                 <input type="text" id="form-costo" class="form-control" value="${producto.costoBase ? Number(producto.costoBase).toLocaleString('es-CO', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '0,00'}" ${id ? 'disabled' : 'required'}>
                             </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold text-muted small">Precio Base ($) *</label>
+                                <input type="text" id="form-precio" class="form-control" value="${producto.precioVenta ? Number(producto.precioVenta).toLocaleString('es-CO', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '0,00'}" required>
+                            </div>
                         </div>
-                        <div class="row mb-4">
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold text-muted small">Stock Mínimo Alerta</label>
-                                <input type="number" id="form-minimo" class="form-control" value="${producto.stockMinimo}">
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold text-muted small">Impuesto (%)</label>
+                                <input type="text" id="form-impuesto" class="form-control" value="${producto.impuesto ? Number(producto.impuesto).toLocaleString('es-CO', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '0,00'}">
                             </div>
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold text-muted small">Ubicación Almacén</label>
-                                <input type="text" id="form-ubicacion" class="form-control" value="${producto.ubicacion || ''}">
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold text-muted small">Precio Total ($)</label>
+                                <input type="text" id="form-precio-total" class="form-control bg-light" value="0,00" readonly disabled>
                             </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold text-muted small">Stock Mínimo</label>
+                                <input type="text" id="form-minimo" class="form-control" value="${producto.stockMinimo ? Number(producto.stockMinimo).toLocaleString('es-CO', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '5,00'}">
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold text-muted small">Ubicación Almacén</label>
+                            <input type="text" id="form-ubicacion" class="form-control" value="${producto.ubicacion || ''}">
                         </div>
                         <div class="d-flex justify-content-end gap-2">
                             <button type="button" id="btn-cancelar-producto" class="btn btn-light px-4">Cancelar</button>
@@ -221,8 +233,22 @@ export const ProductosModule = {
         `;
 
         import('../../shared/formatters.js').then(fmt => {
-            fmt.applyCurrencyFormatting(element.querySelector('#form-precio'));
-            fmt.applyCurrencyFormatting(element.querySelector('#form-costo'));
+            ['#form-precio', '#form-costo', '#form-cantidad-inicial', '#form-impuesto', '#form-minimo'].forEach(selector => {
+                const el = element.querySelector(selector);
+                if (el) fmt.applyCurrencyFormatting(el);
+            });
+            
+            // Cálculo en vivo del Precio Total
+            const calcTotal = () => {
+                const pBase = fmt.parseCurrencyValue(element.querySelector('#form-precio').value) || 0;
+                const imp = fmt.parseCurrencyValue(element.querySelector('#form-impuesto').value) || 0;
+                const total = pBase * (1 + (imp / 100));
+                element.querySelector('#form-precio-total').value = total.toLocaleString('es-CO', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            };
+            
+            element.querySelector('#form-precio').addEventListener('input', calcTotal);
+            element.querySelector('#form-impuesto').addEventListener('input', calcTotal);
+            calcTotal(); // Cálculo inicial
         });
 
         element.querySelector('#btn-cancelar-producto')?.addEventListener('click', () => this.renderTabla(element));
@@ -230,14 +256,20 @@ export const ProductosModule = {
             e.preventDefault();
             
             const prodId = id || 'prod_' + Date.now();
-            let pVenta = 0, cBase = 0;
+            let pVenta = 0, cBase = 0, cInicial = 0, imp = 0, sMin = 0;
             try {
                 const fmt = await import('../../shared/formatters.js');
                 pVenta = fmt.parseCurrencyValue(element.querySelector('#form-precio').value);
                 cBase = fmt.parseCurrencyValue(element.querySelector('#form-costo').value);
+                cInicial = fmt.parseCurrencyValue(element.querySelector('#form-cantidad-inicial').value);
+                imp = fmt.parseCurrencyValue(element.querySelector('#form-impuesto').value);
+                sMin = fmt.parseCurrencyValue(element.querySelector('#form-minimo').value);
             } catch(e) {
                 pVenta = parseFloat(element.querySelector('#form-precio').value) || 0;
                 cBase = parseFloat(element.querySelector('#form-costo').value) || 0;
+                cInicial = parseFloat(element.querySelector('#form-cantidad-inicial').value) || 0;
+                imp = parseFloat(element.querySelector('#form-impuesto').value) || 0;
+                sMin = parseFloat(element.querySelector('#form-minimo').value) || 0;
             }
 
             const nuevoProducto = {
@@ -246,7 +278,8 @@ export const ProductosModule = {
                 nombre: element.querySelector('#form-nombre').value,
                 precioVenta: pVenta,
                 costoBase: cBase,
-                stockMinimo: parseInt(element.querySelector('#form-minimo').value) || 0,
+                impuesto: imp,
+                stockMinimo: sMin,
                 ubicacion: element.querySelector('#form-ubicacion').value
             };
 
@@ -257,8 +290,8 @@ export const ProductosModule = {
                 const loteInicial = {
                     id: 'lote_' + prodId + '_init',
                     productoId: prodId,
-                    cantidadInicial: 0,
-                    cantidadActual: 0,
+                    cantidadInicial: cInicial,
+                    cantidadActual: cInicial,
                     costoUnitario: nuevoProducto.costoBase,
                     fechaIngreso: getLocalDate(),
                     referencia: 'Inventario Inicial'
