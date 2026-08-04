@@ -665,7 +665,7 @@ export const PrintManager = {
         // 5. Construir HTML
         const container = document.createElement('div');
         container.id = 'print-view-container';
-        container.className = `print-document-template ${printClass}`;
+        container.className = mode === 'preview' ? 'preview-document-template' : `print-document-template ${printClass}`;
         container.innerHTML = `
             <!-- HEADER IMPRESIÓN -->
             <div style="display: flex; justify-content: space-between; align-items: start; border-bottom: 2px solid #6c757d; padding-bottom: 15px; margin-bottom: 25px;">
@@ -786,6 +786,8 @@ export const PrintManager = {
             paperContent.style.padding = '20px';
             paperContent.style.backgroundColor = '#fff';
             paperContent.style.boxShadow = '0 0 10px rgba(0,0,0,0.1)';
+            paperContent.style.fontFamily = "'Inter', sans-serif";
+            paperContent.style.color = "#212529";
             
             // Mover todo excepto el header de cierre al paperContent
             while (container.childNodes.length > 1) {
