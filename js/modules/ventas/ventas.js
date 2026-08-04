@@ -733,7 +733,10 @@ export const FacturasModule = {
                 <td class="align-top"><input type="text" class="form-control form-control-sm border-0 bg-light input-price" value="${detalle.precio}" placeholder="$" ${isViewOnly ? 'disabled' : ''}></td>
                 <td class="align-top"><input type="number" step="any" min="0" max="100" class="form-control form-control-sm border-0 bg-light input-disc" value="${detalle.descuento}" placeholder="0 %" ${isViewOnly ? 'disabled' : ''}></td>
                 <td class="align-top"><input type="number" step="any" min="0" max="100" class="form-control form-control-sm border-0 bg-light input-tax" value="${detalle.impuesto}" placeholder="%" ${isViewOnly ? 'disabled' : ''}></td>
-                <td class="text-end fw-bold calc-subtotal align-top pt-3" style="color: var(--text-main);">$0,00</td>
+                <td class="text-end align-top pt-3">
+                    <span class="calc-subtotal fw-bold d-block" style="color: var(--text-main);">$0,00</span>
+                    <a href="#" class="toggle-desc-tax d-md-none text-decoration-none mt-2 d-inline-block" style="font-size: 11px; color: var(--primary);">+ Editar descuento/impuesto</a>
+                </td>
                 <td class="text-center align-top pt-2">
                     ${!isViewOnly ? `<button class="btn btn-link text-muted p-0 btn-eliminar-linea">
                         <i class="bi bi-trash"></i>
@@ -741,6 +744,16 @@ export const FacturasModule = {
                 </td>
             `;
             tbody.appendChild(tr);
+
+            // Toggle Descuento/Impuesto móvil
+            const toggleDesc = tr.querySelector('.toggle-desc-tax');
+            if (toggleDesc) {
+                toggleDesc.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    tr.classList.toggle('show-discount-tax');
+                    toggleDesc.textContent = tr.classList.contains('show-discount-tax') ? '- Ocultar descuento/impuesto' : '+ Editar descuento/impuesto';
+                });
+            }
 
             // Delegar Eventos Principales al Motor Global (Auto-Pricing y Metadatos)
             ItemEngine.bindLineEvents(tr, () => calcEngine(), productos);

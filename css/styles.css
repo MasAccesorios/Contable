@@ -465,7 +465,12 @@ body {
     }
     #tabla-detalles tbody td:nth-of-type(4)::before { content: "Precio"; font-size: 11px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 4px; }
 
-    /* Fila 4: Descuento (49%) e Impuesto (49%) */
+    /* Fila 4: Descuento (49%) e Impuesto (49%) - Ocultos por defecto en móvil */
+    #tabla-detalles tbody tr:not(.show-discount-tax) td:nth-of-type(5),
+    #tabla-detalles tbody tr:not(.show-discount-tax) td:nth-of-type(6) {
+        display: none !important;
+    }
+
     #tabla-detalles tbody td:nth-of-type(5) {
         width: 49% !important;
     }
