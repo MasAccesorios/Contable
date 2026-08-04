@@ -331,10 +331,8 @@ body {
 
     /* Regla de tamaño dinámico según cantidad de ítems */
     .print-document-template.media-hoja { 
-        height: 148mm; 
-        max-height: 148mm; 
-        overflow: hidden; 
-        page-break-inside: avoid; 
+        min-height: 148mm; 
+        max-height: none; 
     }
     
     .print-document-template.hoja-completa { 
