@@ -8,7 +8,6 @@ import { calcularEstadoFactura } from '../../shared/carteraUtils.js';
 import { AbonoModal } from '../../shared/abonoModal.js';
 import { InventarioUtils } from '../../shared/inventarioUtils.js';
 
-import { supabase } from '../../core/supabase.js';
 export const ComprasModule = {
     cache: { contactos: null, productos: null },
     
