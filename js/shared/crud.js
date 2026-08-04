@@ -49,6 +49,9 @@ export const CoreActions = {
         const printStyle = !isViewOnly ? 'opacity: 0.5; transition: all 0.2s;' : '';
         
         buttons += `
+            <button class="btn btn-outline-info btn-sm me-2 btn-vista-previa" data-id="${docId}" style="${printStyle}">
+                <i class="bi bi-eye me-1"></i>Vista Previa
+            </button>
             <button class="btn btn-outline-secondary btn-sm me-2 btn-imprimir" data-id="${docId}" style="${printStyle}">
                 <i class="bi bi-printer me-1"></i>Imprimir
             </button>
@@ -625,7 +628,7 @@ export const NumberingManager = {
  * Genera un contenedor temporal formateado para imprimir un documento.
  */
 export const PrintManager = {
-    printDocument(doc, tipoDoc, contactos, productos) {
+    printDocument(doc, tipoDoc, contactos, productos, mode = 'print') {
 
         // 1. Limpiar cualquier contenedor de impresión previo si existe
         const oldContainer = document.querySelector('.print-document-template');
@@ -747,18 +750,63 @@ export const PrintManager = {
 
         document.body.appendChild(container);
 
-        // 6. Ejecutar impresión simple y directa
-        if (window._crudPrintTimeout2) clearTimeout(window._crudPrintTimeout2);
-        window._crudPrintTimeout2 = setTimeout(() => {
-            window.print();
-            // Limpiar el DOM 1 segundo después de que se cierre el cuadro de impresión
-            if (window._crudPrintCleanTimeout) clearTimeout(window._crudPrintCleanTimeout);
-            window._crudPrintCleanTimeout = setTimeout(() => {
-                if (document.body.contains(container)) {
-                    container.remove();
-                }
-            }, 1000);
-        }, 150);
+        if (mode === 'preview') {
+            container.style.position = 'fixed';
+            container.style.top = '0';
+            container.style.left = '0';
+            container.style.width = '100vw';
+            container.style.height = '100vh';
+            container.style.zIndex = '1060';
+            container.style.overflowY = 'auto';
+            container.style.backgroundColor = '#f8f9fa';
+            container.style.padding = '0';
+            
+            const closeHeader = document.createElement('div');
+            closeHeader.style.position = 'sticky';
+            closeHeader.style.top = '0';
+            closeHeader.style.zIndex = '1070';
+            closeHeader.style.backgroundColor = '#fff';
+            closeHeader.style.padding = '15px';
+            closeHeader.style.textAlign = 'center';
+            closeHeader.style.borderBottom = '1px solid #dee2e6';
+            closeHeader.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+            closeHeader.innerHTML = '<button class="btn btn-danger btn-cerrar-preview"><i class="bi bi-x-circle me-1"></i>Cerrar Vista Previa</button>';
+            
+            closeHeader.querySelector('.btn-cerrar-preview').addEventListener('click', () => {
+                container.remove();
+            });
+            
+            container.insertBefore(closeHeader, container.firstChild);
+            
+            // Envolver el contenido en un "papel" para que se vea bien en desktop, 
+            // pero que ocupe todo el ancho en mobile para facilitar captura
+            const paperContent = document.createElement('div');
+            paperContent.style.maxWidth = '800px';
+            paperContent.style.margin = '20px auto';
+            paperContent.style.padding = '20px';
+            paperContent.style.backgroundColor = '#fff';
+            paperContent.style.boxShadow = '0 0 10px rgba(0,0,0,0.1)';
+            
+            // Mover todo excepto el header de cierre al paperContent
+            while (container.childNodes.length > 1) {
+                paperContent.appendChild(container.childNodes[1]);
+            }
+            container.appendChild(paperContent);
+            
+        } else {
+            // 6. Ejecutar impresión simple y directa
+            if (window._crudPrintTimeout2) clearTimeout(window._crudPrintTimeout2);
+            window._crudPrintTimeout2 = setTimeout(() => {
+                window.print();
+                // Limpiar el DOM 1 segundo después de que se cierre el cuadro de impresión
+                if (window._crudPrintCleanTimeout) clearTimeout(window._crudPrintCleanTimeout);
+                window._crudPrintCleanTimeout = setTimeout(() => {
+                    if (document.body.contains(container)) {
+                        container.remove();
+                    }
+                }, 1000);
+            }, 150);
+        }
     }
 };
 

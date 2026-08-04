@@ -927,6 +927,24 @@ export const FacturasModule = {
             PrintManager.printDocument(factura, 'Factura de venta', contactos, productos);
         });
 
+        // Evento Vista Previa Global (Acción Superior)
+        element.querySelector('.btn-vista-previa')?.addEventListener('click', (e) => {
+            if (!isViewOnly) {
+                e.currentTarget.style.borderColor = '#ef4444';
+                e.currentTarget.style.color = '#ef4444';
+                CoreActions.showWarningModal("Primero debes guardar o finalizar la factura para poder generar su vista previa.");
+                if (window._ventasPreviewBtnTimeout) clearTimeout(window._ventasPreviewBtnTimeout);
+                window._ventasPreviewBtnTimeout = setTimeout(() => {
+                    if (document.body.contains(e.currentTarget)) {
+                        e.currentTarget.style.borderColor = '';
+                        e.currentTarget.style.color = '';
+                    }
+                }, 3000);
+                return;
+            }
+            PrintManager.printDocument(factura, 'Factura de venta', contactos, productos, 'preview');
+        });
+
         // Evento Registrar Pago (Acción Superior - Solo Vista)
         element.querySelector('.btn-abonar-detalle')?.addEventListener('click', (e) => {
             e.preventDefault();

@@ -802,6 +802,24 @@ export const CotizacionesModule = {
             PrintManager.printDocument(cotizacion, 'Cotización', contactos, productos);
         });
 
+        // Evento Vista Previa Global (Acción Superior)
+        element.querySelector('.btn-vista-previa')?.addEventListener('click', (e) => {
+            if (!isViewOnly) {
+                e.currentTarget.style.borderColor = '#ef4444';
+                e.currentTarget.style.color = '#ef4444';
+                CoreActions.showWarningModal("Primero debes guardar o finalizar la cotización para poder generar su vista previa.");
+                if (window._cotizacionesPreviewBtnTimeout) clearTimeout(window._cotizacionesPreviewBtnTimeout);
+                window._cotizacionesPreviewBtnTimeout = setTimeout(() => {
+                    if (document.body.contains(e.currentTarget)) {
+                        e.currentTarget.style.borderColor = '';
+                        e.currentTarget.style.color = '';
+                    }
+                }, 3000);
+                return;
+            }
+            PrintManager.printDocument(cotizacion, 'Cotización', contactos, productos, 'preview');
+        });
+
         // Evento Editar Global (Acción Superior)
         element.querySelector('.btn-editar')?.addEventListener('click', (e) => {
             const docId = e.currentTarget.dataset.id;
