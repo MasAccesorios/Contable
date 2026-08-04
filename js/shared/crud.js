@@ -718,7 +718,7 @@ export const PrintManager = {
             </table>
 
             <!-- FOOTER TOTALES -->
-            <div style="page-break-inside: avoid;">
+            <div>
                 <div style="display: flex; justify-content: space-between; margin-top: 24px;">
                     <div style="width: 50%;">
                         <h5 style="color: #6c757d; font-size: 14px; margin: 0 0 8px 0;">Observaciones</h5>
