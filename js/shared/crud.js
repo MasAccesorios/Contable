@@ -770,10 +770,86 @@ export const PrintManager = {
             closeHeader.style.textAlign = 'center';
             closeHeader.style.borderBottom = '1px solid #dee2e6';
             closeHeader.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
-            closeHeader.innerHTML = '<button class="btn btn-danger btn-cerrar-preview"><i class="bi bi-x-circle me-1"></i>Cerrar Vista Previa</button>';
+            closeHeader.innerHTML = `
+                <div class="d-flex justify-content-center gap-2">
+                    <button class="btn btn-success btn-compartir-preview"><i class="bi bi-share me-1"></i>Compartir</button>
+                    <button class="btn btn-danger btn-cerrar-preview"><i class="bi bi-x-circle me-1"></i>Cerrar</button>
+                </div>
+            `;
             
             closeHeader.querySelector('.btn-cerrar-preview').addEventListener('click', () => {
                 container.remove();
+            });
+            
+            const btnCompartir = closeHeader.querySelector('.btn-compartir-preview');
+            btnCompartir.addEventListener('click', async () => {
+                const originalHtml = btnCompartir.innerHTML;
+                btnCompartir.disabled = true;
+                
+                try {
+                    if (!window.html2canvas) {
+                        btnCompartir.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Descargando motor...';
+                        await new Promise((resolve, reject) => {
+                            const script = document.createElement('script');
+                            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+                            script.onload = resolve;
+                            script.onerror = () => reject(new Error('No se pudo cargar html2canvas'));
+                            document.head.appendChild(script);
+                        });
+                    }
+                    
+                    btnCompartir.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Generando imagen...';
+                    
+                    const oldScrollTop = container.scrollTop;
+                    container.scrollTop = 0;
+                    
+                    const canvas = await window.html2canvas(paperContent, { 
+                        scale: 2,
+                        useCORS: true,
+                        backgroundColor: '#ffffff'
+                    });
+                    
+                    container.scrollTop = oldScrollTop;
+                    
+                    canvas.toBlob(async (blob) => {
+                        if (!blob) throw new Error('Error al generar imagen');
+                        
+                        const fileName = `${tipoDoc.replace(/[^a-zA-Z0-9]/g, '_')}_${numDisplay}.png`;
+                        const file = new File([blob], fileName, { type: 'image/png' });
+                        
+                        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                            try {
+                                await navigator.share({
+                                    title: tipoDoc,
+                                    text: 'Adjunto el documento solicitado.',
+                                    files: [file]
+                                });
+                            } catch (e) {
+                                console.log('Share canceled or failed', e);
+                            }
+                        } else {
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = fileName;
+                            document.body.appendChild(a);
+                            a.click();
+                            document.body.removeChild(a);
+                            URL.revokeObjectURL(url);
+                        }
+                        
+                        btnCompartir.innerHTML = originalHtml;
+                        btnCompartir.disabled = false;
+                    }, 'image/png');
+                    
+                } catch (err) {
+                    console.error('Error en Compartir:', err);
+                    btnCompartir.innerHTML = '<i class="bi bi-exclamation-triangle me-1"></i>Error';
+                    setTimeout(() => {
+                        btnCompartir.innerHTML = originalHtml;
+                        btnCompartir.disabled = false;
+                    }, 3000);
+                }
             });
             
             container.insertBefore(closeHeader, container.firstChild);
