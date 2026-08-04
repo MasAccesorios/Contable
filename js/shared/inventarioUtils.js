@@ -1,4 +1,5 @@
 import DB, { getLocalDate } from '../core/db.js';
+import { supabase } from '../core/supabase.js';
 
 export const InventarioUtils = {
     /**
