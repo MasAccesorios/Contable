@@ -4,7 +4,8 @@ CREATE OR REPLACE FUNCTION get_facturas_con_saldos(
     p_sort_col TEXT DEFAULT 'numero',
     p_sort_dir TEXT DEFAULT 'desc',
     p_search TEXT DEFAULT '',
-    p_filter_criteria TEXT DEFAULT 'todos'
+    p_filter_criteria TEXT DEFAULT 'todos',
+    p_tipo TEXT DEFAULT 'venta'
 ) RETURNS TABLE (
     id BIGINT, 
     numero BIGINT, 
@@ -33,6 +34,8 @@ BEGIN
         SELECT f.*, count(*) OVER() AS calc_total_count
         FROM facturas f
         WHERE 
+            (p_tipo = 'todos' OR f.tipo = p_tipo) AND
+            (
             p_search = '' OR (
                 (p_filter_criteria = 'numero' AND f.numero::TEXT = regexp_replace(p_search, '\D', '', 'g')) OR
                 (p_filter_criteria = 'fecha' AND f.fecha::TEXT ILIKE '%' || p_search || '%') OR
@@ -44,6 +47,7 @@ BEGIN
                     (regexp_replace(p_search, '\D', '', 'g') <> '' AND f.numero::TEXT = regexp_replace(p_search, '\D', '', 'g')) OR
                     f.contacto_id IN (SELECT mc.id FROM matching_contactos mc)
                 ))
+            )
             )
     ),
     facturas_paginadas AS (

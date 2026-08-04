@@ -89,7 +89,7 @@ export const ConfiguracionModule = {
         try {
             // Leer el MAX(numero) actual de cada tabla en Supabase para mostrar el próximo número
             const [resFacturas, resCotizaciones] = await Promise.all([
-                supabase.from('facturas').select('numero').order('numero', { ascending: false }).limit(1).single(),
+                supabase.from('facturas').select('numero').eq('tipo', 'venta').order('numero', { ascending: false }).limit(1).single(),
                 supabase.from('cotizaciones').select('numero').order('numero', { ascending: false }).limit(1).single()
             ]);
 

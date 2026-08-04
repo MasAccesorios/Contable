@@ -67,7 +67,7 @@ export const GlobalSearch = {
         if (isNum) {
             promises.push(
                 supabase.from('facturas')
-                    .select('id, numero, total, contactos!inner(nombre)')
+                    .select('id, numero, total, tipo, contactos!inner(nombre)')
                     .eq('numero', parseInt(query, 10))
                     .limit(5)
                     .then(res => ({ type: 'facturas', data: res.data || [] }))
@@ -120,12 +120,17 @@ export const GlobalSearch = {
                         break;
                     case 'facturas':
                         title = 'Facturas';
-                        itemsHtml = group.data.map(item => `
-                            <a href="#/ingresos/facturas/ver/${item.id}" class="dropdown-item py-2 gs-result-link px-3 text-wrap" style="white-space: normal;">
-                                <div class="fw-medium text-dark" style="font-size: 13px;">Factura #${item.numero}</div>
-                                <div class="text-muted" style="font-size: 11px;">${item.contactos?.nombre || 'Sin cliente'} - $${Number(item.total).toLocaleString()}</div>
-                            </a>
-                        `).join('');
+                        itemsHtml = group.data.map(item => {
+                            const esCompra = item.tipo === 'compra';
+                            const hash = esCompra ? `#/gastos/compras/ver/${item.id}` : `#/ingresos/facturas/ver/${item.id}`;
+                            const badge = esCompra ? 'Compra' : 'Venta';
+                            return `
+                                <a href="${hash}" class="dropdown-item py-2 gs-result-link px-3 text-wrap" style="white-space: normal;">
+                                    <div class="fw-medium text-dark" style="font-size: 13px;">Factura de ${badge} #${item.numero}</div>
+                                    <div class="text-muted" style="font-size: 11px;">${item.contactos?.nombre || 'Sin cliente'} - $${Number(item.total).toLocaleString()}</div>
+                                </a>
+                            `;
+                        }).join('');
                         break;
                     case 'cotizaciones':
                         title = 'Cotizaciones';

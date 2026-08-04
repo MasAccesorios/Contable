@@ -74,7 +74,8 @@ export const FacturasModule = {
                     p_sort_col: sortColumn,
                     p_sort_dir: sortDirection,
                     p_search: searchQuery,
-                    p_filter_criteria: filterCriteria
+                    p_filter_criteria: filterCriteria,
+                    p_tipo: 'venta'
                 });
                 
                 if (error) throw error;
@@ -326,7 +327,8 @@ export const FacturasModule = {
                         p_sort_col: sortColumn,
                         p_sort_dir: sortDirection,
                         p_search: searchQuery,
-                        p_filter_criteria: filterCriteria
+                        p_filter_criteria: filterCriteria,
+                        p_tipo: 'venta'
                     });
                     if (error) throw error;
                     

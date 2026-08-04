@@ -37,11 +37,11 @@ export default {
             
             // Cargar facturas del cliente
             const allFacturas = await DB.getAll('facturas') || [];
-            let facturasCliente = allFacturas.filter(f => String(f.contacto_id) === String(this.clienteId) && (f.estado === 'open' || f.estado === 'parcial'));
+            let facturasCliente = allFacturas.filter(f => String(f.contacto_id) === String(this.clienteId) && f.tipo !== 'compra' && (f.estado === 'open' || f.estado === 'parcial'));
             
             // Si el cliente no tiene facturas abiertas por estado, chequear por si las dudas todas
             if (facturasCliente.length === 0) {
-                 facturasCliente = allFacturas.filter(f => String(f.contacto_id) === String(this.clienteId));
+                 facturasCliente = allFacturas.filter(f => String(f.contacto_id) === String(this.clienteId) && f.tipo !== 'compra');
             }
 
             // Calcular saldos leyendo transacciones

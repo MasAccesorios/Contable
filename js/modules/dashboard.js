@@ -274,6 +274,9 @@ export const DashboardModule = {
             // Ignorar facturas anuladas para no inflar las ventas ni los productos
             if (f.estado === 'void' || f.estado === 'anulada') return;
 
+            // Blindaje Fase 1: Ignorar compras en el dashboard de ingresos
+            if (f.tipo === 'compra') return;
+
             // Se asume que toda factura es de venta (para el cálculo de ingresos del mes)
             if (f.fecha && f.fecha >= startDateStr && f.fecha <= endDateStr) {
                 ventasMes += (f.total || 0);

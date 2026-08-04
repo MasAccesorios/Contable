@@ -464,8 +464,9 @@ export const ContactosModule = {
 
         const { data: facturasCliente } = await supabase
             .from('facturas')
-            .select('id, numero, fecha, vencimiento, total, saldo_original, estado')
+            .select('id, numero, fecha, vencimiento, total, saldo_original, estado, tipo')
             .eq('contacto_id', id)
+            .eq('tipo', 'venta')
             .order('fecha', { ascending: false })
             .limit(50);
 

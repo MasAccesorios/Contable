@@ -133,19 +133,25 @@ export const obtenerCarteraFiltrada = (facturasRaw, transacciones, contactos, ti
         const anio = new Date(f.fecha || f.vencimiento || f.created_at || new Date()).getFullYear();
         if (anio <= 2017) return false;
 
-        // Regla 2: Filtro de Tipo de Contacto (CxC vs CxP)
-        const cId = f.contacto_id || f.clienteId;
-        if (cId) {
-            const contacto = contactos.find(c => String(c.id) === String(cId));
-            if (contacto) {
-                const esProveedor = contacto.tipo === 'proveedor';
-                if (!buscaCxp && esProveedor) return false;
-                if (buscaCxp && !esProveedor) return false;
+        // Regla 2: Filtro de Tipo de Documento (Venta vs Compra explícito tiene prioridad)
+        if (f.tipo) {
+            if (!buscaCxp && f.tipo !== 'venta') return false;
+            if (buscaCxp && f.tipo !== 'compra') return false;
+        } else {
+            // Fallback legacy (por tipo de contacto)
+            const cId = f.contacto_id || f.clienteId;
+            if (cId) {
+                const contacto = contactos.find(c => String(c.id) === String(cId));
+                if (contacto) {
+                    const esProveedor = contacto.tipo === 'proveedor';
+                    if (!buscaCxp && esProveedor) return false;
+                    if (buscaCxp && !esProveedor) return false;
+                } else if (buscaCxp) {
+                    return false;
+                }
             } else if (buscaCxp) {
                 return false;
             }
-        } else if (buscaCxp) {
-            return false;
         }
 
         return true;
