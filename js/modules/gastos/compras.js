@@ -44,7 +44,7 @@ export const ComprasModule = {
         
         const getProveedorName = (id) => {
             const proveedor = contactos.find(c => c.id == id);
-            return cliente ? cliente.nombre : 'Sin Cliente';
+            return proveedor ? proveedor.nombre : 'Sin Proveedor';
         };
 
         // Estado de Paginación, Ordenamiento y Filtro Server-Side
@@ -133,7 +133,7 @@ export const ComprasModule = {
                         <td class="py-3">${numDisplay}</td>
                         <td class="py-3">${c.fecha || ''}</td>
                         <td class="py-3" style="color: ${vencimientoColor};">${c.vencimiento || ''}</td>
-                        <td class="py-3" style="color: var(--text-main); font-weight: var(--weight-medium);">${getProveedorName(c.clienteId || c.contacto_id || c.contactoId)}</td>
+                        <td class="py-3" style="color: var(--text-main); font-weight: var(--weight-medium);">${getProveedorName(c.proveedorId || c.contacto_id || c.contactoId)}</td>
                         <td class="py-3 text-end">${formatMoney(c.total)}</td>
                         <td class="py-3 text-end">${formatMoney(c.totalPagado)}</td>
                         <td class="py-3 text-end">${formatMoney(c.saldoPendiente)}</td>
@@ -159,9 +159,9 @@ export const ComprasModule = {
                     <!-- TOP BAR -->
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <div>
-                            <h2 class="h3 fw-bold mb-1" style="color: var(--text-main);">Facturas de venta</h2>
+                            <h2 class="h3 fw-bold mb-1" style="color: var(--text-main);">Facturas de Compra</h2>
                             <p class="text-muted mb-0" style="font-size: 14px;">
-                                Gestiona las facturas generadas por ventas a tus clientes. 
+                                Gestiona las facturas generadas por compras a tus proveedores. 
                             </p>
                         </div>
                         <div class="d-flex gap-2">
@@ -196,7 +196,7 @@ export const ComprasModule = {
                                     <li><a class="dropdown-item filter-opt" href="#" data-criteria="todos">Todos los campos</a></li>
                                     <li><hr class="dropdown-divider"></li>
                                     <li><a class="dropdown-item filter-opt" href="#" data-criteria="numero">Por Número</a></li>
-                                    <li><a class="dropdown-item filter-opt" href="#" data-criteria="cliente">Por Cliente</a></li>
+                                    <li><a class="dropdown-item filter-opt" href="#" data-criteria="proveedor">Por Proveedor</a></li>
                                     <li><a class="dropdown-item filter-opt" href="#" data-criteria="fecha">Por Fecha de creación</a></li>
                                     <li><a class="dropdown-item filter-opt" href="#" data-criteria="estado">Por Estado</a></li>
                                 </ul>
@@ -215,8 +215,8 @@ export const ComprasModule = {
                                             Creación ${sortColumn === 'fecha' ? (sortDirection === 'asc' ? ' ▲' : ' ▼') : ''}
                                         </th>
                                         <th class="py-3 fw-normal">Vencimiento</th>
-                                        <th class="py-3 fw-normal sortable-header" data-column="cliente" style="cursor: pointer; user-select: none;">
-                                            Cliente ${sortColumn === 'cliente' ? (sortDirection === 'asc' ? ' ▲' : ' ▼') : ''}
+                                        <th class="py-3 fw-normal sortable-header" data-column="proveedor" style="cursor: pointer; user-select: none;">
+                                            Proveedor ${sortColumn === 'proveedor' ? (sortDirection === 'asc' ? ' ▲' : ' ▼') : ''}
                                         </th>
                                         <th class="py-3 fw-normal text-end">Total</th>
                                         <th class="py-3 fw-normal text-end">Cobrado</th>
@@ -442,7 +442,7 @@ export const ComprasModule = {
                     const id = e.currentTarget.dataset.id;
                     const doc = currentItems.find(c => c.id == id);
                     if (doc) {
-                        PrintManager.printDocument(doc, 'Factura de venta', contactos, this.cache.productos);
+                        PrintManager.printDocument(doc, 'Factura de Compra', contactos, this.cache.productos);
                     }
                 });
             });
@@ -493,7 +493,7 @@ export const ComprasModule = {
             }
             
             // Fix backwards compatibility for converted cotizaciones
-            if (factura.contactoId && !factura.clienteId) {
+            if (factura.contactoId && !factura.proveedorId) {
                 factura.proveedorId = factura.contactoId;
             }
             if (!factura.numero) {
@@ -505,13 +505,13 @@ export const ComprasModule = {
             }
         }
 
-        const headerHtml = CoreActions.renderDocumentHeader('ingresos/facturas', 'Volver a Facturas de venta');
+        const headerHtml = CoreActions.renderDocumentHeader('ingresos/facturas', 'Volver a Facturas de Compra');
         const actionsHtml = CoreActions.renderActionButtons(factura, 'factura', isViewOnly, !id);
 
-        // Datos de Clientes para el Combobox
-        const clientes = contactos.filter(c => c.tipo === 'proveedor');
-        const clienteActual = clientes.find(c => c.id === factura.clienteId);
-        const clienteNombreActual = clienteActual ? clienteActual.nombre : '';
+        // Datos de Proveedores para el Combobox
+        const proveedores = contactos.filter(c => c.tipo === 'proveedor');
+        const proveedorActual = proveedores.find(c => c.id === factura.proveedorId);
+        const proveedorNombreActual = proveedorActual ? proveedorActual.nombre : '';
 
         const dbCuentas = await DB.getAll('cuentas_bancarias') || [];
         const cuentasActivas = dbCuentas.filter(c => c.estado === 'activo');
@@ -543,7 +543,7 @@ export const ComprasModule = {
                             </div>
                             <div class="col-md-4">
                                 <select class="form-select mb-2 bg-light border-0">
-                                    <option>Factura de venta</option>
+                                    <option>Factura de Compra</option>
                                 </select>
                                 <div class="d-flex justify-content-between align-items-center text-muted" style="font-size: 14px;">
                                     <span id="lbl-numero">No. <strong style="color: var(--text-main);">${factura.numero || '[Autogenerado al guardar]'}</strong></span>
@@ -556,20 +556,20 @@ export const ComprasModule = {
                         <h6 class="fw-bold mb-3" style="color: var(--text-main);">Información de la factura</h6>
                         <div class="row mb-5 g-3">
                             <div class="col-md-3">
-                                <label class="form-label" style="font-size: 12px; font-weight: var(--weight-medium); color: var(--text-body);">Cliente <span class="text-danger">*</span></label>
-                                <input type="text" id="search-proveedor" class="form-control form-control-sm text-muted" placeholder="Buscar cliente..." value="${clienteNombreActual}" autocomplete="off" ${isViewOnly ? 'disabled' : ''}>
-                                <input type="hidden" id="select-proveedor" value="${factura.clienteId || ''}">
+                                <label class="form-label" style="font-size: 12px; font-weight: var(--weight-medium); color: var(--text-body);">Proveedor <span class="text-danger">*</span></label>
+                                <input type="text" id="search-proveedor" class="form-control form-control-sm text-muted" placeholder="Buscar proveedor..." value="${proveedorNombreActual}" autocomplete="off" ${isViewOnly ? 'disabled' : ''}>
+                                <input type="hidden" id="select-proveedor" value="${factura.proveedorId || ''}">
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label" style="font-size: 12px; font-weight: var(--weight-medium); color: var(--text-body);">Tipo de Venta</label>
-                                <select id="select-tipo-venta" class="form-select form-select-sm text-muted" ${isViewOnly ? 'disabled' : ''}>
-                                    <option value="credito" ${factura.tipoVenta === 'credito' || !factura.tipoVenta ? 'selected' : ''}>A Crédito (Cartera)</option>
-                                    <option value="contado" ${factura.tipoVenta === 'contado' ? 'selected' : ''}>De Contado (Caja)</option>
+                                <select id="select-tipo-compra" class="form-select form-select-sm text-muted" ${isViewOnly ? 'disabled' : ''}>
+                                    <option value="credito" ${factura.tipoCompra === 'credito' || !factura.tipoCompra ? 'selected' : ''}>A Crédito (Cartera)</option>
+                                    <option value="contado" ${factura.tipoCompra === 'contado' ? 'selected' : ''}>De Contado (Caja)</option>
                                 </select>
                             </div>
-                            <div class="col-md-3" id="container-cuenta-venta" style="display: ${factura.tipoVenta === 'contado' ? 'block' : 'none'};">
+                            <div class="col-md-3" id="container-cuenta-venta" style="display: ${factura.tipoCompra === 'contado' ? 'block' : 'none'};">
                                 <label class="form-label" style="font-size: 12px; font-weight: var(--weight-medium); color: var(--text-body);">Cuenta (Contado)</label>
-                                <select id="select-cuenta-venta" class="form-select form-select-sm text-muted" ${isViewOnly ? 'disabled' : ''}>
+                                <select id="select-cuenta-compra" class="form-select form-select-sm text-muted" ${isViewOnly ? 'disabled' : ''}>
                                     ${cuentasActivas.map(c => `<option value="${c.nombre}" ${factura.cuentaId === c.nombre ? 'selected' : ''}>${c.nombre}</option>`).join('')}
                                 </select>
                             </div>
@@ -846,8 +846,8 @@ export const ComprasModule = {
         };
 
         // Función Helper: Cálculo de Fecha de Vencimiento
-        const calcularVencimiento = (cliente) => {
-            const plazos = parseInt(cliente.plazosPago || 0);
+        const calcularVencimiento = (proveedor) => {
+            const plazos = parseInt(proveedor.plazosPago || 0);
             const inputVencimiento = element.querySelector('#input-vencimiento');
             if (plazos > 0) {
                 const fechaCreacion = new Date(element.querySelector('#input-fecha').value);
@@ -858,12 +858,12 @@ export const ComprasModule = {
             }
         };
 
-        // Inicialización de Combobox de Clientes y Cálculo de Vencimiento Automatizado
+        // Inicialización de Combobox de Proveedores y Cálculo de Vencimiento Automatizado
         if (!isViewOnly) {
             UI.createCombobox({
                 inputEl: element.querySelector('#search-proveedor'),
                 hiddenIdEl: element.querySelector('#select-proveedor'),
-                items: clientes,
+                items: proveedores,
                 displayProp: 'nombre',
                 searchProps: ['nit', 'email'],
                 allowCreate: true,
@@ -885,7 +885,7 @@ export const ComprasModule = {
         }
 
         // Configuración de Numeración (Engranaje)
-        element.querySelector('#select-tipo-venta')?.addEventListener('change', (e) => {
+        element.querySelector('#select-tipo-compra')?.addEventListener('change', (e) => {
             const containerCuenta = element.querySelector('#container-cuenta-venta');
             if (containerCuenta) {
                 containerCuenta.style.display = e.target.value === 'contado' ? 'block' : 'none';
@@ -926,7 +926,7 @@ export const ComprasModule = {
                 }, 3000);
                 return;
             }
-            PrintManager.printDocument(factura, 'Factura de venta', contactos, productos);
+            PrintManager.printDocument(factura, 'Factura de Compra', contactos, productos);
         });
 
         // Evento Vista Previa Global (Acción Superior)
@@ -944,7 +944,7 @@ export const ComprasModule = {
                 }, 3000);
                 return;
             }
-            PrintManager.printDocument(factura, 'Factura de venta', contactos, productos, 'preview');
+            PrintManager.printDocument(factura, 'Factura de Compra', contactos, productos, 'preview');
         });
 
         // Evento Registrar Pago (Acción Superior - Solo Vista)
@@ -979,12 +979,12 @@ export const ComprasModule = {
 
                 try {
                     const proveedorId = element.querySelector('#select-proveedor').value;
-                    if (!clienteId) {
+                    if (!proveedorId) {
                         const searchInput = element.querySelector('#search-proveedor');
                         searchInput.style.borderColor = '#ef4444'; // Resalta en rojo
-                        CoreActions.showWarningModal("Debes seleccionar un cliente válido de la lista.");
-                        if (window._ventasSearchClientTimeout) clearTimeout(window._ventasSearchClientTimeout);
-                        window._ventasSearchClientTimeout = setTimeout(() => {
+                        CoreActions.showWarningModal("Debes seleccionar un proveedor válido de la lista.");
+                        if (window._comprasSearchProveedorTimeout) clearTimeout(window._comprasSearchProveedorTimeout);
+                        window._comprasSearchProveedorTimeout = setTimeout(() => {
                             if (document.body.contains(searchInput)) {
                                 searchInput.style.borderColor = '';
                             }
@@ -994,7 +994,7 @@ export const ComprasModule = {
                         return;
                     }
 
-                    const tipoVenta = element.querySelector('#select-tipo-venta').value;
+                    const tipoCompra = element.querySelector('#select-tipo-compra').value;
                     const isNew = !id; // Si es nueva factura, descargamos inventario
 
                     // Recolectar detalles
@@ -1017,8 +1017,8 @@ export const ComprasModule = {
                     }
 
                                         factura.contacto_id = element.querySelector('#select-proveedor').value;
-                    if (tipoVenta === 'contado') {
-                        factura.cuentaId = element.querySelector('#select-cuenta-venta').value;
+                    if (tipoCompra === 'contado') {
+                        factura.cuentaId = element.querySelector('#select-cuenta-compra').value;
                     }
                     factura.fecha = element.querySelector('#input-fecha').value;
                     factura.vencimiento = element.querySelector('#input-vencimiento').value;
@@ -1063,7 +1063,7 @@ export const ComprasModule = {
                     }
 
                     // Condicional Contado vs Crédito
-                    if (tipoVenta === 'contado') {
+                    if (tipoCompra === 'contado') {
                         if (isNew && factura.cuentaId) {
                             const transaccion = {
                                 id: 'trx_' + Date.now(),
