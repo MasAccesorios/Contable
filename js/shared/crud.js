@@ -645,7 +645,7 @@ export const PrintManager = {
             const prod = productos.find(p => p.id === det.productoId) || {};
             const subtotal = (det.cantidad || 0) * (det.precio || 0);
             return `
-                <tr style="border-bottom: 1px solid #dee2e6; font-size: 12px; color: #495057; page-break-inside: avoid;">
+                <tr style="border-bottom: 1px solid #dee2e6; font-size: 12px; color: #495057;">
                     <td style="padding: 8px 4px;">${prod.sku || 'N/A'}</td>
                     <td style="padding: 8px 4px;">
                         <div style="font-weight: 600; color: #212529;">${prod.nombre || 'Ítem sin nombre'}</div>
