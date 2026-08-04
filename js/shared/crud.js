@@ -782,14 +782,18 @@ export const PrintManager = {
             });
             
             const btnCompartir = closeHeader.querySelector('.btn-compartir-preview');
-            btnCompartir.addEventListener('click', async () => {
-                const originalHtml = btnCompartir.innerHTML;
-                btnCompartir.disabled = true;
-                
+            const originalCompartirHtml = btnCompartir.innerHTML;
+            
+            // Estado inicial: Deshabilitado mientras precarga
+            btnCompartir.disabled = true;
+            btnCompartir.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Preparando...';
+            
+            let cachedShareFile = null;
+            
+            // Función de precarga en segundo plano
+            const precacheShareImage = async () => {
                 try {
-                    alert('Iniciando...');
                     if (!window.html2canvas) {
-                        btnCompartir.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Descargando motor...';
                         await new Promise((resolve, reject) => {
                             const script = document.createElement('script');
                             script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
@@ -798,9 +802,6 @@ export const PrintManager = {
                             document.head.appendChild(script);
                         });
                     }
-                    
-                    alert('html2canvas listo');
-                    btnCompartir.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Generando imagen...';
                     
                     const oldScrollTop = container.scrollTop;
                     container.scrollTop = 0;
@@ -811,51 +812,51 @@ export const PrintManager = {
                         backgroundColor: '#ffffff'
                     });
                     
-                    alert('Canvas generado');
                     container.scrollTop = oldScrollTop;
                     
-                    canvas.toBlob(async (blob) => {
-                        alert('Blob generado: ' + (blob ? blob.size : 'NULL'));
-                        if (!blob) throw new Error('Error al generar imagen');
-                        
-                        const fileName = `${tipoDoc.replace(/[^a-zA-Z0-9]/g, '_')}_${numDisplay}.png`;
-                        const file = new File([blob], fileName, { type: 'image/png' });
-                        
-                        alert('canShare existe: ' + (!!navigator.canShare));
-                        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                            try {
-                                await navigator.share({
-                                    title: tipoDoc,
-                                    text: 'Adjunto el documento solicitado.',
-                                    files: [file]
-                                });
-                            } catch (e) {
-                                console.log('Share canceled or failed', e);
-                                alert('Error al intentar compartir: ' + e.message);
-                            }
-                        } else {
-                            const url = URL.createObjectURL(blob);
-                            const a = document.createElement('a');
-                            a.href = url;
-                            a.download = fileName;
-                            document.body.appendChild(a);
-                            a.click();
-                            document.body.removeChild(a);
-                            URL.revokeObjectURL(url);
-                        }
-                        
-                        btnCompartir.innerHTML = originalHtml;
-                        btnCompartir.disabled = false;
-                    }, 'image/png');
+                    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+                    if (!blob) throw new Error('Error al generar imagen');
+                    
+                    const fileName = `${tipoDoc.replace(/[^a-zA-Z0-9]/g, '_')}_${numDisplay}.png`;
+                    cachedShareFile = new File([blob], fileName, { type: 'image/png' });
+                    
+                    // Precarga terminada con éxito
+                    btnCompartir.innerHTML = originalCompartirHtml;
+                    btnCompartir.disabled = false;
                     
                 } catch (err) {
-                    alert('ERROR CAPTURADO: ' + err.message + ' | ' + err.stack);
-                    console.error('Error en Compartir:', err);
-                    btnCompartir.innerHTML = '<i class="bi bi-exclamation-triangle me-1"></i>Error';
-                    setTimeout(() => {
-                        btnCompartir.innerHTML = originalHtml;
-                        btnCompartir.disabled = false;
-                    }, 3000);
+                    console.error('Error precargando imagen de compartir:', err);
+                    btnCompartir.innerHTML = '<i class="bi bi-exclamation-triangle me-1"></i>Error al preparar';
+                }
+            };
+            
+            // Iniciar precarga sin bloquear
+            setTimeout(precacheShareImage, 100);
+            
+            btnCompartir.addEventListener('click', async () => {
+                if (!cachedShareFile) return; // Bloqueo de seguridad
+                
+                if (navigator.canShare && navigator.canShare({ files: [cachedShareFile] })) {
+                    try {
+                        // PRIMER AWAIT DESPUÉS DEL GESTO DEL USUARIO
+                        await navigator.share({
+                            title: tipoDoc,
+                            text: 'Adjunto el documento solicitado.',
+                            files: [cachedShareFile]
+                        });
+                    } catch (e) {
+                        console.log('Share canceled or failed', e);
+                    }
+                } else {
+                    // Fallback descarga manual
+                    const url = URL.createObjectURL(cachedShareFile);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = cachedShareFile.name;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
                 }
             });
             
