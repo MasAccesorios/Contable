@@ -787,6 +787,7 @@ export const PrintManager = {
                 btnCompartir.disabled = true;
                 
                 try {
+                    alert('Iniciando...');
                     if (!window.html2canvas) {
                         btnCompartir.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Descargando motor...';
                         await new Promise((resolve, reject) => {
@@ -798,6 +799,7 @@ export const PrintManager = {
                         });
                     }
                     
+                    alert('html2canvas listo');
                     btnCompartir.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Generando imagen...';
                     
                     const oldScrollTop = container.scrollTop;
@@ -809,14 +811,17 @@ export const PrintManager = {
                         backgroundColor: '#ffffff'
                     });
                     
+                    alert('Canvas generado');
                     container.scrollTop = oldScrollTop;
                     
                     canvas.toBlob(async (blob) => {
+                        alert('Blob generado: ' + (blob ? blob.size : 'NULL'));
                         if (!blob) throw new Error('Error al generar imagen');
                         
                         const fileName = `${tipoDoc.replace(/[^a-zA-Z0-9]/g, '_')}_${numDisplay}.png`;
                         const file = new File([blob], fileName, { type: 'image/png' });
                         
+                        alert('canShare existe: ' + (!!navigator.canShare));
                         if (navigator.canShare && navigator.canShare({ files: [file] })) {
                             try {
                                 await navigator.share({
@@ -826,6 +831,7 @@ export const PrintManager = {
                                 });
                             } catch (e) {
                                 console.log('Share canceled or failed', e);
+                                alert('Error al intentar compartir: ' + e.message);
                             }
                         } else {
                             const url = URL.createObjectURL(blob);
@@ -843,6 +849,7 @@ export const PrintManager = {
                     }, 'image/png');
                     
                 } catch (err) {
+                    alert('ERROR CAPTURADO: ' + err.message + ' | ' + err.stack);
                     console.error('Error en Compartir:', err);
                     btnCompartir.innerHTML = '<i class="bi bi-exclamation-triangle me-1"></i>Error';
                     setTimeout(() => {
