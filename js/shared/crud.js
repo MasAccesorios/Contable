@@ -632,7 +632,7 @@ export const PrintManager = {
         if (oldContainer) oldContainer.remove();
 
         // 2. Determinar tamaño de hoja
-        const printClass = (doc.detalles && doc.detalles.length < 5) ? 'media-hoja' : 'hoja-completa';
+        const printClass = 'hoja-dinamica';
 
         // 3. Resolutores de Datos
         const cliente = contactos.find(c => c.id === doc.clienteId) || {};
@@ -645,7 +645,7 @@ export const PrintManager = {
             const prod = productos.find(p => p.id === det.productoId) || {};
             const subtotal = (det.cantidad || 0) * (det.precio || 0);
             return `
-                <tr style="border-bottom: 1px solid #dee2e6; font-size: 12px; color: #495057;">
+                <tr style="border-bottom: 1px solid #dee2e6; font-size: 12px; color: #495057; page-break-inside: avoid;">
                     <td style="padding: 8px 4px;">${prod.sku || 'N/A'}</td>
                     <td style="padding: 8px 4px;">
                         <div style="font-weight: 600; color: #212529;">${prod.nombre || 'Ítem sin nombre'}</div>
@@ -702,7 +702,7 @@ export const PrintManager = {
 
             <!-- TABLA DE PRODUCTOS -->
             <table style="width: 100%; border-collapse: collapse; margin-bottom: 35px;">
-                <thead>
+                <thead style="display: table-header-group;">
                     <tr style="border-bottom: 2px solid #dee2e6; color: #495057; font-size: 13px;">
                         <th style="text-align: left; padding: 8px 4px;">Referencia</th>
                         <th style="text-align: left; padding: 8px 4px;">Ítem</th>
@@ -718,28 +718,30 @@ export const PrintManager = {
             </table>
 
             <!-- FOOTER TOTALES -->
-            <div style="display: flex; justify-content: space-between; margin-top: 24px;">
-                <div style="width: 50%;">
-                    <h5 style="color: #6c757d; font-size: 14px; margin: 0 0 8px 0;">Observaciones</h5>
-                    <p style="font-size: 12px; color: #495057; margin: 0;">${doc.notas || ''}</p>
+            <div style="page-break-inside: avoid;">
+                <div style="display: flex; justify-content: space-between; margin-top: 24px;">
+                    <div style="width: 50%;">
+                        <h5 style="color: #6c757d; font-size: 14px; margin: 0 0 8px 0;">Observaciones</h5>
+                        <p style="font-size: 12px; color: #495057; margin: 0;">${doc.notas || ''}</p>
+                    </div>
+                    <div style="width: 38%;">
+                        <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 8px;">
+                            <strong style="color: #495057;">Subtotal</strong><span>${formatMoney(doc.total)}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; font-size: 16px; margin-bottom: 12px; border-top: 1px solid #dee2e6; padding-top: 8px;">
+                            <strong style="color: #212529;">Total</strong><span style="font-weight: bold; color: #212529;">${formatMoney(doc.total)}</span>
+                        </div>
+                        <div style="text-align: right; font-size: 12px; font-weight: bold; color: #6c757d;">
+                            Cantidad de productos: ${totalUnidades}
+                        </div>
+                    </div>
                 </div>
-                <div style="width: 38%;">
-                    <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 8px;">
-                        <strong style="color: #495057;">Subtotal</strong><span>${formatMoney(doc.total)}</span>
-                    </div>
-                    <div style="display: flex; justify-content: space-between; font-size: 16px; margin-bottom: 12px; border-top: 1px solid #dee2e6; padding-top: 8px;">
-                        <strong style="color: #212529;">Total</strong><span style="font-weight: bold; color: #212529;">${formatMoney(doc.total)}</span>
-                    </div>
-                    <div style="text-align: right; font-size: 12px; font-weight: bold; color: #6c757d;">
-                        Cantidad de productos: ${totalUnidades}
-                    </div>
-                </div>
-            </div>
 
-            <!-- FIRMA -->
-            <div style="text-align: center; margin-top: 40px; margin-bottom: 20px;">
-                <div style="width: 200px; height: 50px; background-color: #f8f9fa; margin: 0 auto; border-bottom: 1px solid #495057;"></div>
-                <p style="font-size: 10px; color: #212529; margin-top: 5px;">ELABORADO POR</p>
+                <!-- FIRMA -->
+                <div style="text-align: center; margin-top: 40px; margin-bottom: 20px;">
+                    <div style="width: 200px; height: 50px; background-color: #f8f9fa; margin: 0 auto; border-bottom: 1px solid #495057;"></div>
+                    <p style="font-size: 10px; color: #212529; margin-top: 5px;">ELABORADO POR</p>
+                </div>
             </div>
         `;
 
