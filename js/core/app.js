@@ -37,6 +37,7 @@ const routes = {
     'contactos': () => import('../modules/clientes/clientes.js'),
     'bancos': () => import('../modules/bancos/bancos.js'),
     'gastos/pagos': () => import('../modules/gastos/gastos.js'),
+    'gastos/proveedores': () => import('../modules/gastos/compras.js'),
     'inventario/items': () => import('../modules/productos/productos.js'),
     'inventario/valor': () => import('../modules/inventario/valorizacion.js'),
     'importador': () => import('../modules/integracion-alegra/importador.js'),

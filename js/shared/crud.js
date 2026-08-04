@@ -406,7 +406,7 @@ export const ItemEngine = {
         `;
     },
 
-    bindLineEvents(tr, calcEngine, productos = []) {
+    bindLineEvents(tr, calcEngine, productos = [], options = { isCompra: false, onCrearProducto: null }) {
         const inputSearch = tr.querySelector('.input-prod-search');
         const inputId = tr.querySelector('.input-prod-id');
         const dropdown = tr.querySelector('.search-results-dropdown');
@@ -447,19 +447,48 @@ export const ItemEngine = {
 
             if (filtered.length === 0) {
                 dropdown.innerHTML = `<div class="p-2 text-muted small text-center">No hay resultados</div>`;
+                if (options.onCrearProducto) {
+                    dropdown.innerHTML += `
+                    <div class="dropdown-item-search p-2 text-primary fw-bold" style="cursor: pointer; border-top: 1px solid var(--border-color); font-size: 13px;" data-action="create">
+                        <i class="bi bi-plus-circle me-1"></i>Crear producto "${query}"
+                    </div>`;
+                }
                 dropdown.style.display = 'block';
+                
+                if (options.onCrearProducto) {
+                    dropdown.querySelectorAll('.dropdown-item-search').forEach(item => {
+                        item.addEventListener('mouseenter', () => item.style.backgroundColor = 'var(--primary-light)');
+                        item.addEventListener('mouseleave', () => item.style.backgroundColor = 'transparent');
+                        item.addEventListener('click', (ev) => {
+                            if (ev.currentTarget.dataset.action === 'create') {
+                                dropdown.style.display = 'none';
+                                options.onCrearProducto(query, tr);
+                            }
+                        });
+                    });
+                }
+                
                 return;
             }
 
-            // Renderizar resultados con Mapeo estricto de precio_venta
+            // Renderizar resultados con Mapeo estricto de precio
             dropdown.innerHTML = filtered.map(p => {
                 let precioReal = 0;
-                if (p.precio_venta !== undefined) precioReal = p.precio_venta;
-                else if (p.precioVenta !== undefined) precioReal = p.precioVenta;
-                else if (p.precio !== undefined) precioReal = p.precio;
-                else if (p.price !== undefined) {
-                    if (Array.isArray(p.price) && p.price.length > 0) precioReal = p.price[0].price || 0;
-                    else precioReal = p.price;
+                
+                if (options.isCompra) {
+                    // Si es compra, usar costo promedio o costo base
+                    if (p.costo_promedio !== undefined) precioReal = p.costo_promedio;
+                    else if (p.costoBase !== undefined) precioReal = p.costoBase;
+                    else if (p.costo !== undefined) precioReal = p.costo;
+                } else {
+                    // Si es venta, usar precio de venta
+                    if (p.precio_venta !== undefined) precioReal = p.precio_venta;
+                    else if (p.precioVenta !== undefined) precioReal = p.precioVenta;
+                    else if (p.precio !== undefined) precioReal = p.precio;
+                    else if (p.price !== undefined) {
+                        if (Array.isArray(p.price) && p.price.length > 0) precioReal = p.price[0].price || 0;
+                        else precioReal = p.price;
+                    }
                 }
                 
                 return `
