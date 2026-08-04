@@ -194,11 +194,11 @@ export const ProductosModule = {
                         <div class="row mb-3">
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold text-muted small">Precio de Venta ($) *</label>
-                                <input type="text" id="form-precio" class="form-control" value="${producto.precioVenta}" required>
+                                <input type="text" id="form-precio" class="form-control" value="${producto.precioVenta ? Number(producto.precioVenta).toLocaleString('es-CO', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '0,00'}" required>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold text-muted small">Costo Base Inicial ($) *</label>
-                                <input type="text" id="form-costo" class="form-control" value="${producto.costoBase}" ${id ? 'disabled' : 'required'}>
+                                <input type="text" id="form-costo" class="form-control" value="${producto.costoBase ? Number(producto.costoBase).toLocaleString('es-CO', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '0,00'}" ${id ? 'disabled' : 'required'}>
                             </div>
                         </div>
                         <div class="row mb-4">

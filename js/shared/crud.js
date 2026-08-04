@@ -516,7 +516,7 @@ export const ItemEngine = {
                     inputId.value = ds.id;
                     
                     // Inyección estricta de Precios e Impuestos
-                    inpPrice.value = ds.precio;
+                    inpPrice.value = Number(ds.precio || 0).toLocaleString('es-CO', {minimumFractionDigits: 2, maximumFractionDigits: 2});
                     inpTax.value = ds.impuesto;
                     if (parseFloat(inpQty.value || 0) === 0) inpQty.value = 1;
 
