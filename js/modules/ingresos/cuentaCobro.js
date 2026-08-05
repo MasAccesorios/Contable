@@ -355,7 +355,7 @@ export const CuentaCobroModule = {
 
                 tr.querySelector('.item-line-total').textContent = formatMoney(totalLine);
 
-                const searchInput = tr.querySelector('.product-search-input');
+                const searchInput = tr.querySelector('.input-prod-search');
                 
                 doc.detalles.push({
                     id: tr.dataset.id,
