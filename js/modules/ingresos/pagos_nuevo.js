@@ -1,7 +1,7 @@
 import DB, { getLocalDate } from '../../core/db.js';
 import { CoreActions } from '../../shared/crud.js';
 import { CoreActions } from '../../shared/crud.js';
-import { calcularEstadoFactura } from '../../shared/carteraUtils.js';
+import { supabase } from '../../core/supabase.js';
 import { applyCurrencyFormatting, parseCurrencyValue } from '../../shared/formatters.js';
 
 export default {
@@ -35,22 +35,17 @@ export default {
             const cliente = await DB.get('contactos', this.clienteId);
             const cuentas = await DB.getAll('cuentas_bancarias') || [];
             
-            // Cargar facturas del cliente
-            const allFacturas = await DB.getAll('facturas') || [];
-            let facturasCliente = allFacturas.filter(f => String(f.contacto_id) === String(this.clienteId) && f.tipo !== 'compra' && (f.estado === 'open' || f.estado === 'parcial'));
+            // Cargar facturas del cliente usando RPC
+            const { data: facturasPendientesRPC, error } = await supabase.rpc('get_cartera_con_saldos', { 
+                p_tipo_cartera: 'cxc',
+                p_contacto_id: String(this.clienteId)
+            });
+            if (error) console.error("Error fetching cartera para pagos:", error);
             
-            // Si el cliente no tiene facturas abiertas por estado, chequear por si las dudas todas
-            if (facturasCliente.length === 0) {
-                 facturasCliente = allFacturas.filter(f => String(f.contacto_id) === String(this.clienteId) && f.tipo !== 'compra');
-            }
-
-            // Calcular saldos leyendo transacciones
-            const allTransacciones = await DB.getAll('transacciones') || [];
-            
-            this.facturasData = facturasCliente.map(f => {
-                const metricas = calcularEstadoFactura(f, allTransacciones);
-                return { ...f, saldo: metricas.saldo, totalAbonado: metricas.totalPagado };
-            }).filter(f => f.saldo > 0);
+            this.facturasData = (facturasPendientesRPC || []).map(f => ({
+                ...f, 
+                totalAbonado: f.total_pagado 
+            }));
 
             if (this.facturasData.length === 0) {
                 element.innerHTML = `

@@ -1,6 +1,7 @@
 import DB, { getLocalDate } from '../../core/db.js';
 import { CoreActions } from '../../shared/crud.js';
 import { obtenerCarteraFiltrada } from '../../shared/carteraUtils.js';
+import { supabase } from '../../core/supabase.js';
 import { AbonoModal } from '../../shared/abonoModal.js';
 
 export default {
@@ -11,12 +12,13 @@ export default {
 
     async renderList(element, fechaInicio = null, fechaFin = null) {
         this.lastElement = element;
-        const facturasRaw = await DB.getAll('facturas');
         const contactos = await DB.getAll('contactos');
-        const transacciones = (await DB.getAll('transacciones').catch(() => [])) || [];
         
-        // 1. Obtener Cartera Filtrada Centralizada
-        let facturasPendientes = obtenerCarteraFiltrada(facturasRaw, transacciones, contactos, 'cxc');
+        // 1. Obtener Cartera desde RPC
+        const { data: facturasPendientesRPC, error } = await supabase.rpc('get_cartera_con_saldos', { p_tipo_cartera: 'cxc' });
+        if (error) console.error("Error fetching cartera:", error);
+        
+        let facturasPendientes = facturasPendientesRPC || [];
 
         // 2. Filtro Adicional de Periodo (específico de esta vista)
 
