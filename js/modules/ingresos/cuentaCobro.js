@@ -1,6 +1,7 @@
 import { supabase } from '../../core/supabase.js';
 import { getLocalDate } from '../../core/db.js';
 import { CoreActions, ItemEngine, PrintManager } from '../../shared/crud.js';
+import { applyCurrencyFormatting, parseCurrencyValue } from '../../shared/formatters.js';
 
 export const CuentaCobroModule = {
     async init(element) {
@@ -314,7 +315,7 @@ export const CuentaCobroModule = {
                     ${searchHtml}
                 </td>
                 <td style="padding: 12px 16px;">
-                    <input type="number" class="form-control item-price" value="${lineData.precio_unitario || 0}" step="0.01" ${isViewOnly ? 'disabled' : ''}>
+                    <input type="text" class="form-control item-price" value="${lineData.precio_unitario || 0}" ${isViewOnly ? 'disabled' : ''}>
                 </td>
                 <td style="padding: 12px 16px;">
                     <input type="number" class="form-control item-qty" value="${lineData.cantidad || 1}" min="1" step="0.01" ${isViewOnly ? 'disabled' : ''}>
@@ -329,6 +330,7 @@ export const CuentaCobroModule = {
                 ` : ''}
             `;
             tbody.appendChild(tr);
+            applyCurrencyFormatting(tr.querySelector('.item-price'));
 
             if (!isViewOnly) {
                 ItemEngine.bindLineEvents(tr, updateTotals, [], {});
@@ -350,7 +352,7 @@ export const CuentaCobroModule = {
 
             rows.forEach((tr) => {
                 const qty = parseFloat(tr.querySelector('.item-qty').value) || 0;
-                const price = parseFloat(tr.querySelector('.item-price').value) || 0;
+                const price = parseCurrencyValue(tr.querySelector('.item-price').value);
                 const totalLine = qty * price;
 
                 tr.querySelector('.item-line-total').textContent = formatMoney(totalLine);
