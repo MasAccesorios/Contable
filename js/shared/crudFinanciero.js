@@ -39,51 +39,80 @@ export class CrudFinanciero {
                     <h1 class="h2">${this.config.titulo}</h1>
                 </div>
 
+        this.currentData = [];
+        // config expected:
+        // titulo: string
+        // btnNuevoText: string
+        // panelHistorialText: string
+        // kpiId: string
+        // formId: string
+        // tbodyId: string
+        // categorias: array of strings
+        // colorMonto: string (e.g. 'text-danger' or 'text-success')
+        // prefijoMonto: string (e.g. '-' or '+')
+        // tipoTransaccion: string (e.g. 'egreso' or 'ingreso')
+        // tipoFiltroDb: string (e.g. 'out' or 'in')
+    }
+
+    async init(element) {
+        // Cargar contactos para el selector de proveedor
+        const contactos = await DB.getAll('contactos');
+        this.proveedores = contactos.filter(c => c.tipo === 'proveedor');
+
+        // Cargar cuentas bancarias
+        this.cuentasActivas = await DB.getAll('cuentas_bancarias') || [];
+
+        element.innerHTML = `
+            <div class="container-fluid py-4">
+                <div class="d-flex justify-content-between flex-wrap pt-3 pb-2 mb-3 border-bottom">
+                    <h1 class="h2">${this.config.titulo}</h1>
+                </div>
+
                 <!-- Panel Superior: Creación Rápida -->
                 <div class="card mb-4 shadow-sm border-0">
                     <div class="card-header bg-white border-bottom-0 pt-4 pb-0">
                         <h5 class="mb-0 text-primary"><i class="bi bi-receipt me-2"></i>${this.config.btnNuevoText}</h5>
                     </div>
                     <div class="card-body">
-                        <form id="${this.config.formId}" class="row g-4 align-items-end">
-                            <div class="col-md-2">
+                        <form id="${this.config.formId}" class="row g-4 align-items-md-end">
+                            <div class="col-6 col-md-2">
                                 <label class="form-label text-muted small fw-semibold mb-1">Fecha *</label>
                                 <input type="date" class="form-control" id="transaccion-fecha" required>
                             </div>
-                            <div class="col-md-2">
+                            <div class="col-6 col-md-2">
                                 <label class="form-label text-muted small fw-semibold mb-1">Categoría *</label>
                                 <select class="form-select" id="transaccion-categoria" required>
                                     <option value="">Seleccione...</option>
                                     ${this.config.categorias.map(c => `<option value="${c}">${c}</option>`).join('')}
                                 </select>
                             </div>
-                            <div class="col-md-2">
+                            <div class="col-6 col-md-2">
                                 <label class="form-label text-muted small fw-semibold mb-1">Monto ($) *</label>
                                 <input type="text" class="form-control" id="transaccion-monto" required>
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-6 col-md-3">
                                 <label class="form-label text-muted small fw-semibold mb-1">Proveedor (Opcional)</label>
                                 <div class="custom-combobox" id="combo-proveedor-container">
                                     <input type="text" class="form-control" id="search-proveedor" placeholder="Buscar proveedor..." autocomplete="off">
                                     <input type="hidden" id="select-proveedor-id">
                                 </div>
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-12 col-md-3">
                                 <label class="form-label text-muted small fw-semibold mb-1">Cuenta Bancaria *</label>
                                 <div class="custom-combobox" id="combo-cuenta-container">
                                     <input type="text" class="form-control" id="transaccion-cuenta" placeholder="Buscar cuenta..." required autocomplete="off">
                                     <input type="hidden" id="transaccion-cuenta-id" required>
                                 </div>
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-6 col-md-3">
                                 <label class="form-label text-muted small fw-semibold mb-1">Referencia (Opcional)</label>
                                 <input type="text" class="form-control" id="transaccion-referencia" placeholder="Nro Factura / Recibo">
                             </div>
-                            <div class="col-md-7">
+                            <div class="col-12 col-md-7">
                                 <label class="form-label text-muted small fw-semibold mb-1">Descripción *</label>
                                 <input type="text" class="form-control" id="transaccion-descripcion" placeholder="Ej. Pago servicio de internet" required minlength="3">
                             </div>
-                            <div class="col-md-2 d-flex flex-column gap-2">
+                            <div class="col-12 col-md-2 d-flex flex-column gap-2 mt-4 mt-md-0">
                                 <button type="submit" class="btn btn-primary w-100" id="btn-guardar-transaccion">
                                     <i class="bi bi-plus-circle me-1"></i>Registrar
                                 </button>
