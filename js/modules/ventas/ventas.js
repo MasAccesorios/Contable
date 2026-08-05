@@ -932,11 +932,11 @@ export const FacturasModule = {
                 hiddenIdEl: element.querySelector('#select-cliente'),
                 fetchItems: async (query) => {
                     const { data } = await supabase.from('contactos')
-                        .select('id, nombre, nit, plazosPago')
+                        .select('id, nombre, nit, plazos_pago')
                         .eq('tipo', 'cliente')
                         .or(`nombre.ilike.%${query}%,nit.ilike.%${query}%`)
                         .limit(20);
-                    return data || [];
+                    return data ? data.map(d => ({ ...d, plazosPago: d.plazos_pago })) : [];
                 },
                 displayProp: 'nombre',
                 allowCreate: true,

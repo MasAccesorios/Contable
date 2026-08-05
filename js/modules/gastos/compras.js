@@ -922,11 +922,11 @@ export const ComprasModule = {
                     fetchItems: async (query) => {
                         const { supabase } = await import('../../core/supabase.js');
                         const { data } = await supabase.from('contactos')
-                            .select('id, nombre, nit, plazosPago')
+                            .select('id, nombre, nit, plazos_pago')
                             .eq('tipo', 'proveedor')
                             .or(`nombre.ilike.%${query}%,nit.ilike.%${query}%`)
                             .limit(20);
-                        return data || [];
+                        return data ? data.map(d => ({ ...d, plazosPago: d.plazos_pago })) : [];
                     },
                     displayProp: 'nombre',
                     allowCreate: true,
