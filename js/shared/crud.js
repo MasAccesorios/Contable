@@ -619,7 +619,367 @@ export const NumberingManager = {
  * GESTOR DE IMPRESIÓN DINÁMICA (MEDIA HOJA / HOJA COMPLETA)
  * Genera un contenedor temporal formateado para imprimir un documento.
  */
+export function numeroALetras(valor) {
+    if (valor === 0) return "Cero Pesos M/CTE.";
+    
+    function Unidades(num){
+        switch(num) {
+            case 1: return "UN";
+            case 2: return "DOS";
+            case 3: return "TRES";
+            case 4: return "CUATRO";
+            case 5: return "CINCO";
+            case 6: return "SEIS";
+            case 7: return "SIETE";
+            case 8: return "OCHO";
+            case 9: return "NUEVE";
+        }
+        return "";
+    }
+    
+    function Decenas(num){
+        let decena = Math.floor(num/10);
+        let unidad = num - (decena * 10);
+        switch(decena) {
+            case 1:
+                switch(unidad) {
+                    case 0: return "DIEZ";
+                    case 1: return "ONCE";
+                    case 2: return "DOCE";
+                    case 3: return "TRECE";
+                    case 4: return "CATORCE";
+                    case 5: return "QUINCE";
+                    default: return "DIECI" + Unidades(unidad);
+                }
+            case 2:
+                switch(unidad) {
+                    case 0: return "VEINTE";
+                    default: return "VEINTI" + Unidades(unidad);
+                }
+            case 3: return DecenasY("TREINTA", unidad);
+            case 4: return DecenasY("CUARENTA", unidad);
+            case 5: return DecenasY("CINCUENTA", unidad);
+            case 6: return DecenasY("SESENTA", unidad);
+            case 7: return DecenasY("SETENTA", unidad);
+            case 8: return DecenasY("OCHENTA", unidad);
+            case 9: return DecenasY("NOVENTA", unidad);
+            case 0: return Unidades(unidad);
+        }
+    }
+    
+    function DecenasY(strSin, numUnidades) {
+        if (numUnidades > 0) return strSin + " Y " + Unidades(numUnidades);
+        return strSin;
+    }
+    
+    function Centenas(num) {
+        let centenas = Math.floor(num / 100);
+        let decenas = num - (centenas * 100);
+        
+        switch(centenas) {
+            case 1:
+                if (decenas > 0) return "CIENTO " + Decenas(decenas);
+                return "CIEN";
+            case 2: return "DOSCIENTOS " + Decenas(decenas);
+            case 3: return "TRESCIENTOS " + Decenas(decenas);
+            case 4: return "CUATROCIENTOS " + Decenas(decenas);
+            case 5: return "QUINIENTOS " + Decenas(decenas);
+            case 6: return "SEISCIENTOS " + Decenas(decenas);
+            case 7: return "SETECIENTOS " + Decenas(decenas);
+            case 8: return "OCHOCIENTOS " + Decenas(decenas);
+            case 9: return "NOVECIENTOS " + Decenas(decenas);
+        }
+        return Decenas(decenas);
+    }
+    
+    function Seccion(num, divisor, strSingular, strPlural) {
+        let cientos = Math.floor(num / divisor);
+        let resto = num - (cientos * divisor);
+        let letras = "";
+        if (cientos > 0) {
+            if (cientos > 1) {
+                letras = Centenas(cientos) + " " + strPlural;
+            } else {
+                letras = strSingular;
+            }
+        }
+        return letras;
+    }
+    
+    function Miles(num) {
+        let divisor = 1000;
+        let cientos = Math.floor(num / divisor);
+        let resto = num - (cientos * divisor);
+        let strMiles = Seccion(num, divisor, "UN MIL", "MIL");
+        let strCentenas = Centenas(resto);
+        if (strMiles == "") return strCentenas;
+        return strMiles + " " + strCentenas;
+    }
+    
+    function Millones(num) {
+        let divisor = 1000000;
+        let cientos = Math.floor(num / divisor);
+        let resto = num - (cientos * divisor);
+        let strMillones = Seccion(num, divisor, "UN MILLON DE", "MILLONES DE");
+        let strMiles = Miles(resto);
+        if(strMillones == "") return strMiles;
+        return strMillones + " " + strMiles;
+    }
+    
+    const texto = Millones(Math.floor(valor)).trim();
+    return texto.charAt(0).toUpperCase() + texto.slice(1).toLowerCase() + " Pesos M/CTE.";
+}
+
 export const PrintManager = {
+    printCuentaCobro(doc, mode = 'print') {
+        const oldContainer = document.querySelector('.print-document-template');
+        if (oldContainer) oldContainer.remove();
+
+        const formatMoney = (val) => '$ ' + parseFloat(val || 0).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const numDisplay = doc.numero || parseInt(String(doc.id).replace(/\D/g, ''), 10) || doc.id;
+        
+        const rowsHtml = (doc.detalles || []).map(det => {
+            const subtotal = (det.cantidad || 0) * (det.precio_unitario || 0);
+            return `
+                <tr style="border-bottom: 1px solid #dee2e6; font-size: 12px; color: #495057;">
+                    <td style="padding: 8px 4px;">
+                        <div style="font-weight: 600; color: #212529;">${det.nombre || 'Ítem sin nombre'}</div>
+                        ${det.sku ? `<div style="font-size: 10.5px; color: #6c757d; margin-top: 3px;">SKU: ${det.sku}</div>` : ''}
+                    </td>
+                    <td style="padding: 8px 4px; text-align: center;">${det.cantidad}</td>
+                    <td style="padding: 8px 4px; text-align: right;">${formatMoney(det.precio_unitario)}</td>
+                    <td style="padding: 8px 4px; text-align: right;">${formatMoney(subtotal)}</td>
+                </tr>
+            `;
+        }).join('');
+
+        const container = document.createElement('div');
+        container.id = 'print-view-container';
+        container.className = mode === 'preview' ? 'preview-document-template' : `print-document-template hoja-dinamica`;
+        container.innerHTML = `
+            <!-- HEADER -->
+            <div style="display: flex; justify-content: space-between; align-items: start; border-bottom: 2px solid #e9ecef; padding-bottom: 15px; margin-bottom: 25px;">
+                <div style="width: 50%;">
+                    <h1 style="color: #1a365d; font-size: 24px; margin: 0 0 10px 0; font-weight: 700;">DIEGO IZQUIERDO</h1>
+                    <div style="font-size: 13px; color: #495057; line-height: 1.5;">
+                        <strong style="color: #212529;">NIT:</strong> 79981638-4<br>
+                        <strong style="color: #212529;">Dirección:</strong> Cra.111A No.148-50 4-1404<br>
+                        <strong style="color: #212529;">Teléfono:</strong> +57 3158512091
+                    </div>
+                    <span style="display: inline-block; background-color: #f8f9fa; border: 1px solid #dee2e6; padding: 2px 6px; font-size: 10px; border-radius: 4px; margin-top: 8px; color: #6c757d;">No responsable de IVA</span>
+                </div>
+                <div style="width: 45%; text-align: right; background-color: #f8f9fa; border: 1px solid #e9ecef; border-radius: 8px; padding: 15px;">
+                    <h2 style="color: #2b6cb0; font-size: 18px; margin: 0 0 5px 0;">CUENTA DE COBRO</h2>
+                    <h3 style="color: #e53e3e; font-size: 20px; margin: 0 0 5px 0;">No. ${numDisplay}</h3>
+                    <p style="font-size: 10px; color: #6c757d; margin: 0;">Documento equivalente / Cuenta original</p>
+                </div>
+            </div>
+
+            <!-- CLIENT AND PAYMENT INFO -->
+            <div style="display: flex; justify-content: space-between; margin-bottom: 25px;">
+                <div style="width: 48%; border: 1px solid #e9ecef; border-radius: 8px; overflow: hidden;">
+                    <div style="background-color: #f8f9fa; padding: 10px 15px; border-bottom: 1px solid #e9ecef;">
+                        <strong style="color: #2b6cb0; font-size: 12px; letter-spacing: 0.5px;">DATOS DEL CLIENTE</strong>
+                    </div>
+                    <div style="padding: 15px; font-size: 12px; color: #495057;">
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <tr><td style="padding-bottom: 8px; width: 30%;"><strong>Razón Social:</strong></td><td style="padding-bottom: 8px;">${doc.cliente_razon_social || ''}</td></tr>
+                            <tr><td style="padding-bottom: 8px;"><strong>NIT:</strong></td><td style="padding-bottom: 8px;">${doc.cliente_nit || ''}</td></tr>
+                            <tr><td style="padding-bottom: 8px;"><strong>Dirección:</strong></td><td style="padding-bottom: 8px;">${doc.cliente_direccion || ''}</td></tr>
+                            <tr><td style="padding-bottom: 8px;"><strong>Ciudad:</strong></td><td style="padding-bottom: 8px;">${doc.cliente_ciudad || ''}</td></tr>
+                            <tr><td style="padding-bottom: 8px;"><strong>Teléfono:</strong></td><td style="padding-bottom: 8px;">${doc.cliente_telefono || ''}</td></tr>
+                            <tr><td><strong>Correo:</strong></td><td>${doc.cliente_email || ''}</td></tr>
+                        </table>
+                    </div>
+                </div>
+                <div style="width: 48%; border: 1px solid #e9ecef; border-radius: 8px; overflow: hidden;">
+                    <div style="background-color: #f8f9fa; padding: 10px 15px; border-bottom: 1px solid #e9ecef;">
+                        <strong style="color: #2b6cb0; font-size: 12px; letter-spacing: 0.5px;">DETALLES DEL PAGO</strong>
+                    </div>
+                    <div style="padding: 15px; font-size: 12px; color: #495057;">
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <tr><td style="padding-bottom: 8px; width: 45%;"><strong>Fecha Expedición:</strong></td><td style="padding-bottom: 8px;">${doc.fecha}</td></tr>
+                            <tr><td style="padding-bottom: 8px;"><strong>Fecha Vencimiento:</strong></td><td style="padding-bottom: 8px;">${doc.fecha_vencimiento || doc.fecha}</td></tr>
+                            <tr><td style="padding-bottom: 8px;"><strong>Moneda:</strong></td><td style="padding-bottom: 8px;">COP (Pesos Colombianos)</td></tr>
+                            <tr><td style="padding-bottom: 8px;"><strong>Forma de Pago:</strong></td><td style="padding-bottom: 8px;">${doc.forma_pago || 'Contado'}</td></tr>
+                            <tr><td><strong>Medio de Pago:</strong></td><td>${doc.medio_pago || 'Instrumento no definido'}</td></tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TABLA DE PRODUCTOS -->
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+                <thead style="background-color: #2b6cb0; color: white;">
+                    <tr style="font-size: 12px;">
+                        <th style="text-align: left; padding: 10px; font-weight: normal; letter-spacing: 0.5px;">DESCRIPCIÓN DEL PRODUCTO / SERVICIO</th>
+                        <th style="text-align: center; padding: 10px; font-weight: normal; letter-spacing: 0.5px; width: 10%;">CANT.</th>
+                        <th style="text-align: right; padding: 10px; font-weight: normal; letter-spacing: 0.5px; width: 18%;">PRECIO UNIT.</th>
+                        <th style="text-align: right; padding: 10px; font-weight: normal; letter-spacing: 0.5px; width: 18%;">TOTAL</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${rowsHtml}
+                </tbody>
+            </table>
+
+            <!-- FOOTER TOTALES -->
+            <div style="display: flex; justify-content: flex-end; margin-bottom: 20px;">
+                <div style="width: 40%;">
+                    <table style="width: 100%; font-size: 13px; color: #495057;">
+                        <tr>
+                            <td style="text-align: right; padding: 5px 10px; font-weight: bold;">Subtotal:</td>
+                            <td style="text-align: right; padding: 5px 10px;">${formatMoney(doc.subtotal)}</td>
+                        </tr>
+                        <tr>
+                            <td style="text-align: right; padding: 5px 10px; font-weight: bold;">Impuestos (IVA):</td>
+                            <td style="text-align: right; padding: 5px 10px;">$ 0</td>
+                        </tr>
+                        <tr style="background-color: #f1f3f5;">
+                            <td style="text-align: right; padding: 10px; font-weight: bold; color: #1a365d; font-size: 15px;">TOTAL A PAGAR:</td>
+                            <td style="text-align: right; padding: 10px; font-weight: bold; color: #1a365d; font-size: 15px;">${formatMoney(doc.total)}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+            
+            <div style="background-color: #f8f9fa; border-left: 4px solid #2b6cb0; padding: 12px 15px; margin-bottom: 25px; font-size: 12px; color: #495057;">
+                <strong>Valor en letras:</strong> ${numeroALetras(doc.total)}
+            </div>
+
+            <!-- TEXTO LEGAL FIJO -->
+            <p style="font-size: 9px; color: #6c757d; line-height: 1.4; text-align: justify; margin-bottom: 50px;">
+                Esta cuenta de cobro se asimila en todos sus efectos a una letra de cambio de conformidad con el Art. 774 del Código de Comercio. Autorizo que en caso de incumplimiento de esta obligación sea reportado a las centrales de riesgo, y se cobrarán intereses por mora a la tasa máxima legal permitida. Persona natural no responsable de IVA y no obligada a facturar electrónicamente, de conformidad con lo establecido en el artículo 437 y 616-2 del Estatuto Tributario.
+            </p>
+
+            <!-- FIRMA -->
+            <div style="display: flex; justify-content: space-between; margin-top: 40px; margin-bottom: 20px; padding: 0 20px;">
+                <div style="text-align: center; width: 40%;">
+                    <div style="border-bottom: 1px solid #ced4da; margin-bottom: 8px;"></div>
+                    <strong style="font-size: 11px; color: #212529;">ELABORADO POR</strong><br>
+                    <span style="font-size: 10px; color: #6c757d;">DIEGO IZQUIERDO - NIT 79981638-4</span>
+                </div>
+                <div style="text-align: center; width: 40%;">
+                    <div style="border-bottom: 1px solid #ced4da; margin-bottom: 8px;"></div>
+                    <strong style="font-size: 11px; color: #212529;">ACEPTADA, FIRMA Y/O SELLO Y FECHA</strong><br>
+                    <span style="font-size: 10px; color: #6c757d; text-transform: uppercase;">${doc.cliente_razon_social || ''}</span>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(container);
+
+        if (mode === 'preview') {
+            container.style.position = 'fixed';
+            container.style.top = '0';
+            container.style.left = '0';
+            container.style.width = '100vw';
+            container.style.height = '100vh';
+            container.style.zIndex = '1060';
+            container.style.overflowY = 'auto';
+            container.style.backgroundColor = '#f8f9fa';
+            container.style.padding = '0';
+            
+            const closeHeader = document.createElement('div');
+            closeHeader.style.position = 'sticky';
+            closeHeader.style.top = '0';
+            closeHeader.style.zIndex = '1070';
+            closeHeader.style.backgroundColor = '#fff';
+            closeHeader.style.padding = '15px';
+            closeHeader.style.textAlign = 'center';
+            closeHeader.style.borderBottom = '1px solid #dee2e6';
+            closeHeader.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+            closeHeader.innerHTML = \`
+                <div class="d-flex justify-content-center gap-2">
+                    <button class="btn btn-success btn-compartir-preview"><i class="bi bi-share me-1"></i>Compartir</button>
+                    <button class="btn btn-danger btn-cerrar-preview"><i class="bi bi-x-circle me-1"></i>Cerrar</button>
+                </div>
+            \`;
+            
+            closeHeader.querySelector('.btn-cerrar-preview').addEventListener('click', () => {
+                container.remove();
+            });
+            
+            const btnCompartir = closeHeader.querySelector('.btn-compartir-preview');
+            const originalCompartirHtml = btnCompartir.innerHTML;
+            
+            btnCompartir.disabled = true;
+            btnCompartir.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Preparando...';
+            
+            let cachedShareFile = null;
+            
+            const precacheShareImage = async () => {
+                try {
+                    if (!window.html2canvas) {
+                        await new Promise((resolve, reject) => {
+                            const script = document.createElement('script');
+                            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+                            script.onload = resolve;
+                            script.onerror = () => reject(new Error('No se pudo cargar html2canvas'));
+                            document.head.appendChild(script);
+                        });
+                    }
+                    
+                    const oldScrollTop = container.scrollTop;
+                    container.scrollTop = 0;
+                    
+                    const canvas = await window.html2canvas(container, { 
+                        scale: 2,
+                        useCORS: true,
+                        backgroundColor: '#ffffff'
+                    });
+                    
+                    container.scrollTop = oldScrollTop;
+                    
+                    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+                    if (!blob) throw new Error('Error al generar imagen');
+                    
+                    const fileName = \`CuentaCobro_${numDisplay}.png\`;
+                    cachedShareFile = new File([blob], fileName, { type: 'image/png' });
+                    
+                    btnCompartir.innerHTML = originalCompartirHtml;
+                    btnCompartir.disabled = false;
+                    
+                } catch (err) {
+                    console.error('Error precargando imagen de compartir:', err);
+                    btnCompartir.innerHTML = '<i class="bi bi-exclamation-triangle me-1"></i>Error al preparar';
+                }
+            };
+            
+            setTimeout(precacheShareImage, 100);
+            
+            btnCompartir.addEventListener('click', async () => {
+                if (!cachedShareFile) return;
+                
+                if (navigator.canShare && navigator.canShare({ files: [cachedShareFile] })) {
+                    try {
+                        await navigator.share({
+                            title: 'Cuenta de Cobro',
+                            text: 'Adjunto la cuenta de cobro solicitada.',
+                            files: [cachedShareFile]
+                        });
+                    } catch (e) {
+                        console.log('Share canceled or failed', e);
+                    }
+                } else {
+                    const url = URL.createObjectURL(cachedShareFile);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = cachedShareFile.name;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }
+            });
+            
+            container.prepend(closeHeader);
+        } else {
+            window.print();
+            container.remove();
+        }
+    },
+
     printDocument(doc, tipoDoc, contactos, productos, mode = 'print') {
 
         // 1. Limpiar cualquier contenedor de impresión previo si existe

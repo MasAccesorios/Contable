@@ -42,6 +42,7 @@ const routes = {
     'inventario/valor': () => import('../modules/inventario/valorizacion.js'),
     'importador': () => import('../modules/integracion-alegra/importador.js'),
     'ingresos/cotizaciones': () => import('../modules/ingresos/cotizaciones.js'),
+    'ingresos/cuenta-cobro': () => import('../modules/ingresos/cuentaCobro.js'),
     'ingresos/operativos': () => import('../modules/gastos/ingresos_operativos.js'),
     'ingresos/facturas': () => import('../modules/ventas/ventas.js'),
     'ingresos/pagos/nuevo': () => import('../modules/ingresos/pagos_nuevo.js'),
