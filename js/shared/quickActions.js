@@ -56,6 +56,20 @@ export const QuickActions = {
                     <i class="bi bi-graph-up-arrow text-primary"></i>
                     <span style="font-size: 14px; font-weight: 500;">Ingreso</span>
                 </a>
+                
+                <hr class="dropdown-divider my-2">
+
+                <div class="px-3 py-1">
+                    <small class="fw-bold text-muted" style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">Ver Listas</small>
+                </div>
+                <a href="#/ingresos/facturas" class="dropdown-item py-2 px-3 d-flex align-items-center gap-2 qa-link">
+                    <i class="bi bi-list-ul text-muted"></i>
+                    <span style="font-size: 14px; font-weight: 500;">Facturas de venta</span>
+                </a>
+                <a href="#/gastos/proveedores" class="dropdown-item py-2 px-3 d-flex align-items-center gap-2 qa-link">
+                    <i class="bi bi-list-ul text-muted"></i>
+                    <span style="font-size: 14px; font-weight: 500;">Facturas de compra</span>
+                </a>
             `;
 
             btn.parentElement.appendChild(dropdown);
