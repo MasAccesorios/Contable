@@ -499,7 +499,7 @@ export const FacturasModule = {
                 btn.addEventListener('click', async (e) => {
                     e.stopPropagation();
                     const id = e.currentTarget.dataset.id;
-                    const doc = currentItems.find(c => c.id == id);
+                    const doc = await DB.get('facturas', id);
                     if (doc) {
                         const contactos = await DB.getAll('contactos');
                         const productos = await DB.getAll('productos');

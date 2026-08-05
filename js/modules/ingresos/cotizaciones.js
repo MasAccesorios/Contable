@@ -372,7 +372,7 @@ export const CotizacionesModule = {
                 btn.addEventListener('click', async (e) => {
                     e.stopPropagation();
                     const id = e.currentTarget.dataset.id;
-                    const doc = cotizacionesData.find(c => c.id === id);
+                    const doc = await DB.get('cotizaciones', id);
                     if (doc) {
                         const productos = await DB.getAll('productos');
                         PrintManager.printDocument(doc, 'Cotización', contactos, productos);

@@ -485,7 +485,7 @@ export const ComprasModule = {
                 btn.addEventListener('click', async (e) => {
                     e.stopPropagation();
                     const id = e.currentTarget.dataset.id;
-                    const doc = currentItems.find(c => c.id == id);
+                    const doc = await DB.get('facturas', id);
                     if (doc) {
                         const { data: cList } = await supabase.from('contactos').select('*');
                         const { data: pList } = await supabase.from('productos').select('*');
