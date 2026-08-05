@@ -781,10 +781,10 @@ export const PrintManager = {
         const rowsHtml = (doc.detalles || []).map(det => {
             const subtotal = (det.cantidad || 0) * (det.precio_unitario || 0);
             return `
-                <tr style="border-bottom: 1px solid #dee2e6; font-size: 13px; color: #495057;">
+                <tr style="border-bottom: 1px solid #dee2e6; font-size: 14px; color: #495057;">
                     <td style="padding: 8px 4px;">
                         <div style="font-weight: 600; color: #212529;">${det.nombre || 'Ítem sin nombre'}</div>
-                        ${det.sku ? `<div style="font-size: 11.5px; color: #6c757d; margin-top: 3px;">SKU: ${det.sku}</div>` : ''}
+                        ${det.sku ? `<div style="font-size: 12px; color: #6c757d; margin-top: 3px;">SKU: ${det.sku}</div>` : ''}
                     </td>
                     <td style="padding: 8px 4px; text-align: center;">${det.cantidad}</td>
                     <td style="padding: 8px 4px; text-align: right;">${formatMoney(det.precio_unitario)}</td>
@@ -821,7 +821,7 @@ export const PrintManager = {
                     <div style="background-color: #f8f9fa; padding: 10px 15px; border-bottom: 1px solid #e9ecef;">
                         <strong style="color: #2b6cb0; font-size: 12px; letter-spacing: 0.5px;">DATOS DEL CLIENTE</strong>
                     </div>
-                    <div style="padding: 15px; font-size: 13px; color: #495057;">
+                    <div style="padding: 15px; font-size: 14px; color: #495057;">
                         <table style="width: 100%; border-collapse: collapse;">
                             <tr><td style="padding-bottom: 8px; width: 30%;"><strong>Razón Social:</strong></td><td style="padding-bottom: 8px;">${doc.cliente_razon_social || ''}</td></tr>
                             <tr><td style="padding-bottom: 8px;"><strong>NIT:</strong></td><td style="padding-bottom: 8px;">${doc.cliente_nit || ''}</td></tr>
@@ -836,7 +836,7 @@ export const PrintManager = {
                     <div style="background-color: #f8f9fa; padding: 10px 15px; border-bottom: 1px solid #e9ecef;">
                         <strong style="color: #2b6cb0; font-size: 12px; letter-spacing: 0.5px;">DETALLES DEL PAGO</strong>
                     </div>
-                    <div style="padding: 15px; font-size: 13px; color: #495057;">
+                    <div style="padding: 15px; font-size: 14px; color: #495057;">
                         <table style="width: 100%; border-collapse: collapse;">
                             <tr><td style="padding-bottom: 8px; width: 45%;"><strong>Fecha Expedición:</strong></td><td style="padding-bottom: 8px;">${doc.fecha}</td></tr>
                             <tr><td style="padding-bottom: 8px;"><strong>Fecha Vencimiento:</strong></td><td style="padding-bottom: 8px;">${doc.fecha_vencimiento || doc.fecha}</td></tr>
@@ -866,7 +866,7 @@ export const PrintManager = {
             <!-- FOOTER TOTALES -->
             <div style="display: flex; justify-content: flex-end; margin-bottom: 20px;">
                 <div style="width: 40%;">
-                    <table style="width: 100%; font-size: 13px; color: #495057;">
+                    <table style="width: 100%; font-size: 14px; color: #495057;">
                         <tr>
                             <td style="text-align: right; padding: 5px 10px; font-weight: bold;">Subtotal:</td>
                             <td style="text-align: right; padding: 5px 10px;">${formatMoney(doc.subtotal)}</td>
@@ -876,19 +876,19 @@ export const PrintManager = {
                             <td style="text-align: right; padding: 5px 10px;">$ 0</td>
                         </tr>
                         <tr style="background-color: #f1f3f5;">
-                            <td style="text-align: right; padding: 10px; font-weight: bold; color: #1a365d; font-size: 15px;">TOTAL A PAGAR:</td>
-                            <td style="text-align: right; padding: 10px; font-weight: bold; color: #1a365d; font-size: 15px;">${formatMoney(doc.total)}</td>
+                            <td style="text-align: right; padding: 10px; font-weight: bold; color: #1a365d; font-size: 17px;">TOTAL A PAGAR:</td>
+                            <td style="text-align: right; padding: 10px; font-weight: bold; color: #1a365d; font-size: 17px;">${formatMoney(doc.total)}</td>
                         </tr>
                     </table>
                 </div>
             </div>
             
-            <div style="background-color: #f8f9fa; border-left: 4px solid #2b6cb0; padding: 12px 15px; margin-bottom: 25px; font-size: 13px; color: #495057;">
+            <div style="background-color: #f8f9fa; border-left: 4px solid #2b6cb0; padding: 12px 15px; margin-bottom: 25px; font-size: 14px; color: #495057;">
                 <strong>Valor en letras:</strong> ${numeroALetras(doc.total)}
             </div>
 
             <!-- TEXTO LEGAL FIJO -->
-            <p style="font-size: 10px; color: #6c757d; line-height: 1.4; text-align: justify; margin-bottom: 50px;">
+            <p style="font-size: 11px; color: #6c757d; line-height: 1.4; text-align: justify; margin-bottom: 50px;">
                 Esta cuenta de cobro se asimila en todos sus efectos a una letra de cambio de conformidad con el Art. 774 del Código de Comercio. Autorizo que en caso de incumplimiento de esta obligación sea reportado a las centrales de riesgo, y se cobrarán intereses por mora a la tasa máxima legal permitida. Persona natural no responsable de IVA y no obligada a facturar electrónicamente, de conformidad con lo establecido en el artículo 437 y 616-2 del Estatuto Tributario.
             </p>
 
