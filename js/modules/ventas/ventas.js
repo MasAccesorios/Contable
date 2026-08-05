@@ -392,6 +392,7 @@ export const FacturasModule = {
 
                     const factData = currentItems.find(f => f.id == id);
                     const canAbonar = factData && factData.estado !== 'pagada' && factData.estado !== 'anulada';
+                    const isAnulada = factData && factData.estado === 'anulada';
                     
                     const menuHtml = `
                         <div class="row-action-menu position-absolute bg-white shadow rounded border py-2" 
@@ -401,6 +402,7 @@ export const FacturasModule = {
                                 <i class="bi bi-wallet2 me-2"></i> Registrar Pago
                             </a>
                             <hr class="dropdown-divider my-1">` : ''}
+                            ${!isAnulada ? `
                             <a href="#/ingresos/facturas/editar/${id}" class="d-block px-3 py-1 text-decoration-none" style="color: var(--text-body); font-size: 13px;">
                                 <i class="bi bi-pencil me-2"></i> Editar
                             </a>
@@ -410,6 +412,10 @@ export const FacturasModule = {
                             </a>` : `
                             <a href="#" class="d-block px-3 py-1 text-decoration-none mt-1 btn-delete-row" data-id="${id}" style="color: #ef4444; font-size: 13px;">
                                 <i class="bi bi-trash me-2"></i> Eliminar
+                            </a>`}
+                            ` : `
+                            <a href="#/ingresos/facturas/editar/${id}" class="d-block px-3 py-1 text-decoration-none" style="color: var(--text-body); font-size: 13px;">
+                                <i class="bi bi-eye me-2"></i> Ver Detalles
                             </a>`}
                         </div>
                     `;
