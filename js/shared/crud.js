@@ -779,7 +779,7 @@ export const PrintManager = {
 
         const container = document.createElement('div');
         container.id = 'print-view-container';
-        container.className = mode === 'preview' ? 'preview-document-template' : \`print-document-template \${printClass}\`;
+        container.className = mode === 'preview' ? 'preview-document-template' : `print-document-template ${printClass}`;
         container.innerHTML = innerHtmlContent;
 
         document.body.appendChild(container);
