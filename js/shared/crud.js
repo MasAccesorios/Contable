@@ -771,6 +771,154 @@ export function numeroALetras(valor) {
 }
 
 export const PrintManager = {
+    _renderPreviewShell(innerHtmlContent, options) {
+        const { mode, fileName, title = 'Documento', printClass = 'hoja-dinamica' } = options;
+
+        const oldContainer = document.querySelector('.print-document-template');
+        if (oldContainer) oldContainer.remove();
+
+        const container = document.createElement('div');
+        container.id = 'print-view-container';
+        container.className = mode === 'preview' ? 'preview-document-template' : \`print-document-template \${printClass}\`;
+        container.innerHTML = innerHtmlContent;
+
+        document.body.appendChild(container);
+
+        if (mode === 'preview') {
+            container.style.position = 'fixed';
+            container.style.top = '0';
+            container.style.left = '0';
+            container.style.width = '100vw';
+            container.style.height = '100vh';
+            container.style.zIndex = '1060';
+            container.style.overflowY = 'auto';
+            container.style.backgroundColor = '#f8f9fa';
+            container.style.padding = '0';
+            
+            const closeHeader = document.createElement('div');
+            closeHeader.style.position = 'sticky';
+            closeHeader.style.top = '0';
+            closeHeader.style.zIndex = '1070';
+            closeHeader.style.backgroundColor = '#fff';
+            closeHeader.style.padding = '15px';
+            closeHeader.style.textAlign = 'center';
+            closeHeader.style.borderBottom = '1px solid #dee2e6';
+            closeHeader.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+            closeHeader.innerHTML = `
+                <div class="d-flex justify-content-center gap-2">
+                    <button class="btn btn-success btn-compartir-preview"><i class="bi bi-share me-1"></i>Compartir</button>
+                    <button class="btn btn-danger btn-cerrar-preview"><i class="bi bi-x-circle me-1"></i>Cerrar</button>
+                </div>
+            `;
+            
+            closeHeader.querySelector('.btn-cerrar-preview').addEventListener('click', () => {
+                container.remove();
+            });
+            
+            const btnCompartir = closeHeader.querySelector('.btn-compartir-preview');
+            const originalCompartirHtml = btnCompartir.innerHTML;
+            
+            btnCompartir.disabled = true;
+            btnCompartir.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Preparando...';
+            
+            let cachedShareFile = null;
+            let paperContent;
+            
+            const precacheShareImage = async () => {
+                try {
+                    if (!window.html2canvas) {
+                        await new Promise((resolve, reject) => {
+                            const script = document.createElement('script');
+                            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+                            script.onload = resolve;
+                            script.onerror = () => reject(new Error('No se pudo cargar html2canvas'));
+                            document.head.appendChild(script);
+                        });
+                    }
+                    
+                    const oldScrollTop = container.scrollTop;
+                    container.scrollTop = 0;
+                    
+                    const canvas = await window.html2canvas(paperContent, { 
+                        scale: 2,
+                        useCORS: true,
+                        backgroundColor: '#ffffff'
+                    });
+                    
+                    container.scrollTop = oldScrollTop;
+                    
+                    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+                    if (!blob) throw new Error('Error al generar imagen');
+                    
+                    cachedShareFile = new File([blob], fileName, { type: 'image/png' });
+                    
+                    btnCompartir.innerHTML = originalCompartirHtml;
+                    btnCompartir.disabled = false;
+                    
+                } catch (err) {
+                    console.error('Error precargando imagen de compartir:', err);
+                    btnCompartir.innerHTML = '<i class="bi bi-exclamation-triangle me-1"></i>Error al preparar';
+                }
+            };
+            
+            setTimeout(precacheShareImage, 100);
+            
+            btnCompartir.addEventListener('click', async () => {
+                if (!cachedShareFile) return;
+                
+                if (navigator.canShare && navigator.canShare({ files: [cachedShareFile] })) {
+                    try {
+                        await navigator.share({
+                            title: title,
+                            text: 'Adjunto el documento solicitado.',
+                            files: [cachedShareFile]
+                        });
+                    } catch (e) {
+                        console.log('Share canceled or failed', e);
+                    }
+                } else {
+                    const url = URL.createObjectURL(cachedShareFile);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = cachedShareFile.name;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }
+            });
+            
+            container.prepend(closeHeader);
+
+            paperContent = document.createElement('div');
+            paperContent.style.width = '816px';
+            paperContent.style.minHeight = '1056px';
+            paperContent.style.margin = '20px auto';
+            paperContent.style.padding = '40px';
+            paperContent.style.boxSizing = 'border-box';
+            paperContent.style.backgroundColor = '#fff';
+            paperContent.style.boxShadow = '0 0 10px rgba(0,0,0,0.1)';
+            paperContent.style.fontFamily = "'Inter', sans-serif";
+            paperContent.style.color = "#212529";
+
+            while (container.childNodes.length > 1) {
+                paperContent.appendChild(container.childNodes[1]);
+            }
+            container.appendChild(paperContent);
+        } else {
+            if (window._crudPrintTimeout2) clearTimeout(window._crudPrintTimeout2);
+            window._crudPrintTimeout2 = setTimeout(() => {
+                window.print();
+                if (window._crudPrintCleanTimeout) clearTimeout(window._crudPrintCleanTimeout);
+                window._crudPrintCleanTimeout = setTimeout(() => {
+                    if (document.body.contains(container)) {
+                        container.remove();
+                    }
+                }, 1000);
+            }, 150);
+        }
+    },
+
     printCuentaCobro(doc, mode = 'print') {
         const oldContainer = document.querySelector('.print-document-template');
         if (oldContainer) oldContainer.remove();
@@ -793,10 +941,7 @@ export const PrintManager = {
             `;
         }).join('');
 
-        const container = document.createElement('div');
-        container.id = 'print-view-container';
-        container.className = mode === 'preview' ? 'preview-document-template' : `print-document-template hoja-dinamica`;
-        container.innerHTML = `
+        const htmlContent = `
             <!-- HEADER -->
             <div style="display: flex; justify-content: space-between; align-items: start; border-bottom: 2px solid #e9ecef; padding-bottom: 15px; margin-bottom: 25px;">
                 <div style="width: 50%;">
@@ -902,139 +1047,16 @@ export const PrintManager = {
                 <div style="text-align: center; width: 40%;">
                     <div style="border-bottom: 1px solid #ced4da; margin-bottom: 8px;"></div>
                     <strong style="font-size: 11px; color: #212529;">ACEPTADA, FIRMA Y/O SELLO Y FECHA</strong><br>
-                    <span style="font-size: 10px; color: #6c757d; text-transform: uppercase;">${doc.cliente_razon_social || ''}</span>
+                    <span style="font-size: 10px; color: #6c757d; text-transform: uppercase;">\${doc.cliente_razon_social || ''}</span>
                 </div>
             </div>
-        `;
+        \`;
 
-        document.body.appendChild(container);
-
-        if (mode === 'preview') {
-            container.style.position = 'fixed';
-            container.style.top = '0';
-            container.style.left = '0';
-            container.style.width = '100vw';
-            container.style.height = '100vh';
-            container.style.zIndex = '1060';
-            container.style.overflowY = 'auto';
-            container.style.backgroundColor = '#f8f9fa';
-            container.style.padding = '0';
-            
-            const closeHeader = document.createElement('div');
-            closeHeader.style.position = 'sticky';
-            closeHeader.style.top = '0';
-            closeHeader.style.zIndex = '1070';
-            closeHeader.style.backgroundColor = '#fff';
-            closeHeader.style.padding = '15px';
-            closeHeader.style.textAlign = 'center';
-            closeHeader.style.borderBottom = '1px solid #dee2e6';
-            closeHeader.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
-            closeHeader.innerHTML = `
-                <div class="d-flex justify-content-center gap-2">
-                    <button class="btn btn-success btn-compartir-preview"><i class="bi bi-share me-1"></i>Compartir</button>
-                    <button class="btn btn-danger btn-cerrar-preview"><i class="bi bi-x-circle me-1"></i>Cerrar</button>
-                </div>
-            `;
-            
-            closeHeader.querySelector('.btn-cerrar-preview').addEventListener('click', () => {
-                container.remove();
-            });
-            
-            const btnCompartir = closeHeader.querySelector('.btn-compartir-preview');
-            const originalCompartirHtml = btnCompartir.innerHTML;
-            
-            btnCompartir.disabled = true;
-            btnCompartir.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Preparando...';
-            
-            let cachedShareFile = null;
-            let paperContent;
-            
-            const precacheShareImage = async () => {
-                try {
-                    if (!window.html2canvas) {
-                        await new Promise((resolve, reject) => {
-                            const script = document.createElement('script');
-                            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
-                            script.onload = resolve;
-                            script.onerror = () => reject(new Error('No se pudo cargar html2canvas'));
-                            document.head.appendChild(script);
-                        });
-                    }
-                    
-                    const oldScrollTop = container.scrollTop;
-                    container.scrollTop = 0;
-                    
-                    const canvas = await window.html2canvas(paperContent, { 
-                        scale: 2,
-                        useCORS: true,
-                        backgroundColor: '#ffffff'
-                    });
-                    
-                    container.scrollTop = oldScrollTop;
-                    
-                    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
-                    if (!blob) throw new Error('Error al generar imagen');
-                    
-                    const fileName = `CuentaCobro_${numDisplay}.png`;
-                    cachedShareFile = new File([blob], fileName, { type: 'image/png' });
-                    
-                    btnCompartir.innerHTML = originalCompartirHtml;
-                    btnCompartir.disabled = false;
-                    
-                } catch (err) {
-                    console.error('Error precargando imagen de compartir:', err);
-                    btnCompartir.innerHTML = '<i class="bi bi-exclamation-triangle me-1"></i>Error al preparar';
-                }
-            };
-            
-            setTimeout(precacheShareImage, 100);
-            
-            btnCompartir.addEventListener('click', async () => {
-                if (!cachedShareFile) return;
-                
-                if (navigator.canShare && navigator.canShare({ files: [cachedShareFile] })) {
-                    try {
-                        await navigator.share({
-                            title: 'Cuenta de Cobro',
-                            text: 'Adjunto la cuenta de cobro solicitada.',
-                            files: [cachedShareFile]
-                        });
-                    } catch (e) {
-                        console.log('Share canceled or failed', e);
-                    }
-                } else {
-                    const url = URL.createObjectURL(cachedShareFile);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = cachedShareFile.name;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    URL.revokeObjectURL(url);
-                }
-            });
-            
-            container.prepend(closeHeader);
-
-            paperContent = document.createElement('div');
-            paperContent.style.width = '816px';
-            paperContent.style.minHeight = '1056px';
-            paperContent.style.margin = '20px auto';
-            paperContent.style.padding = '40px';
-            paperContent.style.boxSizing = 'border-box';
-            paperContent.style.backgroundColor = '#fff';
-            paperContent.style.boxShadow = '0 0 10px rgba(0,0,0,0.1)';
-            paperContent.style.fontFamily = "'Inter', sans-serif";
-            paperContent.style.color = "#212529";
-
-            while (container.childNodes.length > 1) {
-                paperContent.appendChild(container.childNodes[1]);
-            }
-            container.appendChild(paperContent);
-        } else {
-            window.print();
-            container.remove();
-        }
+        this._renderPreviewShell(htmlContent, {
+            mode,
+            fileName: \`CuentaCobro_\${numDisplay}.png\`,
+            title: 'Cuenta de Cobro'
+        });
     },
 
     printDocument(doc, tipoDoc, contactos, productos, mode = 'print') {
@@ -1072,10 +1094,7 @@ export const PrintManager = {
         }).join('');
 
         // 5. Construir HTML
-        const container = document.createElement('div');
-        container.id = 'print-view-container';
-        container.className = mode === 'preview' ? 'preview-document-template' : `print-document-template ${printClass}`;
-        container.innerHTML = `
+        const htmlContent = `
             <!-- HEADER IMPRESIÓN -->
             <div style="display: flex; justify-content: space-between; align-items: start; border-bottom: 2px solid #6c757d; padding-bottom: 15px; margin-bottom: 25px;">
                 <div style="width: 40%;">
@@ -1148,8 +1167,6 @@ export const PrintManager = {
                         </div>
                     </div>
                 </div>
-
-                <!-- FIRMA -->
                 <div style="text-align: center; margin-top: 40px; margin-bottom: 20px;">
                     <div style="width: 200px; height: 50px; background-color: #f8f9fa; margin: 0 auto; border-bottom: 1px solid #495057;"></div>
                     <p style="font-size: 10px; color: #212529; margin-top: 5px;">ELABORADO POR</p>
@@ -1157,153 +1174,13 @@ export const PrintManager = {
             </div>
         `;
 
-        document.body.appendChild(container);
-
-        if (mode === 'preview') {
-            container.style.position = 'fixed';
-            container.style.top = '0';
-            container.style.left = '0';
-            container.style.width = '100vw';
-            container.style.height = '100vh';
-            container.style.zIndex = '1060';
-            container.style.overflowY = 'auto';
-            container.style.backgroundColor = '#f8f9fa';
-            container.style.padding = '0';
-            
-            const closeHeader = document.createElement('div');
-            closeHeader.style.position = 'sticky';
-            closeHeader.style.top = '0';
-            closeHeader.style.zIndex = '1070';
-            closeHeader.style.backgroundColor = '#fff';
-            closeHeader.style.padding = '15px';
-            closeHeader.style.textAlign = 'center';
-            closeHeader.style.borderBottom = '1px solid #dee2e6';
-            closeHeader.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
-            closeHeader.innerHTML = `
-                <div class="d-flex justify-content-center gap-2">
-                    <button class="btn btn-success btn-compartir-preview"><i class="bi bi-share me-1"></i>Compartir</button>
-                    <button class="btn btn-danger btn-cerrar-preview"><i class="bi bi-x-circle me-1"></i>Cerrar</button>
-                </div>
-            `;
-            
-            closeHeader.querySelector('.btn-cerrar-preview').addEventListener('click', () => {
-                container.remove();
-            });
-            
-            const btnCompartir = closeHeader.querySelector('.btn-compartir-preview');
-            const originalCompartirHtml = btnCompartir.innerHTML;
-            
-            // Estado inicial: Deshabilitado mientras precarga
-            btnCompartir.disabled = true;
-            btnCompartir.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Preparando...';
-            
-            let cachedShareFile = null;
-            
-            // Función de precarga en segundo plano
-            const precacheShareImage = async () => {
-                try {
-                    if (!window.html2canvas) {
-                        await new Promise((resolve, reject) => {
-                            const script = document.createElement('script');
-                            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
-                            script.onload = resolve;
-                            script.onerror = () => reject(new Error('No se pudo cargar html2canvas'));
-                            document.head.appendChild(script);
-                        });
-                    }
-                    
-                    const oldScrollTop = container.scrollTop;
-                    container.scrollTop = 0;
-                    
-                    const canvas = await window.html2canvas(paperContent, { 
-                        scale: 2,
-                        useCORS: true,
-                        backgroundColor: '#ffffff'
-                    });
-                    
-                    container.scrollTop = oldScrollTop;
-                    
-                    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
-                    if (!blob) throw new Error('Error al generar imagen');
-                    
-                    const fileName = `${tipoDoc.replace(/[^a-zA-Z0-9]/g, '_')}_${numDisplay}.png`;
-                    cachedShareFile = new File([blob], fileName, { type: 'image/png' });
-                    
-                    // Precarga terminada con éxito
-                    btnCompartir.innerHTML = originalCompartirHtml;
-                    btnCompartir.disabled = false;
-                    
-                } catch (err) {
-                    console.error('Error precargando imagen de compartir:', err);
-                    btnCompartir.innerHTML = '<i class="bi bi-exclamation-triangle me-1"></i>Error al preparar';
-                }
-            };
-            
-            // Iniciar precarga sin bloquear
-            setTimeout(precacheShareImage, 100);
-            
-            btnCompartir.addEventListener('click', async () => {
-                if (!cachedShareFile) return; // Bloqueo de seguridad
-                
-                if (navigator.canShare && navigator.canShare({ files: [cachedShareFile] })) {
-                    try {
-                        // PRIMER AWAIT DESPUÉS DEL GESTO DEL USUARIO
-                        await navigator.share({
-                            title: tipoDoc,
-                            text: 'Adjunto el documento solicitado.',
-                            files: [cachedShareFile]
-                        });
-                    } catch (e) {
-                        console.log('Share canceled or failed', e);
-                    }
-                } else {
-                    // Fallback descarga manual
-                    const url = URL.createObjectURL(cachedShareFile);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = cachedShareFile.name;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    URL.revokeObjectURL(url);
-                }
-            });
-            
-            container.insertBefore(closeHeader, container.firstChild);
-            
-            // Envolver el contenido en un "papel" para que se vea bien en desktop, 
-            // pero que ocupe todo el ancho en mobile para facilitar captura
-            const paperContent = document.createElement('div');
-            paperContent.style.width = '816px';
-            paperContent.style.minHeight = '1056px';
-            paperContent.style.margin = '20px auto';
-            paperContent.style.padding = '40px';
-            paperContent.style.boxSizing = 'border-box';
-            paperContent.style.backgroundColor = '#fff';
-            paperContent.style.boxShadow = '0 0 10px rgba(0,0,0,0.1)';
-            paperContent.style.fontFamily = "'Inter', sans-serif";
-            paperContent.style.color = "#212529";
-            
-            // Mover todo excepto el header de cierre al paperContent
-            while (container.childNodes.length > 1) {
-                paperContent.appendChild(container.childNodes[1]);
-            }
-            container.appendChild(paperContent);
-            
-        } else {
-            // 6. Ejecutar impresión simple y directa
-            if (window._crudPrintTimeout2) clearTimeout(window._crudPrintTimeout2);
-            window._crudPrintTimeout2 = setTimeout(() => {
-                window.print();
-                // Limpiar el DOM 1 segundo después de que se cierre el cuadro de impresión
-                if (window._crudPrintCleanTimeout) clearTimeout(window._crudPrintCleanTimeout);
-                window._crudPrintCleanTimeout = setTimeout(() => {
-                    if (document.body.contains(container)) {
-                        container.remove();
-                    }
-                }, 1000);
-            }, 150);
-        }
+        const fileName = `${tipoDoc.replace(/[^a-zA-Z0-9]/g, '_')}_${numDisplay}.png`;
+        this._renderPreviewShell(htmlContent, {
+            mode,
+            fileName,
+            title: tipoDoc,
+            printClass
+        });
     }
 };
 
