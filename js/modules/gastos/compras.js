@@ -416,7 +416,7 @@ export const ComprasModule = {
                             <a href="#" class="d-block px-3 py-1 text-decoration-none mt-1 btn-delete-row" data-id="${id}" style="color: #ef4444; font-size: 13px;">
                                 <i class="bi bi-x-circle me-2"></i> Anular
                             </a>` : `
-                            <a href="#/gastos/proveedores/editar/${id}" class="d-block px-3 py-1 text-decoration-none" style="color: var(--text-body); font-size: 13px;">
+                            <a href="#/gastos/proveedores/ver/${id}" class="d-block px-3 py-1 text-decoration-none" style="color: var(--text-body); font-size: 13px;">
                                 <i class="bi bi-eye me-2"></i> Ver Detalles
                             </a>`}
                         </div>
