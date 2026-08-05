@@ -331,15 +331,7 @@ export const CuentaCobroModule = {
             tbody.appendChild(tr);
 
             if (!isViewOnly) {
-                ItemEngine.bindLineEvents(tr, getProductsFn, (prod) => {
-                    tr.querySelector('.item-price').value = prod.precio_base || 0;
-                    lineData.producto_id = prod.id;
-                    lineData.nombre = prod.nombre;
-                    lineData.sku = prod.sku;
-                    const searchInp = tr.querySelector('.product-search-input');
-                    if (searchInp) searchInp.dataset.sku = lineData.sku;
-                    updateTotals();
-                });
+                ItemEngine.bindLineEvents(tr, updateTotals, [], {});
 
                 tr.querySelector('.item-price').addEventListener('input', updateTotals);
                 tr.querySelector('.item-qty').addEventListener('input', updateTotals);
@@ -367,9 +359,9 @@ export const CuentaCobroModule = {
                 
                 doc.detalles.push({
                     id: tr.dataset.id,
-                    producto_id: searchInput ? searchInput.dataset.productId : null,
+                    producto_id: (() => { const h = tr.querySelector('.input-prod-id'); return h && h.value ? h.value : null; })(),
                     nombre: searchInput ? searchInput.value : '',
-                    sku: searchInput ? (searchInput.dataset.sku || searchInput.dataset.lastSku || '') : '',
+                    sku: searchInput ? (searchInput.dataset.lastSku || '') : '',
                     cantidad: qty,
                     precio_unitario: price,
                     total: totalLine
