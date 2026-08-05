@@ -702,6 +702,16 @@ export const FacturasModule = {
                     </div>
                 </div>
 
+                <!-- TEXTAREAS ADICIONALES -->
+                <div class="mb-4">
+                    <h6 class="fw-bold mb-1" style="font-size: 14px; color: var(--text-main);">Notas</h6>
+                    <textarea id="input-notas" class="form-control text-muted" rows="2" style="font-size: 13px; border-color: var(--border-color); resize: none;" placeholder="Agrega comentarios para aclarar datos de la factura, serán visibles para tus clientes" ${isViewOnly ? 'disabled' : ''}>${factura.notas}</textarea>
+                </div>
+                <div>
+                    <h6 class="fw-bold mb-1" style="font-size: 14px; color: var(--text-main);">Términos y condiciones</h6>
+                    <textarea id="input-terminos" class="form-control text-muted" rows="2" style="font-size: 13px; border-color: var(--border-color); resize: none;" placeholder="Define los términos y condiciones, y/o las posibles cláusulas en caso de reclamos" ${isViewOnly ? 'disabled' : ''}>${factura.terminosCondiciones}</textarea>
+                </div>
+
                 <!-- DOCUMENTOS RELACIONADOS (Solo Vista) -->
                 ${isViewOnly ? `
                 <div class="mt-5">
@@ -1113,6 +1123,8 @@ export const FacturasModule = {
                     }
                     factura.fecha = element.querySelector('#input-fecha').value;
                     factura.vencimiento = element.querySelector('#input-vencimiento').value;
+                    factura.notas = element.querySelector('#input-notas').value;
+                    factura.terminosCondiciones = element.querySelector('#input-terminos').value;
                     factura.detalles = arrDetalles;
                     factura.tipo = 'venta'; // Ensure type is venta
                     

@@ -543,6 +543,16 @@ export const CotizacionesModule = {
                     </div>
                 </div>
 
+                <!-- TEXTAREAS ADICIONALES -->
+                <div class="mb-4">
+                    <h6 class="fw-bold mb-1" style="font-size: 14px; color: var(--text-main);">Notas</h6>
+                    <textarea id="input-notas" class="form-control text-muted" rows="2" style="font-size: 13px; border-color: var(--border-color); resize: none;" placeholder="Agrega comentarios para aclarar datos de la cotización, serán visibles para tus clientes" ${isViewOnly ? 'disabled' : ''}>${cotizacion.notas}</textarea>
+                </div>
+                <div>
+                    <h6 class="fw-bold mb-1" style="font-size: 14px; color: var(--text-main);">Términos y condiciones</h6>
+                    <textarea id="input-terminos" class="form-control text-muted" rows="2" style="font-size: 13px; border-color: var(--border-color); resize: none;" placeholder="Define los términos y condiciones, y/o las posibles cláusulas en caso de reclamos" ${isViewOnly ? 'disabled' : ''}>${cotizacion.terminosCondiciones}</textarea>
+                </div>
+
                 <!-- DOCUMENTOS RELACIONADOS (Solo Vista) -->
                 ${isViewOnly && cotizacion.convertidoAFactura && cotizacion.facturaDestinoId ? `
                 <div class="mt-5">
@@ -876,6 +886,8 @@ export const CotizacionesModule = {
                     cotizacion.clienteId = clienteId;
                     cotizacion.fecha = element.querySelector('#input-fecha').value;
                     cotizacion.vencimiento = element.querySelector('#input-vencimiento').value;
+                    cotizacion.notas = element.querySelector('#input-notas').value;
+                    cotizacion.terminosCondiciones = element.querySelector('#input-terminos').value;
                     cotizacion.detalles = arrDetalles;
 
                     if (!cotizacion.numero) {
