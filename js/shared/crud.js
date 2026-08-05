@@ -174,6 +174,46 @@ export const CoreActions = {
         document.body.insertAdjacentHTML('beforeend', modalHtml);
     },
 
+    showSuccessModal(message) {
+        const existing = document.getElementById('core-success-modal');
+        if (existing) existing.remove();
+        const modalHtml = `
+            <div id="core-success-modal" class="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center" style="background: rgba(0,0,0,0.4); z-index: 9999; backdrop-filter: blur(2px);">
+                <div class="bg-white p-4" style="box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.03), 0px 1px 3px rgba(0, 0, 0, 0.05); border-radius: 8px; max-width: 450px; border-top: 4px solid #10b981;">
+                    <div class="d-flex align-items-center mb-3">
+                        <i class="bi bi-check-circle-fill text-success fs-4 me-3"></i>
+                        <h5 class="mb-0 fw-bold" style="color: var(--text-main); font-size: 16px;">Listo</h5>
+                    </div>
+                    <p style="color: var(--text-body); font-size: 14px; line-height: 1.5; margin-bottom: 24px;">${message}</p>
+                    <div class="text-end">
+                        <button class="btn btn-light px-4 text-dark" style="font-weight: var(--weight-medium); border: 1px solid #e2e8f0;" onclick="document.getElementById('core-success-modal').remove()">Entendido</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+    },
+
+    showErrorModal(message) {
+        const existing = document.getElementById('core-error-modal');
+        if (existing) existing.remove();
+        const modalHtml = `
+            <div id="core-error-modal" class="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center" style="background: rgba(0,0,0,0.4); z-index: 9999; backdrop-filter: blur(2px);">
+                <div class="bg-white p-4" style="box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.03), 0px 1px 3px rgba(0, 0, 0, 0.05); border-radius: 8px; max-width: 450px; border-top: 4px solid #ef4444;">
+                    <div class="d-flex align-items-center mb-3">
+                        <i class="bi bi-x-circle-fill text-danger fs-4 me-3"></i>
+                        <h5 class="mb-0 fw-bold" style="color: var(--text-main); font-size: 16px;">Error</h5>
+                    </div>
+                    <p style="color: var(--text-body); font-size: 14px; line-height: 1.5; margin-bottom: 24px;">${message}</p>
+                    <div class="text-end">
+                        <button class="btn btn-light px-4 text-dark" style="font-weight: var(--weight-medium); border: 1px solid #e2e8f0;" onclick="document.getElementById('core-error-modal').remove()">Entendido</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+    },
+
     /**
      * Vincula los listeners de la Utility Bar al documento
      */
