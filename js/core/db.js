@@ -362,7 +362,9 @@ const DB = {
             if (searchQuery) {
                 const sq = `%${searchQuery}%`;
                 
-                if (filterCriteria === 'numero') {
+                if (table === 'productos') {
+                    query = query.or(`nombre.ilike.${sq},sku.ilike.${sq}`);
+                } else if (filterCriteria === 'numero') {
                     const num = parseInt(searchQuery.replace(/\D/g, ''), 10);
                     if (!isNaN(num)) query = query.eq('numero', num);
                 } else if (filterCriteria === 'fecha') {

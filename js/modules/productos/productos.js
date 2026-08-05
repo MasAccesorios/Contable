@@ -1,8 +1,13 @@
 // js/modules/productos.js
 // Módulo de Gestión de Productos e Inventarios (Lotes FIFO) - Hoja Completa
 import DB, { getLocalDate } from '../../core/db.js';
+import { supabase } from '../../core/supabase.js';
 
 export const ProductosModule = {
+    currentPage: 1,
+    itemsPerPage: 10,
+    searchQuery: '',
+
     async init(element) {
         if (!element) return;
         
@@ -59,9 +64,6 @@ export const ProductosModule = {
 
                     <!-- PAGINATION FOOTER -->
                     <div class="card-footer bg-white border-top p-3 d-flex justify-content-between align-items-center" style="border-radius: 0 0 8px 8px;">
-                        <div class="d-flex align-items-center gap-3" style="font-size: 13px; color: var(--text-body);">
-                            <span id="showing-count">Cargando...</span>
-                        </div>
                     </div>
                 </div>
                 
@@ -70,7 +72,16 @@ export const ProductosModule = {
         `;
 
         element.querySelector('#btn-nuevo-producto')?.addEventListener('click', () => this.renderForm(element));
-        element.querySelector('#search-producto')?.addEventListener('input', () => this.filtrarProductos(element));
+        
+        let debounceTimer;
+        element.querySelector('#search-producto')?.addEventListener('input', (e) => {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                this.searchQuery = e.target.value.trim();
+                this.currentPage = 1;
+                this.renderTabla(element);
+            }, 400);
+        });
         
         element.querySelector('#btn-refresh-list')?.addEventListener('click', async (e) => {
             const btn = e.currentTarget;
@@ -101,9 +112,24 @@ export const ProductosModule = {
         const container = element.querySelector('#tbody-productos');
         if (!container) return;
 
-        const productos = await DB.getAll('productos');
-        const lotes = await DB.getAll('lotes_fifo');
+        const pageResult = await DB.getPage('productos', this.currentPage, this.itemsPerPage, 'nombre', 'asc', this.searchQuery, 'todos');
+        const productos = pageResult.data.filter(p => p.estado !== 'inactivo' && p.estado !== 'inactive');
         
+        const totalItems = pageResult.count || 0;
+        const totalPages = Math.ceil(totalItems / this.itemsPerPage) || 1;
+
+        if (this.currentPage > totalPages && totalPages > 0) {
+            this.currentPage = totalPages;
+            return this.renderTabla(element);
+        }
+
+        const productIds = productos.map(p => p.id);
+        let lotes = [];
+        if (productIds.length > 0) {
+            const { data } = await supabase.from('lotes_fifo').select('*').in('producto_id', productIds).gt('cantidad_actual', 0);
+            if (data) lotes = data.map(l => DB._mapToFrontend('lotes_fifo', l));
+        }
+
         if (productos.length === 0) {
             container.innerHTML = `<tr><td colspan="6" class="text-center py-5 text-muted">No hay productos registrados en el inventario.</td></tr>`;
             return;
@@ -112,17 +138,12 @@ export const ProductosModule = {
         let html = '';
 
         productos.forEach(p => {
-            // Permitir mostrar productos activos e importados sin estado explícito
-            if (p.estado === 'inactivo' || p.estado === 'inactive') return;
-
             const lotesProd = lotes.filter(l => l.productoId === p.id && l.cantidadActual > 0);
             
-            // Priorizar stock importado estático y sumarle los lotes nuevos si los hay
             const stockBase = parseFloat(p.stock) || 0;
             const stockLotes = lotesProd.reduce((sum, l) => sum + l.cantidadActual, 0);
             const stockTotal = stockBase + stockLotes;
 
-            // Calcular costo usando el estático si no hay lotes
             const costoLotes = lotesProd.reduce((sum, l) => sum + (l.cantidadActual * (l.costoUnitario || 0)), 0);
             const costoPromedio = stockTotal > 0 ? 
                 (stockLotes > 0 ? costoLotes / stockLotes : (p.costoBase || 0)) 
@@ -152,9 +173,47 @@ export const ProductosModule = {
 
         container.innerHTML = html;
 
-        // Actualizar paginador (simulado por ahora)
-        const showingEl = element.querySelector('#showing-count');
-        if (showingEl) showingEl.textContent = `Mostrando ${productos.filter(p => p.estado !== 'inactivo').length} productos`;
+        const footerContainer = element.querySelector('.card-footer');
+        if (footerContainer) {
+            const from = (this.currentPage - 1) * this.itemsPerPage;
+            footerContainer.innerHTML = `
+                <div class="d-flex align-items-center gap-3" style="font-size: 13px; color: var(--text-body);">
+                    <span>Resultados por página:</span>
+                    <select class="form-select form-select-sm text-muted select-per-page" style="width: 70px;">
+                        <option value="10" ${this.itemsPerPage===10?'selected':''}>10</option>
+                        <option value="20" ${this.itemsPerPage===20?'selected':''}>20</option>
+                        <option value="50" ${this.itemsPerPage===50?'selected':''}>50</option>
+                    </select>
+                    <span class="text-muted border-start ps-3">${totalItems > 0 ? from + 1 : 0}-${Math.min(from + this.itemsPerPage, totalItems)} de ${totalItems}</span>
+                </div>
+                <div class="d-flex align-items-center gap-2" style="font-size: 13px; color: var(--text-body);">
+                    <span>Página</span>
+                    <input type="number" class="form-control form-control-sm text-center text-muted input-page" value="${this.currentPage}" min="1" max="${totalPages}" style="width: 50px;">
+                    <span>de ${totalPages}</span>
+                    <div class="ms-2">
+                        <button class="btn btn-link text-muted p-0 me-1 btn-prev-page" ${this.currentPage === 1 ? 'disabled' : ''}><i class="bi bi-chevron-left"></i></button>
+                        <button class="btn btn-link text-muted p-0 btn-next-page" ${this.currentPage === totalPages ? 'disabled' : ''}><i class="bi bi-chevron-right"></i></button>
+                    </div>
+                </div>
+            `;
+
+            footerContainer.querySelector('.select-per-page')?.addEventListener('change', (e) => {
+                this.itemsPerPage = parseInt(e.target.value);
+                this.currentPage = 1;
+                this.renderTabla(element);
+            });
+            footerContainer.querySelector('.input-page')?.addEventListener('change', (e) => {
+                let val = parseInt(e.target.value) || 1;
+                this.currentPage = val;
+                this.renderTabla(element);
+            });
+            footerContainer.querySelector('.btn-prev-page')?.addEventListener('click', () => {
+                if (this.currentPage > 1) { this.currentPage--; this.renderTabla(element); }
+            });
+            footerContainer.querySelector('.btn-next-page')?.addEventListener('click', () => {
+                if (this.currentPage < totalPages) { this.currentPage++; this.renderTabla(element); }
+            });
+        }
 
         container.querySelectorAll('.btn-editar').forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -310,8 +369,8 @@ export const ProductosModule = {
         const producto = await DB.get('productos', id);
         if (!producto) return;
 
-        const lotes = await DB.getAll('lotes_fifo');
-        const lotesProd = lotes.filter(l => l.productoId === id);
+        const { data: lotesData } = await supabase.from('lotes_fifo').select('*').eq('producto_id', id);
+        const lotesProd = lotesData ? lotesData.map(l => DB._mapToFrontend('lotes_fifo', l)) : [];
 
         // Ordenar lotes por fecha de ingreso ascendente para visualización FIFO
         lotesProd.sort((a, b) => new Date(a.fechaIngreso) - new Date(b.fechaIngreso));
@@ -469,23 +528,5 @@ export const ProductosModule = {
         });
     },
 
-    filtrarProductos(element) {
-        const query = element.querySelector('#search-producto')?.value.toLowerCase() || '';
-        const tbody = element.querySelector('#tbody-productos');
-        if (!tbody) return;
-
-        // Filtrado ultra-rápido operando directamente sobre el DOM renderizado
-        // en lugar de recargar la base de datos en cada pulsación (evita bloqueos)
-        const rows = tbody.querySelectorAll('tr[data-id]');
-        rows.forEach(row => {
-            const sku = row.querySelector('.td-sku')?.textContent.toLowerCase() || '';
-            const nombre = row.querySelector('.td-nombre')?.textContent.toLowerCase() || '';
-            
-            if (sku.includes(query) || nombre.includes(query)) {
-                row.style.display = '';
-            } else {
-                row.style.display = 'none';
-            }
-        });
     }
 };
