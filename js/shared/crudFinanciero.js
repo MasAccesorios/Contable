@@ -9,6 +9,8 @@ export class CrudFinanciero {
         this.config = config;
         this.currentPage = 1;
         this.itemsPerPage = 10;
+        this.editingId = null;
+        this.currentData = [];
         // config expected:
         // titulo: string
         // btnNuevoText: string
@@ -81,9 +83,12 @@ export class CrudFinanciero {
                                 <label class="form-label text-muted small fw-semibold mb-1">Descripción *</label>
                                 <input type="text" class="form-control" id="transaccion-descripcion" placeholder="Ej. Pago servicio de internet" required minlength="3">
                             </div>
-                            <div class="col-md-2">
+                            <div class="col-md-2 d-flex flex-column gap-2">
                                 <button type="submit" class="btn btn-primary w-100" id="btn-guardar-transaccion">
                                     <i class="bi bi-plus-circle me-1"></i>Registrar
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary w-100 d-none" id="btn-cancelar-edicion">
+                                    Cancelar
                                 </button>
                             </div>
                         </form>
@@ -199,6 +204,10 @@ export class CrudFinanciero {
 
         applyCurrencyFormatting(element.querySelector('#transaccion-monto'));
 
+        element.querySelector('#btn-cancelar-edicion')?.addEventListener('click', () => {
+            this.cancelarEdicion(element);
+        });
+
         const form = element.querySelector(`#${this.config.formId}`);
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -212,6 +221,7 @@ export class CrudFinanciero {
             }
 
             const datos = {
+                id: this.editingId,
                 fecha: element.querySelector('#transaccion-fecha').value,
                 categoria: element.querySelector('#transaccion-categoria').value,
                 monto: parseCurrencyValue(element.querySelector('#transaccion-monto').value),
@@ -228,9 +238,7 @@ export class CrudFinanciero {
                 
                 await this.registrarTransaccion(datos);
                 
-                form.reset();
-                element.querySelector('#transaccion-fecha').value = fechaHoy; 
-                hiddenCuentaId.value = '';
+                this.cancelarEdicion(element);
                 
                 await this.renderTabla(element);
             } catch (err) {
@@ -248,7 +256,7 @@ export class CrudFinanciero {
         }
 
         try {
-            const transaccion = {
+            let transaccion = {
                 cuenta_id: parseInt(datosPrevios.cuentaId, 10),
                 fecha: datosPrevios.fecha,
                 tipo: this.config.tipoTransaccion, 
@@ -258,6 +266,14 @@ export class CrudFinanciero {
                 observaciones: datosPrevios.descripcion, 
                 contacto_id: datosPrevios.proveedorId ? parseInt(datosPrevios.proveedorId, 10) : null
             };
+
+            if (datosPrevios.id) {
+                const { data: exist } = await supabase.from('pagos_ingresos').select('*').eq('id', datosPrevios.id).single();
+                if (exist) {
+                    transaccion = { ...exist, ...transaccion };
+                }
+                transaccion.id = datosPrevios.id;
+            }
 
             await DB.save('transacciones', transaccion);
             return transaccion;
@@ -330,6 +346,7 @@ export class CrudFinanciero {
         
         kpiTotal.textContent = `$${total.toLocaleString()}`;
 
+        this.currentData = data || [];
         if (!data || data.length === 0) {
             tbody.innerHTML = `<tr><td colspan="8" class="text-center text-muted py-4">No se encontraron registros en este período.</td></tr>`;
             if (pagContainer) pagContainer.innerHTML = '';
@@ -370,12 +387,20 @@ export class CrudFinanciero {
                             <i class="bi bi-three-dots-vertical fs-6"></i>
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end shadow border-0" style="font-size: 13px;">
+                            <li><a class="dropdown-item text-primary btn-editar-registro" href="javascript:void(0)" data-id="${g.id}">Editar</a></li>
                             <li><a class="dropdown-item text-danger btn-eliminar-registro" href="javascript:void(0)" data-id="${g.id}">Eliminar</a></li>
                         </ul>
                     </div>
                 </td>
             </tr>`;
         }).join('');
+
+        tbody.querySelectorAll('.btn-editar-registro').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const id = e.currentTarget.dataset.id;
+                this.iniciarEdicion(id, element);
+            });
+        });
 
         tbody.querySelectorAll('.btn-eliminar-registro').forEach(btn => {
             btn.addEventListener('click', async (e) => {
@@ -431,6 +456,51 @@ export class CrudFinanciero {
                 if (this.currentPage < totalPages) { this.currentPage++; this.renderTabla(element); }
             });
         }
+    }
+
+    iniciarEdicion(id, element) {
+        const registro = this.currentData.find(r => String(r.id) === String(id));
+        if (!registro) return;
+
+        this.editingId = id;
+        
+        element.querySelector('#transaccion-fecha').value = registro.fecha;
+        element.querySelector('#transaccion-categoria').value = registro.categoria || '';
+        element.querySelector('#transaccion-monto').value = '$' + Number(registro.monto).toLocaleString();
+        
+        // Combobox Cuenta
+        element.querySelector('#transaccion-cuenta-id').value = registro.cuenta_id || '';
+        const cuenta = this.cuentasActivas.find(c => String(c.id) === String(registro.cuenta_id));
+        element.querySelector('#transaccion-cuenta').value = cuenta ? `${cuenta.nombre} ${cuenta.numero && cuenta.numero !== '-' ? '('+cuenta.numero+')' : ''}` : '';
+        
+        // Combobox Proveedor
+        element.querySelector('#select-proveedor-id').value = registro.contacto_id || '';
+        const prov = this.proveedores.find(p => String(p.id) === String(registro.contacto_id));
+        element.querySelector('#search-proveedor').value = prov ? prov.nombre : '';
+
+        element.querySelector('#transaccion-referencia').value = registro.referencia || '';
+        element.querySelector('#transaccion-descripcion').value = registro.observaciones || '';
+
+        // UI Buttons
+        element.querySelector('#btn-guardar-transaccion').innerHTML = '<i class="bi bi-save me-1"></i>Actualizar';
+        element.querySelector('#btn-cancelar-edicion').classList.remove('d-none');
+
+        // Scroll
+        element.querySelector(`#${this.config.formId}`).scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    cancelarEdicion(element) {
+        this.editingId = null;
+        element.querySelector(`#${this.config.formId}`).reset();
+        element.querySelector('#transaccion-fecha').value = getLocalDate();
+        element.querySelector('#transaccion-cuenta-id').value = '';
+        element.querySelector('#select-proveedor-id').value = '';
+        element.querySelector('#search-proveedor').value = '';
+        element.querySelector('#transaccion-cuenta').value = '';
+        
+        const btnGuardar = element.querySelector('#btn-guardar-transaccion');
+        btnGuardar.innerHTML = '<i class="bi bi-plus-circle me-1"></i>Registrar';
+        element.querySelector('#btn-cancelar-edicion').classList.add('d-none');
     }
 
     async anularTransaccionObj(id) {
