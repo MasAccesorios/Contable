@@ -7,6 +7,8 @@ import { applyCurrencyFormatting, parseCurrencyValue } from './formatters.js';
 export class CrudFinanciero {
     constructor(config) {
         this.config = config;
+        this.currentPage = 1;
+        this.itemsPerPage = 10;
         // config expected:
         // titulo: string
         // btnNuevoText: string
@@ -134,6 +136,10 @@ export class CrudFinanciero {
                                 </tbody>
                             </table>
                         </div>
+                        
+                        <!-- PAGINATION FOOTER -->
+                        <div class="card-footer bg-white border-top p-3 d-flex justify-content-between align-items-center" style="border-radius: 0 0 8px 8px;" id="${this.config.tbodyId}-pagination">
+                        </div>
                     </div>
                 </div>
             </div>
@@ -177,13 +183,17 @@ export class CrudFinanciero {
         element.querySelector('#filtro-fecha-hasta').value = fechaHoy;
 
         ['filtro-categoria', 'filtro-fecha-desde', 'filtro-fecha-hasta'].forEach(id => {
-            element.querySelector(`#${id}`).addEventListener('change', () => this.renderTabla(element));
+            element.querySelector(`#${id}`).addEventListener('change', () => {
+                this.currentPage = 1;
+                this.renderTabla(element);
+            });
         });
 
         element.querySelector('#btn-limpiar-filtros').addEventListener('click', () => {
             element.querySelector('#filtro-categoria').value = 'todas';
             element.querySelector('#filtro-fecha-desde').value = getLocalDate(hace3Meses);
             element.querySelector('#filtro-fecha-hasta').value = fechaHoy;
+            this.currentPage = 1;
             this.renderTabla(element);
         });
 
@@ -260,34 +270,73 @@ export class CrudFinanciero {
     async renderTabla(element) {
         const tbody = element.querySelector(`#${this.config.tbodyId}`);
         const kpiTotal = element.querySelector(`#${this.config.kpiId}`);
+        const pagContainer = element.querySelector(`#${this.config.tbodyId}-pagination`);
         
         const catFiltro = element.querySelector('#filtro-categoria').value;
         const fechaDesde = element.querySelector('#filtro-fecha-desde').value;
         const fechaHasta = element.querySelector('#filtro-fecha-hasta').value;
 
-        let todasTransacciones = [];
-        let desde = 0;
-        
-        while (true) {
-            const { data, error } = await supabase
-                .from('pagos_ingresos')
-                .select('*')
-                .eq('tipo', this.config.tipoFiltroDb)
-                .is('factura_id', null)
-                .range(desde, desde + 999);
+        // 1. Consulta Principal Paginada
+        let query = supabase
+            .from('pagos_ingresos')
+            .select('*', { count: 'exact' })
+            .eq('tipo', this.config.tipoFiltroDb)
+            .is('factura_id', null)
+            .neq('estado', 'anulado');
+
+        if (catFiltro !== 'todas') query = query.eq('categoria', catFiltro);
+        if (fechaDesde) query = query.gte('fecha', fechaDesde);
+        if (fechaHasta) query = query.lte('fecha', fechaHasta);
+
+        query = query.order('fecha', { ascending: false }).order('id', { ascending: false });
+
+        const from = (this.currentPage - 1) * this.itemsPerPage;
+        const to = from + this.itemsPerPage - 1;
+        query = query.range(from, to);
+
+        const { data, count, error } = await query;
                 
-            if (error) {
-                console.error("Error cargando historial:", error);
-                break;
-            }
+        if (error) {
+            console.error("Error cargando historial:", error);
+            return;
+        }
+
+        const totalItems = count || 0;
+        const totalPages = Math.ceil(totalItems / this.itemsPerPage) || 1;
+
+        if (this.currentPage > totalPages && totalPages > 0) {
+            this.currentPage = totalPages;
+            return this.renderTabla(element);
+        }
+
+        // 2. Cálculo del KPI Optimizado (RPC nativo)
+        let total = 0;
+        if (totalItems > 0) {
+            const rpcParams = { 
+                p_tipo: this.config.tipoFiltroDb,
+                p_categoria: catFiltro !== 'todas' ? catFiltro : null,
+                p_fecha_desde: fechaDesde || null,
+                p_fecha_hasta: fechaHasta || null
+            };
             
-            if (!data || data.length === 0) break;
-            todasTransacciones = todasTransacciones.concat(data);
-            if (data.length < 1000) break;
-            desde += 1000;
+            const { data: sumData, error: sumError } = await supabase.rpc('get_total_transacciones', rpcParams);
+            
+            if (!sumError && sumData !== null) {
+                total = Number(sumData);
+            } else {
+                console.error("Error obteniendo total KPI:", sumError);
+            }
         }
         
-        todasTransacciones = todasTransacciones.map(g => ({
+        kpiTotal.textContent = `$${total.toLocaleString()}`;
+
+        if (!data || data.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="8" class="text-center text-muted py-4">No se encontraron registros en este período.</td></tr>`;
+            if (pagContainer) pagContainer.innerHTML = '';
+            return;
+        }
+
+        const transacciones = data.map(g => ({
             id: g.id,
             fecha: g.fecha,
             categoria: g.categoria || 'Sin Categoría',
@@ -298,26 +347,8 @@ export class CrudFinanciero {
             proveedorId: g.contacto_id,
             estado: g.estado
         }));
-        
-        const filtradas = todasTransacciones.filter(g => {
-            if (g.estado === 'anulado') return false; 
-            if (catFiltro !== 'todas' && g.categoria !== catFiltro) return false;
-            if (fechaDesde && g.fecha < fechaDesde) return false;
-            if (fechaHasta && g.fecha > fechaHasta) return false;
-            return true;
-        });
 
-        filtradas.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
-
-        const total = filtradas.reduce((sum, g) => sum + parseFloat(g.monto || 0), 0);
-        kpiTotal.textContent = `$${total.toLocaleString()}`;
-
-        if (filtradas.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="8" class="text-center text-muted py-4">No se encontraron registros en este período.</td></tr>`;
-            return;
-        }
-
-        tbody.innerHTML = filtradas.map(g => {
+        tbody.innerHTML = transacciones.map(g => {
             const proveedorNombre = g.proveedorId
                 ? (this.proveedores || []).find(p => String(p.id) === String(g.proveedorId))?.nombre || '-'
                 : '-';
@@ -359,6 +390,47 @@ export class CrudFinanciero {
                 }
             });
         });
+
+        // 3. Render Paginación UI
+        if (pagContainer) {
+            pagContainer.innerHTML = `
+                <div class="d-flex align-items-center gap-3" style="font-size: 13px; color: var(--text-body);">
+                    <span>Resultados por página:</span>
+                    <select class="form-select form-select-sm text-muted select-per-page" style="width: 70px;">
+                        <option value="10" ${this.itemsPerPage===10?'selected':''}>10</option>
+                        <option value="20" ${this.itemsPerPage===20?'selected':''}>20</option>
+                        <option value="50" ${this.itemsPerPage===50?'selected':''}>50</option>
+                    </select>
+                    <span class="text-muted border-start ps-3">${totalItems > 0 ? from + 1 : 0}-${Math.min(from + this.itemsPerPage, totalItems)} de ${totalItems}</span>
+                </div>
+                <div class="d-flex align-items-center gap-2" style="font-size: 13px; color: var(--text-body);">
+                    <span>Página</span>
+                    <input type="number" class="form-control form-control-sm text-center text-muted input-page" value="${this.currentPage}" min="1" max="${totalPages}" style="width: 50px;">
+                    <span>de ${totalPages}</span>
+                    <div class="ms-2">
+                        <button class="btn btn-link text-muted p-0 me-1 btn-prev-page" ${this.currentPage === 1 ? 'disabled' : ''}><i class="bi bi-chevron-left"></i></button>
+                        <button class="btn btn-link text-muted p-0 btn-next-page" ${this.currentPage === totalPages ? 'disabled' : ''}><i class="bi bi-chevron-right"></i></button>
+                    </div>
+                </div>
+            `;
+
+            pagContainer.querySelector('.select-per-page').addEventListener('change', (e) => {
+                this.itemsPerPage = parseInt(e.target.value);
+                this.currentPage = 1;
+                this.renderTabla(element);
+            });
+            pagContainer.querySelector('.input-page').addEventListener('change', (e) => {
+                let val = parseInt(e.target.value) || 1;
+                this.currentPage = val;
+                this.renderTabla(element);
+            });
+            pagContainer.querySelector('.btn-prev-page').addEventListener('click', () => {
+                if (this.currentPage > 1) { this.currentPage--; this.renderTabla(element); }
+            });
+            pagContainer.querySelector('.btn-next-page').addEventListener('click', () => {
+                if (this.currentPage < totalPages) { this.currentPage++; this.renderTabla(element); }
+            });
+        }
     }
 
     async anularTransaccionObj(id) {
