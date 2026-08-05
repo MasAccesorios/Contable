@@ -14,9 +14,7 @@ export const FacturasModule = {
     async init(element) {
         if (!element) return;
 
-        // Cargar catálogos base una sola vez por renderizado del módulo
-        this.cache.contactos = await DB.getAll('contactos');
-        this.cache.productos = await DB.getAll('productos');
+        // Ya no cargamos catálogos completos (Fase 2)
 
         const hashParts = window.location.hash.split('/');
         const action = hashParts[3];
@@ -40,12 +38,7 @@ export const FacturasModule = {
             </div>
         `;
         
-        let contactos = this.cache.contactos;
-        
-        const getClienteName = (id) => {
-            const cliente = contactos.find(c => c.id == id);
-            return cliente ? cliente.nombre : 'Sin Cliente';
-        };
+        let contactosMap = {}; // Caché local a la página de facturas actual
 
         // Estado de Paginación, Ordenamiento y Filtro Server-Side
         let sortColumn = 'numero';
@@ -86,6 +79,13 @@ export const FacturasModule = {
                 if (currentPage > totalPages && totalPages > 0) {
                     currentPage = totalPages;
                     return renderGrid();
+                }
+
+                // Resolver nombres de clientes dinámicamente para la página actual
+                const contactoIds = pageData.map(c => c.clienteId || c.contacto_id || c.contactoId).filter(Boolean);
+                if (contactoIds.length > 0) {
+                    const { data: cdata } = await supabase.from('contactos').select('id, nombre').in('id', contactoIds);
+                    if (cdata) cdata.forEach(c => contactosMap[c.id] = c.nombre);
                 }
 
                 currentItems = pageData.map(f => {
@@ -135,7 +135,7 @@ export const FacturasModule = {
                         <td class="py-3">${numDisplay}</td>
                         <td class="py-3">${c.fecha || ''}</td>
                         <td class="py-3" style="color: ${vencimientoColor};">${c.vencimiento || ''}</td>
-                        <td class="py-3" style="color: var(--text-main); font-weight: var(--weight-medium);">${getClienteName(c.clienteId || c.contacto_id || c.contactoId)}</td>
+                        <td class="py-3" style="color: var(--text-main); font-weight: var(--weight-medium);">${contactosMap[c.clienteId || c.contacto_id || c.contactoId] || 'Sin Cliente'}</td>
                         <td class="py-3 text-end">${formatMoney(c.total)}</td>
                         <td class="py-3 text-end">${formatMoney(c.totalPagado)}</td>
                         <td class="py-3 text-end">${formatMoney(c.saldoPendiente)}</td>
@@ -337,7 +337,16 @@ export const FacturasModule = {
                     const allDecorated = allFiltered.map(f => {
                         return { ...f, estado: f.estado_dinamico, saldoPendiente: f.saldo_pendiente, totalPagado: f.total_pagado };
                     });
-                    ExportManager.exportDataToExcel(allDecorated, 'Facturas', getClienteName, btn);
+                    
+                    const exportIds = allFiltered.map(c => c.clienteId || c.contacto_id || c.contactoId).filter(Boolean);
+                    let exportMap = {};
+                    if (exportIds.length > 0) {
+                        const { data: edata } = await supabase.from('contactos').select('id, nombre').in('id', exportIds);
+                        if (edata) edata.forEach(c => exportMap[c.id] = c.nombre);
+                    }
+                    const getExportName = (id) => exportMap[id] || 'Sin Cliente';
+
+                    ExportManager.exportDataToExcel(allDecorated, 'Facturas', getExportName, btn);
                 } catch(err) { console.error(err); }
                 
                 btn.innerHTML = originalHtml;
@@ -350,10 +359,6 @@ export const FacturasModule = {
                 const originalHtml = btn.innerHTML;
                 btn.disabled = true;
                 btn.innerHTML = `<span class="spinner-border spinner-border-sm" aria-hidden="true"></span>`;
-                
-                await DB.refreshCache('facturas');
-                transacciones = (await DB.getAll('transacciones').catch(() => [])) || [];
-                contactos = await DB.refreshCache('contactos');
                 
                 await renderGrid();
                 
@@ -506,10 +511,6 @@ export const FacturasModule = {
     },
 
     async renderForm(element, id = null, isViewOnly = false) {
-        // Carga de DB
-        const contactos = this.cache.contactos;
-        const productos = this.cache.productos;
-
         const facturaIdTransacciones = id ? [id] : [];
         const { data: rawTransaccionesData } = facturaIdTransacciones.length > 0
             ? await supabase.from('pagos_ingresos').select('*').in('factura_id', facturaIdTransacciones)
@@ -562,10 +563,22 @@ export const FacturasModule = {
         const headerHtml = CoreActions.renderDocumentHeader('ingresos/facturas', 'Volver a Facturas de venta');
         const actionsHtml = CoreActions.renderActionButtons(factura, 'factura', isViewOnly, !id);
 
-        // Datos de Clientes para el Combobox
-        const clientes = contactos.filter(c => c.tipo === 'cliente');
-        const clienteActual = clientes.find(c => c.id === factura.clienteId);
-        const clienteNombreActual = clienteActual ? clienteActual.nombre : '';
+        // Fetch initial client name
+        let clienteNombreActual = '';
+        if (factura.clienteId) {
+            const { data: cliData } = await supabase.from('contactos').select('nombre').eq('id', factura.clienteId).single();
+            if (cliData) clienteNombreActual = cliData.nombre;
+        }
+
+        // Fetch initial products for details
+        let productosFactura = [];
+        if (factura.detalles && factura.detalles.length > 0) {
+            const pIds = factura.detalles.map(d => d.productoId).filter(Boolean);
+            if (pIds.length > 0) {
+                const { data: pData } = await supabase.from('productos').select('*').in('id', pIds);
+                if (pData) productosFactura = pData.map(p => DB._mapToFrontend('productos', p));
+            }
+        }
 
         const dbCuentas = await DB.getAll('cuentas_bancarias') || [];
         const cuentasActivas = dbCuentas.filter(c => c.estado === 'activo');
@@ -779,7 +792,7 @@ export const FacturasModule = {
             tr.innerHTML = `
                 <td class="text-muted text-center num-linea align-top pt-3">${contadorLineas}</td>
                 <td class="align-top">
-                    ${ItemEngine.renderProductSearchBox(detalle, productos, isViewOnly)}
+                    ${ItemEngine.renderProductSearchBox(detalle, productosFactura, isViewOnly)}
                     <div class="meta-prod ps-1"></div>
                 </td>
                 <td class="align-top">
@@ -812,7 +825,7 @@ export const FacturasModule = {
             }
 
             // Delegar Eventos Principales al Motor Global (Auto-Pricing y Metadatos)
-            ItemEngine.bindLineEvents(tr, () => calcEngine(), productos);
+            ItemEngine.bindLineEvents(tr, () => calcEngine(), productosFactura);
 
             if (!isViewOnly) {
                 // Disparadores locales del Math Engine
@@ -841,7 +854,7 @@ export const FacturasModule = {
                 // Forzar re-cálculo visual inicial si es necesario
                 const metaProd = tr.querySelector('.meta-prod');
                 const metaQty = tr.querySelector('.meta-qty');
-                const prod = productos.find(p => p.id === detalle.productoId);
+                const prod = productosFactura.find(p => p.id === detalle.productoId);
                 if (prod) {
                     if (metaProd) metaProd.innerHTML = `<span style="color: var(--text-muted); font-size: 11px;">${prod.sku || 'S/N'}</span>`;
                     if (metaQty) metaQty.innerHTML = `<span style="color: var(--text-muted); font-size: 11px;">Disp: ${prod.stockActual || prod.cantidad || 0}</span>`;
@@ -914,12 +927,18 @@ export const FacturasModule = {
 
         // Inicialización de Combobox de Clientes y Cálculo de Vencimiento Automatizado
         if (!isViewOnly) {
-            UI.createCombobox({
+            UI.createAsyncCombobox({
                 inputEl: element.querySelector('#search-cliente'),
                 hiddenIdEl: element.querySelector('#select-cliente'),
-                items: clientes,
+                fetchItems: async (query) => {
+                    const { data } = await supabase.from('contactos')
+                        .select('id, nombre, nit, plazosPago')
+                        .eq('tipo', 'cliente')
+                        .or(`nombre.ilike.%${query}%,nit.ilike.%${query}%`)
+                        .limit(20);
+                    return data || [];
+                },
                 displayProp: 'nombre',
-                searchProps: ['nit', 'email'],
                 allowCreate: true,
                 onSelect: (selectedItem) => {
                     calcularVencimiento(selectedItem);

@@ -420,115 +420,78 @@ export const ItemEngine = {
         const metaQty = tr.querySelector('.meta-qty');
 
         // ==========================================
-        // Lógica de Autocompletado (Live Search)
+        // Lógica de Autocompletado (Live Search Asíncrono)
         // ==========================================
+        
+        // Mantener limpieza manual si se borra el campo
         inputSearch.addEventListener('input', (e) => {
-            const query = e.target.value.toLowerCase().trim();
-            if (query.length < 1) {
-                dropdown.style.display = 'none';
-                dropdown.innerHTML = '';
-                // Limpiar si borró todo
-                if (query.length === 0 && inputId.value) {
-                    inputId.value = '';
-                    inpPrice.value = 0;
-                    inpTax.value = 0;
-                    if (metaProd) metaProd.innerHTML = '';
-                    if (metaQty) metaQty.innerHTML = '';
-                    calcEngine();
-                }
-                return;
+            if (e.target.value.trim().length === 0 && inputId.value) {
+                inputId.value = '';
+                inpPrice.value = 0;
+                inpTax.value = 0;
+                if (metaProd) metaProd.innerHTML = '';
+                if (metaQty) metaQty.innerHTML = '';
+                if (typeof calcEngine === 'function') calcEngine();
             }
+        });
 
-            // Filtrado predictivo
-            const filtered = productos.filter(p => 
-                (p.nombre && p.nombre.toLowerCase().includes(query)) || 
-                (p.sku && p.sku.toLowerCase().includes(query))
-            );
-
-            if (filtered.length === 0) {
-                dropdown.innerHTML = `<div class="p-2 text-muted small text-center">No hay resultados</div>`;
-                if (options.onCrearProducto) {
-                    dropdown.innerHTML += `
-                    <div class="dropdown-item-search p-2 text-primary fw-bold" style="cursor: pointer; border-top: 1px solid var(--border-color); font-size: 13px;" data-action="create">
-                        <i class="bi bi-plus-circle me-1"></i>Crear producto "${query}"
-                    </div>`;
-                }
-                dropdown.style.display = 'block';
-                
-                if (options.onCrearProducto) {
-                    dropdown.querySelectorAll('.dropdown-item-search').forEach(item => {
-                        item.addEventListener('mouseenter', () => item.style.backgroundColor = 'var(--primary-light)');
-                        item.addEventListener('mouseleave', () => item.style.backgroundColor = 'transparent');
-                        item.addEventListener('click', (ev) => {
-                            if (ev.currentTarget.dataset.action === 'create') {
-                                dropdown.style.display = 'none';
-                                options.onCrearProducto(query, tr);
-                            }
-                        });
-                    });
-                }
-                
-                return;
-            }
-
-            // Renderizar resultados con Mapeo estricto de precio
-            dropdown.innerHTML = filtered.map(p => {
-                let precioReal = 0;
-                
-                if (options.isCompra) {
-                    // Si es compra, usar costo promedio o costo base
-                    if (p.costo_promedio !== undefined) precioReal = p.costo_promedio;
-                    else if (p.costoBase !== undefined) precioReal = p.costoBase;
-                    else if (p.costo !== undefined) precioReal = p.costo;
-                } else {
-                    // Si es venta, usar precio de venta
-                    if (p.precio_venta !== undefined) precioReal = p.precio_venta;
-                    else if (p.precioVenta !== undefined) precioReal = p.precioVenta;
-                    else if (p.precio !== undefined) precioReal = p.precio;
-                    else if (p.price !== undefined) {
-                        if (Array.isArray(p.price) && p.price.length > 0) precioReal = p.price[0].price || 0;
-                        else precioReal = p.price;
-                    }
-                }
-                
-                return `
-                <div class="dropdown-item-search p-2" style="cursor: pointer; border-bottom: 1px solid var(--border-color); font-size: 13px;"
-                     data-id="${p.id}" data-precio="${precioReal}" data-impuesto="${p.impuesto || p.tax || 0}" 
-                     data-sku="${p.sku || p.reference || ''}" data-stock="${p.stockActual || p.inventory || p.cantidad || 0}" data-nombre="${p.nombre || p.name}">
-                    <strong style="color: var(--text-main);">[${p.sku || p.reference || 'S/N'}]</strong> - ${p.nombre || p.name}
-                </div>
-                `;
-            }).join('');
-            
-            dropdown.style.display = 'block';
-
-            // Efecto hover (Vanilla JS)
-            dropdown.querySelectorAll('.dropdown-item-search').forEach(item => {
-                item.addEventListener('mouseenter', () => item.style.backgroundColor = 'var(--primary-light)');
-                item.addEventListener('mouseleave', () => item.style.backgroundColor = 'transparent');
-                
-                // Acción de Selección
-                item.addEventListener('click', (ev) => {
-                    const ds = ev.currentTarget.dataset;
+        // Usamos importación dinámica para UI por si no estaba
+        import('./combobox.js').then(({ UI }) => {
+            UI.createAsyncCombobox({
+                inputEl: inputSearch,
+                hiddenIdEl: inputId,
+                fetchItems: async (query) => {
+                    const { supabase } = await import('../core/supabase.js');
+                    const { default: DB } = await import('../core/db.js');
+                    const { data } = await supabase.from('productos')
+                        .select('*')
+                        .or(`nombre.ilike.%${query}%,sku.ilike.%${query}%`)
+                        .limit(20);
+                    return data ? data.map(p => DB._mapToFrontend('productos', p)) : [];
+                },
+                displayProp: 'nombre',
+                renderItem: (p) => {
+                    return `<strong style="color: var(--text-main);">[${p.sku || p.reference || 'S/N'}]</strong> - ${p.nombre || p.name}`;
+                },
+                allowCreate: !!options.onCrearProducto,
+                onCreate: (query) => {
+                    if (options.onCrearProducto) options.onCrearProducto(query, tr);
+                },
+                onSelect: (p) => {
+                    let precioReal = 0;
                     
-                    inputSearch.value = `[${ds.sku || 'S/N'}] - ${ds.nombre}`;
-                    inputSearch.dataset.lastSku = ds.sku;
-                    inputId.value = ds.id;
+                    if (options.isCompra) {
+                        // Si es compra, usar costo promedio o costo base
+                        if (p.costo_promedio !== undefined) precioReal = p.costo_promedio;
+                        else if (p.costoBase !== undefined) precioReal = p.costoBase;
+                        else if (p.costo !== undefined) precioReal = p.costo;
+                    } else {
+                        // Si es venta, usar precio de venta
+                        if (p.precio_venta !== undefined) precioReal = p.precio_venta;
+                        else if (p.precioVenta !== undefined) precioReal = p.precioVenta;
+                        else if (p.precio !== undefined) precioReal = p.precio;
+                        else if (p.price !== undefined) {
+                            if (Array.isArray(p.price) && p.price.length > 0) precioReal = p.price[0].price || 0;
+                            else precioReal = p.price;
+                        }
+                    }
+                    
+                    inputSearch.value = `[${p.sku || p.reference || 'S/N'}] - ${p.nombre || p.name}`;
+                    inputSearch.dataset.lastSku = p.sku || p.reference;
                     
                     // Inyección estricta de Precios e Impuestos
-                    inpPrice.value = Number(ds.precio || 0).toLocaleString('es-CO', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-                    inpTax.value = ds.impuesto;
+                    inpPrice.value = Number(precioReal || 0).toLocaleString('es-CO', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                    inpTax.value = p.impuesto || p.tax || 0;
                     if (parseFloat(inpQty.value || 0) === 0) inpQty.value = 1;
 
                     // Renderizado de Información Secundaria Inferior
                     if (metaProd) metaProd.innerHTML = `
                         <span style="color: var(--text-muted); font-size: 11px; display: inline-block; margin-top: 4px;">
-                            ${ds.sku || 'S/N'}
+                            ${p.sku || p.reference || 'S/N'}
                         </span>
                     `;
-                    if (metaQty) metaQty.innerHTML = `<span style="color: var(--text-muted); font-size: 11px; display: inline-block; margin-top: 4px;">Disp: ${ds.stock || 0}</span>`;
-                    
-                    dropdown.style.display = 'none';
+                    const stockVal = p.stockActual || p.inventory || p.cantidad || 0;
+                    if (metaQty) metaQty.innerHTML = `<span style="color: var(--text-muted); font-size: 11px; display: inline-block; margin-top: 4px;">Disp: ${stockVal}</span>`;
                     
                     // Disparo Manual Forzado de Eventos (Math Engine Trigger)
                     inpPrice.dispatchEvent(new Event('input', { bubbles: true }));
@@ -536,7 +499,7 @@ export const ItemEngine = {
                     
                     // Detonación obligatoria del motor matemático (Fallback redundante)
                     if (typeof calcEngine === 'function') calcEngine();
-                });
+                }
             });
         });
     }
