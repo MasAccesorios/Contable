@@ -501,7 +501,9 @@ export const FacturasModule = {
                     const id = e.currentTarget.dataset.id;
                     const doc = currentItems.find(c => c.id == id);
                     if (doc) {
-                        PrintManager.printDocument(doc, 'Factura de venta', contactos, this.cache.productos);
+                        const contactos = await DB.getAll('contactos');
+                        const productos = await DB.getAll('productos');
+                        PrintManager.printDocument(doc, 'Factura de venta', contactos, productos);
                     }
                 });
             });
@@ -562,6 +564,8 @@ export const FacturasModule = {
 
         const headerHtml = CoreActions.renderDocumentHeader('ingresos/facturas', 'Volver a Facturas de venta');
         const actionsHtml = CoreActions.renderActionButtons(factura, 'factura', isViewOnly, !id);
+
+        const contactos = await DB.getAll('contactos');
 
         // Fetch initial client name
         let clienteNombreActual = '';
@@ -1009,7 +1013,7 @@ export const FacturasModule = {
                 }, 3000);
                 return;
             }
-            PrintManager.printDocument(factura, 'Factura de venta', contactos, productos);
+            PrintManager.printDocument(factura, 'Factura de venta', contactos, productosFactura);
         });
 
         // Evento Vista Previa Global (Acción Superior)
@@ -1027,7 +1031,7 @@ export const FacturasModule = {
                 }, 3000);
                 return;
             }
-            PrintManager.printDocument(factura, 'Factura de venta', contactos, productos, 'preview');
+            PrintManager.printDocument(factura, 'Factura de venta', contactos, productosFactura, 'preview');
         });
 
         // Evento Registrar Pago (Acción Superior - Solo Vista)
