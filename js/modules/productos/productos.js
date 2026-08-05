@@ -339,7 +339,12 @@ export const ProductosModule = {
                         <div class="card-body p-4">
                             <h5 class="fw-bold mb-3">Detalle Técnico</h5>
                             <ul class="list-unstyled mb-0">
-                                <li class="mb-2"><strong>SKU:</strong> <code class="bg-light px-2 py-1 rounded">${producto.sku}</code></li>
+                                <li class="mb-3 d-flex align-items-center">
+                                    <strong>SKU:</strong> 
+                                    <span class="badge bg-white text-danger border border-danger border-2 px-3 py-2 ms-2 fs-6 shadow-sm rounded">
+                                        ${producto.sku}
+                                    </span>
+                                </li>
                                 <li class="mb-2"><strong>Descripción:</strong> ${producto.nombre}</li>
                                 <li class="mb-2"><strong>Precio Venta:</strong> $${producto.precioVenta.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</li>
                                 <li class="mb-2"><strong>Ubicación:</strong> ${producto.ubicacion || 'No asignada'}</li>
