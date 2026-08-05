@@ -303,6 +303,11 @@ body {
 }
 
 @media print {
+    @page {
+        size: letter;
+        margin: 0.5in;
+    }
+
     #app-container {
         position: absolute !important;
         height: 0 !important;

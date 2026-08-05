@@ -1017,9 +1017,11 @@ export const PrintManager = {
             container.prepend(closeHeader);
 
             paperContent = document.createElement('div');
-            paperContent.style.maxWidth = '800px';
+            paperContent.style.width = '816px';
+            paperContent.style.minHeight = '1056px';
             paperContent.style.margin = '20px auto';
-            paperContent.style.padding = '20px';
+            paperContent.style.padding = '40px';
+            paperContent.style.boxSizing = 'border-box';
             paperContent.style.backgroundColor = '#fff';
             paperContent.style.boxShadow = '0 0 10px rgba(0,0,0,0.1)';
             paperContent.style.fontFamily = "'Inter', sans-serif";
@@ -1272,9 +1274,11 @@ export const PrintManager = {
             // Envolver el contenido en un "papel" para que se vea bien en desktop, 
             // pero que ocupe todo el ancho en mobile para facilitar captura
             const paperContent = document.createElement('div');
-            paperContent.style.maxWidth = '800px';
+            paperContent.style.width = '816px';
+            paperContent.style.minHeight = '1056px';
             paperContent.style.margin = '20px auto';
-            paperContent.style.padding = '20px';
+            paperContent.style.padding = '40px';
+            paperContent.style.boxSizing = 'border-box';
             paperContent.style.backgroundColor = '#fff';
             paperContent.style.boxShadow = '0 0 10px rgba(0,0,0,0.1)';
             paperContent.style.fontFamily = "'Inter', sans-serif";
