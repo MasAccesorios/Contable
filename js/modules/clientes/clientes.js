@@ -823,5 +823,108 @@ export const ContactosModule = {
             this.bindEvents();
             this.renderTabla();
         }
+    },
+
+    renderQuickModal(query, onSuccessCallback) {
+        const existingModal = document.getElementById('quick-contacto-modal');
+        if (existingModal) existingModal.remove();
+
+        // Determinar si la búsqueda parece un NIT o un Nombre
+        const isNit = /^[\d-]+$/.test(query);
+        const defaultName = isNit ? '' : query;
+        const defaultNit = isNit ? query : '';
+
+        const modalHtml = `
+            <div class="modal fade" id="quick-contacto-modal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content border-0 shadow">
+                        <div class="modal-header border-bottom-0 pb-0">
+                            <h5 class="modal-title fw-bold">Crear Contacto Rápido</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <form id="quick-contacto-form">
+                                <div class="row g-3">
+                                    <div class="col-12">
+                                        <label class="form-label small fw-bold text-muted mb-1">Nombre / Razón Social <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control" id="quick-nombre" value="${defaultName}" required autocomplete="off">
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="form-label small fw-bold text-muted mb-1">NIT / Identificación <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control" id="quick-nit" value="${defaultNit}" required autocomplete="off">
+                                    </div>
+                                    <div class="col-12 col-sm-6">
+                                        <label class="form-label small fw-bold text-muted mb-1">Tipo <span class="text-danger">*</span></label>
+                                        <select class="form-select" id="quick-tipo">
+                                            <option value="cliente">Cliente</option>
+                                            <option value="proveedor">Proveedor</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-12 col-sm-6">
+                                        <label class="form-label small fw-bold text-muted mb-1">Teléfono</label>
+                                        <input type="text" class="form-control" id="quick-telefono" autocomplete="off">
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                        <div class="modal-footer border-top-0 pt-0">
+                            <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                            <button type="button" class="btn btn-primary" id="btn-save-quick-contacto">Guardar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        const modalEl = document.getElementById('quick-contacto-modal');
+        const modalInstance = new bootstrap.Modal(modalEl);
+        
+        modalEl.querySelector('#btn-save-quick-contacto').addEventListener('click', async (e) => {
+            const btn = e.currentTarget;
+            const form = modalEl.querySelector('#quick-contacto-form');
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Guardando...';
+
+            const nuevoContacto = {
+                nombre: modalEl.querySelector('#quick-nombre').value.trim(),
+                nit: modalEl.querySelector('#quick-nit').value.trim(),
+                tipo: modalEl.querySelector('#quick-tipo').value,
+                telefono: modalEl.querySelector('#quick-telefono').value.trim() || null,
+                email: null,
+                direccion: null,
+                ciudad: null,
+                regimen: 'Regimen Simplificado',
+                cupoCredito: 0,
+                plazosPago: 0,
+                fechaCreacion: new Date().toISOString()
+            };
+
+            try {
+                // Check for duplicates
+                const { data: existing } = await DB.client.from('contactos')
+                    .select('id').eq('identificacion', nuevoContacto.nit).single();
+
+                if (existing) throw new Error('Ya existe un contacto con esta identificación');
+
+                const savedContacto = await DB.save('contactos', nuevoContacto);
+                
+                modalInstance.hide();
+                if (onSuccessCallback) onSuccessCallback(savedContacto);
+            } catch (err) {
+                console.error(err);
+                alert('Error al guardar contacto: ' + err.message);
+                btn.disabled = false;
+                btn.innerHTML = 'Guardar';
+            }
+        });
+
+        modalEl.addEventListener('hidden.bs.modal', () => modalEl.remove());
+        modalInstance.show();
     }
 };
