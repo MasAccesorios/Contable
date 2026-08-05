@@ -128,6 +128,13 @@ export const CuentaCobroModule = {
             if (data) doc = data;
         }
 
+        let productosCuenta = [];
+        const pIds = (doc.detalles || []).map(d => d.producto_id).filter(Boolean);
+        if (pIds.length > 0) {
+            const { data: pData } = await supabase.from('productos').select('id, nombre, sku').in('id', pIds);
+            if (pData) productosCuenta = pData;
+        }
+
         const formatMoney = (val) => '$ ' + parseFloat(val || 0).toLocaleString('es-CO', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 
         const headerHtml = CoreActions.renderDocumentHeader('ingresos/cuenta-cobro', 'Volver a Cuentas de Cobro');
@@ -300,7 +307,7 @@ export const CuentaCobroModule = {
             tr.style.cssText = "border-bottom: 1px solid var(--border-color);";
 
             const itemToBind = { ...lineData, productoId: lineData.producto_id };
-            const searchHtml = ItemEngine.renderProductSearchBox(itemToBind, isViewOnly, null);
+            const searchHtml = ItemEngine.renderProductSearchBox(itemToBind, productosCuenta, isViewOnly);
 
             tr.innerHTML = `
                 <td style="padding: 12px 16px;">
