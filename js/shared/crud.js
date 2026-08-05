@@ -823,7 +823,7 @@ export const PrintManager = {
                     </div>
                     <div style="padding: 15px; font-size: 14px; color: #495057;">
                         <table style="width: 100%; border-collapse: collapse;">
-                            <tr><td style="padding-bottom: 8px; width: 30%;"><strong>Razón Social:</strong></td><td style="padding-bottom: 8px;">${doc.cliente_razon_social || ''}</td></tr>
+                            <tr><td style="padding-bottom: 8px; width: 30%;"><strong>Razón Social:</strong></td><td style="padding-bottom: 8px; padding-left: 5px;">${doc.cliente_razon_social || ''}</td></tr>
                             <tr><td style="padding-bottom: 8px;"><strong>NIT:</strong></td><td style="padding-bottom: 8px;">${doc.cliente_nit || ''}</td></tr>
                             <tr><td style="padding-bottom: 8px;"><strong>Dirección:</strong></td><td style="padding-bottom: 8px;">${doc.cliente_direccion || ''}</td></tr>
                             <tr><td style="padding-bottom: 8px;"><strong>Ciudad:</strong></td><td style="padding-bottom: 8px;">${doc.cliente_ciudad || ''}</td></tr>
