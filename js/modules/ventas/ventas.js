@@ -128,8 +128,10 @@ export const FacturasModule = {
                     }
                 }
                 
+                const rowOpacity = (estado === 'anulada' || estado === 'voided' || estado === 'void') ? '0.5' : '1';
+                
                 return `
-                    <tr style="cursor: pointer; border-bottom: 1px solid var(--border-color); font-size: 13px; color: var(--text-body);" onclick="if(!event.target.closest('button')) window.location.hash = '#/ingresos/facturas/ver/${c.id}'">
+                    <tr style="cursor: pointer; border-bottom: 1px solid var(--border-color); font-size: 13px; color: var(--text-body); opacity: ${rowOpacity}; transition: opacity 0.2s;" onclick="if(!event.target.closest('button')) window.location.hash = '#/ingresos/facturas/ver/${c.id}'">
                         <td class="py-3">${numDisplay}</td>
                         <td class="py-3">${c.fecha || ''}</td>
                         <td class="py-3" style="color: ${vencimientoColor};">${c.vencimiento || ''}</td>
