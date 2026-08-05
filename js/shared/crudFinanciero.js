@@ -39,35 +39,6 @@ export class CrudFinanciero {
                     <h1 class="h2">${this.config.titulo}</h1>
                 </div>
 
-        this.currentData = [];
-        // config expected:
-        // titulo: string
-        // btnNuevoText: string
-        // panelHistorialText: string
-        // kpiId: string
-        // formId: string
-        // tbodyId: string
-        // categorias: array of strings
-        // colorMonto: string (e.g. 'text-danger' or 'text-success')
-        // prefijoMonto: string (e.g. '-' or '+')
-        // tipoTransaccion: string (e.g. 'egreso' or 'ingreso')
-        // tipoFiltroDb: string (e.g. 'out' or 'in')
-    }
-
-    async init(element) {
-        // Cargar contactos para el selector de proveedor
-        const contactos = await DB.getAll('contactos');
-        this.proveedores = contactos.filter(c => c.tipo === 'proveedor');
-
-        // Cargar cuentas bancarias
-        this.cuentasActivas = await DB.getAll('cuentas_bancarias') || [];
-
-        element.innerHTML = `
-            <div class="container-fluid py-4">
-                <div class="d-flex justify-content-between flex-wrap pt-3 pb-2 mb-3 border-bottom">
-                    <h1 class="h2">${this.config.titulo}</h1>
-                </div>
-
                 <!-- Panel Superior: Creación Rápida -->
                 <div class="card mb-4 shadow-sm border-0">
                     <div class="card-header bg-white border-bottom-0 pt-4 pb-0">

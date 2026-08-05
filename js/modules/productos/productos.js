@@ -250,30 +250,30 @@ export const ProductosModule = {
                             <label class="form-label fw-semibold text-muted small">Nombre del Producto *</label>
                             <input type="text" id="form-nombre" class="form-control" value="${producto.nombre}" required>
                         </div>
-                        <div class="row mb-3">
-                            <div class="col-md-4">
+                        <div class="row mb-3 g-3">
+                            <div class="col-12 col-sm-6 col-md-4">
                                 <label class="form-label fw-semibold text-muted small">Cantidad Inicial *</label>
                                 <input type="text" id="form-cantidad-inicial" class="form-control" value="0,00" ${id ? 'disabled' : 'required'}>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-12 col-sm-6 col-md-4">
                                 <label class="form-label fw-semibold text-muted small">Costo Inicial ($) *</label>
                                 <input type="text" id="form-costo" class="form-control" value="${producto.costoBase ? Number(producto.costoBase).toLocaleString('es-CO', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '0,00'}" ${id ? 'disabled' : 'required'}>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-12 col-sm-6 col-md-4">
                                 <label class="form-label fw-semibold text-muted small">Precio Base ($) *</label>
                                 <input type="text" id="form-precio" class="form-control" value="${producto.precioVenta ? Number(producto.precioVenta).toLocaleString('es-CO', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '0,00'}" required>
                             </div>
                         </div>
-                        <div class="row mb-3">
-                            <div class="col-md-4">
+                        <div class="row mb-3 g-3">
+                            <div class="col-12 col-sm-6 col-md-4">
                                 <label class="form-label fw-semibold text-muted small">Impuesto (%)</label>
                                 <input type="text" id="form-impuesto" class="form-control" value="${producto.impuesto ? Number(producto.impuesto).toLocaleString('es-CO', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '0,00'}">
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-12 col-sm-6 col-md-4">
                                 <label class="form-label fw-semibold text-muted small">Precio Total ($)</label>
                                 <input type="text" id="form-precio-total" class="form-control bg-light" value="0,00" readonly disabled>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-12 col-sm-6 col-md-4">
                                 <label class="form-label fw-semibold text-muted small">Stock Mínimo</label>
                                 <input type="text" id="form-minimo" class="form-control" value="${producto.stockMinimo ? Number(producto.stockMinimo).toLocaleString('es-CO', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '5,00'}">
                             </div>
