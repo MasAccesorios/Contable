@@ -429,7 +429,7 @@ export const CoreActions = {
 export const ItemEngine = {
     renderProductSearchBox(detalle, productos, isViewOnly = false) {
         // Encontrar producto inicial si existe
-        const prod = productos.find(p => p.id === detalle.productoId);
+        const prod = productos.find(p => String(p.id) === String(detalle.productoId));
         const initialText = prod ? `[${prod.sku || 'S/N'}] - ${prod.nombre}` : '';
         
         return `
