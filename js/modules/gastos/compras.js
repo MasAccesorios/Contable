@@ -129,7 +129,7 @@ export const ComprasModule = {
                 }
                 
                 return `
-                    <tr style="cursor: pointer; border-bottom: 1px solid var(--border-color); font-size: 13px; color: var(--text-body);" onclick="if(!event.target.closest('button')) window.location.hash = '#/gastos/compras/ver/${c.id}'">
+                    <tr style="cursor: pointer; border-bottom: 1px solid var(--border-color); font-size: 13px; color: var(--text-body);" onclick="if(!event.target.closest('button')) window.location.hash = '#/gastos/proveedores/ver/${c.id}'">
                         <td class="py-3">${numDisplay}</td>
                         <td class="py-3">${c.fecha || ''}</td>
                         <td class="py-3" style="color: ${vencimientoColor};">${c.vencimiento || ''}</td>
@@ -403,13 +403,13 @@ export const ComprasModule = {
                             </a>
                             <hr class="dropdown-divider my-1">` : ''}
                             ${!isAnulada ? `
-                            <a href="#/ingresos/facturas/editar/${id}" class="d-block px-3 py-1 text-decoration-none" style="color: var(--text-body); font-size: 13px;">
+                            <a href="#/gastos/proveedores/editar/${id}" class="d-block px-3 py-1 text-decoration-none" style="color: var(--text-body); font-size: 13px;">
                                 <i class="bi bi-pencil me-2"></i> Editar
                             </a>
                             <a href="#" class="d-block px-3 py-1 text-decoration-none mt-1 btn-delete-row" data-id="${id}" style="color: #ef4444; font-size: 13px;">
                                 <i class="bi bi-x-circle me-2"></i> Anular
                             </a>` : `
-                            <a href="#/ingresos/facturas/editar/${id}" class="d-block px-3 py-1 text-decoration-none" style="color: var(--text-body); font-size: 13px;">
+                            <a href="#/gastos/proveedores/editar/${id}" class="d-block px-3 py-1 text-decoration-none" style="color: var(--text-body); font-size: 13px;">
                                 <i class="bi bi-eye me-2"></i> Ver Detalles
                             </a>`}
                         </div>
@@ -543,7 +543,7 @@ export const ComprasModule = {
             }
         }
 
-        const headerHtml = CoreActions.renderDocumentHeader('ingresos/facturas', 'Volver a Facturas de Compra');
+        const headerHtml = CoreActions.renderDocumentHeader('gastos/proveedores', 'Volver a Facturas de Compra');
         const actionsHtml = CoreActions.renderActionButtons(factura, 'factura', isViewOnly, !id);
 
         // Datos de Proveedores para el Combobox
@@ -716,7 +716,7 @@ export const ComprasModule = {
                         
                         ${factura.cotizacion_origen_id ? `
                         <div class="tab-pane fade" id="tab-cotizacion" role="tabpanel">
-                            <div class="card border border-light shadow-sm" style="max-width:300px; cursor:pointer;" onclick="sessionStorage.setItem('origenVolver', JSON.stringify({hash: '#/gastos/compras/ver/${factura.id}', label: 'Volver a la factura'})); window.location.hash='#/ingresos/cotizaciones/ver/${factura.cotizacion_origen_id}'">
+                            <div class="card border border-light shadow-sm" style="max-width:300px; cursor:pointer;" onclick="sessionStorage.setItem('origenVolver', JSON.stringify({hash: '#/gastos/proveedores/ver/${factura.id}', label: 'Volver a la factura'})); window.location.hash='#/ingresos/cotizaciones/ver/${factura.cotizacion_origen_id}'">
                                 <div class="card-body py-3 px-3 d-flex justify-content-between align-items-center">
                                     <div>
                                         <small class="text-muted d-block" style="font-size:11px;">Ver documento origen</small>
@@ -997,7 +997,7 @@ export const ComprasModule = {
         // Evento Editar Global (Acción Superior)
         element.querySelector('.btn-editar')?.addEventListener('click', (e) => {
             const docId = e.currentTarget.dataset.id;
-            window.location.hash = `#/ingresos/facturas/editar/${docId}`;
+            window.location.hash = `#/gastos/proveedores/editar/${docId}`;
         });
 
         // Evento Guardar (Captura de Estado DOM a DB)
@@ -1121,7 +1121,7 @@ export const ComprasModule = {
                     
                     // Navegar a modo lectura para bloquear edición y habilitar impresión final
                     window.hayCambiosSinGuardar = false;
-                    window.location.hash = `#/gastos/compras/ver/${factura.id}`;
+                    window.location.hash = `#/gastos/proveedores/ver/${factura.id}`;
                 } catch (error) {
                     console.error("Fallo general de guardado:", error);
                     alert("Error en el sistema al guardar: " + error.message);

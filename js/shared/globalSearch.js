@@ -122,7 +122,7 @@ export const GlobalSearch = {
                         title = 'Facturas';
                         itemsHtml = group.data.map(item => {
                             const esCompra = item.tipo === 'compra';
-                            const hash = esCompra ? `#/gastos/compras/ver/${item.id}` : `#/ingresos/facturas/ver/${item.id}`;
+                            const hash = esCompra ? `#/gastos/proveedores/ver/${item.id}` : `#/ingresos/facturas/ver/${item.id}`;
                             const badge = esCompra ? 'Compra' : 'Venta';
                             return `
                                 <a href="${hash}" class="dropdown-item py-2 gs-result-link px-3 text-wrap" style="white-space: normal;">
