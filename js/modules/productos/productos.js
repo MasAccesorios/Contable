@@ -526,7 +526,5 @@ export const ProductosModule = {
             // Recargar vista de detalles del producto
             await this.renderDetalle(element, id);
         });
-    },
-
     }
 };
