@@ -947,6 +947,7 @@ export const PrintManager = {
             btnCompartir.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Preparando...';
             
             let cachedShareFile = null;
+            let paperContent;
             
             const precacheShareImage = async () => {
                 try {
@@ -963,7 +964,7 @@ export const PrintManager = {
                     const oldScrollTop = container.scrollTop;
                     container.scrollTop = 0;
                     
-                    const canvas = await window.html2canvas(container, { 
+                    const canvas = await window.html2canvas(paperContent, { 
                         scale: 2,
                         useCORS: true,
                         backgroundColor: '#ffffff'
@@ -1014,6 +1015,20 @@ export const PrintManager = {
             });
             
             container.prepend(closeHeader);
+
+            paperContent = document.createElement('div');
+            paperContent.style.maxWidth = '800px';
+            paperContent.style.margin = '20px auto';
+            paperContent.style.padding = '20px';
+            paperContent.style.backgroundColor = '#fff';
+            paperContent.style.boxShadow = '0 0 10px rgba(0,0,0,0.1)';
+            paperContent.style.fontFamily = "'Inter', sans-serif";
+            paperContent.style.color = "#212529";
+
+            while (container.childNodes.length > 1) {
+                paperContent.appendChild(container.childNodes[1]);
+            }
+            container.appendChild(paperContent);
         } else {
             window.print();
             container.remove();
