@@ -480,9 +480,9 @@ export const ItemEngine = {
                     inputSearch.dataset.lastSku = p.sku || p.reference;
                     
                     // Inyección estricta de Precios e Impuestos
-                    inpPrice.value = Number(precioReal || 0).toLocaleString('es-CO', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-                    inpTax.value = p.impuesto || p.tax || 0;
-                    if (parseFloat(inpQty.value || 0) === 0) inpQty.value = 1;
+                    if (inpPrice) inpPrice.value = Number(precioReal || 0).toLocaleString('es-CO', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                    if (inpTax) inpTax.value = p.impuesto || p.tax || 0;
+                    if (inpQty && parseFloat(inpQty.value || 0) === 0) inpQty.value = 1;
 
                     // Renderizado de Información Secundaria Inferior
                     if (metaProd) metaProd.innerHTML = `
@@ -494,8 +494,8 @@ export const ItemEngine = {
                     if (metaQty) metaQty.innerHTML = `<span style="color: var(--text-muted); font-size: 11px; display: inline-block; margin-top: 4px;">Disp: ${stockVal}</span>`;
                     
                     // Disparo Manual Forzado de Eventos (Math Engine Trigger)
-                    inpPrice.dispatchEvent(new Event('input', { bubbles: true }));
-                    inpQty.dispatchEvent(new Event('input', { bubbles: true }));
+                    if (inpPrice) inpPrice.dispatchEvent(new Event('input', { bubbles: true }));
+                    if (inpQty) inpQty.dispatchEvent(new Event('input', { bubbles: true }));
                     
                     // Detonación obligatoria del motor matemático (Fallback redundante)
                     if (typeof calcEngine === 'function') calcEngine();

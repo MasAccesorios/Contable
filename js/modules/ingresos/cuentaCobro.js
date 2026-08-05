@@ -315,10 +315,10 @@ export const CuentaCobroModule = {
                     ${searchHtml}
                 </td>
                 <td style="padding: 12px 16px;">
-                    <input type="text" class="form-control item-price" value="${lineData.precio_unitario || 0}" ${isViewOnly ? 'disabled' : ''}>
+                    <input type="text" class="form-control input-price" value="${lineData.precio_unitario || 0}" ${isViewOnly ? 'disabled' : ''}>
                 </td>
                 <td style="padding: 12px 16px;">
-                    <input type="number" class="form-control item-qty" value="${lineData.cantidad || 1}" min="1" step="0.01" ${isViewOnly ? 'disabled' : ''}>
+                    <input type="number" class="form-control input-qty" value="${lineData.cantidad || 1}" min="1" step="0.01" ${isViewOnly ? 'disabled' : ''}>
                 </td>
                 <td style="padding: 12px 16px; text-align: right; vertical-align: middle;">
                     <span class="item-line-total fw-bold text-muted">${formatMoney(lineData.total)}</span>
@@ -330,13 +330,13 @@ export const CuentaCobroModule = {
                 ` : ''}
             `;
             tbody.appendChild(tr);
-            applyCurrencyFormatting(tr.querySelector('.item-price'));
+            applyCurrencyFormatting(tr.querySelector('.input-price'));
 
             if (!isViewOnly) {
                 ItemEngine.bindLineEvents(tr, updateTotals, [], {});
 
-                tr.querySelector('.item-price').addEventListener('input', updateTotals);
-                tr.querySelector('.item-qty').addEventListener('input', updateTotals);
+                tr.querySelector('.input-price').addEventListener('input', updateTotals);
+                tr.querySelector('.input-qty').addEventListener('input', updateTotals);
                 
                 tr.querySelector('.btn-remove-line').addEventListener('click', () => {
                     tr.remove();
@@ -351,8 +351,8 @@ export const CuentaCobroModule = {
             doc.detalles = [];
 
             rows.forEach((tr) => {
-                const qty = parseFloat(tr.querySelector('.item-qty').value) || 0;
-                const price = parseCurrencyValue(tr.querySelector('.item-price').value);
+                const qty = parseFloat(tr.querySelector('.input-qty').value) || 0;
+                const price = parseCurrencyValue(tr.querySelector('.input-price').value);
                 const totalLine = qty * price;
 
                 tr.querySelector('.item-line-total').textContent = formatMoney(totalLine);
