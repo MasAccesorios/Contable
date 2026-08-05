@@ -1047,14 +1047,14 @@ export const PrintManager = {
                 <div style="text-align: center; width: 40%;">
                     <div style="border-bottom: 1px solid #ced4da; margin-bottom: 8px;"></div>
                     <strong style="font-size: 11px; color: #212529;">ACEPTADA, FIRMA Y/O SELLO Y FECHA</strong><br>
-                    <span style="font-size: 10px; color: #6c757d; text-transform: uppercase;">\${doc.cliente_razon_social || ''}</span>
+                    <span style="font-size: 10px; color: #6c757d; text-transform: uppercase;">${doc.cliente_razon_social || ''}</span>
                 </div>
             </div>
-        \`;
+        `;
 
         this._renderPreviewShell(htmlContent, {
             mode,
-            fileName: \`CuentaCobro_\${numDisplay}.png\`,
+            fileName: `CuentaCobro_${numDisplay}.png`,
             title: 'Cuenta de Cobro'
         });
     },
