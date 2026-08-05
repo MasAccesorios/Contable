@@ -589,20 +589,20 @@ export const ComprasModule = {
                 <div class="card border-0 mb-4" style="box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.03), 0px 1px 3px rgba(0, 0, 0, 0.05); border-radius: 8px;">
                     <div class="card-body p-3 p-md-5">
                         <!-- HEADER DOCUMENTO -->
-                        <div class="row mb-5 align-items-center">
-                            <div class="col-md-4">
+                        <div class="row mb-4 align-items-center">
+                            <div class="col-12 col-md-4 mb-3 mb-md-0 text-center text-md-start">
                                 <img src="LogoMas.png" alt="Logo" style="max-height: 80px;">
                             </div>
-                            <div class="col-md-4 text-center">
+                            <div class="col-12 col-md-4 text-center mb-3 mb-md-0">
                                 <h5 class="fw-bold" style="color: var(--text-main);">Accesorios .</h5>
                             </div>
-                            <div class="col-md-4">
-                                <select class="form-select mb-2 bg-light border-0">
+                            <div class="col-12 col-md-4 text-center text-md-end">
+                                <select class="form-select mb-2 bg-light border-0 d-inline-block w-auto">
                                     <option>Factura de Compra</option>
                                 </select>
-                                <div class="d-flex justify-content-between align-items-center text-muted" style="font-size: 14px;">
+                                <div class="d-flex justify-content-center justify-content-md-end align-items-center text-muted" style="font-size: 14px;">
                                     <span id="lbl-numero">No. <strong style="color: var(--text-main);">${factura.numero || '[Autogenerado al guardar]'}</strong></span>
-                                    ${!isViewOnly ? `<i class="bi bi-gear" id="btn-config-num" style="cursor: pointer;"></i>` : ''}
+                                    ${!isViewOnly ? `<i class="bi bi-gear ms-2" id="btn-config-num" style="cursor: pointer;"></i>` : ''}
                                 </div>
                             </div>
                         </div>
@@ -610,29 +610,29 @@ export const ComprasModule = {
                         <!-- INFO FACTURA -->
                         <h6 class="fw-bold mb-3" style="color: var(--text-main);">Información de la factura</h6>
                         <div class="row mb-5 g-3">
-                            <div class="col-md-3">
+                            <div class="col-12 col-sm-6 col-md-3">
                                 <label class="form-label" style="font-size: 12px; font-weight: var(--weight-medium); color: var(--text-body);">Proveedor <span class="text-danger">*</span></label>
                                 <input type="text" id="search-proveedor" class="form-control form-control-sm text-muted" placeholder="Buscar proveedor..." value="${proveedorNombreActual}" autocomplete="off" ${isViewOnly ? 'disabled' : ''}>
                                 <input type="hidden" id="select-proveedor" value="${factura.proveedorId || ''}">
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-12 col-sm-6 col-md-3">
                                 <label class="form-label" style="font-size: 12px; font-weight: var(--weight-medium); color: var(--text-body);">Tipo de Venta</label>
                                 <select id="select-tipo-compra" class="form-select form-select-sm text-muted" ${isViewOnly ? 'disabled' : ''}>
                                     <option value="credito" ${factura.tipoCompra === 'credito' || !factura.tipoCompra ? 'selected' : ''}>A Crédito (Cartera)</option>
                                     <option value="contado" ${factura.tipoCompra === 'contado' ? 'selected' : ''}>De Contado (Caja)</option>
                                 </select>
                             </div>
-                            <div class="col-md-3" id="container-cuenta-venta" style="display: ${factura.tipoCompra === 'contado' ? 'block' : 'none'};">
+                            <div class="col-12 col-sm-6 col-md-3" id="container-cuenta-venta" style="display: ${factura.tipoCompra === 'contado' ? 'block' : 'none'};">
                                 <label class="form-label" style="font-size: 12px; font-weight: var(--weight-medium); color: var(--text-body);">Cuenta (Contado)</label>
                                 <select id="select-cuenta-compra" class="form-select form-select-sm text-muted" ${isViewOnly ? 'disabled' : ''}>
                                     ${cuentasActivas.map(c => `<option value="${c.nombre}" ${factura.cuentaId === c.nombre ? 'selected' : ''}>${c.nombre}</option>`).join('')}
                                 </select>
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-6 col-md-3">
                                 <label class="form-label" style="font-size: 12px; font-weight: var(--weight-medium); color: var(--text-body);">Fecha de creación</label>
                                 <input type="date" id="input-fecha" class="form-control form-control-sm text-muted" value="${factura.fecha}" ${isViewOnly ? 'disabled' : ''}>
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-6 col-md-3">
                                 <label class="form-label" style="font-size: 12px; font-weight: var(--weight-medium); color: var(--text-body);">Fecha de vencimiento</label>
                                 <input type="date" id="input-vencimiento" class="form-control form-control-sm text-muted" value="${factura.vencimiento}" ${isViewOnly ? 'disabled' : ''}>
                             </div>
