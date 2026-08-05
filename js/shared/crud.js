@@ -57,12 +57,17 @@ export const CoreActions = {
             </button>
         `;
 
+        const estadoDoc = documentData ? documentData.estado : null;
+        const esAnulado = estadoDoc === 'anulada' || estadoDoc === 'anulado' || estadoDoc === 'voided' || estadoDoc === 'void';
+
         if (!isNew) {
-            buttons += `
-                <button class="btn btn-outline-secondary btn-sm me-2 btn-editar" data-id="${docId}" ${!isViewOnly ? 'style="display: none;"' : ''}>
-                    <i class="bi bi-pencil me-1"></i>Editar
-                </button>
-            `;
+            if (!esAnulado) {
+                buttons += `
+                    <button class="btn btn-outline-secondary btn-sm me-2 btn-editar" data-id="${docId}" ${!isViewOnly ? 'style="display: none;"' : ''}>
+                        <i class="bi bi-pencil me-1"></i>Editar
+                    </button>
+                `;
+            }
 
             // Lógica Exclusiva: Conversión de Cotización
             if (type === 'cotizacion') {
