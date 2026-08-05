@@ -376,11 +376,15 @@ export const ContactosModule = {
                             <input type="text" id="form-nit" class="form-control form-control-sm" value="${contacto.nit}" required>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label text-muted small fw-medium">Tipo de Contacto</label>
-                            <select id="form-tipo" class="form-select form-select-sm">
-                                <option value="cliente" ${contacto.tipo === 'cliente' ? 'selected' : ''}>Cliente</option>
-                                <option value="proveedor" ${contacto.tipo === 'proveedor' ? 'selected' : ''}>Proveedor</option>
-                            </select>
+                            <label class="form-label text-muted small fw-medium d-block">Tipo de Contacto <span class="text-danger">*</span></label>
+                            <div class="form-check form-check-inline mt-1">
+                                <input class="form-check-input" type="checkbox" id="form-es-cliente" ${contacto.es_cliente !== false ? 'checked' : ''}>
+                                <label class="form-check-label text-muted small" for="form-es-cliente">Es cliente</label>
+                            </div>
+                            <div class="form-check form-check-inline mt-1">
+                                <input class="form-check-input" type="checkbox" id="form-es-proveedor" ${contacto.es_proveedor ? 'checked' : ''}>
+                                <label class="form-check-label text-muted small" for="form-es-proveedor">Es proveedor</label>
+                            </div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label text-muted small fw-medium">Teléfono</label>
@@ -429,10 +433,19 @@ export const ContactosModule = {
         this.element.querySelector('#form-contacto-data')?.addEventListener('submit', async (e) => {
             e.preventDefault();
             
+            const esCliente = this.element.querySelector('#form-es-cliente').checked;
+            const esProveedor = this.element.querySelector('#form-es-proveedor').checked;
+            if (!esCliente && !esProveedor) {
+                CoreActions.showWarningModal("Debe seleccionar al menos un tipo de contacto (Cliente o Proveedor).");
+                return;
+            }
+
             const datos = {
                 nombre: this.element.querySelector('#form-nombre').value,
                 nit: this.element.querySelector('#form-nit').value,
-                tipo: this.element.querySelector('#form-tipo').value,
+                es_cliente: esCliente,
+                es_proveedor: esProveedor,
+                tipo: esProveedor && !esCliente ? 'proveedor' : 'cliente',
                 telefono: this.element.querySelector('#form-telefono').value,
                 email: this.element.querySelector('#form-email').value,
                 ciudad: this.element.querySelector('#form-ciudad').value,
@@ -854,11 +867,15 @@ export const ContactosModule = {
                                         <input type="text" class="form-control" id="quick-nit" value="${defaultNit}" required autocomplete="off">
                                     </div>
                                     <div class="col-12 col-sm-6">
-                                        <label class="form-label small fw-bold text-muted mb-1">Tipo <span class="text-danger">*</span></label>
-                                        <select class="form-select" id="quick-tipo">
-                                            <option value="cliente">Cliente</option>
-                                            <option value="proveedor">Proveedor</option>
-                                        </select>
+                                        <label class="form-label small fw-bold text-muted mb-1 d-block">Tipo <span class="text-danger">*</span></label>
+                                        <div class="form-check form-check-inline mt-2">
+                                            <input class="form-check-input" type="checkbox" id="quick-es-cliente" checked>
+                                            <label class="form-check-label small" for="quick-es-cliente">Cliente</label>
+                                        </div>
+                                        <div class="form-check form-check-inline mt-2">
+                                            <input class="form-check-input" type="checkbox" id="quick-es-proveedor">
+                                            <label class="form-check-label small" for="quick-es-proveedor">Proveedor</label>
+                                        </div>
                                     </div>
                                     <div class="col-12 col-sm-6">
                                         <label class="form-label small fw-bold text-muted mb-1">Teléfono</label>
@@ -891,10 +908,21 @@ export const ContactosModule = {
             btn.disabled = true;
             btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Guardando...';
 
+            const esCliente = modalEl.querySelector('#quick-es-cliente').checked;
+            const esProveedor = modalEl.querySelector('#quick-es-proveedor').checked;
+            if (!esCliente && !esProveedor) {
+                alert("Debe seleccionar al menos un tipo de contacto.");
+                modalEl.querySelector('#btn-save-quick-contacto').disabled = false;
+                modalEl.querySelector('#btn-save-quick-contacto').innerHTML = 'Guardar';
+                return;
+            }
+
             const nuevoContacto = {
                 nombre: modalEl.querySelector('#quick-nombre').value.trim(),
                 nit: modalEl.querySelector('#quick-nit').value.trim(),
-                tipo: modalEl.querySelector('#quick-tipo').value,
+                es_cliente: esCliente,
+                es_proveedor: esProveedor,
+                tipo: esProveedor && !esCliente ? 'proveedor' : 'cliente',
                 telefono: modalEl.querySelector('#quick-telefono').value.trim() || null,
                 email: null,
                 direccion: null,

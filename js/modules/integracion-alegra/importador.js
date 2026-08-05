@@ -103,6 +103,8 @@ export const ImportadorModule = {
                     id,
                     nombre: c.nombre || c.name || c.razonSocial || 'Contacto Sin Nombre',
                     nit: nit || 'S/N',
+                    es_cliente: String(c.tipo || 'cliente').toLowerCase() !== 'proveedor',
+                    es_proveedor: String(c.tipo || 'cliente').toLowerCase() === 'proveedor',
                     tipo: String(c.tipo || 'cliente').toLowerCase() === 'proveedor' ? 'proveedor' : 'cliente',
                     telefono: c.telefono || c.phone || '',
                     email: c.email || '',

@@ -143,9 +143,12 @@ export const obtenerCarteraFiltrada = (facturasRaw, transacciones, contactos, ti
             if (cId) {
                 const contacto = contactos.find(c => String(c.id) === String(cId));
                 if (contacto) {
-                    const esProveedor = contacto.tipo === 'proveedor';
-                    if (!buscaCxp && esProveedor) return false;
-                    if (buscaCxp && !esProveedor) return false;
+                    // Si contacto.es_cliente/proveedor no existe (aún no migrado localmente), caer a legacy
+                    const esCli = contacto.es_cliente !== undefined ? contacto.es_cliente : contacto.tipo !== 'proveedor';
+                    const esProv = contacto.es_proveedor !== undefined ? contacto.es_proveedor : contacto.tipo === 'proveedor';
+                    
+                    if (!buscaCxp && !esCli) return false;
+                    if (buscaCxp && !esProv) return false;
                 } else if (buscaCxp) {
                     return false;
                 }

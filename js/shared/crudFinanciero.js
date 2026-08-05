@@ -27,8 +27,8 @@ export class CrudFinanciero {
 
     async init(element) {
         // Cargar contactos para el selector de proveedor
-        const contactos = await DB.getAll('contactos');
-        this.proveedores = contactos.filter(c => c.tipo === 'proveedor');
+        const contactos = await DB.getAll('contactos');        // Add legacy fallback for contacts not yet synced to IndexedDB
+        this.proveedores = contactos.filter(c => c.es_proveedor !== undefined ? c.es_proveedor : c.tipo === 'proveedor');
 
         // Cargar cuentas bancarias
         this.cuentasActivas = await DB.getAll('cuentas_bancarias') || [];

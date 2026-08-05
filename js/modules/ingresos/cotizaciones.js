@@ -437,8 +437,8 @@ export const CotizacionesModule = {
         const headerHtml = CoreActions.renderDocumentHeader('ingresos/cotizaciones', 'Volver a Cotizaciones');
         const actionsHtml = CoreActions.renderActionButtons(cotizacion, 'cotizacion', isViewOnly, !id);
 
-        // Datos de Clientes para el Combobox
-        const clientes = contactos.filter(c => c.tipo === 'cliente');
+        // Add legacy fallback for contacts not yet synced to IndexedDB
+        const clientes = contactos.filter(c => c.es_cliente !== undefined ? c.es_cliente : c.tipo !== 'proveedor');
         const clienteActual = clientes.find(c => c.id === cotizacion.clienteId);
         const clienteNombreActual = clienteActual ? clienteActual.nombre : '';
 
