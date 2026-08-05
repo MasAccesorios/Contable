@@ -289,7 +289,7 @@ export const CuentaCobroModule = {
                 ...p,
                 id: p.id,
                 nombre: p.nombre,
-                sku: p.referencia || p.sku,
+                sku: p.sku,
                 precio_base: p.precio_base || p.precio_venta || 0
             }));
         };
@@ -328,7 +328,9 @@ export const CuentaCobroModule = {
                     tr.querySelector('.item-price').value = prod.precio_base || 0;
                     lineData.producto_id = prod.id;
                     lineData.nombre = prod.nombre;
-                    lineData.sku = prod.sku || prod.referencia;
+                    lineData.sku = prod.sku;
+                    const searchInp = tr.querySelector('.product-search-input');
+                    if (searchInp) searchInp.dataset.sku = lineData.sku;
                     updateTotals();
                 });
 
@@ -360,7 +362,7 @@ export const CuentaCobroModule = {
                     id: tr.dataset.id,
                     producto_id: searchInput ? searchInput.dataset.productId : null,
                     nombre: searchInput ? searchInput.value : '',
-                    sku: '',
+                    sku: searchInput ? (searchInput.dataset.sku || searchInput.dataset.lastSku || '') : '',
                     cantidad: qty,
                     precio_unitario: price,
                     total: totalLine
@@ -395,14 +397,15 @@ export const CuentaCobroModule = {
 
                 updateTotals();
                 
-                const { data: prods } = await supabase.from('productos').select('id, nombre, referencia, sku');
+                const { data: prods, error: prodsErr } = await supabase.from('productos').select('id, nombre, sku');
+                if (prodsErr) console.error("Error cargando productos para guardar:", prodsErr);
                 
                 doc.detalles = doc.detalles.map(d => {
                     if (d.producto_id && prods) {
                         const p = prods.find(x => String(x.id) === String(d.producto_id));
                         if (p) {
                             d.nombre = p.nombre;
-                            d.sku = p.referencia || p.sku || '';
+                            d.sku = p.sku || '';
                         }
                     }
                     return d;

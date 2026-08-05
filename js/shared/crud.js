@@ -710,7 +710,7 @@ export function numeroALetras(valor) {
         let divisor = 1000;
         let cientos = Math.floor(num / divisor);
         let resto = num - (cientos * divisor);
-        let strMiles = Seccion(num, divisor, "UN MIL", "MIL");
+        let strMiles = Seccion(num, divisor, "MIL", "MIL");
         let strCentenas = Centenas(resto);
         if (strMiles == "") return strCentenas;
         return strMiles + " " + strCentenas;
@@ -889,12 +889,12 @@ export const PrintManager = {
             closeHeader.style.textAlign = 'center';
             closeHeader.style.borderBottom = '1px solid #dee2e6';
             closeHeader.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
-            closeHeader.innerHTML = \`
+            closeHeader.innerHTML = `
                 <div class="d-flex justify-content-center gap-2">
                     <button class="btn btn-success btn-compartir-preview"><i class="bi bi-share me-1"></i>Compartir</button>
                     <button class="btn btn-danger btn-cerrar-preview"><i class="bi bi-x-circle me-1"></i>Cerrar</button>
                 </div>
-            \`;
+            `;
             
             closeHeader.querySelector('.btn-cerrar-preview').addEventListener('click', () => {
                 container.remove();
@@ -934,7 +934,7 @@ export const PrintManager = {
                     const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
                     if (!blob) throw new Error('Error al generar imagen');
                     
-                    const fileName = \`CuentaCobro_${numDisplay}.png\`;
+                    const fileName = `CuentaCobro_${numDisplay}.png`;
                     cachedShareFile = new File([blob], fileName, { type: 'image/png' });
                     
                     btnCompartir.innerHTML = originalCompartirHtml;
