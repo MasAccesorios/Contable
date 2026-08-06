@@ -1136,15 +1136,15 @@ export const PrintManager = {
             </div>
 
             <!-- TABLA DE PRODUCTOS -->
-            <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; table-layout: fixed;">
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 10px; table-layout: fixed;">
                 <thead style="display: table-header-group;">
                     <tr style="border-bottom: 2px solid #dee2e6; color: #495057; font-size: 13px;">
-                        <th style="text-align: left; padding: 8px 4px; width: 8%;">Referencia</th>
-                        <th style="text-align: left; padding: 8px 4px; width: 40%;">Ítem</th>
-                        <th style="text-align: right; padding: 8px 4px; width: 14%;">Precio</th>
-                        <th style="text-align: center; padding: 8px 4px; width: 8%;">Cantidad</th>
-                        <th style="text-align: right; padding: 8px 4px; width: 10%;">Descuento</th>
-                        <th style="text-align: right; padding: 8px 4px; width: 20%;">Total</th>
+                        <th style="text-align: left; padding: 5px 4px; width: 8%;">Referencia</th>
+                        <th style="text-align: left; padding: 5px 4px; width: 40%;">Ítem</th>
+                        <th style="text-align: right; padding: 5px 4px; width: 14%;">Precio</th>
+                        <th style="text-align: center; padding: 5px 4px; width: 8%;">Cantidad</th>
+                        <th style="text-align: right; padding: 5px 4px; width: 10%;">Descuento</th>
+                        <th style="text-align: right; padding: 5px 4px; width: 20%;">Total</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -1160,10 +1160,10 @@ export const PrintManager = {
                         <p style="font-size: 12px; color: #495057; margin: 0;">${doc.notas || ''}</p>
                     </div>
                     <div style="width: 38%;">
-                        <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 8px;">
+                        <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 4px;">
                             <strong style="color: #495057;">Subtotal</strong><span>${formatMoney(doc.total)}</span>
                         </div>
-                        <div style="display: flex; justify-content: space-between; font-size: 16px; margin-bottom: 12px; border-top: 1px solid #dee2e6; padding-top: 8px;">
+                        <div style="display: flex; justify-content: space-between; font-size: 16px; margin-bottom: 6px; border-top: 1px solid #dee2e6; padding-top: 8px;">
                             <strong style="color: #212529;">Total</strong><span style="font-weight: bold; color: #212529;">${formatMoney(doc.total)}</span>
                         </div>
                         <div style="text-align: right; font-size: 12px; font-weight: bold; color: #6c757d;">
@@ -1171,8 +1171,8 @@ export const PrintManager = {
                         </div>
                     </div>
                 </div>
-                <div style="text-align: center; margin-top: 10px; margin-bottom: 20px; page-break-inside: avoid;">
-                    <div style="width: 200px; height: 50px; background-color: #f8f9fa; margin: 0 auto; border-bottom: 1px solid #495057;"></div>
+                <div style="text-align: center; margin-top: 5px; margin-bottom: 20px; page-break-inside: avoid;">
+                    <div style="width: 200px; height: 35px; background-color: #f8f9fa; margin: 0 auto; border-bottom: 1px solid #495057;"></div>
                     <p style="font-size: 10px; color: #212529; margin-top: 5px;">ELABORADO POR</p>
                 </div>
             </div>
