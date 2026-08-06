@@ -1111,11 +1111,11 @@ export const PrintManager = {
                 </div>
             </div>
 
-            <h2 style="color: #495057; margin-top: 0; margin-bottom: 12px; font-size: 20px;">${tipoDoc}</h2>
+            <h2 style="color: #495057; margin-top: 0; margin-bottom: 8px; font-size: 16px;">${tipoDoc}</h2>
 
             <!-- INFO CLIENTE Y DOC -->
-            <div style="display: flex; justify-content: space-between; margin-bottom: 18px;">
-                <div style="background-color: #f8f9fa; padding: 20px; width: 48%; border-radius: 6px; box-sizing: border-box;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                <div style="background-color: #f8f9fa; padding: 14px; width: 48%; border-radius: 6px; box-sizing: border-box;">
                     <p style="margin: 0 0 10px 0; font-weight: bold; font-size: 14px; color: #212529;">${cliente.nombre || 'Sin cliente'}</p>
                     <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 5px;">
                         <strong style="color: #495057;">CC/NIT</strong><span>${cliente.identificacion || ''}</span>
