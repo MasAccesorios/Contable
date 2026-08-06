@@ -356,6 +356,9 @@ export const CotizacionesModule = {
                     menu.querySelector('.btn-delete-row').addEventListener('click', async (ev) => {
                         ev.preventDefault();
                         if (confirm('¿Estás seguro de eliminar esta cotización de forma permanente?')) {
+                            // NOTA IMPORTANTE: Las cotizaciones NO descuentan inventario.
+                            // Por lo tanto, NO deben llamar a InventarioUtils.revertirSalidaInventario.
+                            // El inventario solo se descuenta cuando se convierten a facturas.
                             await DB.delete('cotizaciones', id);
                             menu.remove();
                             // Recargar DB local

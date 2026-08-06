@@ -444,10 +444,26 @@ export const FacturasModule = {
                     if (btnDeleteRow) {
                         btnDeleteRow.addEventListener('click', async (ev) => {
                             ev.preventDefault();
-                            if (confirm('¿Estás seguro de eliminar esta factura de forma permanente?')) {
-                                await DB.delete('facturas', id);
+                            if (confirm('¿Estás seguro de eliminar esta factura de forma permanente? Se devolverá el inventario asociado.')) {
                                 menu.remove();
-                                await renderGrid();
+                                try {
+                                    const factura = await DB.get('facturas', id);
+                                    if (!factura) throw new Error("Factura no encontrada");
+
+                                    if (factura.detalles && factura.detalles.length > 0) {
+                                        const revResult = await InventarioUtils.revertirSalidaInventario(factura.detalles);
+                                        if (!revResult.success) {
+                                            CoreActions.showWarningModal(revResult.error);
+                                            return;
+                                        }
+                                    }
+
+                                    await DB.delete('facturas', id);
+                                    await renderGrid();
+                                } catch (error) {
+                                    console.error("Error al eliminar:", error);
+                                    CoreActions.showWarningModal("Error al eliminar: " + error.message);
+                                }
                             }
                         });
                     }
