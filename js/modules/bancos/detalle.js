@@ -176,7 +176,10 @@ export const DetalleBancoModule = {
                 
                 return `
                     <tr class="movimiento-row" style="border-bottom: 1px solid var(--border-color); font-size: 13px; color: var(--text-body); cursor: pointer; transition: background-color 0.2s;" data-id="${t.id}" onmouseover="this.style.backgroundColor='#f8f9fa'" onmouseout="this.style.backgroundColor='transparent'">
-                        <td class="py-3">${t.fecha || '-'}</td>
+                        <td class="py-3">
+                            ${t.fecha || '-'}
+                            <div class="text-muted mt-1" style="font-size: 10px;">Nº trans: ${t.grupo_pago_id || t.id}</div>
+                        </td>
                         <td class="py-3">
                             <div style="color: var(--text-main); font-weight: 500;">${t.terceroNombre || 'Sin tercero'}</div>
                             ${t.terceroNit ? `<div style="font-size: 11px; color: #888;">${t.terceroNit}</div>` : ''}
@@ -195,7 +198,7 @@ export const DetalleBancoModule = {
                                 </button>
                                 <ul class="dropdown-menu dropdown-menu-end shadow border-0" style="font-size: 13px;">
                                     <li><a class="dropdown-item btn-editar-transaccion" href="javascript:void(0)" data-id="${t.id}">Editar</a></li>
-                                    <li><a class="dropdown-item text-danger btn-eliminar-banco" href="javascript:void(0)" data-id="${t.id}" data-monto="${t.monto}" data-fecha="${t.fecha}">Eliminar</a></li>
+                                    <li><a class="dropdown-item text-danger btn-eliminar-banco" href="javascript:void(0)" data-id="${t.id}" data-grupo="${t.grupo_pago_id || ''}" data-monto="${t.monto}" data-fecha="${t.fecha}">Eliminar</a></li>
                                 </ul>
                             </div>
                         </td>
@@ -313,6 +316,7 @@ export const DetalleBancoModule = {
                     e.preventDefault();
                     e.stopPropagation();
                     const id = e.currentTarget.dataset.id;
+                    const grupo = e.currentTarget.dataset.grupo;
                     const monto = e.currentTarget.dataset.monto;
                     const fecha = e.currentTarget.dataset.fecha;
                     const montoFormat = '$ ' + parseFloat(monto || 0).toLocaleString('es-CO', {minimumFractionDigits: 2, maximumFractionDigits: 2});
@@ -320,7 +324,11 @@ export const DetalleBancoModule = {
                     if (confirm(`¿Está seguro que desea eliminar este movimiento por valor de ${montoFormat} del ${fecha}? Esta acción revertirá el saldo de la cuenta.`)) {
                         try {
                             const { anularTransaccion } = await import('../../shared/transaccionesUtils.js');
-                            await anularTransaccion(id);
+                            if (grupo) {
+                                await anularTransaccion(grupo, true);
+                            } else {
+                                await anularTransaccion(id, false);
+                            }
                             await this.loadData(false);
                             renderGrid();
                         } catch (err) {

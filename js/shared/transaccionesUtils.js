@@ -15,19 +15,11 @@ export function agruparTransaccionesPorPago(transacciones) {
     return Object.values(grupos);
 }
 
-export async function anularTransaccion(id) {
-    const idInt = parseInt(id, 10);
-    if (isNaN(idInt)) throw new Error("ID de transacción inválido");
-    
-    const { error } = await supabase
-        .from('pagos_ingresos')
-        .update({ estado: 'anulado' })
-        .eq('id', idInt);
-        
+export async function anularTransaccion(idOGrupo, esGrupo = false) {
+    const query = supabase.from('pagos_ingresos').update({ estado: 'anulado' });
+    const { error } = esGrupo
+        ? await query.eq('grupo_pago_id', idOGrupo)
+        : await query.eq('id', parseInt(idOGrupo, 10));
     if (error) throw error;
-    
-    // Invalidar caché local para que otras vistas obtengan los datos frescos
-    if (DB.invalidateCache) {
-        DB.invalidateCache('transacciones');
-    }
+    if (DB.invalidateCache) DB.invalidateCache('transacciones');
 }

@@ -4,6 +4,8 @@ import { CATEGORIAS_GASTO } from '../modules/gastos/gastos.js';
 import { applyCurrencyFormatting, parseCurrencyValue } from './formatters.js';
 
 export async function mostrarDetalleTransaccion(t, onSuccess) {
+    const isGroup = !!t.grupo_pago_id;
+    const transIdVisual = t.grupo_pago_id || t.id;
     let facturasAsociadasHtml = '';
     if (t.grupo_pago_id) {
         const { data: pagosDelGrupo } = await supabase
@@ -40,7 +42,7 @@ export async function mostrarDetalleTransaccion(t, onSuccess) {
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-0 shadow-lg" style="border-radius: 12px;">
                 <div class="modal-header border-0 pb-0 pt-4 px-4">
-                    <h5 class="modal-title fw-bold">Pago recibido</h5>
+                    <h5 class="modal-title fw-bold">Pago recibido <span class="text-muted ms-2" style="font-size: 14px; font-weight: normal;">(Nº trans: ${transIdVisual})</span></h5>
                     <div class="d-flex align-items-center gap-2">
                         <button type="button" id="btn-activar-edicion" class="btn btn-sm btn-light border">
                             <i class="bi bi-pencil me-1"></i>Editar pago
@@ -103,9 +105,12 @@ export async function mostrarDetalleTransaccion(t, onSuccess) {
     modalInstance.show();
 
     document.getElementById('btn-activar-edicion').addEventListener('click', () => {
-        ['edit-trans-fecha','edit-trans-cuenta','edit-trans-categoria','edit-trans-monto','edit-trans-observaciones'].forEach(idCampo => {
+        ['edit-trans-fecha','edit-trans-cuenta','edit-trans-categoria','edit-trans-observaciones'].forEach(idCampo => {
             document.getElementById(idCampo).disabled = false;
         });
+        if (!isGroup) {
+            document.getElementById('edit-trans-monto').disabled = false;
+        }
         document.getElementById('wrap-btn-guardar').style.display = 'block';
         document.getElementById('btn-activar-edicion').style.display = 'none';
     });
@@ -113,13 +118,22 @@ export async function mostrarDetalleTransaccion(t, onSuccess) {
     document.getElementById('form-editar-trans').addEventListener('submit', async (ev) => {
         ev.preventDefault();
         try {
-            const { error } = await supabase.from('pagos_ingresos').update({
+            const updatePayload = {
                 fecha: document.getElementById('edit-trans-fecha').value,
-                monto: parseCurrencyValue(document.getElementById('edit-trans-monto').value),
                 cuenta_id: parseInt(document.getElementById('edit-trans-cuenta').value, 10),
                 categoria: document.getElementById('edit-trans-categoria').value || null,
                 observaciones: document.getElementById('edit-trans-observaciones').value
-            }).eq('id', t.id);
+            };
+            
+            if (!isGroup) {
+                updatePayload.monto = parseCurrencyValue(document.getElementById('edit-trans-monto').value);
+            }
+            
+            const query = supabase.from('pagos_ingresos').update(updatePayload);
+            const { error } = isGroup
+                ? await query.eq('grupo_pago_id', t.grupo_pago_id)
+                : await query.eq('id', t.id);
+                
             if (error) throw error;
             modalInstance.hide();
             if (onSuccess) onSuccess();
