@@ -1111,8 +1111,6 @@ export const PrintManager = {
                 </div>
             </div>
 
-            <h2 style="color: #495057; margin-top: 0; margin-bottom: 8px; font-size: 16px;">${tipoDoc}</h2>
-
             <!-- INFO CLIENTE Y DOC -->
             <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
                 <div style="background-color: #f8f9fa; padding: 14px; width: 48%; border-radius: 6px; box-sizing: border-box;">
