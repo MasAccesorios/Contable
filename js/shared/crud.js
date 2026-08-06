@@ -1087,7 +1087,7 @@ export const PrintManager = {
             return `
                 <tr style="border-bottom: 1px solid #dee2e6; font-size: 12px; color: #495057;">
                     <td style="padding: 8px 4px;">${prod.sku || 'N/A'}</td>
-                    <td style="padding: 8px 4px;">
+                    <td style="padding: 8px 4px; word-wrap: break-word; overflow-wrap: break-word;">
                         <div style="font-weight: 600; color: #212529;">${prod.nombre || 'Ítem sin nombre'}</div>
                         ${det.descripcion_personalizada ? `<div style="font-size: 10.5px; color: #6c757d; margin-top: 3px;">${det.descripcion_personalizada}</div>` : ''}
                     </td>
@@ -1138,15 +1138,15 @@ export const PrintManager = {
             </div>
 
             <!-- TABLA DE PRODUCTOS -->
-            <table style="width: 100%; border-collapse: collapse; margin-bottom: 35px;">
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 35px; table-layout: fixed;">
                 <thead style="display: table-header-group;">
                     <tr style="border-bottom: 2px solid #dee2e6; color: #495057; font-size: 13px;">
-                        <th style="text-align: left; padding: 8px 4px;">Referencia</th>
-                        <th style="text-align: left; padding: 8px 4px;">Ítem</th>
-                        <th style="text-align: right; padding: 8px 4px;">Precio</th>
-                        <th style="text-align: center; padding: 8px 4px;">Cantidad</th>
-                        <th style="text-align: right; padding: 8px 4px;">Descuento</th>
-                        <th style="text-align: right; padding: 8px 4px;">Total</th>
+                        <th style="text-align: left; padding: 8px 4px; width: 12%;">Referencia</th>
+                        <th style="text-align: left; padding: 8px 4px; width: 30%;">Ítem</th>
+                        <th style="text-align: right; padding: 8px 4px; width: 15%;">Precio</th>
+                        <th style="text-align: center; padding: 8px 4px; width: 12%;">Cantidad</th>
+                        <th style="text-align: right; padding: 8px 4px; width: 13%;">Descuento</th>
+                        <th style="text-align: right; padding: 8px 4px; width: 18%;">Total</th>
                     </tr>
                 </thead>
                 <tbody>
