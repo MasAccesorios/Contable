@@ -28,14 +28,14 @@ export const InventarioUtils = {
 
         let itemsSinStock = [];
         for (const prodIdStr in qtyPedidaPorProducto) {
-            const prodId = parseInt(prodIdStr);
+            const prodId = String(prodIdStr);
             const qtyPedida = qtyPedidaPorProducto[prodIdStr];
             
-            const lotesProd = lotesGlobales.filter(l => l.productoId === prodId && l.cantidadActual > 0);
+            const lotesProd = lotesGlobales.filter(l => String(l.productoId) === prodId && l.cantidadActual > 0);
             const stockDisponible = lotesProd.reduce((sum, l) => sum + parseInt(l.cantidadActual), 0);
             
             if (qtyPedida > stockDisponible) {
-                const prod = productos.find(p => p.id === prodId);
+                const prod = productos.find(p => String(p.id) === prodId);
                 const nombreProd = prod ? prod.nombre : 'Producto ID ' + prodId;
                 itemsSinStock.push(`- <b>${nombreProd}</b>: solicitas ${qtyPedida}, hay disponible ${stockDisponible}`);
             }
@@ -60,12 +60,12 @@ export const InventarioUtils = {
         for (const det of detalles) {
             let qtyRestante = det.cantidad;
             let costoLinea = 0;
-            const lotesProd = lotesGlobales.filter(l => l.productoId === det.productoId && l.cantidadActual > 0);
+            const lotesProd = lotesGlobales.filter(l => String(l.productoId) === String(det.productoId) && l.cantidadActual > 0);
             lotesProd.sort((a, b) => new Date(a.fechaIngreso) - new Date(b.fechaIngreso)); // FIFO
             
             if (lotesProd.length === 0) {
                 // Si no hay lotes de este producto, creamos un lote negativo inicial con el costo de compra del producto
-                const prod = productos.find(p => p.id === det.productoId);
+                const prod = productos.find(p => String(p.id) === String(det.productoId));
                 const costoUnitario = prod ? (prod.precio_compra || prod.precioCompra || 0) : 0;
                 const nuevoLote = {
                     id: 'lote_neg_' + Date.now() + '_' + Math.floor(Math.random() * 1000),

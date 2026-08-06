@@ -1105,7 +1105,7 @@ export const FacturasModule = {
                     // Descargo FIFO de inventario si es nueva
                     let costoTotalVenta = 0;
                     if (isNew) {
-                        const invResult = await InventarioUtils.procesarSalidaInventario(arrDetalles, null, productos);
+                        const invResult = await InventarioUtils.procesarSalidaInventario(arrDetalles, null, null);
                         if (!invResult.success) {
                             CoreActions.showWarningModal(invResult.error);
                             btnGuardar.disabled = false;
