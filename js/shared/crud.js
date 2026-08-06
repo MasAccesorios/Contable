@@ -959,7 +959,7 @@ export const PrintManager = {
                     </div>
                     <span style="display: inline-block; background-color: #f8f9fa; border: 1px solid #dee2e6; padding: 2px 6px; font-size: 10px; border-radius: 4px; margin-top: 8px; color: #6c757d;">No responsable de IVA</span>
                 </div>
-                <div style="width: 45%; text-align: right; background-color: #f8f9fa; border: 1px solid #e9ecef; border-radius: 8px; padding: 15px;">
+                <div style="width: 45%; text-align: right; background-color: #f8f9fa; border: 1px solid #e9ecef; border-radius: 8px; padding: 15px; box-sizing: border-box;">
                     <h2 style="color: #2b6cb0; font-size: 18px; margin: 0 0 5px 0;">CUENTA DE COBRO</h2>
                     <h3 style="color: #e53e3e; font-size: 20px; margin: 0 0 5px 0;">No. ${numDisplay}</h3>
                     <p style="font-size: 10px; color: #6c757d; margin: 0;">Documento equivalente / Cuenta original</p>
@@ -1115,7 +1115,7 @@ export const PrintManager = {
 
             <!-- INFO CLIENTE Y DOC -->
             <div style="display: flex; justify-content: space-between; margin-bottom: 25px;">
-                <div style="background-color: #f8f9fa; padding: 20px; width: 48%; border-radius: 6px;">
+                <div style="background-color: #f8f9fa; padding: 20px; width: 48%; border-radius: 6px; box-sizing: border-box;">
                     <p style="margin: 0 0 10px 0; font-weight: bold; font-size: 16px; color: #212529;">${cliente.nombre || 'Sin cliente'}</p>
                     <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 5px;">
                         <strong style="color: #495057;">CC/NIT</strong><span>${cliente.identificacion || ''}</span>
