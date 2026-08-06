@@ -85,7 +85,7 @@ export default {
                 let dataToExport = [];
                 const contactos = await DB.getAll('contactos');
                 const getClienteName = (id) => {
-                    const c = contactos.find(x => x.id === id);
+                    const c = contactos.find(x => String(x.id) === String(id));
                     return c ? c.nombre : 'Cliente Genérico / Contado';
                 };
 
@@ -129,7 +129,7 @@ export default {
                                     <div class="card-body d-flex justify-content-between align-items-center p-3">
                                         <div>
                                             <h6 class="mb-1 text-dark fw-bold" style="font-size: 14px;">${c.nombre}</h6>
-                                            <div class="text-danger fw-bold" style="font-size: 15px;">$${applyCurrencyFormatting(c.total)}</div>
+                                            <div class="text-danger fw-bold" style="font-size: 15px;">$${c.total.toLocaleString('es-CO', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
                                         </div>
                                         <button class="btn btn-sm btn-outline-success d-flex align-items-center btn-wpp-estado" data-id="${c.id}" style="border-radius: 6px;">
                                             <i class="bi bi-whatsapp me-1"></i> Enviar
