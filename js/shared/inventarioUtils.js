@@ -191,8 +191,9 @@ export const InventarioUtils = {
                     }
                 }
 
-                // Si aún queda por devolver (ej. lotes borrados), crear un lote positivo compensatorio
-                if (qtyToReturn > 0) {
+                // Si aún queda por devolver (ej. lotes borrados), crear un lote positivo compensatorio.
+                // Usamos 0.0001 para ignorar residuos microscópicos de punto flotante de JS (ej. 1e-15)
+                if (qtyToReturn > 0.0001) {
                     const prod = productos.find(p => String(p.id) === prodId);
                     const costoUnitario = prod ? (prod.precio_compra || prod.precioCompra || 0) : 0;
                     

@@ -376,7 +376,9 @@ export const ProductosModule = {
         lotesProd.sort((a, b) => new Date(a.fechaIngreso) - new Date(b.fechaIngreso));
 
         let lotesHtml = '';
+        let stockTotalDisponible = 0;
         lotesProd.forEach(l => {
+            stockTotalDisponible += parseFloat(l.cantidadActual) || 0;
             lotesHtml += `
                 <tr class="${l.cantidadActual === 0 ? 'table-light opacity-50' : ''}">
                     <td>${l.fechaIngreso}</td>
@@ -455,6 +457,12 @@ export const ProductosModule = {
                                 </button>
                             </div>
                             
+                            <!-- NUEVO BANNER STOCK TOTAL -->
+                            <div class="alert alert-info d-flex align-items-center fw-bold fs-5 mb-4 shadow-sm" style="border-left: 5px solid #0dcaf0; background-color: #f8ffff;">
+                                <i class="bi bi-box-seam me-3 fs-3"></i>
+                                Stock Total Disponible: ${stockTotalDisponible} unidades
+                            </div>
+
                             <div class="table-responsive">
                                 <table class="table align-middle">
                                     <thead class="table-light text-muted uppercase font-monospace" style="font-size: 0.85rem;">
