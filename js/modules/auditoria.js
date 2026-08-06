@@ -306,60 +306,63 @@ async function check6() {
     const todasFacturas = await DB.getAll('facturas');
     const todosPagos = await DB.getAll('pagos_ingresos');
     
-    const validFacturas = todasFacturas.filter(f => !['anulada', 'void', 'voided'].includes(f.estado?.toLowerCase()) && (f.tipo === 'venta' || !f.tipo));
-    
-    let sumSumaManual = 0;
+    // Filtramos para ambas carteras
+    const validFacturasCxc = todasFacturas.filter(f => !['anulada', 'void', 'voided'].includes(f.estado?.toLowerCase()) && (f.tipo === 'venta' || !f.tipo));
+    const validFacturasCxp = todasFacturas.filter(f => !['anulada', 'void', 'voided'].includes(f.estado?.toLowerCase()) && (f.tipo === 'compra' || f.tipo === 'gasto'));
     
     const pagosMap = {};
     for (const p of todosPagos) {
-        if (p.estado?.toLowerCase() !== 'anulado' && p.tipo === 'in' && p.factura_id) {
+        if (p.estado?.toLowerCase() !== 'anulado' && p.factura_id) {
             pagosMap[p.factura_id] = (pagosMap[p.factura_id] || 0) + parseFloat(p.monto || 0);
         }
     }
     
-    for (const f of validFacturas) {
-        const base = (f.saldo_original !== null && f.saldo_original !== undefined) ? parseFloat(f.saldo_original) : parseFloat(f.total || 0);
-        const pagosFac = pagosMap[f.id] || 0;
-        
-        let pendiente = base - pagosFac;
-        
-        if (f.estado?.toLowerCase() === 'pagada' || f.estado?.toLowerCase() === 'closed') {
-            pendiente = 0; // Por regla
-        } else if (pendiente < 0) {
-            pendiente = 0;
+    const calculateManualSum = (facturas) => {
+        let sum = 0;
+        for (const f of facturas) {
+            const base = (f.saldo_original !== null && f.saldo_original !== undefined) ? parseFloat(f.saldo_original) : parseFloat(f.total || 0);
+            const pagosFac = pagosMap[f.id] || 0;
+            let pendiente = base - pagosFac;
+            
+            if (f.estado?.toLowerCase() === 'pagada' || f.estado?.toLowerCase() === 'closed') {
+                pendiente = 0;
+            } else if (pendiente < 0) {
+                pendiente = 0;
+            }
+            sum += pendiente;
         }
-        
-        sumSumaManual += pendiente;
-    }
+        return sum;
+    };
+
+    const sumSumaManualCxc = calculateManualSum(validFacturasCxc);
+    const sumSumaManualCxp = calculateManualSum(validFacturasCxp);
     
-    const { data: cartera, error: errCar } = await supabase.rpc('get_cartera_con_saldos', { p_page: 1, p_limit: 10000 });
-    let sumRpc = 0;
-    if (!errCar && cartera) {
-        sumRpc = cartera.reduce((acc, c) => acc + parseFloat(c.saldo_pendiente || 0), 0);
-    } else {
-        const { data: rpcFacs, error: errRpcFac } = await supabase.rpc('get_facturas_con_saldos', { p_page: 1, p_limit: 100000 });
-        if (!errRpcFac && rpcFacs) {
-            sumRpc = rpcFacs.reduce((acc, f) => acc + parseFloat(f.saldo_pendiente || 0), 0);
-        } else {
-             return {
-                success: false,
-                count: 1,
-                columns: ['error'],
-                data: [{ error: 'No se pudo ejecutar el RPC de cartera para comparar. ' + (errCar?.message || errRpcFac?.message) }]
-             };
-        }
-    }
+    // Llamadas al RPC correcto para Clientes y Proveedores (devuelve propiedad "saldo")
+    const { data: carteraCxc, error: errCxc } = await supabase.rpc('get_cartera_con_saldos', { p_tipo_cartera: 'cxc' });
+    if (errCxc) throw errCxc;
+    const sumRpcCxc = carteraCxc ? carteraCxc.reduce((acc, c) => acc + parseFloat(c.saldo !== undefined ? c.saldo : 0), 0) : 0;
+
+    const { data: carteraCxp, error: errCxp } = await supabase.rpc('get_cartera_con_saldos', { p_tipo_cartera: 'cxp' });
+    if (errCxp) throw errCxp;
+    const sumRpcCxp = carteraCxp ? carteraCxp.reduce((acc, c) => acc + parseFloat(c.saldo !== undefined ? c.saldo : 0), 0) : 0;
+
+    const diffCxc = Math.abs(sumRpcCxc - sumSumaManualCxc);
+    const diffCxp = Math.abs(sumRpcCxp - sumSumaManualCxp);
     
-    const diff = Math.abs(sumRpc - sumSumaManual);
-    if (diff > 0.01) {
+    const dataFails = [];
+    if (diffCxc > 0.01) {
+        dataFails.push({ tipo: 'Cartera Clientes (CXC)', total_rpc: sumRpcCxc.toFixed(2), total_manual: sumSumaManualCxc.toFixed(2), diferencia: diffCxc.toFixed(2) });
+    }
+    if (diffCxp > 0.01) {
+        dataFails.push({ tipo: 'Cartera Proveedores (CXP)', total_rpc: sumRpcCxp.toFixed(2), total_manual: sumSumaManualCxp.toFixed(2), diferencia: diffCxp.toFixed(2) });
+    }
+
+    if (dataFails.length > 0) {
         return {
             success: false,
-            count: 1,
-            columns: ['origen', 'total_saldo_pendiente', 'diferencia'],
-            data: [
-                { origen: 'RPC (Base de Datos)', total_saldo_pendiente: sumRpc.toFixed(2), diferencia: diff.toFixed(2) },
-                { origen: 'Cálculo Manual (JS)', total_saldo_pendiente: sumSumaManual.toFixed(2), diferencia: diff.toFixed(2) }
-            ]
+            count: dataFails.length,
+            columns: ['tipo', 'total_rpc', 'total_manual', 'diferencia'],
+            data: dataFails
         };
     }
     
