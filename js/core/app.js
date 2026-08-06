@@ -51,6 +51,7 @@ const routes = {
     'bancos/detalle': () => import('../modules/bancos/detalle.js'),
     'reportes': () => import('../modules/reportes.js'),
     'configuracion': () => import('../modules/configuracion.js'),
+    'auditoria': () => import('../modules/auditoria.js'),
     // Soporte para alias de compatibilidad con módulos anteriores
     'dashboard': () => import('../modules/dashboard.js'),
     'tesoreria': () => import('../modules/bancos/bancos.js')
