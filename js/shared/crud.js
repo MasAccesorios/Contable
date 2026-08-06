@@ -1,6 +1,7 @@
 // js/utils/core-actions.js
 import DB, { getLocalDate } from '../core/db.js';
 import { InventarioUtils } from './inventarioUtils.js';
+import { supabase } from '../core/supabase.js';
 
 export const CoreActions = {
     /**
@@ -1185,6 +1186,121 @@ export const PrintManager = {
             fileName,
             title: tipoDoc,
             printClass
+        });
+    },
+
+    async printEstadoCuenta(clienteId) {
+        const oldContainer = document.querySelector('.print-document-template');
+        if (oldContainer) oldContainer.remove();
+
+        const cliente = await DB.get('contactos', clienteId);
+        if (!cliente) {
+            CoreActions.showWarningModal('Cliente no encontrado.');
+            return;
+        }
+
+        const { data: facturas, error } = await supabase.rpc('get_cartera_con_saldos', { 
+            p_tipo_cartera: 'cxc', 
+            p_contacto_id: String(clienteId) 
+        });
+
+        if (error || !facturas || facturas.length === 0) {
+            CoreActions.showWarningModal('No se encontraron facturas pendientes para este cliente.');
+            return;
+        }
+
+        const formatMoney = (val) => '$ ' + parseFloat(val || 0).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const totalPorCobrar = facturas.reduce((sum, f) => sum + (parseFloat(f.saldo) || 0), 0);
+        const hoyStr = getLocalDate();
+
+        let rowsHtml = '';
+        facturas.forEach(f => {
+            const diasDespachado = Math.floor((new Date() - new Date(f.fecha)) / (1000 * 60 * 60 * 24));
+            
+            let barColor = '#198754';
+            if (diasDespachado >= 30 && diasDespachado <= 60) barColor = '#fd7e14';
+            else if (diasDespachado > 60) barColor = '#dc3545';
+            
+            let widthPercent = Math.min((diasDespachado / 120) * 100, 100);
+            if (widthPercent < 2) widthPercent = 2;
+            
+            rowsHtml += `
+                <tr style="border-bottom: 1px solid #dee2e6; font-size: 12px; color: #495057;">
+                    <td style="padding: 10px 4px;">${f.numero || f.id}</td>
+                    <td style="padding: 10px 4px;">${f.fecha}</td>
+                    <td style="padding: 10px 4px;">${f.vencimiento || f.fecha}</td>
+                    <td style="padding: 10px 4px;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <div style="background-color: #e9ecef; flex: 1; height: 6px; border-radius: 3px; overflow: hidden; min-width: 50px; max-width: 80px;">
+                                <div style="background-color: ${barColor}; height: 100%; width: ${widthPercent}%;"></div>
+                            </div>
+                            <span style="font-size: 11px; font-weight: 500; min-width: 45px;">${diasDespachado} días</span>
+                        </div>
+                    </td>
+                    <td style="padding: 10px 4px; text-align: right;">${formatMoney(f.total)}</td>
+                    <td style="padding: 10px 4px; text-align: right; font-weight: 600; color: #212529;">${formatMoney(f.saldo)}</td>
+                </tr>
+            `;
+        });
+
+        const htmlContent = `
+            <!-- HEADER -->
+            <div style="display: flex; justify-content: space-between; align-items: start; border-bottom: 2px solid #6c757d; padding-bottom: 15px; margin-bottom: 25px;">
+                <div style="width: 40%;">
+                    <img src="LogoMas.png" style="max-height: 80px; margin-bottom: 5px;" alt="Logo" onerror="this.style.display='none'">
+                </div>
+                <div style="text-align: right; width: 40%; padding-top: 15px;">
+                    <h2 style="color: #495057; margin-top: 0; margin-bottom: 5px; font-size: 22px;">ESTADO DE CUENTA</h2>
+                    <p style="margin: 0; font-size: 14px; color: #6c757d;">Fecha: ${hoyStr}</p>
+                </div>
+            </div>
+
+            <!-- BLOQUE CLIENTE Y TOTAL -->
+            <div style="display: flex; justify-content: space-between; margin-bottom: 30px;">
+                <div style="width: 50%;">
+                    <p style="margin: 0 0 5px 0; font-weight: bold; font-size: 18px; color: #212529;">${cliente.nombre || 'Sin cliente'}</p>
+                </div>
+                <div style="background-color: #fdf3f2; padding: 15px 25px; border-radius: 8px; border-left: 4px solid #f06548; text-align: right;">
+                    <p style="margin: 0 0 5px 0; font-size: 13px; color: #e85335; font-weight: 600; text-transform: uppercase;">Total Pendiente</p>
+                    <h3 style="margin: 0; font-size: 24px; color: #a42c16;">${formatMoney(totalPorCobrar)}</h3>
+                </div>
+            </div>
+
+            <!-- TABLA FACTURAS -->
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 40px;">
+                <thead style="display: table-header-group; background-color: #f8f9fa;">
+                    <tr style="border-bottom: 2px solid #dee2e6; color: #495057; font-size: 12px; font-weight: bold;">
+                        <th style="text-align: left; padding: 10px 4px;">No.</th>
+                        <th style="text-align: left; padding: 10px 4px;">Creación</th>
+                        <th style="text-align: left; padding: 10px 4px;">Vencimiento</th>
+                        <th style="text-align: left; padding: 10px 4px;">Días despachado</th>
+                        <th style="text-align: right; padding: 10px 4px;">Total</th>
+                        <th style="text-align: right; padding: 10px 4px;">Saldo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${rowsHtml}
+                </tbody>
+                <tfoot>
+                    <tr style="border-top: 2px solid #dee2e6; font-size: 14px;">
+                        <td colspan="5" style="padding: 12px 4px; text-align: right; font-weight: bold; color: #495057;">TOTAL POR COBRAR:</td>
+                        <td style="padding: 12px 4px; text-align: right; font-weight: bold; color: #a42c16;">${formatMoney(totalPorCobrar)}</td>
+                    </tr>
+                </tfoot>
+            </table>
+
+            <!-- PIE DE PAGINA -->
+            <div style="margin-top: 60px; padding-top: 20px; border-top: 1px solid #dee2e6; text-align: center; color: #6c757d; font-size: 12px;">
+                <p style="margin: 0 0 5px 0;">Agradecemos regularizar el saldo pendiente a la mayor brevedad. Para consultas o acuerdos de pago, contáctenos directamente.</p>
+                <p style="margin: 0; font-weight: bold;">MAS Accesorios &middot; 3158512091</p>
+            </div>
+        `;
+
+        this._renderPreviewShell(htmlContent, {
+            mode: 'preview',
+            fileName: \`EstadoCuenta_\${cliente.nombre ? cliente.nombre.replace(/[^a-zA-Z0-9]/g, '_') : 'Cliente'}.png\`,
+            title: 'Estado de Cuenta',
+            printClass: 'hoja-dinamica'
         });
     }
 };

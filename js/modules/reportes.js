@@ -1,5 +1,7 @@
 import DB, { getLocalDate } from '../core/db.js';
-import { CoreActions } from '../shared/crud.js';
+import { supabase } from '../core/supabase.js';
+import { CoreActions, PrintManager } from '../shared/crud.js';
+import { applyCurrencyFormatting } from '../shared/formatters.js';
 
 export default {
     async init(element) {
@@ -23,6 +25,7 @@ export default {
                                     <option value="ventas">Ventas por Rango de Fecha</option>
                                     <option value="utilidad">Utilidad por Rango de Fecha</option>
                                     <option value="cartera">Cartera por Cliente</option>
+                                    <option value="estado_cuenta">Estado de Cuenta por Cliente (WhatsApp)</option>
                                     <option value="inventario">Inventario Actual (Valorizado)</option>
                                     <option value="gastos">Gastos y Egresos (Tesorería)</option>
                                 </select>
@@ -47,6 +50,8 @@ export default {
                         </form>
                     </div>
                 </div>
+                
+                <div id="estado-cuenta-container" class="mt-4" style="display: none;"></div>
             </div>
         `;
 
@@ -55,7 +60,14 @@ export default {
 
         tipoSelect.addEventListener('change', (e) => {
             const val = e.target.value;
-            if (val === 'cartera' || val === 'inventario') {
+            const container = element.querySelector('#estado-cuenta-container');
+            if (val === 'estado_cuenta') {
+                container.style.display = 'block';
+            } else {
+                container.style.display = 'none';
+                container.innerHTML = '';
+            }
+            if (val === 'cartera' || val === 'inventario' || val === 'estado_cuenta') {
                 rangoFechas.style.display = 'none';
             } else {
                 rangoFechas.style.display = 'flex';
@@ -76,6 +88,79 @@ export default {
                     const c = contactos.find(x => x.id === id);
                     return c ? c.nombre : 'Cliente Genérico / Contado';
                 };
+
+                if (tipo === 'estado_cuenta') {
+                    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Cargando...';
+                    btn.disabled = true;
+                    
+                    const container = element.querySelector('#estado-cuenta-container');
+                    container.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary"></div></div>';
+                    
+                    const { data: cartera, error } = await supabase.rpc('get_cartera_con_saldos', { p_tipo_cartera: 'cxc' });
+                    
+                    btn.innerHTML = '<i class="bi bi-file-earmark-excel me-2"></i>Generar Exportable';
+                    btn.disabled = false;
+                    
+                    if (error) {
+                        CoreActions.showWarningModal('Error al cargar la cartera.');
+                        return;
+                    }
+                    
+                    const agrupado = {};
+                    (cartera || []).forEach(f => {
+                        if (!agrupado[f.contacto_id]) {
+                            agrupado[f.contacto_id] = { id: f.contacto_id, nombre: getClienteName(f.contacto_id), total: 0 };
+                        }
+                        agrupado[f.contacto_id].total += parseFloat(f.saldo) || 0;
+                    });
+                    
+                    const clientesArr = Object.values(agrupado).sort((a,b) => b.total - a.total);
+                    
+                    if (clientesArr.length === 0) {
+                        container.innerHTML = '<div class="alert alert-info">No hay cuentas por cobrar.</div>';
+                        return;
+                    }
+                    
+                    let htmlCards = '<div class="row g-3">';
+                    clientesArr.forEach(c => {
+                        htmlCards += `
+                            <div class="col-md-6">
+                                <div class="card border-0 shadow-sm h-100" style="border-radius: 8px;">
+                                    <div class="card-body d-flex justify-content-between align-items-center p-3">
+                                        <div>
+                                            <h6 class="mb-1 text-dark fw-bold" style="font-size: 14px;">${c.nombre}</h6>
+                                            <div class="text-danger fw-bold" style="font-size: 15px;">$${applyCurrencyFormatting(c.total)}</div>
+                                        </div>
+                                        <button class="btn btn-sm btn-outline-success d-flex align-items-center btn-wpp-estado" data-id="${c.id}" style="border-radius: 6px;">
+                                            <i class="bi bi-whatsapp me-1"></i> Enviar
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    htmlCards += '</div>';
+                    
+                    container.innerHTML = `
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="text-dark mb-0">Estados de Cuenta</h5>
+                            <span class="badge bg-primary rounded-pill">${clientesArr.length} clientes</span>
+                        </div>
+                        ${htmlCards}
+                    `;
+                    
+                    container.querySelectorAll('.btn-wpp-estado').forEach(btn => {
+                        btn.addEventListener('click', () => {
+                            if (window.PrintManager) {
+                                window.PrintManager.printEstadoCuenta(btn.dataset.id);
+                            } else if (PrintManager) {
+                                PrintManager.printEstadoCuenta(btn.dataset.id);
+                            }
+                        });
+                    });
+                    
+                    return; // No exportamos CSV
+                }
 
                 if (tipo === 'ventas' || tipo === 'utilidad') {
                     const facturas = await DB.getAll('facturas');
