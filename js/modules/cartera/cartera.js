@@ -182,7 +182,7 @@ export default {
                                     const isVencida = new Date(f.vencimiento) < new Date();
                                     
                                     return `
-                                    <tr>
+                                    <tr style="cursor: pointer;" onclick="if(!event.target.closest('button')) window.location.hash = '#/ingresos/facturas/ver/${f.id}'">
                                         <td class="ps-3"><input type="checkbox" class="form-check-input"></td>
                                         <td class="text-primary fw-medium" style="cursor: pointer; white-space: nowrap;">${f.numero || f.id}</td>
                                         <td class="text-muted" style="white-space: nowrap;">Factura de venta</td>
