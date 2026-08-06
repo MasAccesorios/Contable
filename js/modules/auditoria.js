@@ -317,18 +317,32 @@ async function check6() {
     const validFacturasCxc = todasFacturas.filter(f => !['anulada', 'void', 'voided'].includes(f.estado?.toLowerCase()) && (f.tipo === 'venta' || !f.tipo) && isPost2017(f));
     const validFacturasCxp = todasFacturas.filter(f => !['anulada', 'void', 'voided'].includes(f.estado?.toLowerCase()) && (f.tipo === 'compra' || f.tipo === 'gasto') && isPost2017(f));
     
-    const pagosMap = {};
+    const pagosMapPorFactura = {};
     for (const p of todosPagos) {
         if (p.estado?.toLowerCase() !== 'anulado' && p.factura_id) {
-            pagosMap[p.factura_id] = (pagosMap[p.factura_id] || 0) + parseFloat(p.monto || 0);
+            if (!pagosMapPorFactura[p.factura_id]) pagosMapPorFactura[p.factura_id] = [];
+            pagosMapPorFactura[p.factura_id].push(p);
         }
     }
     
     const calculateManualSum = (facturas) => {
         let sum = 0;
         for (const f of facturas) {
-            const base = (f.saldo_original !== null && f.saldo_original !== undefined) ? parseFloat(f.saldo_original) : parseFloat(f.total || 0);
-            const pagosFac = pagosMap[f.id] || 0;
+            const hasSaldoOriginal = f.saldo_original !== null && f.saldo_original !== undefined;
+            const base = hasSaldoOriginal ? parseFloat(f.saldo_original) : parseFloat(f.total || 0);
+            
+            const pagosFactura = pagosMapPorFactura[f.id] || [];
+            let pagosFac = 0;
+            
+            for (const p of pagosFactura) {
+                // Replicar filtros de migración del RPC para facturas con saldo_original
+                if (hasSaldoOriginal) {
+                    if (p.id <= 22669) continue;
+                    if (p.observaciones && p.observaciones.toLowerCase().includes('split del pago')) continue;
+                }
+                pagosFac += parseFloat(p.monto || 0);
+            }
+            
             let pendiente = base - pagosFac;
             
             if (f.estado?.toLowerCase() === 'pagada' || f.estado?.toLowerCase() === 'closed') {
