@@ -1102,7 +1102,7 @@ export const PrintManager = {
         // 5. Construir HTML
         const htmlContent = `
             <!-- HEADER IMPRESIÓN -->
-            <div style="display: flex; justify-content: space-between; align-items: start; border-bottom: 2px solid #6c757d; padding-bottom: 15px; margin-bottom: 25px;">
+            <div style="display: flex; justify-content: space-between; align-items: start; border-bottom: 2px solid #6c757d; padding-bottom: 8px; margin-bottom: 12px;">
                 <div style="width: 40%;">
                     <img src="LogoMas.png" style="max-height: 80px; margin-bottom: 5px;" alt="Logo" onerror="this.style.display='none'">
                 </div>
@@ -1123,13 +1123,13 @@ export const PrintManager = {
                     </div>
                 </div>
                 <div style="width: 48%;">
-                    <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 15px; padding-bottom: 5px; border-bottom: 1px solid #dee2e6;">
+                    <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px; padding-bottom: 3px; border-bottom: 1px solid #dee2e6;">
                         <strong style="color: #495057;">${tipoDoc} No.</strong><span style="font-weight: bold; font-size: 14px;">${numDisplay}</span>
                     </div>
-                    <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 15px; padding-bottom: 5px; border-bottom: 1px solid #dee2e6;">
+                    <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 6px; padding-bottom: 3px; border-bottom: 1px solid #dee2e6;">
                         <strong style="color: #495057;">Fecha de expedición</strong><span>${doc.fecha}</span>
                     </div>
-                    <div style="display: flex; justify-content: space-between; font-size: 12px; padding-bottom: 5px; border-bottom: 1px solid #dee2e6;">
+                    <div style="display: flex; justify-content: space-between; font-size: 12px; padding-bottom: 3px; border-bottom: 1px solid #dee2e6;">
                         <strong style="color: #495057;">Fecha de vencimiento</strong><span>${doc.vencimiento || doc.fecha}</span>
                     </div>
                 </div>
@@ -1171,7 +1171,7 @@ export const PrintManager = {
                         </div>
                     </div>
                 </div>
-                <div style="text-align: center; margin-top: 20px; margin-bottom: 20px; page-break-inside: avoid;">
+                <div style="text-align: center; margin-top: 10px; margin-bottom: 20px; page-break-inside: avoid;">
                     <div style="width: 200px; height: 50px; background-color: #f8f9fa; margin: 0 auto; border-bottom: 1px solid #495057;"></div>
                     <p style="font-size: 10px; color: #212529; margin-top: 5px;">ELABORADO POR</p>
                 </div>
