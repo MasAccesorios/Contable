@@ -1,4 +1,5 @@
 import { supabase } from '../core/supabase.js';
+import DB from '../core/db.js';
 
 export async function init(container = null) {
     if (!container) container = document.getElementById('view-viewport');
@@ -139,10 +140,13 @@ function buildTable(columns, data) {
 
 // 1. Facturas con saldo_original no NULL donde saldo_original > total
 async function check1() {
-    const { data, error } = await supabase.from('facturas').select('id, numero, total, saldo_original').not('saldo_original', 'is', null);
-    if (error) throw error;
+    const facturas = await DB.getAll('facturas');
     
-    const fails = data.filter(f => parseFloat(f.saldo_original) > parseFloat(f.total));
+    const fails = facturas.filter(f => 
+        f.saldo_original !== null && 
+        f.saldo_original !== undefined && 
+        parseFloat(f.saldo_original) > parseFloat(f.total)
+    );
     
     if (fails.length === 0) return { success: true };
     
@@ -150,46 +154,39 @@ async function check1() {
         success: false,
         count: fails.length,
         columns: ['id', 'numero', 'total', 'saldo_original'],
-        data: fails
+        data: fails.map(f => ({
+            id: f.id,
+            numero: f.numero,
+            total: f.total,
+            saldo_original: f.saldo_original
+        }))
     };
 }
 
 // 2. Facturas con estado='closed'/'pagada' en BD pero que tengan pagos_ingresos activos sumando menos que el total
 async function check2() {
-    // Traer facturas cerradas
-    const { data: facturas, error: err1 } = await supabase.from('facturas')
-        .select('id, numero, total, saldo_original, estado')
-        .in('estado', ['closed', 'pagada']);
-    if (err1) throw err1;
+    // Traer TODAS las facturas
+    const facturasTodas = await DB.getAll('facturas');
+    const facturas = facturasTodas.filter(f => f.estado === 'closed' || f.estado === 'pagada');
     
     if (facturas.length === 0) return { success: true };
     
-    const facturaIds = facturas.map(f => f.id);
-    
-    // Obtener pagos
-    let allPagos = [];
-    const chunkSize = 1000;
-    for (let i = 0; i < facturaIds.length; i += chunkSize) {
-        const chunk = facturaIds.slice(i, i + chunkSize);
-        const { data: pagos, error: err2 } = await supabase.from('pagos_ingresos')
-            .select('factura_id, monto, estado')
-            .in('factura_id', chunk)
-            .neq('estado', 'anulado'); // Solo pagos activos
-        if (err2) throw err2;
-        allPagos = allPagos.concat(pagos);
-    }
+    // Traer TODOS los pagos (esto bajará los 24k pagos la primera vez, luego se sirve de caché)
+    const todosPagos = await DB.getAll('pagos_ingresos');
     
     const pagosSumMap = {};
-    allPagos.forEach(p => {
+    todosPagos.forEach(p => {
         if (p.estado !== 'anulado') {
-            pagosSumMap[p.factura_id] = (pagosSumMap[p.factura_id] || 0) + parseFloat(p.monto);
+            pagosSumMap[p.factura_id] = (pagosSumMap[p.factura_id] || 0) + parseFloat(p.monto || 0);
         }
     });
     
     const fails = [];
     for (const f of facturas) {
         const sumPagos = pagosSumMap[f.id] || 0;
-        const totalBase = f.saldo_original !== null ? parseFloat(f.saldo_original) : parseFloat(f.total);
+        const totalBase = (f.saldo_original !== null && f.saldo_original !== undefined) 
+            ? parseFloat(f.saldo_original) 
+            : parseFloat(f.total);
         
         // Tolerancia de 0.01 por posibles problemas de redondeo
         if (totalBase - sumPagos > 0.01) {
@@ -216,15 +213,12 @@ async function check2() {
 
 // 3. Productos donde productos.stock no coincide con SUM(lotes_fifo.cantidad_actual)
 async function check3() {
-    const { data: productos, error: err1 } = await supabase.from('productos').select('id, sku, nombre, stock');
-    if (err1) throw err1;
-    
-    const { data: lotes, error: err2 } = await supabase.from('lotes_fifo').select('producto_id, cantidad_actual');
-    if (err2) throw err2;
+    const productos = await DB.getAll('productos');
+    const lotes = await DB.getAll('lotes_fifo');
     
     const lotesSumMap = {};
     lotes.forEach(l => {
-        lotesSumMap[l.producto_id] = (lotesSumMap[l.producto_id] || 0) + parseInt(l.cantidad_actual);
+        lotesSumMap[l.producto_id] = (lotesSumMap[l.producto_id] || 0) + parseInt(l.cantidad_actual || 0);
     });
     
     const fails = [];
@@ -256,17 +250,15 @@ async function check3() {
 
 // 4. pagos_ingresos con factura_id que no existe en facturas
 async function check4() {
-    const { data: pagos, error: err1 } = await supabase.from('pagos_ingresos').select('id, numero, factura_id, estado, monto').not('factura_id', 'is', null);
-    if (err1) throw err1;
+    const pagosTodos = await DB.getAll('pagos_ingresos');
+    const pagos = pagosTodos.filter(p => p.factura_id !== null && p.factura_id !== undefined);
     
     if (pagos.length === 0) return { success: true };
     
-    const { data: facturas, error: err2 } = await supabase.from('facturas').select('id');
-    if (err2) throw err2;
+    const facturas = await DB.getAll('facturas');
+    const facturaIdsSet = new Set(facturas.map(f => String(f.id)));
     
-    const facturaIdsSet = new Set(facturas.map(f => f.id));
-    
-    const fails = pagos.filter(p => !facturaIdsSet.has(p.factura_id)).map(p => ({
+    const fails = pagos.filter(p => !facturaIdsSet.has(String(p.factura_id))).map(p => ({
         pago_id: p.id,
         pago_numero: p.numero,
         factura_id_huerfano: p.factura_id,
@@ -286,15 +278,13 @@ async function check4() {
 
 // 5. Facturas con contacto_id que no existe en contactos
 async function check5() {
-    const { data: facturas, error: err1 } = await supabase.from('facturas').select('id, numero, contacto_id, estado').not('contacto_id', 'is', null);
-    if (err1) throw err1;
+    const facturasTodas = await DB.getAll('facturas');
+    const facturas = facturasTodas.filter(f => f.contacto_id !== null && f.contacto_id !== undefined);
     
-    const { data: contactos, error: err2 } = await supabase.from('contactos').select('id');
-    if (err2) throw err2;
+    const contactos = await DB.getAll('contactos');
+    const contactosIdsSet = new Set(contactos.map(c => String(c.id)));
     
-    const contactosIdsSet = new Set(contactos.map(c => c.id));
-    
-    const fails = facturas.filter(f => !contactosIdsSet.has(f.contacto_id)).map(f => ({
+    const fails = facturas.filter(f => !contactosIdsSet.has(String(f.contacto_id))).map(f => ({
         factura_id: f.id,
         factura_numero: f.numero,
         contacto_id_huerfano: f.contacto_id,
@@ -313,29 +303,9 @@ async function check5() {
 
 // 6. Comparación cruzada Cartera
 async function check6() {
-    // 1. Saldo de Cartera (via RPC o calculando a través del endpoint similar)
-    // El script tiene un RPC get_facturas_con_saldos pero si no está expuesto podemos traer todo
+    const todasFacturas = await DB.getAll('facturas');
+    const todosPagos = await DB.getAll('pagos_ingresos');
     
-    // Obtenemos facturas activas (no anuladas, void, voided)
-    const { data: facturasActivas, error: err1 } = await supabase.from('facturas')
-        .select('id, numero, total, saldo_original, estado')
-        .not('estado', 'in', '("anulada","void","voided")'); // Validar sintaxis, mejor usar in() con filtro negativo en memoria para simplificar o eq/neq
-
-    if (err1) {
-        console.warn("Fallo fetching facturas, usando fetch sin filtro", err1);
-    }
-    
-    // Para simplificar y no arriesgar la query de Supabase si la versión es vieja
-    const { data: todasFacturas, error: errAllFac } = await supabase.from('facturas')
-        .select('id, numero, total, saldo_original, estado, tipo');
-    if (errAllFac) throw errAllFac;
-    
-    const { data: todosPagos, error: errAllPagos } = await supabase.from('pagos_ingresos')
-        .select('factura_id, monto, estado, tipo, observaciones, fecha, id');
-    if (errAllPagos) throw errAllPagos;
-    
-    // Filtramos manualmente emulando get_facturas_con_saldos
-    // facturas: estado not in ('anulada', 'void', 'voided')
     const validFacturas = todasFacturas.filter(f => !['anulada', 'void', 'voided'].includes(f.estado?.toLowerCase()) && (f.tipo === 'venta' || !f.tipo));
     
     let sumSumaManual = 0;
@@ -343,14 +313,12 @@ async function check6() {
     const pagosMap = {};
     for (const p of todosPagos) {
         if (p.estado?.toLowerCase() !== 'anulado' && p.tipo === 'in' && p.factura_id) {
-            pagosMap[p.factura_id] = (pagosMap[p.factura_id] || 0) + parseFloat(p.monto);
+            pagosMap[p.factura_id] = (pagosMap[p.factura_id] || 0) + parseFloat(p.monto || 0);
         }
     }
     
     for (const f of validFacturas) {
-        // En base a lógica real de get_facturas_con_saldos, hay excepciones para ciertas facturas/pagos viejos
-        // pero para la sumatoria manual básica vs cartera, confiaremos en los pagos mapeados vs base
-        const base = f.saldo_original !== null ? parseFloat(f.saldo_original) : parseFloat(f.total);
+        const base = (f.saldo_original !== null && f.saldo_original !== undefined) ? parseFloat(f.saldo_original) : parseFloat(f.total || 0);
         const pagosFac = pagosMap[f.id] || 0;
         
         let pendiente = base - pagosFac;
@@ -364,17 +332,14 @@ async function check6() {
         sumSumaManual += pendiente;
     }
     
-    // Llamar a get_cartera_con_saldos (RPC que suma todo esto pero a nivel de cliente)
-    // Ya que no tenemos el total consolidado directamente del RPC sin paginación, usaremos el mismo cálculo o intentaremos llamar a `get_cartera_con_saldos`
     const { data: cartera, error: errCar } = await supabase.rpc('get_cartera_con_saldos', { p_page: 1, p_limit: 10000 });
     let sumRpc = 0;
     if (!errCar && cartera) {
-        sumRpc = cartera.reduce((acc, c) => acc + parseFloat(c.saldo_pendiente), 0);
+        sumRpc = cartera.reduce((acc, c) => acc + parseFloat(c.saldo_pendiente || 0), 0);
     } else {
-        // Fallback: Si get_cartera_con_saldos falla o no existe, usamos get_facturas_con_saldos
         const { data: rpcFacs, error: errRpcFac } = await supabase.rpc('get_facturas_con_saldos', { p_page: 1, p_limit: 100000 });
         if (!errRpcFac && rpcFacs) {
-            sumRpc = rpcFacs.reduce((acc, f) => acc + parseFloat(f.saldo_pendiente), 0);
+            sumRpc = rpcFacs.reduce((acc, f) => acc + parseFloat(f.saldo_pendiente || 0), 0);
         } else {
              return {
                 success: false,
@@ -403,15 +368,12 @@ async function check6() {
 
 // 7. Productos con SUM(lotes_fifo.cantidad_actual) negativo (sobreventa)
 async function check7() {
-    const { data: productos, error: err1 } = await supabase.from('productos').select('id, sku, nombre');
-    if (err1) throw err1;
-    
-    const { data: lotes, error: err2 } = await supabase.from('lotes_fifo').select('producto_id, cantidad_actual');
-    if (err2) throw err2;
+    const productos = await DB.getAll('productos');
+    const lotes = await DB.getAll('lotes_fifo');
     
     const lotesSumMap = {};
     lotes.forEach(l => {
-        lotesSumMap[l.producto_id] = (lotesSumMap[l.producto_id] || 0) + parseInt(l.cantidad_actual);
+        lotesSumMap[l.producto_id] = (lotesSumMap[l.producto_id] || 0) + parseInt(l.cantidad_actual || 0);
     });
     
     const fails = [];
