@@ -177,6 +177,42 @@ export const TesoreriaModule = {
                     </div>
                 </div>
             </div>
+
+            <!-- MODAL AGREGAR BANCO -->
+            <div class="modal fade" id="modal-agregar-banco" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content border-0 shadow" style="border-radius: 12px;">
+                        <div class="modal-header border-bottom-0 pb-0">
+                            <h5 class="modal-title fw-bold" style="color: var(--text-main);">Agregar cuenta bancaria</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body p-4">
+                            <form id="form-agregar-banco">
+                                <div class="mb-3">
+                                    <label class="form-label text-muted small fw-semibold">Nombre *</label>
+                                    <input type="text" class="form-control" id="banco-nombre" placeholder="Ej. Bancolombia Ahorros" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label text-muted small fw-semibold">Tipo *</label>
+                                    <input type="text" class="form-control" id="banco-tipo" placeholder="Ej. Banco, Efectivo, Nequi..." required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label text-muted small fw-semibold">Número de cuenta (Opcional)</label>
+                                    <input type="text" class="form-control" id="banco-numero-cuenta" placeholder="Ej. **** 1234">
+                                </div>
+                                <div class="mb-4">
+                                    <label class="form-label text-muted small fw-semibold">Saldo inicial</label>
+                                    <input type="text" class="form-control fw-bold fs-5" id="banco-saldo-inicial" placeholder="$ 0,00">
+                                </div>
+                                <div class="d-flex gap-2 justify-content-end">
+                                    <button type="button" class="btn btn-light border px-4" data-bs-dismiss="modal">Cancelar</button>
+                                    <button type="submit" class="btn text-white px-4" style="background-color: #2cbfb7;" id="btn-confirmar-agregar-banco">Guardar</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
         `;
 
         this.bindEvents();
@@ -204,7 +240,23 @@ export const TesoreriaModule = {
         });
 
         el.querySelector('#btn-agregar-banco')?.addEventListener('click', () => {
-            alert('Funcionalidad de agregar banco en desarrollo (Próximamente).');
+            // Limpiar el form antes de abrir
+            const form = document.getElementById('form-agregar-banco');
+            if (form) form.reset();
+
+            const modalEl = document.getElementById('modal-agregar-banco');
+            if (modalEl) {
+                if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                    const modal = new bootstrap.Modal(modalEl);
+                    modal.show();
+                } else {
+                    modalEl.classList.add('show', 'd-block');
+                    modalEl.style.backgroundColor = 'rgba(0,0,0,0.5)';
+                }
+                import('../../shared/formatters.js').then(fmt => {
+                    fmt.applyCurrencyFormatting(document.getElementById('banco-saldo-inicial'));
+                });
+            }
         });
 
         el.querySelector('#btn-transferir')?.addEventListener('click', () => {
@@ -325,6 +377,56 @@ export const TesoreriaModule = {
             }
 
             if (btn) btn.disabled = false;
+        });
+
+        el.querySelector('#form-agregar-banco')?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('btn-confirmar-agregar-banco');
+            if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Guardando...'; }
+
+            const nombre = document.getElementById('banco-nombre').value.trim();
+            const tipo = document.getElementById('banco-tipo').value.trim();
+            const numero_cuenta = document.getElementById('banco-numero-cuenta').value.trim() || null;
+
+            let saldo_inicial = 0;
+            try {
+                const fmt = await import('../../shared/formatters.js');
+                saldo_inicial = fmt.parseCurrencyValue(document.getElementById('banco-saldo-inicial').value);
+            } catch (_) {
+                saldo_inicial = parseFloat(
+                    document.getElementById('banco-saldo-inicial').value.replace(/\./g, '').replace(/,/g, '.')
+                ) || 0;
+            }
+
+            const { error } = await supabase.from('cuentas_bancarias').insert({
+                nombre,
+                tipo,
+                numero_cuenta,
+                saldo_inicial,
+                estado: 'active'
+            });
+
+            if (error) {
+                console.error('Error al crear cuenta:', error);
+                if (btn) { btn.disabled = false; btn.innerHTML = 'Guardar'; }
+                alert('Error al guardar la cuenta: ' + error.message);
+                return;
+            }
+
+            // Cerrar modal
+            const modalEl = document.getElementById('modal-agregar-banco');
+            if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                const modalInstance = bootstrap.Modal.getInstance(modalEl);
+                if (modalInstance) modalInstance.hide();
+            } else if (modalEl) {
+                modalEl.classList.remove('show', 'd-block');
+                modalEl.style.backgroundColor = '';
+            }
+
+            // Recargar lista
+            await this.loadData();
+
+            if (btn) { btn.disabled = false; btn.innerHTML = 'Guardar'; }
         });
     },
 
