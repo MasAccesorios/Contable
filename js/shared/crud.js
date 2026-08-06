@@ -1301,7 +1301,7 @@ export const PrintManager = {
             fileName: `EstadoCuenta_${cliente.nombre ? cliente.nombre.replace(/[^a-zA-Z0-9]/g, '_') : 'Cliente'}.png`,
             title: 'Estado de Cuenta',
             printClass: 'hoja-dinamica',
-            shareText: `Buen día estimado ${cliente.nombre || 'cliente'}, envío estado de cuenta.`
+            shareText: `Buen día ${cliente.nombre || 'cliente'}, envío estado de cuenta.`
         });
     }
 };
