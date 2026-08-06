@@ -1087,7 +1087,7 @@ export const PrintManager = {
             return `
                 <tr style="border-bottom: 1px solid #dee2e6; font-size: 12px; color: #495057;">
                     <td style="padding: 8px 4px;">${prod.sku || 'N/A'}</td>
-                    <td style="padding: 8px 4px; word-wrap: break-word; overflow-wrap: break-word;">
+                    <td style="padding: 8px 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                         <div style="font-weight: 600; color: #212529;">${prod.nombre || 'Ítem sin nombre'}</div>
                         ${det.descripcion_personalizada ? `<div style="font-size: 10.5px; color: #6c757d; margin-top: 3px;">${det.descripcion_personalizada}</div>` : ''}
                     </td>
@@ -1111,27 +1111,27 @@ export const PrintManager = {
                 </div>
             </div>
 
-            <h2 style="color: #495057; margin-top: 0; margin-bottom: 20px;">${tipoDoc}</h2>
+            <h2 style="color: #495057; margin-top: 0; margin-bottom: 12px; font-size: 20px;">${tipoDoc}</h2>
 
             <!-- INFO CLIENTE Y DOC -->
-            <div style="display: flex; justify-content: space-between; margin-bottom: 25px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 18px;">
                 <div style="background-color: #f8f9fa; padding: 20px; width: 48%; border-radius: 6px; box-sizing: border-box;">
-                    <p style="margin: 0 0 10px 0; font-weight: bold; font-size: 16px; color: #212529;">${cliente.nombre || 'Sin cliente'}</p>
-                    <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 5px;">
+                    <p style="margin: 0 0 10px 0; font-weight: bold; font-size: 14px; color: #212529;">${cliente.nombre || 'Sin cliente'}</p>
+                    <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 5px;">
                         <strong style="color: #495057;">CC/NIT</strong><span>${cliente.identificacion || ''}</span>
                     </div>
-                    <div style="display: flex; justify-content: space-between; font-size: 13px;">
+                    <div style="display: flex; justify-content: space-between; font-size: 12px;">
                         <strong style="color: #495057;">TEL</strong><span>${cliente.telefono || ''}</span>
                     </div>
                 </div>
                 <div style="width: 48%;">
-                    <div style="display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 15px; padding-bottom: 5px; border-bottom: 1px solid #dee2e6;">
-                        <strong style="color: #495057;">${tipoDoc} No.</strong><span style="font-weight: bold; font-size: 15px;">${numDisplay}</span>
-                    </div>
                     <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 15px; padding-bottom: 5px; border-bottom: 1px solid #dee2e6;">
+                        <strong style="color: #495057;">${tipoDoc} No.</strong><span style="font-weight: bold; font-size: 14px;">${numDisplay}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 15px; padding-bottom: 5px; border-bottom: 1px solid #dee2e6;">
                         <strong style="color: #495057;">Fecha de expedición</strong><span>${doc.fecha}</span>
                     </div>
-                    <div style="display: flex; justify-content: space-between; font-size: 13px; padding-bottom: 5px; border-bottom: 1px solid #dee2e6;">
+                    <div style="display: flex; justify-content: space-between; font-size: 12px; padding-bottom: 5px; border-bottom: 1px solid #dee2e6;">
                         <strong style="color: #495057;">Fecha de vencimiento</strong><span>${doc.vencimiento || doc.fecha}</span>
                     </div>
                 </div>
@@ -1141,12 +1141,12 @@ export const PrintManager = {
             <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; table-layout: fixed;">
                 <thead style="display: table-header-group;">
                     <tr style="border-bottom: 2px solid #dee2e6; color: #495057; font-size: 13px;">
-                        <th style="text-align: left; padding: 8px 4px; width: 12%;">Referencia</th>
-                        <th style="text-align: left; padding: 8px 4px; width: 30%;">Ítem</th>
-                        <th style="text-align: right; padding: 8px 4px; width: 15%;">Precio</th>
-                        <th style="text-align: center; padding: 8px 4px; width: 12%;">Cantidad</th>
-                        <th style="text-align: right; padding: 8px 4px; width: 13%;">Descuento</th>
-                        <th style="text-align: right; padding: 8px 4px; width: 18%;">Total</th>
+                        <th style="text-align: left; padding: 8px 4px; width: 8%;">Referencia</th>
+                        <th style="text-align: left; padding: 8px 4px; width: 40%;">Ítem</th>
+                        <th style="text-align: right; padding: 8px 4px; width: 14%;">Precio</th>
+                        <th style="text-align: center; padding: 8px 4px; width: 8%;">Cantidad</th>
+                        <th style="text-align: right; padding: 8px 4px; width: 10%;">Descuento</th>
+                        <th style="text-align: right; padding: 8px 4px; width: 20%;">Total</th>
                     </tr>
                 </thead>
                 <tbody>
