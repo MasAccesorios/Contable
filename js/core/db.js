@@ -204,7 +204,7 @@ const DB = {
             // (calculados en JS, residuos de Firebase, o de otras capas)
             const CAMPOS_BASURA = [
                 'detalles', 'terminosCondiciones', 'convertidoAFactura',
-                'total_costo', 'utilidad', 'saldoPendiente',
+                'utilidad', 'saldoPendiente',
                 'contacto_id_text', 'created_at'
             ];
             CAMPOS_BASURA.forEach(campo => delete payload[campo]);

@@ -280,7 +280,7 @@ export const DashboardModule = {
             // Se asume que toda factura es de venta (para el cálculo de ingresos del mes)
             if (f.fecha && f.fecha >= startDateStr && f.fecha <= endDateStr) {
                 ventasMes += (f.total || 0);
-                utilidadMes += (f.utilidad || 0);
+                utilidadMes += (f.total || 0) - (f.total_costo || 0);
                 facturasMesIds.push(f.id);
                 
                 if (dailySales[f.fecha] !== undefined) {
@@ -307,6 +307,8 @@ export const DashboardModule = {
         // 1 y 2. Obtener Cartera CxC y CxP en una sola pasada (Optimización O(1))
         const { cxc: carteraCxC, cxp: carteraCxP } = obtenerCarteraFiltrada(facturas, transacciones, contactos, 'ambas');
         console.timeEnd('obtener-cartera-filtrada-ambas');
+        console.table(carteraCxC.map(f => ({ numero: f.numero, saldo: f.saldo, fecha: f.fecha })));
+        window._debug_cxc = carteraCxC.map(f => ({ numero: f.numero, saldo: f.saldo, fecha: f.fecha }));
         
         console.time('iteracion-cxc');
         carteraCxC.forEach(f => {

@@ -1120,6 +1120,7 @@ export const FacturasModule = {
                         costoTotalVenta = factura.total_costo || 0;
                     }
 
+                    factura.total_costo = costoTotalVenta;
                     factura.clienteId = clienteId;
                     factura.tipoVenta = tipoVenta;
                     if (tipoVenta === 'contado') {
