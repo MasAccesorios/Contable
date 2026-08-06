@@ -218,22 +218,22 @@ async function check3() {
     
     const lotesSumMap = {};
     lotes.forEach(l => {
-        lotesSumMap[l.producto_id] = (lotesSumMap[l.producto_id] || 0) + parseInt(l.cantidad_actual || 0);
+        lotesSumMap[l.productoId] = (lotesSumMap[l.productoId] || 0) + parseFloat(l.cantidadActual || 0);
     });
     
     const fails = [];
     for (const p of productos) {
-        const stockDb = parseInt(p.stock) || 0;
-        const sumLotes = lotesSumMap[p.id] || 0;
+        const stockDb = parseFloat(p.stock) || 0;
+        const sumLotes = lotesSumMap[String(p.id)] || 0;
         
-        if (stockDb !== sumLotes) {
+        if (Math.abs(stockDb - sumLotes) > 0.001) {
             fails.push({
                 producto_id: p.id,
                 sku: p.sku || '',
                 nombre: p.nombre,
                 stock_en_productos: stockDb,
                 suma_lotes: sumLotes,
-                discrepancia: stockDb - sumLotes
+                discrepancia: (stockDb - sumLotes).toFixed(2)
             });
         }
     }
@@ -373,19 +373,19 @@ async function check7() {
     
     const lotesSumMap = {};
     lotes.forEach(l => {
-        lotesSumMap[l.producto_id] = (lotesSumMap[l.producto_id] || 0) + parseInt(l.cantidad_actual || 0);
+        lotesSumMap[l.productoId] = (lotesSumMap[l.productoId] || 0) + parseFloat(l.cantidadActual || 0);
     });
     
     const fails = [];
     for (const p of productos) {
-        const sumLotes = lotesSumMap[p.id] || 0;
+        const sumLotes = lotesSumMap[String(p.id)] || 0;
         
-        if (sumLotes < 0) {
+        if (sumLotes < -0.001) {
             fails.push({
                 producto_id: p.id,
                 sku: p.sku || '',
                 nombre: p.nombre,
-                suma_lotes: sumLotes
+                suma_lotes: sumLotes.toFixed(2)
             });
         }
     }
