@@ -1,7 +1,6 @@
 // js/modules/dashboard.js
 import DB from '../core/db.js';
 import { supabase } from '../core/supabase.js';
-import { obtenerCarteraFiltrada } from '../shared/carteraUtils.js';
 
 export const DashboardModule = {
     async init(element) {
@@ -174,26 +173,20 @@ export const DashboardModule = {
 
     async loadData(element) {
         console.time('dashboard-total-load');
-        
-        console.time('fetch-facturas');
-        this.facturas = await DB.getAll('facturas');
-        console.timeEnd('fetch-facturas');
 
-        console.time('fetch-transacciones');
-        this.transacciones = await DB.getAll('transacciones');
-        console.timeEnd('fetch-transacciones');
+        console.time('fetch-parallel');
+        const [facturas, lotes, contactos, dbCuentas] = await Promise.all([
+            DB.getAll('facturas'),
+            DB.getAll('lotes_fifo'),
+            DB.getAll('contactos'),
+            DB.getAll('cuentas_bancarias')
+        ]);
+        this.facturas = facturas;
+        this.lotes = lotes;
+        this.contactos = contactos;
+        this.cuentasActivas = (dbCuentas || []).filter(c => c.estado === 'active' || c.estado === 'activo');
+        console.timeEnd('fetch-parallel');
 
-        console.time('fetch-lotes');
-        this.lotes = await DB.getAll('lotes_fifo');
-        console.timeEnd('fetch-lotes');
-
-        console.time('fetch-contactos');
-        this.contactos = await DB.getAll('contactos');
-        console.timeEnd('fetch-contactos');
-
-        const dbCuentas = await DB.getAll('cuentas_bancarias') || [];
-        this.cuentasActivas = dbCuentas.filter(c => c.estado === 'active' || c.estado === 'activo');
-        
         const { data: saldosRPC } = await supabase.rpc('get_saldos_por_cuenta');
         this.saldosRPC = saldosRPC;
 
@@ -205,11 +198,9 @@ export const DashboardModule = {
 
     async renderDynamicContent(element, rango) {
         console.time('render-dynamic-content');
-        
+
         const facturas = this.facturas || [];
-        const transacciones = this.transacciones || [];
         const lotes = this.lotes || [];
-        const contactos = this.contactos || [];
 
         // Extract KPIs
         let ventasMes = 0;
@@ -303,10 +294,13 @@ export const DashboardModule = {
         }
         console.timeEnd('fetch-productos-vendidos');
 
-        console.time('obtener-cartera-filtrada-ambas');
-        // 1 y 2. Obtener Cartera CxC y CxP en una sola pasada (Optimización O(1))
-        const { cxc: carteraCxC, cxp: carteraCxP } = obtenerCarteraFiltrada(facturas, transacciones, contactos, 'ambas');
-        console.timeEnd('obtener-cartera-filtrada-ambas');
+        console.time('fetch-cartera-rpc');
+        // Cartera CxC y CxP via RPC — el servidor calcula los saldos, evita traer transacciones completas
+        const [{ data: carteraCxC }, { data: carteraCxP }] = await Promise.all([
+            supabase.rpc('get_cartera_con_saldos', { p_tipo_cartera: 'cxc' }),
+            supabase.rpc('get_cartera_con_saldos', { p_tipo_cartera: 'cxp' })
+        ]);
+        console.timeEnd('fetch-cartera-rpc');
         
         console.time('iteracion-cxc');
         carteraCxC.forEach(f => {
