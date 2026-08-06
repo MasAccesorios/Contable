@@ -1298,7 +1298,7 @@ export const PrintManager = {
 
         this._renderPreviewShell(htmlContent, {
             mode: 'preview',
-            fileName: \`EstadoCuenta_\${cliente.nombre ? cliente.nombre.replace(/[^a-zA-Z0-9]/g, '_') : 'Cliente'}.png\`,
+            fileName: `EstadoCuenta_${cliente.nombre ? cliente.nombre.replace(/[^a-zA-Z0-9]/g, '_') : 'Cliente'}.png`,
             title: 'Estado de Cuenta',
             printClass: 'hoja-dinamica'
         });
