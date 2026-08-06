@@ -179,18 +179,17 @@ export const DashboardModule = {
         this.facturas = await DB.getAll('facturas');
         console.timeEnd('fetch-facturas');
 
-        console.time('fetch-cartera-rpc');
-        const [cxcRes, cxpRes] = await Promise.all([
-            supabase.rpc('get_cartera_con_saldos', { p_tipo_cartera: 'cxc' }),
-            supabase.rpc('get_cartera_con_saldos', { p_tipo_cartera: 'cxp' })
-        ]);
-        this.carteraCxC = cxcRes.data || [];
-        this.carteraCxP = cxpRes.data || [];
-        console.timeEnd('fetch-cartera-rpc');
-        
+        console.time('fetch-transacciones');
+        this.transacciones = await DB.getAll('transacciones');
+        console.timeEnd('fetch-transacciones');
+
         console.time('fetch-lotes');
         this.lotes = await DB.getAll('lotes_fifo');
         console.timeEnd('fetch-lotes');
+
+        console.time('fetch-contactos');
+        this.contactos = await DB.getAll('contactos');
+        console.timeEnd('fetch-contactos');
 
         const dbCuentas = await DB.getAll('cuentas_bancarias') || [];
         this.cuentasActivas = dbCuentas.filter(c => c.estado === 'active' || c.estado === 'activo');
@@ -208,9 +207,9 @@ export const DashboardModule = {
         console.time('render-dynamic-content');
         
         const facturas = this.facturas || [];
+        const transacciones = this.transacciones || [];
         const lotes = this.lotes || [];
-        const carteraCxC = this.carteraCxC || [];
-        const carteraCxP = this.carteraCxP || [];
+        const contactos = this.contactos || [];
 
         // Extract KPIs
         let ventasMes = 0;
@@ -304,7 +303,10 @@ export const DashboardModule = {
         }
         console.timeEnd('fetch-productos-vendidos');
 
-
+        console.time('obtener-cartera-filtrada-ambas');
+        // 1 y 2. Obtener Cartera CxC y CxP en una sola pasada (Optimización O(1))
+        const { cxc: carteraCxC, cxp: carteraCxP } = obtenerCarteraFiltrada(facturas, transacciones, contactos, 'ambas');
+        console.timeEnd('obtener-cartera-filtrada-ambas');
         
         console.time('iteracion-cxc');
         carteraCxC.forEach(f => {
