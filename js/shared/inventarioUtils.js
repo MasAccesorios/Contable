@@ -20,7 +20,41 @@ export const InventarioUtils = {
         // Prevención de Mutaciones Indeseadas (Punto Crítico 2)
         const detalles = JSON.parse(JSON.stringify(detallesOriginales));
 
-        // Fase 1: Validación Estricta (Deshabilitada por regla de negocio: se permite inventario negativo)
+        // Fase 1: Validación Asíncrona de Sobreventa (Requiere confirmación)
+        let qtyPedidaPorProducto = {};
+        for (const det of detalles) {
+            qtyPedidaPorProducto[det.productoId] = (qtyPedidaPorProducto[det.productoId] || 0) + parseFloat(det.cantidad);
+        }
+
+        let itemsSinStock = [];
+        for (const prodIdStr in qtyPedidaPorProducto) {
+            const prodId = parseInt(prodIdStr);
+            const qtyPedida = qtyPedidaPorProducto[prodIdStr];
+            
+            const lotesProd = lotesGlobales.filter(l => l.productoId === prodId && l.cantidadActual > 0);
+            const stockDisponible = lotesProd.reduce((sum, l) => sum + parseInt(l.cantidadActual), 0);
+            
+            if (qtyPedida > stockDisponible) {
+                const prod = productos.find(p => p.id === prodId);
+                const nombreProd = prod ? prod.nombre : 'Producto ID ' + prodId;
+                itemsSinStock.push(`- <b>${nombreProd}</b>: solicitas ${qtyPedida}, hay disponible ${stockDisponible}`);
+            }
+        }
+
+        if (itemsSinStock.length > 0) {
+            const msg = `Los siguientes productos no tienen stock suficiente para completar la transacción:<br><br>${itemsSinStock.join('<br>')}<br><br>¿Deseas continuar y registrar el faltante como inventario negativo?`;
+            
+            let confirmado = false;
+            if (window.CoreActions && window.CoreActions.showConfirmModalAsync) {
+                confirmado = await window.CoreActions.showConfirmModalAsync(msg);
+            } else {
+                confirmado = confirm(msg.replace(/<br>/g, '\n').replace(/<b>|<\/b>/g, ''));
+            }
+            
+            if (!confirmado) {
+                return { success: false, error: "Venta cancelada por el usuario (stock insuficiente)." };
+            }
+        }
 
         // Fase 2: Descuento FIFO Real
         for (const det of detalles) {

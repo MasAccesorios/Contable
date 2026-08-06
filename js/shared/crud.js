@@ -212,12 +212,47 @@ export const CoreActions = {
                     </div>
                     <p style="color: var(--text-body); font-size: 14px; line-height: 1.5; margin-bottom: 24px;">${message}</p>
                     <div class="text-end">
-                        <button class="btn btn-light px-4 text-dark" style="font-weight: var(--weight-medium); border: 1px solid #e2e8f0;" onclick="document.getElementById('core-error-modal').remove()">Entendido</button>
+                        <button class="btn btn-light px-4 text-dark" style="font-weight: var(--weight-medium); border: 1px solid #e2e8f0;" onclick="document.getElementById('core-error-modal').remove()">Cerrar</button>
                     </div>
                 </div>
             </div>
         `;
         document.body.insertAdjacentHTML('beforeend', modalHtml);
+    },
+
+    showConfirmModalAsync(message) {
+        return new Promise((resolve) => {
+            const existing = document.getElementById('core-confirm-modal');
+            if (existing) existing.remove();
+
+            const modalHtml = `
+                <div id="core-confirm-modal" class="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center" style="background: rgba(0,0,0,0.4); z-index: 9999; backdrop-filter: blur(2px);">
+                    <div class="bg-white p-4" style="box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.03), 0px 1px 3px rgba(0, 0, 0, 0.05); border-radius: 8px; max-width: 450px; border-top: 4px solid #3b82f6;">
+                        <div class="d-flex align-items-center mb-3">
+                            <i class="bi bi-question-circle-fill text-primary fs-4 me-3"></i>
+                            <h5 class="mb-0 fw-bold" style="color: var(--text-main); font-size: 16px;">Confirmar Acción</h5>
+                        </div>
+                        <p style="color: var(--text-body); font-size: 14px; line-height: 1.5; margin-bottom: 24px;">${message}</p>
+                        <div class="text-end d-flex justify-content-end gap-2">
+                            <button id="btn-confirm-cancel" class="btn btn-light px-4 text-dark" style="font-weight: var(--weight-medium); border: 1px solid #e2e8f0;">Cancelar</button>
+                            <button id="btn-confirm-accept" class="btn btn-primary px-4" style="font-weight: var(--weight-medium);">Continuar</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            
+            document.getElementById('btn-confirm-cancel').addEventListener('click', () => {
+                document.getElementById('core-confirm-modal').remove();
+                resolve(false);
+            });
+            
+            document.getElementById('btn-confirm-accept').addEventListener('click', () => {
+                document.getElementById('core-confirm-modal').remove();
+                resolve(true);
+            });
+        });
     },
 
     /**
@@ -1422,3 +1457,5 @@ export const ExportManager = {
         }
     }
 };
+
+window.CoreActions = CoreActions;
