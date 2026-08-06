@@ -339,7 +339,7 @@ export const DashboardModule = {
 
         safeSetText('#kpi-total-ventas', formatMoney(ventasMes));
         const margenPct = ventasMes > 0 ? ((utilidadMes / ventasMes) * 100) : 0;
-        safeSetText('#kpi-utilidad-mes', `${formatMoney(utilidadMes)} (${margenPct.toFixed(1)}%)`);
+        safeSetText('#kpi-utilidad-mes', `${margenPct.toFixed(1)}%`);
         safeSetText('#kpi-inventario-valorizado', formatMoney(inventarioValorizado));
         safeSetText('#kpi-saldo-bancos', formatMoney(saldoBancos));
         safeSetText('#kpi-productos', productosVendidos);
