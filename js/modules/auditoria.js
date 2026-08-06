@@ -1,7 +1,7 @@
 import { supabase } from '../core/supabase.js';
 
-export async function render() {
-    const container = document.getElementById('view-viewport');
+export async function init(container = null) {
+    if (!container) container = document.getElementById('view-viewport');
     container.innerHTML = `
         <div class="content-header">
             <h2 class="content-title">🛡️ Auditoría de Integridad</h2>
