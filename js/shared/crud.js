@@ -1085,16 +1085,16 @@ export const PrintManager = {
             const prod = productos.find(p => p.id === det.productoId) || {};
             const subtotal = (det.cantidad || 0) * (det.precio || 0);
             return `
-                <tr style="border-bottom: 1px solid #dee2e6; font-size: 12px; color: #495057;">
-                    <td style="padding: 8px 4px;">${prod.sku || 'N/A'}</td>
-                    <td style="padding: 8px 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                <tr style="border-bottom: 1px solid #dee2e6; font-size: 11px; color: #495057;">
+                    <td style="padding: 5px 4px;">${prod.sku || 'N/A'}</td>
+                    <td style="padding: 5px 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                         <div style="font-weight: 600; color: #212529;">${prod.nombre || 'Ítem sin nombre'}</div>
                         ${det.descripcion_personalizada ? `<div style="font-size: 10.5px; color: #6c757d; margin-top: 3px;">${det.descripcion_personalizada}</div>` : ''}
                     </td>
-                    <td style="padding: 8px 4px; text-align: right;">${formatMoney(det.precio)}</td>
-                    <td style="padding: 8px 4px; text-align: center;">${det.cantidad}</td>
-                    <td style="padding: 8px 4px; text-align: right;">${det.descuento || 0}%</td>
-                    <td style="padding: 8px 4px; text-align: right;">${formatMoney(subtotal)}</td>
+                    <td style="padding: 5px 4px; text-align: right; white-space: nowrap;">${formatMoney(det.precio)}</td>
+                    <td style="padding: 5px 4px; text-align: center;">${det.cantidad}</td>
+                    <td style="padding: 5px 4px; text-align: right;">${det.descuento || 0}%</td>
+                    <td style="padding: 5px 4px; text-align: right; white-space: nowrap;">${formatMoney(subtotal)}</td>
                 </tr>
             `;
         }).join('');
