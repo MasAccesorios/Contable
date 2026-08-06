@@ -848,7 +848,9 @@ export const PrintManager = {
                     const canvas = await window.html2canvas(paperContent, { 
                         scale: 2,
                         useCORS: true,
-                        backgroundColor: '#ffffff'
+                        backgroundColor: '#ffffff',
+                        windowWidth: Math.max(document.documentElement.scrollWidth, paperContent.scrollWidth + 40),
+                        windowHeight: Math.max(document.documentElement.scrollHeight, paperContent.scrollHeight + 40)
                     });
                     
                     container.scrollTop = oldScrollTop;
