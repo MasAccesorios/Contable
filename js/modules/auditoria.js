@@ -306,9 +306,16 @@ async function check6() {
     const todasFacturas = await DB.getAll('facturas');
     const todosPagos = await DB.getAll('pagos_ingresos');
     
-    // Filtramos para ambas carteras
-    const validFacturasCxc = todasFacturas.filter(f => !['anulada', 'void', 'voided'].includes(f.estado?.toLowerCase()) && (f.tipo === 'venta' || !f.tipo));
-    const validFacturasCxp = todasFacturas.filter(f => !['anulada', 'void', 'voided'].includes(f.estado?.toLowerCase()) && (f.tipo === 'compra' || f.tipo === 'gasto'));
+    // Helper para replicar WHERE EXTRACT(YEAR FROM fecha/vencimiento/created_at) > 2017
+    const isPost2017 = (f) => {
+        const d = f.fecha || f.vencimiento || f.created_at;
+        if (!d) return true; // Seguro por si alguna factura no tiene fecha (aunque created_at debería)
+        return new Date(d).getFullYear() > 2017;
+    };
+    
+    // Filtramos para ambas carteras (excluyendo basura de migración histórica)
+    const validFacturasCxc = todasFacturas.filter(f => !['anulada', 'void', 'voided'].includes(f.estado?.toLowerCase()) && (f.tipo === 'venta' || !f.tipo) && isPost2017(f));
+    const validFacturasCxp = todasFacturas.filter(f => !['anulada', 'void', 'voided'].includes(f.estado?.toLowerCase()) && (f.tipo === 'compra' || f.tipo === 'gasto') && isPost2017(f));
     
     const pagosMap = {};
     for (const p of todosPagos) {
