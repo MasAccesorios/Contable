@@ -1,7 +1,6 @@
 import DB, { getLocalDate } from '../core/db.js';
 import { supabase } from '../core/supabase.js';
 import { CoreActions, PrintManager } from '../shared/crud.js';
-import { applyCurrencyFormatting } from '../shared/formatters.js';
 
 export default {
     async init(element) {

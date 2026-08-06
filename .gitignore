@@ -120,3 +120,16 @@ __pycache__/
 Ahorros de Puntos.txt
 Esp. Tecnicas Contable.md
 _archive_pruebas/
+
+# =============================================
+# SCRIPTS DE DIAGNÓSTICO / PRUEBA (con posibles credenciales)
+# =============================================
+scripts/*.mjs
+scripts/test_*.js
+scripts/test_*.sql
+test_*.js
+test_*.mjs
+*.diff
+scratch.js
+test_print.html
+old_db.js

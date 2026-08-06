@@ -307,8 +307,6 @@ export const DashboardModule = {
         // 1 y 2. Obtener Cartera CxC y CxP en una sola pasada (Optimización O(1))
         const { cxc: carteraCxC, cxp: carteraCxP } = obtenerCarteraFiltrada(facturas, transacciones, contactos, 'ambas');
         console.timeEnd('obtener-cartera-filtrada-ambas');
-        console.table(carteraCxC.map(f => ({ numero: f.numero, saldo: f.saldo, fecha: f.fecha })));
-        window._debug_cxc = carteraCxC.map(f => ({ numero: f.numero, saldo: f.saldo, fecha: f.fecha }));
         
         console.time('iteracion-cxc');
         carteraCxC.forEach(f => {
