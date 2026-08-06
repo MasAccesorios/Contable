@@ -16,10 +16,59 @@ export function agruparTransaccionesPorPago(transacciones) {
 }
 
 export async function anularTransaccion(idOGrupo, esGrupo = false) {
-    const query = supabase.from('pagos_ingresos').update({ estado: 'anulado' });
-    const { error } = esGrupo
-        ? await query.eq('grupo_pago_id', idOGrupo)
-        : await query.eq('id', parseInt(idOGrupo, 10));
+    // 1. Obtener los factura_id afectados antes de anular
+    let querySelect = supabase.from('pagos_ingresos').select('factura_id');
+    if (esGrupo) {
+        querySelect = querySelect.eq('grupo_pago_id', idOGrupo);
+    } else {
+        querySelect = querySelect.eq('id', parseInt(idOGrupo, 10));
+    }
+    const { data: filasAfectadas } = await querySelect;
+    const facturaIds = [...new Set((filasAfectadas || []).map(f => f.factura_id).filter(Boolean))];
+
+    // 2. Anular la transacción
+    let queryUpdate = supabase.from('pagos_ingresos').update({ estado: 'anulado' });
+    if (esGrupo) {
+        queryUpdate = queryUpdate.eq('grupo_pago_id', idOGrupo);
+    } else {
+        queryUpdate = queryUpdate.eq('id', parseInt(idOGrupo, 10));
+    }
+    const { error } = await queryUpdate;
     if (error) throw error;
-    if (DB.invalidateCache) DB.invalidateCache('transacciones');
+    
+    // 3. Recalcular y actualizar estado de las facturas afectadas
+    if (facturaIds.length > 0) {
+        const { data: transaccionesRelevantes } = await supabase
+            .from('pagos_ingresos')
+            .select('*')
+            .in('factura_id', facturaIds);
+            
+        const { data: facturas } = await supabase
+            .from('facturas')
+            .select('*')
+            .in('id', facturaIds);
+
+        if (facturas && transaccionesRelevantes) {
+            const { calcularEstadoFactura } = await import('./carteraUtils.js');
+            for (let f of facturas) {
+                const estadoOriginal = f.estado;
+                f.estado = 'pendiente'; // Temporal para forzar recálculo dinámico sin short-circuit
+                
+                const txMapeadas = transaccionesRelevantes.map(t => ({
+                    ...t,
+                    tipo: t.tipo === 'in' ? 'ingreso' : 'egreso'
+                }));
+                
+                const metricas = calcularEstadoFactura(f, txMapeadas);
+                
+                // Actualizamos BD siempre para asegurar que deje de decir 'pagada'/'closed' si ya no lo está
+                await supabase.from('facturas').update({ estado: metricas.estado }).eq('id', f.id);
+            }
+        }
+    }
+
+    if (DB.invalidateCache) {
+        DB.invalidateCache('transacciones');
+        if (facturaIds.length > 0) DB.invalidateCache('facturas');
+    }
 }
