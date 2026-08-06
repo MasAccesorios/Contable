@@ -778,7 +778,7 @@ export function numeroALetras(valor) {
 
 export const PrintManager = {
     _renderPreviewShell(innerHtmlContent, options) {
-        const { mode, fileName, title = 'Documento', printClass = 'hoja-dinamica' } = options;
+        const { mode, fileName, title = 'Documento', printClass = 'hoja-dinamica', shareText = 'Adjunto el documento solicitado.' } = options;
 
         const oldContainer = document.querySelector('.print-document-template');
         if (oldContainer) oldContainer.remove();
@@ -876,7 +876,7 @@ export const PrintManager = {
                     try {
                         await navigator.share({
                             title: title,
-                            text: 'Adjunto el documento solicitado.',
+                            text: shareText,
                             files: [cachedShareFile]
                         });
                     } catch (e) {
@@ -1300,7 +1300,8 @@ export const PrintManager = {
             mode: 'preview',
             fileName: `EstadoCuenta_${cliente.nombre ? cliente.nombre.replace(/[^a-zA-Z0-9]/g, '_') : 'Cliente'}.png`,
             title: 'Estado de Cuenta',
-            printClass: 'hoja-dinamica'
+            printClass: 'hoja-dinamica',
+            shareText: `Buen día estimado ${cliente.nombre || 'cliente'}, envío estado de cuenta.`
         });
     }
 };
