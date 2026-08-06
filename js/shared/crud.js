@@ -1088,7 +1088,7 @@ export const PrintManager = {
                 <tr style="border-bottom: 1px solid #dee2e6; font-size: 11px; color: #495057;">
                     <td style="padding: 5px 4px;">${prod.sku || 'N/A'}</td>
                     <td style="padding: 5px 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                        <div style="font-weight: 600; color: #212529;">${prod.nombre || 'Ítem sin nombre'}</div>
+                        <div style="font-weight: 400; color: #212529;">${prod.nombre || 'Ítem sin nombre'}</div>
                         ${det.descripcion_personalizada ? `<div style="font-size: 10.5px; color: #6c757d; margin-top: 3px;">${det.descripcion_personalizada}</div>` : ''}
                     </td>
                     <td style="padding: 5px 4px; text-align: right; white-space: nowrap;">${formatMoney(det.precio)}</td>
@@ -1112,8 +1112,8 @@ export const PrintManager = {
             </div>
 
             <!-- INFO CLIENTE Y DOC -->
-            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-                <div style="background-color: #f8f9fa; padding: 14px; width: 48%; border-radius: 6px; box-sizing: border-box;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                <div style="background-color: #f8f9fa; padding: 10px; width: 48%; border-radius: 6px; box-sizing: border-box;">
                     <p style="margin: 0 0 10px 0; font-weight: bold; font-size: 14px; color: #212529;">${cliente.nombre || 'Sin cliente'}</p>
                     <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 5px;">
                         <strong style="color: #495057;">CC/NIT</strong><span>${cliente.identificacion || ''}</span>
@@ -1154,7 +1154,7 @@ export const PrintManager = {
 
             <!-- FOOTER TOTALES -->
             <div>
-                <div style="display: flex; justify-content: space-between; margin-top: 24px;">
+                <div style="display: flex; justify-content: space-between; margin-top: 12px;">
                     <div style="width: 50%;">
                         <h5 style="color: #6c757d; font-size: 14px; margin: 0 0 8px 0;">Observaciones</h5>
                         <p style="font-size: 12px; color: #495057; margin: 0;">${doc.notas || ''}</p>
