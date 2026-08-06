@@ -1138,7 +1138,7 @@ export const PrintManager = {
             </div>
 
             <!-- TABLA DE PRODUCTOS -->
-            <table style="width: 100%; border-collapse: collapse; margin-bottom: 35px; table-layout: fixed;">
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; table-layout: fixed;">
                 <thead style="display: table-header-group;">
                     <tr style="border-bottom: 2px solid #dee2e6; color: #495057; font-size: 13px;">
                         <th style="text-align: left; padding: 8px 4px; width: 12%;">Referencia</th>
@@ -1173,7 +1173,7 @@ export const PrintManager = {
                         </div>
                     </div>
                 </div>
-                <div style="text-align: center; margin-top: 40px; margin-bottom: 20px;">
+                <div style="text-align: center; margin-top: 20px; margin-bottom: 20px; page-break-inside: avoid;">
                     <div style="width: 200px; height: 50px; background-color: #f8f9fa; margin: 0 auto; border-bottom: 1px solid #495057;"></div>
                     <p style="font-size: 10px; color: #212529; margin-top: 5px;">ELABORADO POR</p>
                 </div>
