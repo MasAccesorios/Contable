@@ -7,122 +7,146 @@ export const DashboardModule = {
         if (!element) return;
 
         element.innerHTML = `
-            <div class="p-4" style="background-color: transparent; min-height: 100vh;">
-                <div class="d-flex justify-content-between align-items-center mb-4" style="max-width: 1100px; margin: 0 auto;">
-                    <h3 class="text-title text-dark mb-0">Resumen del negocio</h3>
-                    <div class="d-flex flex-wrap gap-2 align-items-center mt-3 mt-md-0" style="flex: 1; justify-content: flex-end; min-width: 250px;">
-                        <div class="btn-group shadow-sm d-flex" role="group" id="dashboard-rango-filtro" style="flex: 1 1 auto; white-space: nowrap; overflow-x: auto;">
-                            <button type="button" class="btn btn-outline-primary btn-sm fw-medium px-3" data-rango="7 Días">7 Días</button>
-                            <button type="button" class="btn btn-primary btn-sm fw-medium px-3 active text-white" data-rango="Este Mes" style="background-color: #1877f2; border-color: #1877f2;">Este Mes</button>
-                            <button type="button" class="btn btn-outline-primary btn-sm fw-medium px-3" data-rango="Este Año">Este Año</button>
+            <div class="p-3 p-md-4" style="background-color: transparent; min-height: 100vh;">
+
+                <!-- ═══ HEADER ═══ -->
+                <div style="max-width: 1100px; margin: 0 auto 1.5rem;">
+                    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+                        <div>
+                            <h3 class="fw-bold mb-0" style="font-size: 20px; color: #0f172a; letter-spacing: -0.3px;">Resumen del negocio</h3>
+                            <p class="mb-0 text-muted" style="font-size: 12px; margin-top: 2px;">Vista consolidada en tiempo real</p>
                         </div>
-                        <button class="btn btn-sm text-white shadow-sm fw-semibold" style="border-radius:6px; background-color:#2dbda8; border:none; font-size:0.85rem; padding:0.35rem 1rem; flex: 0 0 auto;">
-                            Agregar gráfico <i class="bi bi-chevron-down ms-1" style="font-size:0.7rem;"></i>
-                        </button>
+                        <div class="dashboard-pill-group" role="group" id="dashboard-rango-filtro">
+                            <button type="button" class="dpg-btn" data-rango="7 Días">7 Días</button>
+                            <button type="button" class="dpg-btn dpg-btn--active" data-rango="Este Mes">Este Mes</button>
+                            <button type="button" class="dpg-btn" data-rango="Este Año">Este Año</button>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Cards Row -->
-                <div class="row g-3 mb-4" style="max-width: 1100px; margin: 0 auto;">
+                <!-- ═══ CxC / CxP ROW ═══ -->
+                <div class="row g-3 mb-3" style="max-width: 1100px; margin: 0 auto;">
+
                     <!-- Cuentas por cobrar -->
-                    <div class="col-12 col-lg-4">
-                        <div class="card border-0 shadow-sm h-100" style="border-radius:10px; cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'" onclick="window.location.hash = '#/cartera'">
-                            <div class="card-body p-4">
-                                <h6 class="text-dark mb-3 text-body">Cuentas por cobrar</h6>
-                                <h3 class="text-metric text-dark mb-3 mt-2" id="kpi-cxc-total"><span class="spinner-border spinner-border-sm text-secondary"></span></h3>
-                                
-                                <div class="progress mb-4" style="height: 6px; border-radius: 3px;" id="kpi-cxc-progress">
-                                    <div class="progress-bar" role="progressbar" style="width: 87%; background-color: #2dbda8;" aria-valuenow="87" aria-valuemin="0" aria-valuemax="100"></div>
-                                    <div class="progress-bar" role="progressbar" style="width: 13%; background-color: #f06548;" aria-valuenow="13" aria-valuemin="0" aria-valuemax="100"></div>
+                    <div class="col-12 col-md-6">
+                        <div class="dash-card-premium dash-card-link" onclick="window.location.hash = '#/cartera'" tabindex="0">
+                            <div class="d-flex justify-content-between align-items-start mb-1">
+                                <div>
+                                    <span class="dash-card-label"><i class="bi bi-arrow-down-circle me-1 text-success" style="font-size:12px;"></i>Cuentas por cobrar</span>
+                                    <div class="dash-card-metric" id="kpi-cxc-total"><span class="spinner-border spinner-border-sm text-secondary"></span></div>
                                 </div>
-                                
-                                <div class="d-flex gap-4 mt-2">
-                                    <div style="border-left: 3px solid #2dbda8; padding-left: 10px; flex: 1;">
-                                        <span class="text-muted d-block mb-1 text-subtext">Vigentes</span>
-                                        <span class="text-body fw-bold d-block text-dark" id="kpi-cxc-vigentes"><span class="spinner-border spinner-border-sm text-secondary"></span></span>
-                                        <span class="text-muted text-subtext" id="kpi-cxc-vigentes-doc">...</span>
-                                    </div>
-                                    <div style="border-left: 3px solid #f06548; padding-left: 10px; flex: 1;">
-                                        <span class="text-muted d-block mb-1 text-subtext">Vencidas</span>
-                                        <span class="text-body fw-bold d-block text-dark" id="kpi-cxc-vencidas"><span class="spinner-border spinner-border-sm text-secondary"></span></span>
-                                        <span class="text-muted text-subtext" id="kpi-cxc-vencidas-doc">...</span>
-                                    </div>
-                                </div>
+                                <span class="badge dash-badge-mora" id="kpi-cxc-badge-mora" style="display:none;"></span>
                             </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Cuentas por pagar -->
-                    <div class="col-12 col-lg-4">
-                        <div class="card border-0 shadow-sm h-100" style="border-radius:10px;">
-                            <div class="card-body p-4">
-                                <h6 class="text-dark mb-3 text-body">Cuentas por pagar</h6>
-                                <h3 class="text-metric text-dark mb-3 mt-2" id="kpi-cxp-total"><span class="spinner-border spinner-border-sm text-secondary"></span></h3>
-                                
-                                <div class="progress mb-4" style="height: 6px; border-radius: 3px;" id="kpi-cxp-progress">
-                                    <div class="progress-bar" role="progressbar" style="width: 100%; background-color: #e9ecef;" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>
+                            <div class="dash-micro-bar" id="kpi-cxc-progress">
+                                <div class="dash-micro-fill" style="width: 0%; background:#2dbda8;"></div>
+                                <div class="dash-micro-fill" style="width: 0%; background:#f06548;"></div>
+                            </div>
+                            <div class="d-flex gap-4 mt-3">
+                                <div class="dash-sub-item dash-sub-green">
+                                    <span class="dash-sub-label">Vigentes</span>
+                                    <span class="dash-sub-value" id="kpi-cxc-vigentes"><span class="spinner-border spinner-border-sm text-secondary"></span></span>
+                                    <span class="dash-sub-docs" id="kpi-cxc-vigentes-doc">...</span>
                                 </div>
-                                
-                                <div class="d-flex gap-4 mt-2">
-                                    <div style="border-left: 3px solid #ced4da; padding-left: 10px; flex: 1;">
-                                        <span class="text-muted d-block mb-1 text-subtext">Vigentes</span>
-                                        <span class="text-body fw-bold d-block text-dark" id="kpi-cxp-vigentes"><span class="spinner-border spinner-border-sm text-secondary"></span></span>
-                                        <span class="text-muted text-subtext" id="kpi-cxp-vigentes-doc">...</span>
-                                    </div>
-                                    <div style="border-left: 3px solid #ced4da; padding-left: 10px; flex: 1;">
-                                        <span class="text-muted d-block mb-1 text-subtext">Vencidas</span>
-                                        <span class="text-body fw-bold d-block text-dark" id="kpi-cxp-vencidas"><span class="spinner-border spinner-border-sm text-secondary"></span></span>
-                                        <span class="text-muted text-subtext" id="kpi-cxp-vencidas-doc">...</span>
-                                    </div>
+                                <div class="dash-sub-item dash-sub-red">
+                                    <span class="dash-sub-label">Vencidas</span>
+                                    <span class="dash-sub-value" id="kpi-cxc-vencidas"><span class="spinner-border spinner-border-sm text-secondary"></span></span>
+                                    <span class="dash-sub-docs" id="kpi-cxc-vencidas-doc">...</span>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- 4 Small KPIs -->
-                    <div class="col-12 col-lg-4">
-                        <div class="row g-3 h-100">
-                            <div class="col-12 col-sm-6">
-                                <div class="card kpi-card kpi-success">
-                                    <div class="kpi-card-body">
-                                        <i class="bi bi-graph-up-arrow kpi-icon"></i>
-                                        <h6 class="kpi-label">Utilidad (Mes)</h6>
-                                        <h5 class="kpi-value" id="kpi-utilidad-mes"><span class="spinner-border spinner-border-sm text-secondary"></span></h5>
-                                    </div>
+                    <!-- Cuentas por pagar -->
+                    <div class="col-12 col-md-6">
+                        <div class="dash-card-premium">
+                            <div class="d-flex justify-content-between align-items-start mb-1">
+                                <div>
+                                    <span class="dash-card-label"><i class="bi bi-arrow-up-circle me-1 text-danger" style="font-size:12px;"></i>Cuentas por pagar</span>
+                                    <div class="dash-card-metric" id="kpi-cxp-total"><span class="spinner-border spinner-border-sm text-secondary"></span></div>
                                 </div>
+                                <span class="badge dash-badge-mora dash-badge-mora--warning" id="kpi-cxp-badge-mora" style="display:none;"></span>
                             </div>
-                            <div class="col-12 col-sm-6">
-                                <div class="card kpi-card kpi-dark">
-                                    <div class="kpi-card-body">
-                                        <i class="bi bi-box-seam kpi-icon"></i>
-                                        <h6 class="kpi-label">Productos</h6>
-                                        <h5 class="kpi-value" id="kpi-productos"><span class="spinner-border spinner-border-sm text-secondary"></span></h5>
-                                    </div>
+                            <div class="dash-micro-bar" id="kpi-cxp-progress">
+                                <div class="dash-micro-fill" style="width: 0%; background:#6c757d;"></div>
+                                <div class="dash-micro-fill" style="width: 0%; background:#fd7e14;"></div>
+                            </div>
+                            <div class="d-flex gap-4 mt-3">
+                                <div class="dash-sub-item dash-sub-neutral">
+                                    <span class="dash-sub-label">Vigentes</span>
+                                    <span class="dash-sub-value" id="kpi-cxp-vigentes"><span class="spinner-border spinner-border-sm text-secondary"></span></span>
+                                    <span class="dash-sub-docs" id="kpi-cxp-vigentes-doc">...</span>
                                 </div>
-                            </div>
-                            <div class="col-12 col-sm-6">
-                                <div class="card kpi-card kpi-primary">
-                                    <div class="kpi-card-body">
-                                        <i class="bi bi-boxes kpi-icon"></i>
-                                        <h6 class="kpi-label">Inventario Val.</h6>
-                                        <h5 class="kpi-value" id="kpi-inventario-valorizado"><span class="spinner-border spinner-border-sm text-secondary"></span></h5>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-12 col-sm-6">
-                                <div class="card kpi-card kpi-info">
-                                    <div class="kpi-card-body">
-                                        <i class="bi bi-bank kpi-icon"></i>
-                                        <h6 class="kpi-label">Saldo Bancos</h6>
-                                        <h5 class="kpi-value" id="kpi-saldo-bancos"><span class="spinner-border spinner-border-sm text-secondary"></span></h5>
-                                    </div>
+                                <div class="dash-sub-item dash-sub-orange">
+                                    <span class="dash-sub-label">Vencidas</span>
+                                    <span class="dash-sub-value" id="kpi-cxp-vencidas"><span class="spinner-border spinner-border-sm text-secondary"></span></span>
+                                    <span class="dash-sub-docs" id="kpi-cxp-vencidas-doc">...</span>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
+
+                <!-- ═══ 4 MICRO-KPIs ═══ -->
+                <div class="row g-3 mb-3" style="max-width: 1100px; margin: 0 auto;">
+                    <!-- Utilidad -->
+                    <div class="col-12 col-sm-6 col-xl-3">
+                        <div class="card dash-kpi-card h-100">
+                            <div class="card-body p-3 d-flex flex-column justify-content-between" style="min-height: 90px;">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <span class="dash-kpi-label">Utilidad del mes</span>
+                                    <div class="dash-kpi-icon-box dash-kpi-icon-box--success">
+                                        <i class="bi bi-graph-up-arrow"></i>
+                                    </div>
+                                </div>
+                                <div class="dash-kpi-value" id="kpi-utilidad-mes"><span class="spinner-border spinner-border-sm text-secondary"></span></div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Productos vendidos -->
+                    <div class="col-12 col-sm-6 col-xl-3">
+                        <div class="card dash-kpi-card h-100">
+                            <div class="card-body p-3 d-flex flex-column justify-content-between" style="min-height: 90px;">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <span class="dash-kpi-label">Productos vendidos</span>
+                                    <div class="dash-kpi-icon-box dash-kpi-icon-box--dark">
+                                        <i class="bi bi-box-seam"></i>
+                                    </div>
+                                </div>
+                                <div class="dash-kpi-value" id="kpi-productos"><span class="spinner-border spinner-border-sm text-secondary"></span></div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Inventario Valorizado -->
+                    <div class="col-12 col-sm-6 col-xl-3">
+                        <div class="card dash-kpi-card h-100">
+                            <div class="card-body p-3 d-flex flex-column justify-content-between" style="min-height: 90px;">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <span class="dash-kpi-label">Inventario val.</span>
+                                    <div class="dash-kpi-icon-box dash-kpi-icon-box--primary">
+                                        <i class="bi bi-boxes"></i>
+                                    </div>
+                                </div>
+                                <div class="dash-kpi-value" id="kpi-inventario-valorizado"><span class="spinner-border spinner-border-sm text-secondary"></span></div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Saldo Bancos -->
+                    <div class="col-12 col-sm-6 col-xl-3">
+                        <div class="card dash-kpi-card h-100">
+                            <div class="card-body p-3 d-flex flex-column justify-content-between" style="min-height: 90px;">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <span class="dash-kpi-label">Saldo bancos</span>
+                                    <div class="dash-kpi-icon-box dash-kpi-icon-box--info">
+                                        <i class="bi bi-bank"></i>
+                                    </div>
+                                </div>
+                                <div class="dash-kpi-value" id="kpi-saldo-bancos"><span class="spinner-border spinner-border-sm text-secondary"></span></div>
+                            </div>
+                        </div>
+                    </div>
 
                 <!-- Chart Section -->
+
                 <div class="card border-0 shadow-sm mb-4" style="max-width: 1100px; margin: 0 auto; border-radius:10px;">
                     <div class="card-body p-4">
                         <div class="d-flex justify-content-between align-items-start mb-4">
@@ -178,15 +202,10 @@ export const DashboardModule = {
         if (filterGroup) {
             filterGroup.addEventListener('click', (e) => {
                 if (e.target.tagName === 'BUTTON') {
-                    const buttons = filterGroup.querySelectorAll('button');
-                    buttons.forEach(btn => {
-                        btn.className = 'btn btn-outline-primary btn-sm fw-medium px-3';
-                        btn.style.backgroundColor = '';
-                        btn.style.borderColor = '';
+                    filterGroup.querySelectorAll('.dpg-btn').forEach(btn => {
+                        btn.classList.remove('dpg-btn--active');
                     });
-                    e.target.className = 'btn btn-primary btn-sm fw-medium px-3 active text-white';
-                    e.target.style.backgroundColor = '#1877f2';
-                    e.target.style.borderColor = '#1877f2';
+                    e.target.classList.add('dpg-btn--active');
                     this.renderDynamicContent(element, e.target.dataset.rango);
                 }
             });
@@ -216,7 +235,7 @@ export const DashboardModule = {
 
         console.timeEnd('dashboard-total-load');
 
-        const select = element.querySelector('#dashboard-rango-filtro .active');
+        const select = element.querySelector('#dashboard-rango-filtro .dpg-btn--active');
         await this.renderDynamicContent(element, select ? select.dataset.rango : 'Este Mes');
     },
 
@@ -407,23 +426,44 @@ export const DashboardModule = {
         safeSetText('#kpi-cxp-vigentes-doc', `${cxpVigentesDoc} documentos`);
         safeSetText('#kpi-cxp-vencidas-doc', `${cxpVencidasDoc} documentos`);
 
-        // Update Progress Bars dynamically
-        const updateProgress = (total, vigentes, vencidas, barId) => {
+        // Mora badges — CxC
+        const cxcBadge = element.querySelector('#kpi-cxc-badge-mora');
+        if (cxcBadge) {
+            if (cxcVencidasDoc > 0) {
+                cxcBadge.textContent = `${cxcVencidasDoc} vencida${cxcVencidasDoc > 1 ? 's' : ''}`;
+                cxcBadge.style.display = '';
+            } else {
+                cxcBadge.style.display = 'none';
+            }
+        }
+        // Mora badges — CxP
+        const cxpBadge = element.querySelector('#kpi-cxp-badge-mora');
+        if (cxpBadge) {
+            if (cxpVencidasDoc > 0) {
+                cxpBadge.textContent = `${cxpVencidasDoc} vencida${cxpVencidasDoc > 1 ? 's' : ''}`;
+                cxpBadge.style.display = '';
+            } else {
+                cxpBadge.style.display = 'none';
+            }
+        }
+
+        // Update micro-bars
+        const updateMicroBar = (total, vigentes, vencidas, barId, colors) => {
             const bar = element.querySelector(barId);
             if (!bar) return;
+            const fills = bar.querySelectorAll('.dash-micro-fill');
             if (total <= 0) {
-                bar.innerHTML = `<div class="progress-bar" style="width: 100%; background-color: #e9ecef;"></div>`;
+                if (fills[0]) { fills[0].style.width = '100%'; fills[0].style.background = '#e9ecef'; }
+                if (fills[1]) fills[1].style.width = '0%';
                 return;
             }
-            const pctVigentes = (vigentes / total) * 100;
-            const pctVencidas = (vencidas / total) * 100;
-            bar.innerHTML = `
-                <div class="progress-bar" style="width: ${pctVigentes}%; background-color: #2dbda8;"></div>
-                <div class="progress-bar" style="width: ${pctVencidas}%; background-color: #f06548;"></div>
-            `;
+            const pctV = Math.max(0, Math.min(100, (vigentes / total) * 100));
+            const pctVe = Math.max(0, Math.min(100, (vencidas / total) * 100));
+            if (fills[0]) { fills[0].style.width = pctV + '%'; fills[0].style.background = colors[0]; }
+            if (fills[1]) { fills[1].style.width = pctVe + '%'; fills[1].style.background = colors[1]; }
         };
-        updateProgress(cxcTotal, cxcVigentes, cxcVencidas, '#kpi-cxc-progress');
-        updateProgress(cxpTotal, cxpVigentes, cxpVencidas, '#kpi-cxp-progress');
+        updateMicroBar(cxcTotal, cxcVigentes, cxcVencidas, '#kpi-cxc-progress', ['#2dbda8', '#f06548']);
+        updateMicroBar(cxpTotal, cxpVigentes, cxpVencidas, '#kpi-cxp-progress', ['#6c757d', '#fd7e14']);
 
         // Render Chart
         this.renderChart(dailySales, rango);
