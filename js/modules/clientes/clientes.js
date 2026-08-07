@@ -27,7 +27,7 @@ export const ContactosModule = {
         
         // Renderizar contenedor principal de hoja completa
         element.innerHTML = `
-            <div class="module-container bg-white rounded shadow-sm p-4">
+            <div class="dash-layout">
                 <!-- Header -->
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <div>
@@ -47,107 +47,117 @@ export const ContactosModule = {
                         <button id="btn-refresh-list" class="btn btn-light bg-white border me-2" style="font-weight: var(--weight-medium); font-size: 14px; color: var(--text-body);">
                             <i class="bi bi-arrow-clockwise me-1"></i> Actualizar
                         </button>
-                        <button id="btn-nuevo-contacto" class="btn btn-primary d-flex align-items-center gap-2" style="background-color: var(--primary); border: none;">
+                        <button id="btn-nuevo-contacto" class="btn btn-primary d-flex align-items-center gap-2" style="background-color: #1877f2; border: none;">
                             <i class="bi bi-plus-lg"></i> Nuevo contacto
                         </button>
                     </div>
                 </div>
 
                 <!-- KPI CARDS CONTACTOS -->
-                <div class="row g-3 mb-4">
-                    <div class="col-12 col-sm-6 col-lg-4">
-                        <div class="card kpi-card kpi-primary">
-                            <div class="kpi-card-body">
-                                <i class="bi bi-people kpi-icon"></i>
-                                <h6 class="kpi-label">Total Contactos</h6>
-                                <h5 class="kpi-value" id="kpi-total-contactos">0</h5>
+                <div class="dash-grid-kpis mb-4" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem;">
+                    <div class="card dash-kpi-card border-0" style="border-radius: 14px; border: 1px solid #e2e8f0 !important; box-shadow: 0 4px 16px rgba(0,0,0,0.03); transition: all 0.25s ease;" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='translateY(0)'">
+                        <div class="card-body p-3 d-flex flex-column justify-content-between" style="min-height: 90px;">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <span class="dash-kpi-label text-muted fw-semibold" style="font-size: 13px;">Total Contactos</span>
+                                <div class="dash-kpi-icon-box rounded p-2 d-flex align-items-center justify-content-center" style="background-color: rgba(24, 119, 242, 0.1); color: #1877f2; width: 32px; height: 32px;">
+                                    <i class="bi bi-people"></i>
+                                </div>
                             </div>
+                            <div class="dash-kpi-value text-dark fw-bold fs-4 mt-2" id="kpi-total-contactos"><span class="spinner-border spinner-border-sm text-secondary"></span></div>
                         </div>
                     </div>
-                    <div class="col-12 col-sm-6 col-lg-4">
-                        <div class="card kpi-card kpi-success">
-                            <div class="kpi-card-body">
-                                <i class="bi bi-person-check kpi-icon"></i>
-                                <h6 class="kpi-label">Clientes Registrados</h6>
-                                <h5 class="kpi-value" id="kpi-clientes">0</h5>
+                    <div class="card dash-kpi-card border-0" style="border-radius: 14px; border: 1px solid #e2e8f0 !important; box-shadow: 0 4px 16px rgba(0,0,0,0.03); transition: all 0.25s ease;" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='translateY(0)'">
+                        <div class="card-body p-3 d-flex flex-column justify-content-between" style="min-height: 90px;">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <span class="dash-kpi-label text-muted fw-semibold" style="font-size: 13px;">Clientes Registrados</span>
+                                <div class="dash-kpi-icon-box rounded p-2 d-flex align-items-center justify-content-center" style="background-color: rgba(46, 204, 113, 0.1); color: #2ecc71; width: 32px; height: 32px;">
+                                    <i class="bi bi-person-check"></i>
+                                </div>
                             </div>
+                            <div class="dash-kpi-value text-dark fw-bold fs-4 mt-2" id="kpi-clientes"><span class="spinner-border spinner-border-sm text-secondary"></span></div>
                         </div>
                     </div>
-                    <div class="col-12 col-sm-6 col-lg-4">
-                        <div class="card kpi-card kpi-info">
-                            <div class="kpi-card-body">
-                                <i class="bi bi-shop kpi-icon"></i>
-                                <h6 class="kpi-label">Proveedores</h6>
-                                <h5 class="kpi-value" id="kpi-proveedores">0</h5>
+                    <div class="card dash-kpi-card border-0" style="border-radius: 14px; border: 1px solid #e2e8f0 !important; box-shadow: 0 4px 16px rgba(0,0,0,0.03); transition: all 0.25s ease;" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='translateY(0)'">
+                        <div class="card-body p-3 d-flex flex-column justify-content-between" style="min-height: 90px;">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <span class="dash-kpi-label text-muted fw-semibold" style="font-size: 13px;">Proveedores</span>
+                                <div class="dash-kpi-icon-box rounded p-2 d-flex align-items-center justify-content-center" style="background-color: rgba(142, 68, 173, 0.1); color: #8e44ad; width: 32px; height: 32px;">
+                                    <i class="bi bi-shop"></i>
+                                </div>
                             </div>
+                            <div class="dash-kpi-value text-dark fw-bold fs-4 mt-2" id="kpi-proveedores"><span class="spinner-border spinner-border-sm text-secondary"></span></div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Pestañas de Filtro (Tabs) -->
-                <ul class="nav nav-tabs mb-4 border-bottom-0 gap-3" id="contactos-tabs" style="border-bottom: 2px solid var(--border-color) !important;">
-                    <li class="nav-item">
-                        <a class="nav-link active fw-medium text-dark border-0 pb-3" data-filter="todos" href="#" style="border-bottom: 2px solid var(--primary) !important;">Todos</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link fw-medium text-muted border-0 pb-3" data-filter="cliente" href="#" style="border-bottom: 2px solid transparent !important;">Clientes</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link fw-medium text-muted border-0 pb-3" data-filter="proveedor" href="#" style="border-bottom: 2px solid transparent !important;">Proveedores</a>
-                    </li>
-                </ul>
+                <div class="card border-0 shadow-sm" style="border-radius: 14px;">
+                    <div class="card-body p-0">
+                        <!-- Pestañas de Filtro (Tabs) -->
+                        <ul class="nav nav-tabs border-bottom-0 gap-3 px-4 pt-3" id="contactos-tabs" style="border-bottom: 2px solid var(--border-color) !important;">
+                            <li class="nav-item">
+                                <a class="nav-link active fw-medium text-dark border-0 pb-3" data-filter="todos" href="#" style="border-bottom: 2px solid var(--primary) !important;">Todos</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link fw-medium text-muted border-0 pb-3" data-filter="cliente" href="#" style="border-bottom: 2px solid transparent !important;">Clientes</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link fw-medium text-muted border-0 pb-3" data-filter="proveedor" href="#" style="border-bottom: 2px solid transparent !important;">Proveedores</a>
+                            </li>
+                        </ul>
 
-                <div id="contactos-view-container" class="view-container">
-                    <!-- Buscador y Tabla Principal -->
-                    <div id="tabla-contactos-wrapper">
-                        <!-- Buscador -->
-                        <div class="d-flex justify-content-between mb-3">
-                            <div class="input-group" style="max-width: 300px;">
-                                <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
-                                <input type="text" id="search-contacto" class="form-control border-start-0 ps-0" placeholder="Buscar..." style="box-shadow: none;">
-                            </div>
-                            <button id="btn-filtrar" class="btn btn-light border text-muted"><i class="bi bi-funnel"></i> Filtrar</button>
-                        </div>
-
-                        <!-- Tabla -->
-                        <div class="table-responsive">
-                            <table class="table table-hover align-middle">
-                                <thead class="table-light text-muted small text-uppercase">
-                                    <tr>
-                                        <th style="width: 40px;"><input type="checkbox" class="form-check-input" id="check-all"></th>
-                                        <th>Nombre <i class="bi bi-arrow-up-short"></i></th>
-                                        <th>Identificación</th>
-                                        <th>Teléfono</th>
-                                        <th>Tipo</th>
-                                        <th class="text-end">Acciones</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="tbody-contactos">
-                                    <!-- Inyectado dinámicamente -->
-                                </tbody>
-                            </table>
-                        </div>
-
-                        <!-- Paginación -->
-                        <div class="d-flex justify-content-between align-items-center mt-3 text-muted small">
-                            <div class="d-flex align-items-center gap-3">
-                                <span>Página <span id="current-page">1</span> de <span id="total-pages">1</span></span>
-                                <div class="btn-group">
-                                    <button class="btn btn-sm btn-light border text-muted" id="btn-prev-page"><i class="bi bi-chevron-left"></i></button>
-                                    <button class="btn btn-sm btn-light border text-muted" id="btn-next-page"><i class="bi bi-chevron-right"></i></button>
+                        <div id="contactos-view-container" class="view-container p-4">
+                            <!-- Buscador y Tabla Principal -->
+                            <div id="tabla-contactos-wrapper">
+                                <!-- Buscador -->
+                                <div class="d-flex justify-content-between mb-3">
+                                    <div class="input-group" style="max-width: 300px;">
+                                        <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
+                                        <input type="text" id="search-contacto" class="form-control border-start-0 ps-0" placeholder="Buscar..." style="box-shadow: none;">
+                                    </div>
+                                    <button id="btn-filtrar" class="btn btn-light border text-muted"><i class="bi bi-funnel"></i> Filtrar</button>
                                 </div>
-                            </div>
-                            <div class="d-flex align-items-center gap-3">
-                                <span class="d-flex align-items-center gap-2">
-                                    Contactos por página: 
-                                    <select id="items-per-page" class="form-select form-select-sm border-0 bg-transparent text-muted fw-bold" style="width: 60px; box-shadow: none; cursor: pointer;">
-                                        <option value="10">10</option>
-                                        <option value="25">25</option>
-                                        <option value="50">50</option>
-                                    </select>
-                                </span>
-                                <span id="showing-count">1-10 de 709</span>
-                                <button id="btn-refresh" class="btn btn-sm btn-light border text-muted rounded-circle" style="width: 30px; height: 30px; padding: 0;"><i class="bi bi-arrow-clockwise"></i></button>
+
+                                <!-- Tabla -->
+                                <div class="table-responsive">
+                                    <table class="table table-hover align-middle">
+                                        <thead class="table-light text-muted small text-uppercase">
+                                            <tr>
+                                                <th class="py-2" style="width: 40px;"><input type="checkbox" class="form-check-input" id="check-all"></th>
+                                                <th class="py-2">Nombre <i class="bi bi-arrow-up-short"></i></th>
+                                                <th class="py-2">Identificación</th>
+                                                <th class="py-2">Teléfono</th>
+                                                <th class="py-2">Tipo</th>
+                                                <th class="py-2 text-end">Acciones</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="tbody-contactos">
+                                            <!-- Inyectado dinámicamente -->
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <!-- Paginación -->
+                                <div class="d-flex justify-content-between align-items-center mt-3 text-muted small">
+                                    <div class="d-flex align-items-center gap-3">
+                                        <span>Página <span id="current-page">1</span> de <span id="total-pages">1</span></span>
+                                        <div class="btn-group">
+                                            <button class="btn btn-sm btn-light border text-muted" id="btn-prev-page"><i class="bi bi-chevron-left"></i></button>
+                                            <button class="btn btn-sm btn-light border text-muted" id="btn-next-page"><i class="bi bi-chevron-right"></i></button>
+                                        </div>
+                                    </div>
+                                    <div class="d-flex align-items-center gap-3">
+                                        <span class="d-flex align-items-center gap-2">
+                                            Contactos por página: 
+                                            <select id="items-per-page" class="form-select form-select-sm border-0 bg-transparent text-muted fw-bold" style="width: 60px; box-shadow: none; cursor: pointer;">
+                                                <option value="10">10</option>
+                                                <option value="25">25</option>
+                                                <option value="50">50</option>
+                                            </select>
+                                        </span>
+                                        <span id="showing-count">1-10 de 709</span>
+                                        <button id="btn-refresh" class="btn btn-sm btn-light border text-muted rounded-circle" style="width: 30px; height: 30px; padding: 0;"><i class="bi bi-arrow-clockwise"></i></button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -244,8 +254,8 @@ export const ContactosModule = {
 
                 html += `
                     <tr data-id="${c.id}" style="cursor: pointer; border-bottom: 1px solid var(--border-color); font-size: 13px; color: var(--text-body);" onclick="if(!event.target.closest('button') && !event.target.closest('input')) window.location.hash = '#/contactos/ver/${c.id}'">
-                        <td><input type="checkbox" class="form-check-input contact-check"></td>
-                        <td>
+                        <td class="py-2"><input type="checkbox" class="form-check-input contact-check"></td>
+                        <td class="py-2">
                             <div class="d-flex align-items-center gap-3">
                                 <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold flex-shrink-0" style="width: 32px; height: 32px; background-color: var(--primary); font-size: 14px;">
                                     ${inicial}
@@ -253,10 +263,10 @@ export const ContactosModule = {
                                 <span class="fw-medium text-dark text-capitalize text-truncate" style="max-width: 200px;">${c.nombre ? c.nombre.toLowerCase() : ''}</span>
                             </div>
                         </td>
-                        <td class="text-muted">${c.nit || '-'}</td>
-                        <td class="text-muted">${c.telefono || '-'}</td>
-                        <td>${tipoBadge}</td>
-                        <td class="text-end">
+                        <td class="py-2 text-muted">${c.nit || '-'}</td>
+                        <td class="py-2 text-muted">${c.telefono || '-'}</td>
+                        <td class="py-2">${tipoBadge}</td>
+                        <td class="py-2 text-end">
                             <button class="btn btn-sm btn-light text-muted btn-editar me-1" data-id="${c.id}" title="Editar"><i class="bi bi-pencil"></i></button>
                             <div class="dropdown d-inline-block">
                                 <button class="btn btn-sm btn-light text-muted border-0" data-bs-toggle="dropdown"><i class="bi bi-three-dots-vertical"></i></button>
@@ -410,7 +420,7 @@ export const ContactosModule = {
         }
 
         container.innerHTML = `
-            <div class="form-hoja-completa bg-white p-4 rounded border">
+            <div class="form-hoja-completa bg-white rounded">
                 <div class="d-flex align-items-center mb-3">
                     <button id="btn-cancelar-contacto"
                         class="btn btn-link text-decoration-none p-0 me-3 d-flex align-items-center"
@@ -579,7 +589,7 @@ export const ContactosModule = {
         const colorSaldo = saldoPorCobrarTotal > 0 ? '#e74c3c' : '#2cbfb7';
 
         container.innerHTML = `
-            <div class="perfil-hoja-completa bg-white p-4 rounded border">
+            <div class="perfil-hoja-completa bg-white rounded">
                 <div class="d-flex align-items-center mb-3">
                     <button id="btn-volver-perfil"
                         class="btn btn-link text-decoration-none p-0 me-3 d-flex align-items-center"
@@ -850,12 +860,12 @@ export const ContactosModule = {
                         <table class="table table-hover align-middle">
                             <thead class="table-light text-muted small text-uppercase">
                                 <tr>
-                                    <th style="width: 40px;"><input type="checkbox" class="form-check-input" id="check-all"></th>
-                                    <th>Nombre <i class="bi bi-arrow-up-short"></i></th>
-                                    <th>Identificación</th>
-                                    <th>Teléfono</th>
-                                    <th>Tipo</th>
-                                    <th class="text-end">Acciones</th>
+                                    <th class="py-2" style="width: 40px;"><input type="checkbox" class="form-check-input" id="check-all"></th>
+                                    <th class="py-2">Nombre <i class="bi bi-arrow-up-short"></i></th>
+                                    <th class="py-2">Identificación</th>
+                                    <th class="py-2">Teléfono</th>
+                                    <th class="py-2">Tipo</th>
+                                    <th class="py-2 text-end">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody id="tbody-contactos"></tbody>
