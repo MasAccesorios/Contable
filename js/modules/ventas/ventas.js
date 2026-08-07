@@ -129,7 +129,7 @@ export const FacturasModule = {
             const startIndex = (currentPage - 1) * itemsPerPage;
 
             element.innerHTML = `
-                <div class="module-container p-4" style="max-width: 1200px; margin: 0 auto;">
+                <div class=\"dash-layout p-4\" style=\"max-width: 1100px; margin: 0 auto;\">
                     <!-- TOP BAR -->
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <div>
@@ -157,7 +157,7 @@ export const FacturasModule = {
                     <!-- KPI CARDS FACTURAS -->
                     <div class="row g-3 mb-4">
                         <div class="col-12 col-sm-6 col-lg-4">
-                            <div class="card kpi-card kpi-primary">
+                            <div class="card dash-kpi-card">
                                 <div class="kpi-card-body">
                                     <i class="bi bi-receipt kpi-icon"></i>
                                     <h6 class="kpi-label">Total Facturado</h6>
@@ -166,7 +166,7 @@ export const FacturasModule = {
                             </div>
                         </div>
                         <div class="col-12 col-sm-6 col-lg-4">
-                            <div class="card kpi-card kpi-success">
+                            <div class="card dash-kpi-card">
                                 <div class="kpi-card-body">
                                     <i class="bi bi-check-circle kpi-icon"></i>
                                     <h6 class="kpi-label">Total Cobrado</h6>
@@ -175,7 +175,7 @@ export const FacturasModule = {
                             </div>
                         </div>
                         <div class="col-12 col-sm-6 col-lg-4">
-                            <div class="card kpi-card kpi-warning">
+                            <div class="card dash-kpi-card">
                                 <div class="kpi-card-body">
                                     <i class="bi bi-clock-history kpi-icon"></i>
                                     <h6 class="kpi-label">Total Pendiente</h6>
@@ -592,7 +592,7 @@ export const FacturasModule = {
         dbCuentas.forEach(c => cuentasMap[c.id] = c.nombre);
 
         element.innerHTML = `
-            <div class="module-container p-4" style="max-width: 1100px; margin: 0 auto;">
+            <div class=\"dash-layout p-4\" style=\"max-width: 1100px; margin: 0 auto;\">
                 <div class="d-flex justify-content-between align-items-start mb-4">
                     <div>
                         ${headerHtml}

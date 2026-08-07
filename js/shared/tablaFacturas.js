@@ -34,17 +34,17 @@ export function renderTablaFacturas(facturas, contactosMap, sortColumn = 'fecha'
         
         return `
             <tr style="cursor: pointer; border-bottom: 1px solid var(--border-color); font-size: 13px; color: var(--text-body); opacity: ${rowOpacity}; transition: opacity 0.2s;" onclick="if(!event.target.closest('button')) window.location.hash = '#/ingresos/facturas/ver/${c.id}'">
-                <td class="py-3">${numDisplay}</td>
-                <td class="py-3">${c.fecha || ''}</td>
-                <td class="py-3 ${isVencida && c.saldoPendiente > 0 ? 'text-danger fw-semibold' : ''}">${c.vencimiento || ''}</td>
-                <td class="py-3" style="color: var(--text-main); font-weight: var(--weight-medium);">${contactosMap[c.clienteId || c.contacto_id || c.contactoId] || 'Sin Cliente'}</td>
-                <td class="py-3 text-end">${formatMoney(c.total)}</td>
-                <td class="py-3 text-end">${formatMoney(c.totalPagado)}</td>
-                <td class="py-3 text-end fw-bold text-dark">${formatMoney(c.saldoPendiente)}</td>
-                <td class="py-3 text-center">
+                <td class=\"py-2\">${numDisplay}</td>
+                <td class=\"py-2\">${c.fecha || ''}</td>
+                <td class=\"py-2 ${isVencida && c.saldoPendiente > 0 ? 'text-danger fw-semibold' : ''}\">${c.vencimiento || ''}</td>
+                <td class=\"py-2\" style="color: var(--text-main); font-weight: var(--weight-medium);">${contactosMap[c.clienteId || c.contacto_id || c.contactoId] || 'Sin Cliente'}</td>
+                <td class=\"py-2 text-end\">${formatMoney(c.total)}</td>
+                <td class=\"py-2 text-end\">${formatMoney(c.totalPagado)}</td>
+                <td class=\"py-2 text-end fw-bold text-dark\">${formatMoney(c.saldoPendiente)}</td>
+                <td class=\"py-2 text-center\">
                     <span class="badge ${badgeClass} rounded-pill fw-medium" style="font-size: 11px; padding: 5px 10px;">${labelEstado}</span>
                 </td>
-                <td class="py-3 text-end" style="position: relative;">
+                <td class=\"py-2 text-end\" style="position: relative;">
                     <button class="btn btn-link text-muted p-0 me-2 btn-imprimir-row" data-id="${c.id}">
                         <i class="bi bi-printer"></i>
                     </button>
@@ -61,21 +61,21 @@ export function renderTablaFacturas(facturas, contactosMap, sortColumn = 'fecha'
             <table class="table table-borderless align-middle mb-0">
                 <thead style="border-bottom: 1px solid var(--border-color);">
                     <tr style="color: var(--text-muted); font-size: 13px; font-weight: var(--weight-medium);">
-                        <th class="py-3 fw-normal sortable-header" data-column="numero" style="cursor: pointer; user-select: none;">
+                        <th class=\"py-2 fw-normal sortable-header\" data-column="numero" style="cursor: pointer; user-select: none;">
                             Número ${sortColumn === 'numero' ? (sortDirection === 'asc' ? ' ▲' : ' ▼') : ''}
                         </th>
-                        <th class="py-3 fw-normal sortable-header" data-column="fecha" style="cursor: pointer; user-select: none;">
+                        <th class=\"py-2 fw-normal sortable-header\" data-column="fecha" style="cursor: pointer; user-select: none;">
                             Creación ${sortColumn === 'fecha' ? (sortDirection === 'asc' ? ' ▲' : ' ▼') : ''}
                         </th>
-                        <th class="py-3 fw-normal">Vencimiento</th>
-                        <th class="py-3 fw-normal sortable-header" data-column="cliente" style="cursor: pointer; user-select: none;">
+                        <th class=\"py-2 fw-normal\">Vencimiento</th>
+                        <th class=\"py-2 fw-normal sortable-header\" data-column="cliente" style="cursor: pointer; user-select: none;">
                             Cliente ${sortColumn === 'cliente' ? (sortDirection === 'asc' ? ' ▲' : ' ▼') : ''}
                         </th>
-                        <th class="py-3 fw-normal text-end">Total</th>
-                        <th class="py-3 fw-normal text-end">Cobrado</th>
-                        <th class="py-3 fw-normal text-end">Por cobrar</th>
-                        <th class="py-3 fw-normal text-center">Estado</th>
-                        <th class="py-3 fw-normal text-end" style="width: 80px;"></th>
+                        <th class=\"py-2 fw-normal text-end\">Total</th>
+                        <th class=\"py-2 fw-normal text-end\">Cobrado</th>
+                        <th class=\"py-2 fw-normal text-end\">Por cobrar</th>
+                        <th class=\"py-2 fw-normal text-center\">Estado</th>
+                        <th class=\"py-2 fw-normal text-end\" style="width: 80px;"></th>
                     </tr>
                 </thead>
                 <tbody>

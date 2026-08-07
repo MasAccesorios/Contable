@@ -40,7 +40,7 @@ export const TesoreriaModule = {
         this.element = element;
 
         element.innerHTML = `
-            <div class="module-container p-4" style="max-width: 1200px; margin: 0 auto;">
+            <div class=\"dash-layout p-4\" style=\"max-width: 1100px; margin: 0 auto;\">
                 <!-- TOP BAR -->
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <div>
@@ -60,7 +60,7 @@ export const TesoreriaModule = {
                 <!-- KPI CARDS BANCOS -->
                 <div class="row g-3 mb-4">
                     <div class="col-12 col-sm-6 col-lg-4">
-                        <div class="card kpi-card kpi-primary">
+                        <div class="card dash-kpi-card">
                             <div class="kpi-card-body">
                                 <i class="bi bi-bank kpi-icon"></i>
                                 <h6 class="kpi-label">Saldo Total en Cuentas</h6>
@@ -69,7 +69,7 @@ export const TesoreriaModule = {
                         </div>
                     </div>
                     <div class="col-12 col-sm-6 col-lg-4">
-                        <div class="card kpi-card kpi-info">
+                        <div class="card dash-kpi-card">
                             <div class="kpi-card-body">
                                 <i class="bi bi-credit-card kpi-icon"></i>
                                 <h6 class="kpi-label">Cuentas Bancarias Activas</h6>
@@ -78,7 +78,7 @@ export const TesoreriaModule = {
                         </div>
                     </div>
                     <div class="col-12 col-sm-6 col-lg-4">
-                        <div class="card kpi-card kpi-success">
+                        <div class="card dash-kpi-card">
                             <div class="kpi-card-body">
                                 <i class="bi bi-cash kpi-icon"></i>
                                 <h6 class="kpi-label">Cajas / Efectivo</h6>
@@ -148,11 +148,11 @@ export const TesoreriaModule = {
                         <table class="table table-borderless align-middle mb-0 table-hover">
                             <thead style="border-bottom: 1px solid var(--border-color);">
                                 <tr style="color: var(--text-muted); font-size: 13px; font-weight: var(--weight-medium); white-space: nowrap;">
-                                    <th class="py-3 fw-normal ps-4">Nombre</th>
-                                    <th class="py-3 fw-normal">Tipo de cuenta</th>
-                                    <th class="py-3 fw-normal">Número de cuenta</th>
-                                    <th class="py-3 fw-normal">Saldo</th>
-                                    <th class="py-3 fw-normal pe-4">Conciliación</th>
+                                    <th class=\"py-2 fw-normal ps-4\">Nombre</th>
+                                    <th class=\"py-2 fw-normal\">Tipo de cuenta</th>
+                                    <th class=\"py-2 fw-normal\">Número de cuenta</th>
+                                    <th class=\"py-2 fw-normal\">Saldo</th>
+                                    <th class=\"py-2 fw-normal pe-4\">Conciliación</th>
                                 </tr>
                             </thead>
                             <tbody id="tbody-bancos">
@@ -576,17 +576,17 @@ export const TesoreriaModule = {
             // Layout de Alegra: ícono gris tenue a la izquierda del nombre
             html += `
                 <tr class="banco-row" data-id="${c.id}" style="cursor: pointer; font-size: 13px; color: var(--text-body); border-bottom: 1px solid var(--border-color); ${opacityStyle}">
-                    <td class="py-3 ps-4 d-flex align-items-center" style="white-space: nowrap;">
+                    <td class=\"py-2 ps-4 d-flex align-items-center\" style="white-space: nowrap;">
                         <div class="bg-light rounded-circle p-2 me-3 d-flex align-items-center justify-content-center text-muted" style="width: 32px; height: 32px; border: 1px solid #e2e8f0; flex-shrink: 0;">
                             <i class="bi ${icon}" style="font-size: 14px;"></i>
                         </div>
                         <span style="color: var(--text-main); font-weight: 500;">${c.nombre}</span>
                         ${badge}
                     </td>
-                    <td class="py-3" style="white-space: nowrap;"><span class="badge ${tipoBadgeColor} bg-opacity-10 border border-${isEfectivo?'success':'primary'}-subtle rounded-pill fw-medium" style="font-size: 12px; padding: 5px 10px;">${c.tipo}</span></td>
-                    <td class="py-3 font-monospace text-muted" style="white-space: nowrap;">${c.numero || '-'}</td>
-                    <td class="py-3" style="color: #2cbfb7; font-weight: 500; white-space: nowrap;">${formatMoney(saldo)}</td>
-                    <td class="py-3 pe-4">
+                    <td class=\"py-2\" style="white-space: nowrap;"><span class="badge ${tipoBadgeColor} bg-opacity-10 border border-${isEfectivo?'success':'primary'}-subtle rounded-pill fw-medium" style="font-size: 12px; padding: 5px 10px;">${c.tipo}</span></td>
+                    <td class=\"py-2 font-monospace text-muted\" style="white-space: nowrap;">${c.numero || '-'}</td>
+                    <td class=\"py-2\" style="color: #2cbfb7; font-weight: 500; white-space: nowrap;">${formatMoney(saldo)}</td>
+                    <td class=\"py-2 pe-4\">
                         <div class="d-flex gap-2">
                             <button class="btn btn-sm btn-light border px-3 text-muted btn-conciliar" style="font-size: 12px; font-weight: 500; border-radius: 4px;" onclick="event.stopPropagation(); window.location.hash='#/bancos/conciliacion?banco_id=${c.id}'">
                                 Conciliar

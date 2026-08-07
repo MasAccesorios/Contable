@@ -84,14 +84,14 @@ export const CotizacionesModule = {
                 
                 return `
                     <tr style="cursor: pointer; border-bottom: 1px solid var(--border-color); font-size: 13px; color: var(--text-body);" onclick="if(!event.target.closest('button')) window.location.hash = '#/ingresos/cotizaciones/ver/${c.id}'">
-                        <td class="py-3">${numDisplay}</td>
-                        <td class="py-3" style="color: var(--text-main); font-weight: var(--weight-medium);">${clientNameDisplay}</td>
-                        <td class="py-3">${c.fecha}</td>
-                        <td class="py-3 text-end">${formatMoney(c.total)}</td>
-                        <td class="py-3 text-center">
+                        <td class=\"py-2\">${numDisplay}</td>
+                        <td class=\"py-2\" style="color: var(--text-main); font-weight: var(--weight-medium);">${clientNameDisplay}</td>
+                        <td class=\"py-2\">${c.fecha}</td>
+                        <td class=\"py-2 text-end\">${formatMoney(c.total)}</td>
+                        <td class=\"py-2 text-center\">
                             <span class="badge ${badgeClass} rounded-pill fw-medium" style="font-size: 11px; padding: 5px 10px;">${labelEstado}</span>
                         </td>
-                        <td class="py-3 text-end" style="position: relative;">
+                        <td class=\"py-2 text-end\" style="position: relative;">
                             <button class="btn btn-link text-muted p-0 me-2 btn-imprimir-row" data-id="${c.id}">
                                 <i class="bi bi-printer"></i>
                             </button>
@@ -104,7 +104,7 @@ export const CotizacionesModule = {
             }).join('') : `<tr><td colspan="6" class="text-center py-5 text-muted">No se encontraron cotizaciones</td></tr>`;
 
             element.innerHTML = `
-                <div class="module-container p-4" style="max-width: 1200px; margin: 0 auto;">
+                <div class=\"dash-layout p-4\" style=\"max-width: 1100px; margin: 0 auto;\">
                     
                     <!-- TOP BAR -->
                     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -131,7 +131,7 @@ export const CotizacionesModule = {
                     <!-- KPI CARDS COTIZACIONES -->
                     <div class="row g-3 mb-4">
                         <div class="col-12 col-sm-6 col-lg-4">
-                            <div class="card kpi-card kpi-primary">
+                            <div class="card dash-kpi-card">
                                 <div class="kpi-card-body">
                                     <i class="bi bi-file-earmark-text kpi-icon"></i>
                                     <h6 class="kpi-label">Total Cotizado</h6>
@@ -140,7 +140,7 @@ export const CotizacionesModule = {
                             </div>
                         </div>
                         <div class="col-12 col-sm-6 col-lg-4">
-                            <div class="card kpi-card kpi-success">
+                            <div class="card dash-kpi-card">
                                 <div class="kpi-card-body">
                                     <i class="bi bi-check-circle kpi-icon"></i>
                                     <h6 class="kpi-label">Cotizaciones Aprobadas</h6>
@@ -149,7 +149,7 @@ export const CotizacionesModule = {
                             </div>
                         </div>
                         <div class="col-12 col-sm-6 col-lg-4">
-                            <div class="card kpi-card kpi-warning">
+                            <div class="card dash-kpi-card">
                                 <div class="kpi-card-body">
                                     <i class="bi bi-clock kpi-icon"></i>
                                     <h6 class="kpi-label">Cotizaciones Pendientes</h6>
@@ -188,18 +188,18 @@ export const CotizacionesModule = {
                             <table class="table table-borderless align-middle mb-0">
                                 <thead style="border-bottom: 1px solid var(--border-color);">
                                     <tr style="color: var(--text-muted); font-size: 13px; font-weight: var(--weight-medium);">
-                                        <th class="py-3 fw-normal sortable-header" data-column="numero" style="cursor: pointer; user-select: none;">
+                                        <th class=\"py-2 fw-normal sortable-header\" data-column="numero" style="cursor: pointer; user-select: none;">
                                             Número ${sortColumn === 'numero' ? (sortDirection === 'asc' ? ' ▲' : ' ▼') : ''}
                                         </th>
-                                        <th class="py-3 fw-normal sortable-header" data-column="cliente" style="cursor: pointer; user-select: none;">
+                                        <th class=\"py-2 fw-normal sortable-header\" data-column="cliente" style="cursor: pointer; user-select: none;">
                                             Cliente ${sortColumn === 'cliente' ? (sortDirection === 'asc' ? ' ▲' : ' ▼') : ''}
                                         </th>
-                                        <th class="py-3 fw-normal sortable-header" data-column="fecha" style="cursor: pointer; user-select: none;">
+                                        <th class=\"py-2 fw-normal sortable-header\" data-column="fecha" style="cursor: pointer; user-select: none;">
                                             Creación ${sortColumn === 'fecha' ? (sortDirection === 'asc' ? ' ▲' : ' ▼') : ''}
                                         </th>
-                                        <th class="py-3 fw-normal text-end">Total</th>
-                                        <th class="py-3 fw-normal text-center">Estado</th>
-                                        <th class="py-3 fw-normal text-end" style="width: 80px;"></th>
+                                        <th class=\"py-2 fw-normal text-end\">Total</th>
+                                        <th class=\"py-2 fw-normal text-center\">Estado</th>
+                                        <th class=\"py-2 fw-normal text-end\" style="width: 80px;"></th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -443,7 +443,7 @@ export const CotizacionesModule = {
         const clienteNombreActual = clienteActual ? clienteActual.nombre : '';
 
         element.innerHTML = `
-            <div class="module-container p-4" style="max-width: 1100px; margin: 0 auto;">
+            <div class=\"dash-layout p-4\" style=\"max-width: 1100px; margin: 0 auto;\">
                 <div class="d-flex justify-content-between align-items-start mb-4">
                     <div>
                         ${headerHtml}

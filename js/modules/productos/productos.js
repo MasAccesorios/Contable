@@ -14,7 +14,7 @@ export const ProductosModule = {
         if (!element) return;
         
         element.innerHTML = `
-            <div class="module-container p-4" style="max-width: 1200px; margin: 0 auto;">
+            <div class=\"dash-layout p-4\" style=\"max-width: 1100px; margin: 0 auto;\">
                 <!-- TOP BAR -->
                 <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
                     <div>
@@ -37,7 +37,7 @@ export const ProductosModule = {
                 <!-- KPI CARDS PILOT -->
                 <div class="row g-3 mb-4">
                     <div class="col-12 col-md-4">
-                        <div class="card kpi-card kpi-primary">
+                        <div class="card dash-kpi-card">
                             <div class="kpi-card-body">
                                 <i class="bi bi-box-seam kpi-icon"></i>
                                 <h6 class="kpi-label">Total Ítems</h6>
@@ -46,7 +46,7 @@ export const ProductosModule = {
                         </div>
                     </div>
                     <div class="col-12 col-md-4">
-                        <div class="card kpi-card kpi-info">
+                        <div class="card dash-kpi-card">
                             <div class="kpi-card-body">
                                 <i class="bi bi-check-circle kpi-icon"></i>
                                 <h6 class="kpi-label">Productos Activos</h6>
@@ -55,7 +55,7 @@ export const ProductosModule = {
                         </div>
                     </div>
                     <div class="col-12 col-md-4">
-                        <div class="card kpi-card kpi-dark">
+                        <div class="card dash-kpi-card">
                             <div class="kpi-card-body">
                                 <i class="bi bi-exclamation-triangle kpi-icon"></i>
                                 <h6 class="kpi-label">Agotados (Stock 0)</h6>
@@ -81,12 +81,12 @@ export const ProductosModule = {
                         <table class="table table-borderless align-middle mb-0">
                             <thead style="border-bottom: 1px solid var(--border-color);">
                                 <tr style="color: var(--text-muted); font-size: 13px; font-weight: var(--weight-medium);">
-                                    <th class="py-3 fw-normal ps-4">SKU</th>
-                                    <th class="py-3 fw-normal">Nombre / Descripción</th>
-                                    <th class="py-3 fw-normal text-end">Precio Venta</th>
-                                    <th class="py-3 fw-normal text-end">Stock Total</th>
-                                    <th class="py-3 fw-normal text-end">Costo Promedio Real</th>
-                                    <th class="py-3 fw-normal text-end pe-4" style="width: 80px;"></th>
+                                    <th class=\"py-2 fw-normal ps-4\">SKU</th>
+                                    <th class=\"py-2 fw-normal\">Nombre / Descripción</th>
+                                    <th class=\"py-2 fw-normal text-end\">Precio Venta</th>
+                                    <th class=\"py-2 fw-normal text-end\">Stock Total</th>
+                                    <th class=\"py-2 fw-normal text-end\">Costo Promedio Real</th>
+                                    <th class=\"py-2 fw-normal text-end pe-4\" style="width: 80px;"></th>
                                 </tr>
                             </thead>
                             <tbody id="tbody-productos">
@@ -206,16 +206,16 @@ export const ProductosModule = {
             
             html += `
                 <tr data-id="${p.id}" style="cursor: pointer; border-bottom: 1px solid var(--border-color); font-size: 13px; color: var(--text-body);" onclick="if(!event.target.closest('button')) window.location.hash = '#/inventario/items/ver/${p.id}'">
-                    <td class="py-3 ps-4 td-sku" style="color: var(--text-main); font-weight: var(--weight-medium);">${p.sku}</td>
-                    <td class="py-3 text-truncate td-nombre" style="max-width: 300px;">${p.nombre}</td>
-                    <td class="py-3 text-end">$${(p.precioVenta || 0).toLocaleString('es-CO', {minimumFractionDigits: 2})}</td>
-                    <td class="py-3 text-end">
+                    <td class=\"py-2 ps-4 td-sku\" style="color: var(--text-main); font-weight: var(--weight-medium);">${p.sku}</td>
+                    <td class=\"py-2 text-truncate td-nombre\" style="max-width: 300px;">${p.nombre}</td>
+                    <td class=\"py-2 text-end\">$${(p.precioVenta || 0).toLocaleString('es-CO', {minimumFractionDigits: 2})}</td>
+                    <td class=\"py-2 text-end\">
                         <span style="${isLowStock ? 'color: #ef4444; background-color: #fee2e2;' : 'color: #15803d; background-color: #dcfce7;'} padding: 4px 12px; border-radius: 12px; font-size: 11px; font-weight: var(--weight-medium);" ${isLowStock ? 'title="¡Alerta: Stock por debajo del mínimo!"' : ''}>
                             ${isLowStock ? '<i class="bi bi-exclamation-triangle-fill me-1"></i>' : ''}${stockTotal} und
                         </span>
                     </td>
-                    <td class="py-3 text-end text-muted">$${(costoPromedio || 0).toLocaleString('es-CO', {minimumFractionDigits: 2})}</td>
-                    <td class="py-3 text-end pe-4">
+                    <td class=\"py-2 text-end text-muted\">$${(costoPromedio || 0).toLocaleString('es-CO', {minimumFractionDigits: 2})}</td>
+                    <td class=\"py-2 text-end pe-4\">
                         <button class="btn btn-link text-muted p-0 btn-menu-row btn-editar" data-id="${p.id}">
                             <i class="bi bi-pencil"></i>
                         </button>

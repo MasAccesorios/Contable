@@ -8,7 +8,7 @@ export const ConfiguracionModule = {
         this.element = element;
 
         element.innerHTML = `
-            <div class="module-container p-4" style="max-width: 1200px; margin: 0 auto;">
+            <div class=\"dash-layout p-4\" style=\"max-width: 1100px; margin: 0 auto;\">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <div>
                         <h2 class="h3 fw-bold mb-1" style="color: var(--text-main);">Configuración</h2>
