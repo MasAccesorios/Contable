@@ -821,11 +821,37 @@ body {
 }
 
 /* =========================================
-   DASHBOARD — LAYOUT UNIFICADO
+   DASHBOARD — LAYOUT UNIFICADO (CSS GRID PURO)
    ========================================= */
 .dash-layout {
     max-width: 1100px;
     margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr;  /* una columna — cada bloque ocupa el ancho exacto */
+    gap: 1.25rem;
+}
+
+/* Header: dos extremos alineados con los bordes de las tarjetas */
+.dash-header {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+/* Grid superior: 2 tarjetas CxC / CxP */
+.dash-grid-top {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.25rem;
+}
+
+/* Grid de 4 micro-KPIs */
+.dash-grid-kpis {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.25rem;
 }
 
 /* Tarjeta del gráfico de ventas */
@@ -837,4 +863,17 @@ body {
 }
 .dash-chart-card:hover {
     box-shadow: 0 8px 20px rgba(0,0,0,0.06);
+}
+
+/* Responsividad */
+@media (max-width: 767.98px) {
+    .dash-grid-top  { grid-template-columns: 1fr; }
+    .dash-grid-kpis { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 575.98px) {
+    .dash-grid-kpis { grid-template-columns: 1fr; }
+    .dash-card-premium { padding: 1rem; }
+    .dash-card-metric  { font-size: 1.2rem; }
+    .dashboard-pill-group { width: 100%; justify-content: stretch; }
+    .dpg-btn { flex: 1; text-align: center; }
 }

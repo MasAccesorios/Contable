@@ -11,26 +11,23 @@ export const DashboardModule = {
                 <div class="dash-layout">
 
                 <!-- ═══ HEADER ═══ -->
-                <div class="mb-4">
-                    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
-                        <div>
-                            <h3 class="fw-bold mb-0" style="font-size: 20px; color: #0f172a; letter-spacing: -0.3px;">Resumen del negocio</h3>
-                            <p class="mb-0 text-muted" style="font-size: 12px; margin-top: 2px;">Vista consolidada en tiempo real</p>
-                        </div>
-                        <div class="dashboard-pill-group" role="group" id="dashboard-rango-filtro">
-                            <button type="button" class="dpg-btn" data-rango="7 Días">7 Días</button>
-                            <button type="button" class="dpg-btn dpg-btn--active" data-rango="Este Mes">Este Mes</button>
-                            <button type="button" class="dpg-btn" data-rango="Este Año">Este Año</button>
-                        </div>
+                <div class="dash-header">
+                    <div>
+                        <h3 class="fw-bold mb-0" style="font-size: 20px; color: #0f172a; letter-spacing: -0.3px;">Resumen del negocio</h3>
+                        <p class="mb-0 text-muted" style="font-size: 12px; margin-top: 2px;">Vista consolidada en tiempo real</p>
+                    </div>
+                    <div class="dashboard-pill-group" role="group" id="dashboard-rango-filtro">
+                        <button type="button" class="dpg-btn" data-rango="7 Días">7 Días</button>
+                        <button type="button" class="dpg-btn dpg-btn--active" data-rango="Este Mes">Este Mes</button>
+                        <button type="button" class="dpg-btn" data-rango="Este Año">Este Año</button>
                     </div>
                 </div>
 
-                <!-- ═══ CxC / CxP ROW ═══ -->
-                <div class="row g-3 mb-3">
+                <!-- ═══ CxC / CxP ═══ -->
+                <div class="dash-grid-top">
 
                     <!-- Cuentas por cobrar -->
-                    <div class="col-12 col-md-6">
-                        <div class="dash-card-premium dash-card-link" onclick="window.location.hash = '#/cartera'" tabindex="0">
+                    <div class="dash-card-premium dash-card-link" onclick="window.location.hash = '#/cartera'" tabindex="0">
                             <div class="d-flex justify-content-between align-items-start mb-1">
                                 <div>
                                     <span class="dash-card-label"><i class="bi bi-arrow-down-circle me-1 text-success" style="font-size:12px;"></i>Cuentas por cobrar</span>
@@ -54,12 +51,10 @@ export const DashboardModule = {
                                     <span class="dash-sub-docs" id="kpi-cxc-vencidas-doc">...</span>
                                 </div>
                             </div>
-                        </div>
                     </div>
 
                     <!-- Cuentas por pagar -->
-                    <div class="col-12 col-md-6">
-                        <div class="dash-card-premium">
+                    <div class="dash-card-premium">
                             <div class="d-flex justify-content-between align-items-start mb-1">
                                 <div>
                                     <span class="dash-card-label"><i class="bi bi-arrow-up-circle me-1 text-danger" style="font-size:12px;"></i>Cuentas por pagar</span>
@@ -83,15 +78,14 @@ export const DashboardModule = {
                                     <span class="dash-sub-docs" id="kpi-cxp-vencidas-doc">...</span>
                                 </div>
                             </div>
-                        </div>
                     </div>
                 </div>
 
                 <!-- ═══ 4 MICRO-KPIs ═══ -->
-                <div class="row g-3 mb-4">
+                <div class="dash-grid-kpis">
+
                     <!-- Utilidad -->
-                    <div class="col-12 col-sm-6 col-xl-3">
-                        <div class="card dash-kpi-card h-100">
+                    <div class="card dash-kpi-card">
                             <div class="card-body p-3 d-flex flex-column justify-content-between" style="min-height: 90px;">
                                 <div class="d-flex justify-content-between align-items-start">
                                     <span class="dash-kpi-label">Utilidad del mes</span>
@@ -101,11 +95,10 @@ export const DashboardModule = {
                                 </div>
                                 <div class="dash-kpi-value" id="kpi-utilidad-mes"><span class="spinner-border spinner-border-sm text-secondary"></span></div>
                             </div>
-                        </div>
                     </div>
+
                     <!-- Productos vendidos -->
-                    <div class="col-12 col-sm-6 col-xl-3">
-                        <div class="card dash-kpi-card h-100">
+                    <div class="card dash-kpi-card">
                             <div class="card-body p-3 d-flex flex-column justify-content-between" style="min-height: 90px;">
                                 <div class="d-flex justify-content-between align-items-start">
                                     <span class="dash-kpi-label">Productos vendidos</span>
@@ -115,11 +108,10 @@ export const DashboardModule = {
                                 </div>
                                 <div class="dash-kpi-value" id="kpi-productos"><span class="spinner-border spinner-border-sm text-secondary"></span></div>
                             </div>
-                        </div>
                     </div>
+
                     <!-- Inventario Valorizado -->
-                    <div class="col-12 col-sm-6 col-xl-3">
-                        <div class="card dash-kpi-card h-100">
+                    <div class="card dash-kpi-card">
                             <div class="card-body p-3 d-flex flex-column justify-content-between" style="min-height: 90px;">
                                 <div class="d-flex justify-content-between align-items-start">
                                     <span class="dash-kpi-label">Inventario val.</span>
@@ -129,11 +121,10 @@ export const DashboardModule = {
                                 </div>
                                 <div class="dash-kpi-value" id="kpi-inventario-valorizado"><span class="spinner-border spinner-border-sm text-secondary"></span></div>
                             </div>
-                        </div>
                     </div>
+
                     <!-- Saldo Bancos -->
-                    <div class="col-12 col-sm-6 col-xl-3">
-                        <div class="card dash-kpi-card h-100">
+                    <div class="card dash-kpi-card">
                             <div class="card-body p-3 d-flex flex-column justify-content-between" style="min-height: 90px;">
                                 <div class="d-flex justify-content-between align-items-start">
                                     <span class="dash-kpi-label">Saldo bancos</span>
@@ -143,8 +134,9 @@ export const DashboardModule = {
                                 </div>
                                 <div class="dash-kpi-value" id="kpi-saldo-bancos"><span class="spinner-border spinner-border-sm text-secondary"></span></div>
                             </div>
-                        </div>
                     </div>
+
+                </div>
 
                 <!-- Chart Section -->
                 <div class="card dash-chart-card mb-4">
