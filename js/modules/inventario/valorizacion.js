@@ -1,10 +1,10 @@
 import DB, { getLocalDate } from '../../core/db.js';
+import { supabase } from '../../core/supabase.js';
 
 export const ValorizacionModule = {
     state: {
-        productos: [],
-        datosCalculados: [],
-        filtrados: [],
+        paginaActual: [],
+        totalItems: 0,
         currentPage: 1,
         itemsPerPage: 10,
         searchQuery: '',
@@ -95,36 +95,41 @@ export const ValorizacionModule = {
         `;
 
         this.bindEvents();
-        await this.cargarYCalcularDatos();
+        this.bindEvents();
+        await this.fetchRPC();
         this.renderTabla();
     },
 
     bindEvents() {
         const el = this.element;
 
-        el.querySelector('#search-valorizacion')?.addEventListener('input', (e) => {
+        el.querySelector('#search-valorizacion')?.addEventListener('input', async (e) => {
             this.state.searchQuery = e.target.value.toLowerCase().trim();
             this.state.currentPage = 1;
+            await this.fetchRPC();
             this.renderTabla();
         });
 
-        el.querySelector('#items-per-page')?.addEventListener('change', (e) => {
+        el.querySelector('#items-per-page')?.addEventListener('change', async (e) => {
             this.state.itemsPerPage = parseInt(e.target.value);
             this.state.currentPage = 1;
+            await this.fetchRPC();
             this.renderTabla();
         });
 
-        el.querySelector('#btn-prev-page')?.addEventListener('click', () => {
+        el.querySelector('#btn-prev-page')?.addEventListener('click', async () => {
             if (this.state.currentPage > 1) {
                 this.state.currentPage--;
+                await this.fetchRPC();
                 this.renderTabla();
             }
         });
 
-        el.querySelector('#btn-next-page')?.addEventListener('click', () => {
-            const totalPages = Math.ceil(this.state.filtrados.length / this.state.itemsPerPage) || 1;
+        el.querySelector('#btn-next-page')?.addEventListener('click', async () => {
+            const totalPages = Math.ceil(this.state.totalItems / this.state.itemsPerPage) || 1;
             if (this.state.currentPage < totalPages) {
                 this.state.currentPage++;
+                await this.fetchRPC();
                 this.renderTabla();
             }
         });
@@ -135,74 +140,43 @@ export const ValorizacionModule = {
     },
 
     // --------------------------------------------------------
-    // MOTOR DE CÁLCULO GENERAL (Ocurre 1 sola vez al cargar)
+    // MOTOR DE CÁLCULO GENERAL (RPC Server-side)
     // --------------------------------------------------------
-    async cargarYCalcularDatos() {
-        const rawProductos = await DB.getAll('productos');
-        const rawLotes = await DB.getAll('lotes_fifo');
+    async fetchRPC(exportAll = false) {
+        if (!exportAll) {
+            this.element.querySelector('#tbody-valorizacion').innerHTML = `<tr><td colspan="5" class="text-center py-5 text-muted"><span class="spinner-border spinner-border-sm me-2"></span>Cargando valorización...</td></tr>`;
+        }
 
-        // Permitir mostrar productos activos e importados
-        this.state.productos = rawProductos.filter(p => p.estado !== 'inactivo' && p.estado !== 'inactive');
-        
-        let granTotalAcumulado = 0;
-        
-        this.state.datosCalculados = this.state.productos.map(p => {
-            const lotesProd = rawLotes.filter(l => l.productoId === p.id);
-            
-            // El trigger de base de datos ya garantiza que p.stock = SUM(lotes_fifo)
-            const stockTotal = parseFloat(p.stock) || 0;
-            
-            // Calcular costo usando solo los lotes positivos para no distorsionar el promedio
-            const lotesPositivos = lotesProd.filter(l => l.cantidadActual > 0);
-            const stockLotesPositivos = lotesPositivos.reduce((sum, l) => sum + l.cantidadActual, 0);
-            const costoLotes = lotesPositivos.reduce((sum, l) => sum + (l.cantidadActual * (l.costoUnitario || 0)), 0);
-            
-            // Si el stock es 0, hace fallback al costo base para no mostrar $0 en promedio
-            const costoPromedio = stockTotal > 0 ? 
-                (stockLotesPositivos > 0 ? costoLotes / stockLotesPositivos : (parseFloat(p.costoBase) || 0)) 
-                : (parseFloat(p.costoBase) || 0);
-            
-            const valorTotal = stockTotal * costoPromedio; 
-
-            // REGLA: Stock negativo aporta $0 (excepto SKU 500x que son rollos de corte bajo demanda)
-            const isRollo = p.sku && p.sku.startsWith('500');
-            granTotalAcumulado += (stockTotal < 0 && !isRollo) ? 0 : valorTotal;
-
-            return {
-                id: p.id,
-                sku: p.sku || '',
-                nombre: p.nombre || 'Sin nombre',
-                stockTotal,
-                costoPromedio,
-                valorTotal
-            };
+        const { data, error } = await supabase.rpc('get_inventario_valorizado', {
+            p_search: this.state.searchQuery,
+            p_page: this.state.currentPage,
+            p_limit: this.state.itemsPerPage,
+            p_export_all: exportAll
         });
 
-        // Este es el valor consolidado de toda la empresa
-        this.state.granTotal = granTotalAcumulado;
+        if (error) {
+            console.error("Error fetching inventario valorizado:", error);
+            if (exportAll) return [];
+            this.state.paginaActual = [];
+            this.state.totalItems = 0;
+            return;
+        }
+
+        if (exportAll) {
+            return data.items || [];
+        }
+
+        this.state.granTotal = data.gran_total;
+        this.state.totalItems = data.total_items;
+        this.state.paginaActual = data.items || [];
     },
 
     renderTabla() {
-        // 1. Filtrado dinámico
-        const query = this.state.searchQuery;
-        this.state.filtrados = this.state.datosCalculados.filter(item => 
-            item.nombre.toLowerCase().includes(query) || 
-            item.sku.toLowerCase().includes(query)
-        );
-
-        // 2. Paginación
-        const totalItems = this.state.filtrados.length;
+        const totalItems = this.state.totalItems || 0;
         const totalPages = Math.ceil(totalItems / this.state.itemsPerPage) || 1;
-        
-        if (this.state.currentPage > totalPages) {
-            this.state.currentPage = totalPages;
-        }
+        const paginaActual = this.state.paginaActual || [];
 
-        const startIndex = (this.state.currentPage - 1) * this.state.itemsPerPage;
-        const endIndex = Math.min(startIndex + this.state.itemsPerPage, totalItems);
-        const paginaActual = this.state.filtrados.slice(startIndex, endIndex);
-
-        // 3. Renderizado de Grilla
+        // Renderizado de Grilla
         const container = this.element.querySelector('#tbody-valorizacion');
         if (paginaActual.length === 0) {
             container.innerHTML = `<tr><td colspan="5" class="text-center py-5 text-muted">No se encontraron productos.</td></tr>`;
@@ -211,25 +185,28 @@ export const ValorizacionModule = {
             let html = '';
             
             paginaActual.forEach(item => {
-                const isZero = item.stockTotal === 0;
+                const isZero = item.stock_total === 0;
                 html += `
                     <tr style="border-bottom: 1px solid var(--border-color); font-size: 13px; color: var(--text-body);">
                         <td class="py-3 ps-4 text-truncate" style="color: var(--text-main); font-weight: var(--weight-medium); max-width: 300px;" title="${item.nombre}">${item.nombre}</td>
-                        <td class="py-3">${item.sku}</td>
-                        <td class="py-3 text-end" style="${isZero ? 'color: #94a3b8;' : ''}">${item.stockTotal} und</td>
-                        <td class="py-3 text-end text-muted">${formatMoney(item.costoPromedio)}</td>
-                        <td class="py-3 text-end pe-4" style="font-weight: ${isZero ? 'normal' : '600'}; color: ${isZero ? '#94a3b8' : 'var(--text-main)'};">${formatMoney(item.valorTotal)}</td>
+                        <td class="py-3">${item.sku || ''}</td>
+                        <td class="py-3 text-end" style="${isZero ? 'color: #94a3b8;' : ''}">${item.stock_total} und</td>
+                        <td class="py-3 text-end text-muted">${formatMoney(item.costo_promedio)}</td>
+                        <td class="py-3 text-end pe-4" style="font-weight: ${isZero ? 'normal' : '600'}; color: ${isZero ? '#94a3b8' : 'var(--text-main)'};">${formatMoney(item.valor_total)}</td>
                     </tr>
                 `;
             });
             container.innerHTML = html;
         }
 
-        // 4. Inyectar Gran Total (fijo de toda la empresa)
+        // Inyectar Gran Total (fijo de toda la empresa)
         const formatMoneyTotal = (val) => '$' + val.toLocaleString('es-CO', {minimumFractionDigits: 2});
         this.element.querySelector('#tfoot-gran-total').textContent = formatMoneyTotal(this.state.granTotal);
 
-        // 5. Actualizar UI de paginación
+        // Actualizar UI de paginación
+        const startIndex = (this.state.currentPage - 1) * this.state.itemsPerPage;
+        const endIndex = Math.min(startIndex + this.state.itemsPerPage, totalItems);
+
         this.element.querySelector('#current-page').textContent = this.state.currentPage;
         this.element.querySelector('#total-pages').textContent = totalPages;
         this.element.querySelector('#showing-count').textContent = totalItems > 0 ? `${startIndex + 1}-${endIndex} de ${totalItems}` : '0 de 0';
@@ -239,11 +216,20 @@ export const ValorizacionModule = {
     },
 
     // --------------------------------------------------------
-    // GENERADOR CSV NATIVO (Basado en datos filtrados)
+    // GENERADOR CSV NATIVO (Basado en datos de Postgres)
     // --------------------------------------------------------
-    exportarCSV() {
-        if (this.state.filtrados.length === 0) {
+    async exportarCSV() {
+        const btn = this.element.querySelector('#btn-descargar-csv');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Descargando...';
+        btn.disabled = true;
+
+        const dataToExport = await this.fetchRPC(true);
+        
+        if (!dataToExport || dataToExport.length === 0) {
             alert('No hay datos para exportar.');
+            btn.innerHTML = originalText;
+            btn.disabled = false;
             return;
         }
 
@@ -255,27 +241,25 @@ export const ValorizacionModule = {
         // Toma un número, fija 2 decimales, y cambia el punto (.) por coma (,) decimal.
         const formatDecimalLatam = (num) => Number(num || 0).toFixed(2).replace('.', ',');
 
-        // Exportamos TODOS los filtrados, ignorando la página actual
-        this.state.filtrados.forEach(item => {
+        let totalExportado = 0;
+
+        // Exportamos TODOS los filtrados devueltos por el RPC
+        dataToExport.forEach(item => {
             // Escapar comillas dobles internamente y envolver todo el texto en comillas
             const escapeCSV = (str) => `"${String(str).replace(/"/g, '""')}"`;
             
             const row = [
                 escapeCSV(item.nombre),
-                escapeCSV(item.sku),
-                item.stockTotal,
-                formatDecimalLatam(item.costoPromedio),
-                formatDecimalLatam(item.valorTotal)
+                escapeCSV(item.sku || ''),
+                item.stock_total,
+                formatDecimalLatam(item.costo_promedio),
+                formatDecimalLatam(item.valor_total)
             ];
             
+            totalExportado += Number(item.valor_total);
             csvContent += row.join(";") + "\n";
         });
 
-        // Excepción de sumatoria CSV para SKU serie 500
-        const totalExportado = this.state.filtrados.reduce((sum, item) => {
-            const isRollo = item.sku && item.sku.startsWith('500');
-            return sum + ((item.stockTotal < 0 && !isRollo) ? 0 : item.valorTotal);
-        }, 0);
         csvContent += `\n"Total Valorizado";"";"";"";"${formatDecimalLatam(totalExportado)}"\n`;
 
         const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -289,5 +273,8 @@ export const ValorizacionModule = {
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
+
+        btn.innerHTML = originalText;
+        btn.disabled = false;
     }
 };
