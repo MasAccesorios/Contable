@@ -85,66 +85,70 @@ export const PagosRecibidosModule = {
     
     getComprobanteHTML(t, isPrintMode = false) {
         return `
-            <div style="font-family: 'Inter', sans-serif; color: #334155; padding: ${isPrintMode ? '20px' : '0'};">
-                <div class="card border-light-subtle rounded-4 ${isPrintMode ? 'border-0' : 'shadow-sm'}" style="max-width: 900px; margin: 0 auto; background: #fff;">
-                    <div class="card-body ${isPrintMode ? 'p-0' : 'p-5'}">
+            <style>
+                @media print {
+                    @page { size: 215.9mm 139.7mm; margin: 10mm; } /* Formato Media Carta (Half-Letter) */
+                }
+            </style>
+            <div style="font-family: 'Inter', sans-serif; color: #334155; padding: ${isPrintMode ? '10px' : '0'};">
+                <div class="card border-light-subtle rounded-4 ${isPrintMode ? 'border-0' : 'shadow-sm'}" style="max-width: 750px; margin: 0 auto; background: #fff;">
+                    <div class="card-body ${isPrintMode ? 'p-0' : 'p-4'}">
                         
-                        <div class="d-flex justify-content-between align-items-start mb-5 pb-3">
+                        <div class="d-flex justify-content-between align-items-start mb-3 pb-2 border-bottom">
                             <div>
-                                <img src="LogoMas.png" alt="MAS Accesorios" style="max-height: 55px;">
+                                <img src="LogoMas.png" alt="MAS Accesorios" style="max-height: 45px;">
                             </div>
                             <div class="text-end">
-                                <div class="text-muted fw-medium mb-1">Comprobante de Ingreso</div>
+                                <div class="text-muted fw-medium mb-1" style="font-size: 13px;">Comprobante de Ingreso</div>
                                 <div class="d-flex align-items-center justify-content-end gap-2">
-                                    <span class="fw-bold" style="font-size: 1.15rem; color: #334155;">Nº ${t.numero || t.id}</span>
+                                    <span class="fw-bold" style="font-size: 14px; color: #334155;">Nº ${t.numero || t.id}</span>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="row mb-5">
-                            <div class="col-md-4">
-                                <label class="form-label text-muted fw-semibold" style="font-size: 13px;">Cliente</label>
-                                <div class="fw-medium text-dark" style="font-size: 15px;">${t.contactos?.nombre || '---'}</div>
+                        <div class="row mb-4">
+                            <div class="col-4">
+                                <label class="form-label text-muted fw-semibold m-0" style="font-size: 12px;">Cliente</label>
+                                <div class="fw-medium text-dark" style="font-size: 13px;">${t.contactos?.nombre || '---'}</div>
                             </div>
-                            <div class="col-md-4">
-                                <label class="form-label text-muted fw-semibold" style="font-size: 13px;">Fecha del pago</label>
-                                <div class="fw-medium text-dark" style="font-size: 15px;">${t.fecha}</div>
+                            <div class="col-4">
+                                <label class="form-label text-muted fw-semibold m-0" style="font-size: 12px;">Fecha</label>
+                                <div class="fw-medium text-dark" style="font-size: 13px;">${t.fecha}</div>
                             </div>
-                            <div class="col-md-4">
-                                <label class="form-label text-muted fw-semibold" style="font-size: 13px;">Cuenta Bancaria</label>
-                                <div class="fw-medium text-dark" style="font-size: 15px;">${t.cuentas_bancarias?.nombre || '---'}</div>
+                            <div class="col-4">
+                                <label class="form-label text-muted fw-semibold m-0" style="font-size: 12px;">Cuenta</label>
+                                <div class="fw-medium text-dark" style="font-size: 13px;">${t.cuentas_bancarias?.nombre || '---'}</div>
                             </div>
                         </div>
 
-                        <div class="mb-5">
-                            <h5 class="fw-bold mb-3" style="font-size: 15px; color: #1e293b;">Detalles del pago</h5>
-                            <table class="table table-borderless" style="border-bottom: 1px solid #e2e8f0;">
+                        <div class="mb-4">
+                            <table class="table table-borderless table-sm m-0" style="border-bottom: 1px solid #e2e8f0;">
                                 <thead style="border-bottom: 2px solid #e2e8f0;">
                                     <tr>
-                                        <th class="py-3 px-2 text-muted fw-bold" style="font-size: 13px;">Concepto</th>
-                                        <th class="py-3 px-2 text-muted fw-bold" style="font-size: 13px;">Factura asociada</th>
-                                        <th class="py-3 px-2 text-end text-muted fw-bold" style="font-size: 13px;">Valor</th>
+                                        <th class="py-2 px-2 text-muted fw-bold" style="font-size: 12px;">Concepto</th>
+                                        <th class="py-2 px-2 text-muted fw-bold" style="font-size: 12px;">Factura asociada</th>
+                                        <th class="py-2 px-2 text-end text-muted fw-bold" style="font-size: 12px;">Valor</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <tr>
-                                        <td class="py-3 px-2 align-middle text-dark" style="font-size: 14px;">${t.categoria || 'Abono / Pago'}</td>
-                                        <td class="py-3 px-2 align-middle text-dark" style="font-size: 14px;">${t.factura_id ? '#' + (t.facturas?.numero || t.factura_id) : 'Ninguna'}</td>
-                                        <td class="py-3 px-2 align-middle text-end fw-bold text-dark" style="font-size: 14px;">$${Number(t.monto).toLocaleString('es-CO')}</td>
+                                        <td class="py-2 px-2 align-middle text-dark" style="font-size: 13px;">${t.categoria || 'Abono / Pago'}</td>
+                                        <td class="py-2 px-2 align-middle text-dark" style="font-size: 13px;">${t.factura_id ? '#' + (t.facturas?.numero || t.factura_id) : 'Ninguna'}</td>
+                                        <td class="py-2 px-2 align-middle text-end fw-bold text-dark" style="font-size: 13px;">$${Number(t.monto).toLocaleString('es-CO')}</td>
                                     </tr>
                                 </tbody>
                             </table>
                         </div>
 
-                        <div class="row">
-                            <div class="col-md-7">
-                                <label class="form-label text-muted fw-semibold mb-2" style="font-size: 13px;">Notas y observaciones</label>
-                                <div class="p-3 rounded-3 text-muted" style="font-size: 13px; background-color: #f8fafc; border: 1px solid #e2e8f0;">
+                        <div class="row align-items-center">
+                            <div class="col-7">
+                                <div class="p-2 rounded-2 text-muted" style="font-size: 12px; background-color: #f8fafc; border: 1px solid #e2e8f0; min-height: 40px;">
+                                    <span class="fw-semibold d-block mb-1">Notas:</span>
                                     ${t.observaciones || 'Sin observaciones adicionales.'}
                                 </div>
                             </div>
-                            <div class="col-md-5 d-flex flex-column justify-content-end">
-                                <div class="d-flex justify-content-between py-2 mt-4 fw-bold" style="font-size: 18px;">
+                            <div class="col-5">
+                                <div class="d-flex justify-content-between p-2 rounded-2 fw-bold" style="font-size: 15px; background-color: #f1f5f9; border: 1px solid #e2e8f0;">
                                     <span class="text-dark">Total</span>
                                     <span class="text-dark">$${Number(t.monto).toLocaleString('es-CO')}</span>
                                 </div>
@@ -160,7 +164,7 @@ export const PagosRecibidosModule = {
         const t = this.state.currentComprobanteData;
         this.element.innerHTML = `
             <div class="py-4 px-4" style="font-family: 'Inter', sans-serif; background-color: #f8f9fa; min-height: 100vh;">
-                <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom" style="max-width: 900px; margin: 0 auto;">
+                <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom" style="max-width: 750px; margin: 0 auto;">
                     <button class="btn btn-link text-decoration-none text-muted p-0 d-flex align-items-center gap-2 fw-medium" id="btn-volver-pagos">
                         <i class="bi bi-arrow-left"></i> Volver a Pagos Recibidos
                     </button>
@@ -173,7 +177,7 @@ export const PagosRecibidosModule = {
                         </button>
                     </div>
                 </div>
-                <div class="mb-4" style="max-width: 900px; margin: 0 auto;">
+                <div class="mb-4" style="max-width: 750px; margin: 0 auto;">
                     <h2 class="h3 fw-bold m-0" style="color: #0f172a;">Pago Recibido</h2>
                 </div>
                 ${this.getComprobanteHTML(t)}
