@@ -63,7 +63,7 @@ export default {
         });
 
         const html = `
-            <div class="py-3 px-4" style="font-family: 'Inter', sans-serif; background-color: #f8f9fa; min-height: 100vh; font-size: 13px;">
+            <div class="dash-layout">
                 
                 <!-- BREADCRUMB Y BOTONES SUPERIORES DE ACCIÓN -->
                 <div class="d-flex justify-content-between align-items-center mb-2">
@@ -77,18 +77,18 @@ export default {
                 </div>
 
                 <!-- TÍTULO Y BOTÓN GENERAR -->
-                <div class="d-flex justify-content-between align-items-center mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-4">
                     <div>
-                        <h2 class="fw-bold text-dark m-0" style="font-size: 20px;">Cuentas por cobrar</h2>
-                        <p class="text-muted m-0 mt-1" style="font-size: 12px;">Conoce lo que te deben tus clientes y lleva un control del vencimiento de sus facturas.</p>
+                        <h2 class="h4 mb-1 text-dark fw-bold">Cuentas por cobrar</h2>
+                        <p class="text-muted small mb-0">Conoce lo que te deben tus clientes y lleva un control del vencimiento de sus facturas.</p>
                     </div>
                     <div>
-                        <button id="btn-generar-reporte" class="btn btn-sm text-white px-3 py-2 fw-medium" style="background-color: #2cbfb7; border-radius: 4px; font-size: 13px;">Generar Reporte</button>
+                        <button id="btn-generar-reporte" class="btn btn-sm text-white px-3 py-2 fw-medium shadow-sm" style="background-color: #1877f2; border: 1px solid #1877f2; border-radius: 6px; font-size: 13px;">Generar Reporte</button>
                     </div>
                 </div>
 
                 <!-- FILTRO DE PERIODO -->
-                <div class="card border-0 shadow-sm p-3 mb-3 bg-white position-relative" style="border-radius: 6px; max-width: 320px;">
+                <div class="card border-0 shadow-sm p-3 mb-3 bg-white position-relative" style="border-radius: 14px; border: 1px solid #e2e8f0 !important; max-width: 320px;">
                     <label class="form-label text-muted mb-1" style="font-size: 11px; font-weight: 600;">Periodo *</label>
                     
                     <!-- INPUT DISPARADOR DEL PICKER -->
@@ -155,40 +155,46 @@ export default {
                 </div>
 
                 <!-- KPI CARDS CARTERA -->
-                <div class="row g-3 mb-4">
-                    <div class="col-12 col-sm-6 col-lg-4">
-                        <div class="card kpi-card kpi-primary">
-                            <div class="kpi-card-body">
-                                <i class="bi bi-wallet2 kpi-icon"></i>
-                                <h6 class="kpi-label">Total por Cobrar</h6>
-                                <h5 class="kpi-value" id="lbl-total-por-cobrar">$ ${totalCartera.toLocaleString('es-CO', {minimumFractionDigits: 2})}</h5>
+                <div class="dash-grid-kpis mb-4" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem;">
+                    <div class="card dash-kpi-card border-0" style="border-radius: 14px; border: 1px solid #e2e8f0 !important; box-shadow: 0 4px 16px rgba(0,0,0,0.03); transition: all 0.25s ease;" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='translateY(0)'">
+                        <div class="card-body p-3 d-flex flex-column justify-content-between" style="min-height: 90px;">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <span class="dash-kpi-label text-muted fw-semibold" style="font-size: 13px;">Total por Cobrar</span>
+                                <div class="dash-kpi-icon-box rounded p-2 d-flex align-items-center justify-content-center" style="background-color: rgba(24, 119, 242, 0.1); color: #1877f2; width: 32px; height: 32px;">
+                                    <i class="bi bi-wallet2"></i>
+                                </div>
                             </div>
+                            <div class="dash-kpi-value text-dark fw-bold fs-4 mt-2" id="lbl-total-por-cobrar">$ ${totalCartera.toLocaleString('es-CO', {minimumFractionDigits: 2})}</div>
                         </div>
                     </div>
-                    <div class="col-12 col-sm-6 col-lg-4">
-                        <div class="card kpi-card kpi-success">
-                            <div class="kpi-card-body">
-                                <i class="bi bi-check-circle kpi-icon"></i>
-                                <h6 class="kpi-label">Cartera Vigente</h6>
-                                <h5 class="kpi-value" id="lbl-total-vigente">$ ${totalVigente.toLocaleString('es-CO', {minimumFractionDigits: 2})}</h5>
+                    <div class="card dash-kpi-card border-0" style="border-radius: 14px; border: 1px solid #e2e8f0 !important; box-shadow: 0 4px 16px rgba(0,0,0,0.03); transition: all 0.25s ease;" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='translateY(0)'">
+                        <div class="card-body p-3 d-flex flex-column justify-content-between" style="min-height: 90px;">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <span class="dash-kpi-label text-muted fw-semibold" style="font-size: 13px;">Cartera Vigente</span>
+                                <div class="dash-kpi-icon-box rounded p-2 d-flex align-items-center justify-content-center" style="background-color: rgba(46, 204, 113, 0.1); color: #2ecc71; width: 32px; height: 32px;">
+                                    <i class="bi bi-check-circle"></i>
+                                </div>
                             </div>
+                            <div class="dash-kpi-value text-dark fw-bold fs-4 mt-2" id="lbl-total-vigente">$ ${totalVigente.toLocaleString('es-CO', {minimumFractionDigits: 2})}</div>
                         </div>
                     </div>
-                    <div class="col-12 col-sm-6 col-lg-4">
-                        <div class="card kpi-card kpi-danger">
-                            <div class="kpi-card-body">
-                                <i class="bi bi-exclamation-triangle kpi-icon"></i>
-                                <h6 class="kpi-label">Cartera Vencida</h6>
-                                <h5 class="kpi-value" id="lbl-total-vencido">$ ${totalVencido.toLocaleString('es-CO', {minimumFractionDigits: 2})}</h5>
+                    <div class="card dash-kpi-card border-0" style="border-radius: 14px; border: 1px solid #e2e8f0 !important; box-shadow: 0 4px 16px rgba(0,0,0,0.03); transition: all 0.25s ease;" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='translateY(0)'">
+                        <div class="card-body p-3 d-flex flex-column justify-content-between" style="min-height: 90px;">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <span class="dash-kpi-label text-muted fw-semibold" style="font-size: 13px;">Cartera Vencida</span>
+                                <div class="dash-kpi-icon-box rounded p-2 d-flex align-items-center justify-content-center" style="background-color: rgba(220, 53, 69, 0.1); color: #dc3545; width: 32px; height: 32px;">
+                                    <i class="bi bi-exclamation-triangle"></i>
+                                </div>
                             </div>
+                            <div class="dash-kpi-value text-dark fw-bold fs-4 mt-2" id="lbl-total-vencido">$ ${totalVencido.toLocaleString('es-CO', {minimumFractionDigits: 2})}</div>
                         </div>
                     </div>
                 </div>
 
                 <!-- TABLA DE DETALLE DE CARTERA POR FACTURA -->
-                <div class="card border-0 shadow-sm bg-white" style="border-radius: 6px;">
-                    <div class="p-2 d-flex justify-content-end border-bottom">
-                        <button id="btn-toggle-filtros" class="btn btn-sm btn-light border bg-white text-secondary" style="font-size: 12px;">⚙️ Filtrar</button>
+                <div class="card border-0 shadow-sm bg-white" style="border-radius: 14px; overflow: hidden;">
+                    <div class="p-3 d-flex justify-content-end border-bottom border-light-subtle">
+                        <button id="btn-toggle-filtros" class="btn btn-sm btn-light border bg-white text-secondary" style="font-size: 12px; border-radius: 6px;">⚙️ Filtrar</button>
                     </div>
                     
                     <div id="row-filtros-alegra" class="d-none p-2 border-bottom bg-light d-flex flex-wrap gap-2 align-items-center" style="font-size: 12px;">
@@ -213,19 +219,19 @@ export default {
 
                     <div class="table-responsive">
                         <table class="table align-middle table-hover m-0" style="font-size: 12px;">
-                            <thead class="table-light text-secondary fw-semibold border-bottom" style="--bs-table-bg: #f9fbfd; white-space: nowrap;">
+                            <thead class="table-light text-muted small text-uppercase border-bottom">
                                 <tr>
-                                    <th style="width: 35px;" class="ps-3"><input type="checkbox" class="form-check-input"></th>
-                                    <th>Número</th>
-                                    <th>Tipo de documento</th>
-                                    <th>Cliente</th>
-                                    <th>Creación</th>
-                                    <th>Vencimiento</th>
-                                    <th>Estado</th>
-                                    <th class="text-end">Total</th>
-                                    <th class="text-end">Cobrado</th>
-                                    <th class="text-end pe-3">Por cobrar</th>
-                                    <th class="text-center">Acción</th>
+                                    <th style="width: 35px;" class="ps-3 py-2"><input type="checkbox" class="form-check-input"></th>
+                                    <th class="py-2">Número</th>
+                                    <th class="py-2">Tipo de documento</th>
+                                    <th class="py-2">Cliente</th>
+                                    <th class="py-2">Creación</th>
+                                    <th class="py-2">Vencimiento</th>
+                                    <th class="py-2">Estado</th>
+                                    <th class="text-end py-2">Total</th>
+                                    <th class="text-end py-2">Cobrado</th>
+                                    <th class="text-end pe-3 py-2">Por cobrar</th>
+                                    <th class="text-center py-2">Acción</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -248,20 +254,20 @@ export default {
                                     
                                     return `
                                     <tr class="tr-factura" data-numero="${String(f.numero || f.id).toLowerCase()}" data-cliente-id="${clienteId}" data-fecha="${f.fecha || ''}" data-vencimiento="${f.vencimiento || ''}" data-dias-vencida="${diasVencida}" data-saldo="${saldo}" style="cursor: pointer;" onclick="if(!event.target.closest('button')) { sessionStorage.setItem('origenVolver', JSON.stringify({hash: '#/cartera', label: 'Volver a Cuentas por Cobrar'})); window.location.hash = '#/ingresos/facturas/ver/${f.id}'; }">
-                                        <td class="ps-3"><input type="checkbox" class="form-check-input"></td>
-                                        <td class="text-primary fw-medium" style="cursor: pointer; white-space: nowrap;">${f.numero || f.id}</td>
-                                        <td class="text-muted" style="white-space: nowrap;">Factura de venta</td>
-                                        <td class="text-dark" style="white-space: nowrap;">${cliente.nombre}</td>
-                                        <td class="text-muted" style="white-space: nowrap;">${f.fecha || 'N/A'}</td>
-                                        <td class="${isVencida ? 'text-danger fw-semibold' : 'text-muted'}" style="white-space: nowrap;">${f.vencimiento || 'N/A'}</td>
-                                        <td style="white-space: nowrap;">
-                                            <span class="badge ${isVencida ? 'bg-danger text-danger bg-opacity-10 border border-danger-subtle' : 'bg-success text-success bg-opacity-10 border border-success-subtle'} rounded-pill fw-medium" style="font-size: 11px; padding: 5px 10px;">${isVencida ? 'Vencida' : 'Vigente'}</span>
+                                        <td class="ps-3 py-1"><input type="checkbox" class="form-check-input"></td>
+                                        <td class="text-primary fw-medium py-1" style="cursor: pointer; white-space: nowrap;">${f.numero || f.id}</td>
+                                        <td class="text-muted py-1" style="white-space: nowrap;">Factura de venta</td>
+                                        <td class="text-dark py-1" style="white-space: nowrap;">${cliente.nombre}</td>
+                                        <td class="text-muted py-1" style="white-space: nowrap;">${f.fecha || 'N/A'}</td>
+                                        <td class="${isVencida ? 'text-danger fw-semibold' : 'text-muted'} py-1" style="white-space: nowrap;">${f.vencimiento || 'N/A'}</td>
+                                        <td class="py-1" style="white-space: nowrap;">
+                                            <span class="badge ${isVencida ? 'bg-danger text-danger bg-opacity-10 border border-danger-subtle' : 'bg-success text-success bg-opacity-10 border border-success-subtle'} rounded-pill fw-medium" style="font-size: 10px; padding: 3px 8px;">${isVencida ? 'Vencida' : 'Vigente'}</span>
                                         </td>
-                                        <td class="text-end text-dark" style="white-space: nowrap;">$ ${total.toLocaleString('es-CO', {minimumFractionDigits: 2})}</td>
-                                        <td class="text-end text-muted" style="white-space: nowrap;">$ ${cobrado.toLocaleString('es-CO', {minimumFractionDigits: 2})}</td>
-                                        <td class="text-end fw-bold text-dark pe-3" style="white-space: nowrap;">$ ${saldo.toLocaleString('es-CO', {minimumFractionDigits: 2})}</td>
-                                        <td class="text-center" style="white-space: nowrap;">
-                                            <button class="btn btn-sm text-white btn-abonar" style="background-color: #2cbfb7;" data-id="${f.id}" data-saldo="${saldo}">Registrar Pago</button>
+                                        <td class="text-end text-dark py-1" style="white-space: nowrap;">$ ${total.toLocaleString('es-CO', {minimumFractionDigits: 2})}</td>
+                                        <td class="text-end text-muted py-1" style="white-space: nowrap;">$ ${cobrado.toLocaleString('es-CO', {minimumFractionDigits: 2})}</td>
+                                        <td class="text-end fw-bold text-dark pe-3 py-1" style="white-space: nowrap;">$ ${saldo.toLocaleString('es-CO', {minimumFractionDigits: 2})}</td>
+                                        <td class="text-center py-1" style="white-space: nowrap;">
+                                            <button class="btn btn-sm text-white btn-abonar shadow-sm" style="background-color: #1877f2; font-size: 11px; padding: 3px 10px;" data-id="${f.id}" data-saldo="${saldo}">Registrar Pago</button>
                                         </td>
                                     </tr>
                                     `;
