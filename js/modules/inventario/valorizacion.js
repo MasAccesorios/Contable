@@ -8,7 +8,9 @@ export const ValorizacionModule = {
         currentPage: 1,
         itemsPerPage: 10,
         searchQuery: '',
-        granTotal: 0
+        granTotal: 0,
+        undFisicas: 0,
+        stockBajo: 0
     },
 
     async init(element) {
@@ -32,6 +34,37 @@ export const ValorizacionModule = {
                         <button id="btn-descargar-csv" class="btn text-white" style="background-color: #2cbfb7; font-weight: var(--weight-medium); font-size: 14px;">
                             <i class="bi bi-download me-1"></i> Descargar
                         </button>
+                    </div>
+                </div>
+
+                <!-- KPI CARDS VALORIZACION -->
+                <div class="row g-3 mb-4">
+                    <div class="col-12 col-sm-6 col-lg-4">
+                        <div class="card kpi-card kpi-primary">
+                            <div class="kpi-card-body">
+                                <i class="bi bi-box-seam kpi-icon"></i>
+                                <h6 class="kpi-label">Valor Total del Inventario</h6>
+                                <h5 class="kpi-value" id="kpi-valor-total">$ 0</h5>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-sm-6 col-lg-4">
+                        <div class="card kpi-card kpi-info">
+                            <div class="kpi-card-body">
+                                <i class="bi bi-boxes kpi-icon"></i>
+                                <h6 class="kpi-label">Total Unidades Físicas</h6>
+                                <h5 class="kpi-value" id="kpi-unidades-fisicas">0</h5>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-sm-6 col-lg-4">
+                        <div class="card kpi-card kpi-warning">
+                            <div class="kpi-card-body">
+                                <i class="bi bi-exclamation-triangle kpi-icon"></i>
+                                <h6 class="kpi-label">Stock Bajo / Agotado</h6>
+                                <h5 class="kpi-value" id="kpi-stock-bajo">0</h5>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -95,9 +128,28 @@ export const ValorizacionModule = {
         `;
 
         this.bindEvents();
-        this.bindEvents();
+        await this.calcularKPIs();
         await this.fetchRPC();
         this.renderTabla();
+    },
+
+    async calcularKPIs() {
+        try {
+            const dataAll = await this.fetchRPC(true);
+            if (dataAll) {
+                let undFisicas = 0;
+                let stockBajo = 0;
+                dataAll.forEach(item => {
+                    const st = parseFloat(item.stock_total) || 0;
+                    undFisicas += st;
+                    if (st <= 3) stockBajo++; // Umbral de stock bajo genérico
+                });
+                this.state.undFisicas = undFisicas;
+                this.state.stockBajo = stockBajo;
+            }
+        } catch (e) {
+            console.error('Error calculando KPIs:', e);
+        }
     },
 
     bindEvents() {
@@ -181,16 +233,26 @@ export const ValorizacionModule = {
         if (paginaActual.length === 0) {
             container.innerHTML = `<tr><td colspan="5" class="text-center py-5 text-muted">No se encontraron productos.</td></tr>`;
         } else {
-            const formatMoney = (val) => '$' + val.toLocaleString('es-CO', {minimumFractionDigits: 2});
+            const formatMoney = (val) => '$' + (val || 0).toLocaleString('es-CO', {maximumFractionDigits: 0});
             let html = '';
             
             paginaActual.forEach(item => {
-                const isZero = item.stock_total === 0;
+                const stock = parseFloat(item.stock_total) || 0;
+                const isZero = stock === 0;
+                const isLow = stock > 0 && stock <= 3;
+                
+                let stockBadge = `<span class="badge bg-success text-success bg-opacity-10 border border-success-subtle rounded-pill fw-medium px-2 py-1">${stock} und</span>`;
+                if (isZero) {
+                    stockBadge = `<span class="badge bg-danger text-danger bg-opacity-10 border border-danger-subtle rounded-pill fw-medium px-2 py-1">Agotado (0)</span>`;
+                } else if (isLow) {
+                    stockBadge = `<span class="badge bg-warning text-warning-emphasis bg-opacity-10 border border-warning-subtle rounded-pill fw-medium px-2 py-1">Bajo (${stock})</span>`;
+                }
+
                 html += `
                     <tr style="border-bottom: 1px solid var(--border-color); font-size: 13px; color: var(--text-body);">
                         <td class="py-3 ps-4 text-truncate" style="color: var(--text-main); font-weight: var(--weight-medium); max-width: 300px;" title="${item.nombre}">${item.nombre}</td>
                         <td class="py-3">${item.sku || ''}</td>
-                        <td class="py-3 text-end" style="${isZero ? 'color: #94a3b8;' : ''}">${item.stock_total} und</td>
+                        <td class="py-3 text-end">${stockBadge}</td>
                         <td class="py-3 text-end text-muted">${formatMoney(item.costo_promedio)}</td>
                         <td class="py-3 text-end pe-4" style="font-weight: ${isZero ? 'normal' : '600'}; color: ${isZero ? '#94a3b8' : 'var(--text-main)'};">${formatMoney(item.valor_total)}</td>
                     </tr>
@@ -199,9 +261,20 @@ export const ValorizacionModule = {
             container.innerHTML = html;
         }
 
+        // Actualizar KPIs
+        const kpiValorTotal = this.element.querySelector('#kpi-valor-total');
+        const kpiUnidades = this.element.querySelector('#kpi-unidades-fisicas');
+        const kpiBajo = this.element.querySelector('#kpi-stock-bajo');
+        
+        const formatKpiMoney = (val) => '$' + (val || 0).toLocaleString('es-CO', {maximumFractionDigits: 0});
+        
+        if (kpiValorTotal) kpiValorTotal.textContent = formatKpiMoney(this.state.granTotal).replace('$ ', '$');
+        if (kpiUnidades) kpiUnidades.textContent = this.state.undFisicas.toLocaleString('es-CO');
+        if (kpiBajo) kpiBajo.textContent = this.state.stockBajo.toLocaleString('es-CO');
+
         // Inyectar Gran Total (fijo de toda la empresa)
-        const formatMoneyTotal = (val) => '$' + val.toLocaleString('es-CO', {minimumFractionDigits: 2});
-        this.element.querySelector('#tfoot-gran-total').textContent = formatMoneyTotal(this.state.granTotal);
+        const formatFooterMoney = (val) => '$' + (val || 0).toLocaleString('es-CO', {maximumFractionDigits: 0});
+        this.element.querySelector('#tfoot-gran-total').textContent = formatFooterMoney(this.state.granTotal);
 
         // Actualizar UI de paginación
         const startIndex = (this.state.currentPage - 1) * this.state.itemsPerPage;

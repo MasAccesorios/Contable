@@ -12,37 +12,147 @@ export default {
         const inicioRango = getLocalDate(hace3MesesDate);
 
         element.innerHTML = `
-            <div class="p-4" style="max-width: 800px; margin: 0 auto;">
-                <h3 class="text-title text-dark mb-4">Reportes y Exportaciones</h3>
+            <div class="module-container p-4" style="max-width: 900px; margin: 0 auto;">
+                <h3 class="fw-bold text-dark mb-4" style="font-size: 22px;">Reportes y Exportaciones</h3>
                 
+                <!-- KPI CARDS REPORTES -->
+                <div class="row g-3 mb-4">
+                    <div class="col-12 col-sm-6 col-lg-4">
+                        <div class="card kpi-card kpi-primary">
+                            <div class="kpi-card-body">
+                                <i class="bi bi-file-earmark-bar-graph kpi-icon"></i>
+                                <h6 class="kpi-label">Informes Disponibles</h6>
+                                <h5 class="kpi-value">6</h5>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-sm-6 col-lg-4">
+                        <div class="card kpi-card kpi-success">
+                            <div class="kpi-card-body">
+                                <i class="bi bi-cloud-download kpi-icon"></i>
+                                <h6 class="kpi-label">Exportaciones Hoy</h6>
+                                <h5 class="kpi-value" id="kpi-exportaciones">0</h5>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-sm-6 col-lg-4">
+                        <div class="card kpi-card kpi-info">
+                            <div class="kpi-card-body">
+                                <i class="bi bi-clock-history kpi-icon"></i>
+                                <h6 class="kpi-label">Último Reporte</h6>
+                                <h5 class="kpi-value text-truncate" id="kpi-ultimo">N/A</h5>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="card border-0 shadow-sm" style="border-radius: 12px;">
                     <div class="card-body p-4">
                         <form id="form-reportes">
                             <div class="mb-4">
-                                <label class="form-label text-muted small fw-bold">Tipo de Reporte</label>
-                                <select id="rep-tipo" class="form-select text-dark" required>
-                                    <option value="ventas">Ventas por Rango de Fecha</option>
-                                    <option value="utilidad">Utilidad por Rango de Fecha</option>
-                                    <option value="cartera">Cartera por Cliente</option>
-                                    <option value="estado_cuenta">Estado de Cuenta por Cliente (WhatsApp)</option>
-                                    <option value="inventario">Inventario Actual (Valorizado)</option>
-                                    <option value="gastos">Gastos y Egresos (Tesorería)</option>
-                                </select>
+                                <label class="form-label text-muted small fw-bold mb-3">Selecciona el tipo de reporte</label>
+                                <div class="row g-3 mb-4">
+                                    <!-- Card 1 -->
+                                    <div class="col-12 col-sm-6">
+                                        <div class="card border-light-subtle border-2 shadow-sm h-100 report-card" data-tipo="ventas" style="cursor: pointer; border-radius: 10px; transition: 0.2s;">
+                                            <div class="card-body d-flex align-items-center gap-3 p-3">
+                                                <div class="rounded-circle bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center" style="width: 45px; height: 45px; flex-shrink: 0;">
+                                                    <i class="bi bi-graph-up fs-5"></i>
+                                                </div>
+                                                <div>
+                                                    <h6 class="mb-1 fw-bold text-dark" style="font-size: 14px;">Ventas por Rango</h6>
+                                                    <p class="mb-0 text-muted" style="font-size: 12px;">Historial de facturas</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- Card 2 -->
+                                    <div class="col-12 col-sm-6">
+                                        <div class="card border-light-subtle border-2 shadow-sm h-100 report-card" data-tipo="utilidad" style="cursor: pointer; border-radius: 10px; transition: 0.2s;">
+                                            <div class="card-body d-flex align-items-center gap-3 p-3">
+                                                <div class="rounded-circle bg-success bg-opacity-10 text-success d-flex align-items-center justify-content-center" style="width: 45px; height: 45px; flex-shrink: 0;">
+                                                    <i class="bi bi-currency-dollar fs-5"></i>
+                                                </div>
+                                                <div>
+                                                    <h6 class="mb-1 fw-bold text-dark" style="font-size: 14px;">Utilidad Operativa</h6>
+                                                    <p class="mb-0 text-muted" style="font-size: 12px;">Margen bruto</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- Card 3 -->
+                                    <div class="col-12 col-sm-6">
+                                        <div class="card border-light-subtle border-2 shadow-sm h-100 report-card" data-tipo="cartera" style="cursor: pointer; border-radius: 10px; transition: 0.2s;">
+                                            <div class="card-body d-flex align-items-center gap-3 p-3">
+                                                <div class="rounded-circle bg-danger bg-opacity-10 text-danger d-flex align-items-center justify-content-center" style="width: 45px; height: 45px; flex-shrink: 0;">
+                                                    <i class="bi bi-journal-text fs-5"></i>
+                                                </div>
+                                                <div>
+                                                    <h6 class="mb-1 fw-bold text-dark" style="font-size: 14px;">Cartera por Cliente</h6>
+                                                    <p class="mb-0 text-muted" style="font-size: 12px;">Cuentas por cobrar</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- Card 4 -->
+                                    <div class="col-12 col-sm-6">
+                                        <div class="card border-light-subtle border-2 shadow-sm h-100 report-card" data-tipo="estado_cuenta" style="cursor: pointer; border-radius: 10px; transition: 0.2s;">
+                                            <div class="card-body d-flex align-items-center gap-3 p-3">
+                                                <div class="rounded-circle bg-info bg-opacity-10 text-info d-flex align-items-center justify-content-center" style="width: 45px; height: 45px; flex-shrink: 0;">
+                                                    <i class="bi bi-whatsapp fs-5"></i>
+                                                </div>
+                                                <div>
+                                                    <h6 class="mb-1 fw-bold text-dark" style="font-size: 14px;">Estado de Cuenta</h6>
+                                                    <p class="mb-0 text-muted" style="font-size: 12px;">Envío por WhatsApp</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- Card 5 -->
+                                    <div class="col-12 col-sm-6">
+                                        <div class="card border-light-subtle border-2 shadow-sm h-100 report-card" data-tipo="inventario" style="cursor: pointer; border-radius: 10px; transition: 0.2s;">
+                                            <div class="card-body d-flex align-items-center gap-3 p-3">
+                                                <div class="rounded-circle bg-warning bg-opacity-10 text-warning d-flex align-items-center justify-content-center" style="width: 45px; height: 45px; flex-shrink: 0;">
+                                                    <i class="bi bi-box-seam fs-5"></i>
+                                                </div>
+                                                <div>
+                                                    <h6 class="mb-1 fw-bold text-dark" style="font-size: 14px;">Inventario Valorizado</h6>
+                                                    <p class="mb-0 text-muted" style="font-size: 12px;">Stock actual</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- Card 6 -->
+                                    <div class="col-12 col-sm-6">
+                                        <div class="card border-light-subtle border-2 shadow-sm h-100 report-card" data-tipo="gastos" style="cursor: pointer; border-radius: 10px; transition: 0.2s;">
+                                            <div class="card-body d-flex align-items-center gap-3 p-3">
+                                                <div class="rounded-circle bg-secondary bg-opacity-10 text-secondary d-flex align-items-center justify-content-center" style="width: 45px; height: 45px; flex-shrink: 0;">
+                                                    <i class="bi bi-cash-stack fs-5"></i>
+                                                </div>
+                                                <div>
+                                                    <h6 class="mb-1 fw-bold text-dark" style="font-size: 14px;">Gastos y Egresos</h6>
+                                                    <p class="mb-0 text-muted" style="font-size: 12px;">Módulo tesorería</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <input type="hidden" id="rep-tipo" value="" required>
                             </div>
 
-                            <div class="row g-3 mb-4" id="rango-fechas">
-                                <div class="col-md-6">
+                            <div class="row g-3 mb-4" id="rango-fechas" style="display: none;">
+                                <div class="col-12 col-md-6">
                                     <label class="form-label text-muted small fw-bold">Fecha Inicio</label>
-                                    <input type="date" class="form-control" id="rep-inicio" value="${inicioRango}" required>
+                                    <input type="date" class="form-control" id="rep-inicio" value="${inicioRango}">
                                 </div>
-                                <div class="col-md-6">
+                                <div class="col-12 col-md-6">
                                     <label class="form-label text-muted small fw-bold">Fecha Fin</label>
-                                    <input type="date" class="form-control" id="rep-fin" value="${hoy}" required>
+                                    <input type="date" class="form-control" id="rep-fin" value="${hoy}">
                                 </div>
                             </div>
 
                             <div class="d-flex justify-content-end">
-                                <button type="submit" class="btn btn-primary px-4 py-2" id="btn-exportar" style="border-radius: 8px; font-weight: 500;">
+                                <button type="submit" class="btn text-white px-4 py-2 w-100 w-md-auto" id="btn-exportar" style="background-color: #1877f2; border-radius: 8px; font-weight: 500; display: none;">
                                     <i class="bi bi-file-earmark-excel me-2"></i>Generar Exportable
                                 </button>
                             </div>
@@ -54,29 +164,53 @@ export default {
             </div>
         `;
 
-        const tipoSelect = element.querySelector('#rep-tipo');
+        const hiddenTipo = element.querySelector('#rep-tipo');
         const rangoFechas = element.querySelector('#rango-fechas');
+        const repCards = element.querySelectorAll('.report-card');
+        const btnExportar = element.querySelector('#btn-exportar');
+        const containerCuenta = element.querySelector('#estado-cuenta-container');
 
-        tipoSelect.addEventListener('change', (e) => {
-            const val = e.target.value;
-            const container = element.querySelector('#estado-cuenta-container');
-            if (val === 'estado_cuenta') {
-                container.style.display = 'block';
-            } else {
-                container.style.display = 'none';
-                container.innerHTML = '';
-            }
-            if (val === 'cartera' || val === 'inventario' || val === 'estado_cuenta') {
-                rangoFechas.style.display = 'none';
-            } else {
-                rangoFechas.style.display = 'flex';
-            }
+        repCards.forEach(card => {
+            card.addEventListener('click', () => {
+                // Limpiar selección previa
+                repCards.forEach(c => {
+                    c.classList.remove('border-primary', 'shadow');
+                    c.classList.add('border-light-subtle', 'shadow-sm');
+                });
+                // Marcar actual
+                card.classList.remove('border-light-subtle', 'shadow-sm');
+                card.classList.add('border-primary', 'shadow');
+                
+                const val = card.dataset.tipo;
+                hiddenTipo.value = val;
+
+                if (val === 'estado_cuenta') {
+                    containerCuenta.style.display = 'block';
+                    btnExportar.style.display = 'none';
+                } else {
+                    containerCuenta.style.display = 'none';
+                    containerCuenta.innerHTML = '';
+                    btnExportar.style.display = 'block';
+                }
+                
+                if (val === 'cartera' || val === 'inventario' || val === 'estado_cuenta') {
+                    rangoFechas.style.display = 'none';
+                } else {
+                    rangoFechas.style.display = 'flex';
+                }
+            });
         });
 
         element.querySelector('#form-reportes').addEventListener('submit', async (e) => {
             e.preventDefault();
+            const tipo = hiddenTipo.value;
+            
+            if (!tipo) {
+                CoreActions.showWarningModal("Por favor selecciona un tipo de reporte.");
+                return;
+            }
+            
             const btn = element.querySelector('#btn-exportar');
-            const tipo = tipoSelect.value;
             const fInicio = element.querySelector('#rep-inicio').value;
             const fFin = element.querySelector('#rep-fin').value;
             
@@ -234,6 +368,11 @@ export default {
                     CoreActions.showWarningModal("No hay datos para exportar con los filtros seleccionados.");
                     return;
                 }
+                
+                // Actualizar KPIs de uso (visual)
+                let expCount = parseInt(element.querySelector('#kpi-exportaciones').textContent) || 0;
+                element.querySelector('#kpi-exportaciones').textContent = expCount + 1;
+                element.querySelector('#kpi-ultimo').textContent = tipo.replace('_', ' ').toUpperCase();
                 
                 this.exportDynamicCSV(dataToExport, tipo, btn);
 
