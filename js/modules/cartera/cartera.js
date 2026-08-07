@@ -139,11 +139,11 @@ export default {
                 <!-- BARRAS / PESTAÑAS DE VENCIMIENTO Y TOTAL GENERAL -->
                 <div class="card border-0 shadow-sm bg-white mb-3" style="border-radius: 6px; overflow: hidden;">
                     <div class="d-flex border-bottom text-center text-muted" style="font-size: 12px;">
-                        <div class="flex-fill py-2 px-1 border-end bg-light-subtle">Vencidas 30 días o menos</div>
-                        <div class="flex-fill py-2 px-1 border-end bg-light-subtle">Vencidas 31 a de 60 días</div>
-                        <div class="flex-fill py-2 px-1 border-end bg-light-subtle">Vencidas 61 a de 90 días</div>
-                        <div class="flex-fill py-2 px-1 border-end bg-light-subtle">Vencidas 91+</div>
-                        <div class="flex-fill py-2 px-1 bg-light-subtle">No vencidas</div>
+                        <div class="flex-fill py-2 px-1 border-end bg-light-subtle tab-vencimiento" data-rango="0-30" style="cursor: pointer;">Vencidas 30 días o menos</div>
+                        <div class="flex-fill py-2 px-1 border-end bg-light-subtle tab-vencimiento" data-rango="31-60" style="cursor: pointer;">Vencidas 31 a de 60 días</div>
+                        <div class="flex-fill py-2 px-1 border-end bg-light-subtle tab-vencimiento" data-rango="61-90" style="cursor: pointer;">Vencidas 61 a de 90 días</div>
+                        <div class="flex-fill py-2 px-1 border-end bg-light-subtle tab-vencimiento" data-rango="91+" style="cursor: pointer;">Vencidas 91+</div>
+                        <div class="flex-fill py-2 px-1 bg-light-subtle tab-vencimiento" data-rango="no-vencidas" style="cursor: pointer;">No vencidas</div>
                     </div>
                     <div class="p-3 text-center">
                         <div class="text-muted" style="font-size: 11px;">Total por cobrar</div>
@@ -154,9 +154,29 @@ export default {
                 <!-- TABLA DE DETALLE DE CARTERA POR FACTURA -->
                 <div class="card border-0 shadow-sm bg-white" style="border-radius: 6px;">
                     <div class="p-2 d-flex justify-content-end border-bottom">
-                        <button class="btn btn-sm btn-light border bg-white text-secondary" style="font-size: 12px;">⚙️ Filtrar</button>
+                        <button id="btn-toggle-filtros" class="btn btn-sm btn-light border bg-white text-secondary" style="font-size: 12px;">⚙️ Filtrar</button>
                     </div>
                     
+                    <div id="row-filtros-alegra" class="d-none p-2 border-bottom bg-light d-flex flex-wrap gap-2 align-items-center" style="font-size: 12px;">
+                        <input type="text" id="filtro-numero" class="form-control form-control-sm" placeholder="Número" style="border-radius: 6px; width: 120px;">
+                        <select id="filtro-cliente" class="form-select form-select-sm" style="border-radius: 6px; width: 180px;">
+                            <option value="">Cliente</option>
+                        </select>
+                        <div class="input-group input-group-sm" style="width: 150px;">
+                            <input type="text" class="form-control border-end-0 text-muted" value="Creación" disabled style="background-color: #fff; border-radius: 6px 0 0 6px;">
+                            <input type="date" id="filtro-creacion" class="form-control" style="border-radius: 0 6px 6px 0;">
+                        </div>
+                        <div class="input-group input-group-sm" style="width: 150px;">
+                            <input type="text" class="form-control border-end-0 text-muted" value="Venc." disabled style="background-color: #fff; border-radius: 6px 0 0 6px;">
+                            <input type="date" id="filtro-vencimiento" class="form-control" style="border-radius: 0 6px 6px 0;">
+                        </div>
+                        
+                        <div class="ms-auto d-flex gap-2">
+                            <button id="btn-aplicar-filtros" class="btn btn-sm text-dark border" style="background-color: #fff; border-color: #2cbfb7 !important; border-radius: 6px; color: #2cbfb7 !important;">Filtrar</button>
+                            <button id="btn-cerrar-filtros" class="btn btn-sm btn-light border bg-white text-secondary" style="border-radius: 6px;">Cerrar</button>
+                        </div>
+                    </div>
+
                     <div class="table-responsive">
                         <table class="table align-middle table-hover m-0" style="font-size: 12px;">
                             <thead class="table-light text-secondary fw-semibold border-bottom" style="--bs-table-bg: #f9fbfd; white-space: nowrap;">
@@ -178,11 +198,21 @@ export default {
                                     const total = parseFloat(f.total) || 0;
                                     const saldo = parseFloat(f.saldo !== undefined ? f.saldo : total);
                                     const cobrado = f.totalPagado !== undefined ? f.totalPagado : (total - saldo);
-                                    const cliente = getCliente(f.contacto_id || f.clienteId);
-                                    const isVencida = new Date(f.vencimiento) < new Date();
+                                    const clienteId = f.contacto_id || f.clienteId;
+                                    const cliente = getCliente(clienteId);
+                                    
+                                    const hoyDate = new Date();
+                                    const utcHoy = Date.UTC(hoyDate.getFullYear(), hoyDate.getMonth(), hoyDate.getDate());
+                                    let diasVencida = 0;
+                                    if (f.vencimiento) {
+                                        const vDate = new Date(f.vencimiento);
+                                        const utcVenc = Date.UTC(vDate.getFullYear(), vDate.getMonth(), vDate.getDate());
+                                        diasVencida = Math.floor((utcHoy - utcVenc) / (1000 * 60 * 60 * 24));
+                                    }
+                                    const isVencida = diasVencida >= 1;
                                     
                                     return `
-                                    <tr style="cursor: pointer;" onclick="if(!event.target.closest('button')) { sessionStorage.setItem('origenVolver', JSON.stringify({hash: '#/cartera', label: 'Volver a Cuentas por Cobrar'})); window.location.hash = '#/ingresos/facturas/ver/${f.id}'; }">
+                                    <tr class="tr-factura" data-numero="${String(f.numero || f.id).toLowerCase()}" data-cliente-id="${clienteId}" data-fecha="${f.fecha || ''}" data-vencimiento="${f.vencimiento || ''}" data-dias-vencida="${diasVencida}" data-saldo="${saldo}" style="cursor: pointer;" onclick="if(!event.target.closest('button')) { sessionStorage.setItem('origenVolver', JSON.stringify({hash: '#/cartera', label: 'Volver a Cuentas por Cobrar'})); window.location.hash = '#/ingresos/facturas/ver/${f.id}'; }">
                                         <td class="ps-3"><input type="checkbox" class="form-check-input"></td>
                                         <td class="text-primary fw-medium" style="cursor: pointer; white-space: nowrap;">${f.numero || f.id}</td>
                                         <td class="text-muted" style="white-space: nowrap;">Factura de venta</td>
@@ -208,7 +238,7 @@ export default {
                             <span>Página 1 de 1</span>
                         </div>
                         <div class="d-flex align-items-center gap-3">
-                            <span>Mostrando 1-${facturasPendientes.length} de ${facturasPendientes.length}</span>
+                            <span id="lbl-conteo-mostrando">Mostrando 1-${facturasPendientes.length} de ${facturasPendientes.length}</span>
                             <select class="form-select form-select-sm border-light-subtle py-0" style="width: 110px; font-size: 11px;">
                                 <option>Resultados por página: 20</option>
                             </select>
@@ -235,6 +265,125 @@ export default {
                         }
                     }, 500);
                 });
+            });
+        });
+        
+        this.bindFiltrosTabla(facturasPendientes, contactos);
+    },
+
+    bindFiltrosTabla(facturasPendientes, contactos) {
+        const selectCliente = document.getElementById('filtro-cliente');
+        if (selectCliente) {
+            const clientesUnicosIds = [...new Set(facturasPendientes.map(f => String(f.contacto_id || f.clienteId)))];
+            const clientesList = clientesUnicosIds.map(id => {
+                const c = contactos.find(c => String(c.id) === id);
+                return c ? { id, nombre: c.nombre } : { id, nombre: 'Desconocido' };
+            }).sort((a,b) => a.nombre.localeCompare(b.nombre));
+            
+            clientesList.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c.id;
+                opt.textContent = c.nombre;
+                selectCliente.appendChild(opt);
+            });
+        }
+
+        let currentTabRango = 'todas';
+
+        const aplicarFiltros = () => {
+            const txtNumero = (document.getElementById('filtro-numero')?.value || '').toLowerCase();
+            const selCliente = document.getElementById('filtro-cliente')?.value || '';
+            const dateCreacion = document.getElementById('filtro-creacion')?.value || '';
+            const dateVencimiento = document.getElementById('filtro-vencimiento')?.value || '';
+
+            let nuevoTotal = 0;
+            let visibles = 0;
+
+            document.querySelectorAll('.tr-factura').forEach(tr => {
+                const numero = tr.getAttribute('data-numero');
+                const clienteId = tr.getAttribute('data-cliente-id');
+                const fecha = tr.getAttribute('data-fecha');
+                const vencimiento = tr.getAttribute('data-vencimiento');
+                const dias = parseInt(tr.getAttribute('data-dias-vencida')) || 0;
+                const saldo = parseFloat(tr.getAttribute('data-saldo')) || 0;
+
+                let match = true;
+                
+                if (txtNumero && !numero.includes(txtNumero)) match = false;
+                if (selCliente && clienteId !== selCliente) match = false;
+                if (dateCreacion && fecha !== dateCreacion) match = false;
+                if (dateVencimiento && vencimiento !== dateVencimiento) match = false;
+
+                if (currentTabRango !== 'todas') {
+                    if (currentTabRango === '0-30' && (dias < 1 || dias > 30)) match = false;
+                    if (currentTabRango === '31-60' && (dias < 31 || dias > 60)) match = false;
+                    if (currentTabRango === '61-90' && (dias < 61 || dias > 90)) match = false;
+                    if (currentTabRango === '91+' && dias < 91) match = false;
+                    if (currentTabRango === 'no-vencidas' && dias >= 1) match = false;
+                }
+
+                if (match) {
+                    tr.classList.remove('d-none');
+                    nuevoTotal += saldo;
+                    visibles++;
+                } else {
+                    tr.classList.add('d-none');
+                }
+            });
+
+            const lblTotal = document.getElementById('lbl-total-por-cobrar');
+            if (lblTotal) lblTotal.innerText = '$ ' + nuevoTotal.toLocaleString('es-CO', {minimumFractionDigits: 2});
+            
+            const lblConteo = document.getElementById('lbl-conteo-mostrando');
+            if (lblConteo) lblConteo.innerText = `Mostrando 1-${visibles} de ${visibles}`;
+        };
+
+        document.getElementById('btn-aplicar-filtros')?.addEventListener('click', aplicarFiltros);
+        
+        document.getElementById('btn-toggle-filtros')?.addEventListener('click', () => {
+            document.getElementById('row-filtros-alegra')?.classList.toggle('d-none');
+        });
+        
+        document.getElementById('btn-cerrar-filtros')?.addEventListener('click', () => {
+            document.getElementById('row-filtros-alegra')?.classList.add('d-none');
+            document.getElementById('filtro-numero').value = '';
+            document.getElementById('filtro-cliente').value = '';
+            document.getElementById('filtro-creacion').value = '';
+            document.getElementById('filtro-vencimiento').value = '';
+            aplicarFiltros();
+        });
+
+        document.getElementById('row-filtros-alegra')?.querySelectorAll('input, select').forEach(el => {
+            el.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') aplicarFiltros();
+            });
+        });
+
+        const tabs = document.querySelectorAll('.tab-vencimiento');
+        tabs.forEach(tab => {
+            tab.addEventListener('click', (e) => {
+                const rango = e.currentTarget.getAttribute('data-rango');
+                
+                if (currentTabRango === rango) {
+                    currentTabRango = 'todas';
+                    e.currentTarget.classList.remove('bg-white', 'text-dark', 'fw-bold', 'border-bottom-0');
+                    e.currentTarget.classList.add('bg-light-subtle', 'text-muted');
+                } else {
+                    currentTabRango = rango;
+                    tabs.forEach(t => {
+                        t.classList.remove('bg-white', 'text-dark', 'fw-bold', 'border-bottom-0');
+                        t.classList.add('bg-light-subtle', 'text-muted');
+                    });
+                    e.currentTarget.classList.remove('bg-light-subtle', 'text-muted');
+                    e.currentTarget.classList.add('bg-white', 'text-dark', 'fw-bold', 'border-bottom-0');
+                    e.currentTarget.style.borderTop = '2px solid #2cbfb7';
+                }
+                
+                tabs.forEach(t => {
+                    if (t !== e.currentTarget || currentTabRango === 'todas') t.style.borderTop = '';
+                });
+
+                aplicarFiltros();
             });
         });
     },
