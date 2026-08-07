@@ -462,16 +462,15 @@ export const NotasCreditoModule = {
                         if (detErr) throw new Error("Error al guardar detalles de la nota: " + detErr.message);
 
                         // 5. Inyectar pago cruzado en pagos_ingresos
-                        // NOTA: Se remueve referenciaId que no existe en BD, el vínculo queda en factura_id y observaciones
                         const { error: pagoErr } = await supabase.from('pagos_ingresos').insert([{
                             factura_id: currentFactura.id,
                             fecha: element.querySelector('#nc-fecha').value,
                             monto: totalNC,
                             tipo: 'in', // abono a la factura
-                            metodo_pago: 'nota_credito',
                             cuenta_id: null,
                             estado: 'completado',
-                            observaciones: 'Pago cruzado por Nota de Crédito #' + ncNumero
+                            observaciones: 'Pago cruzado por Nota de Crédito #' + ncNumero,
+                            referencia: 'NC-' + ncNumero
                         }]);
                         if (pagoErr) throw new Error("Error al cruzar saldo en pagos: " + pagoErr.message);
 
