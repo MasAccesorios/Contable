@@ -25,13 +25,9 @@ export const PagosRealizadosModule = {
     
     async calcularKPIs() {
         try {
-            const { data } = await supabase.from('pagos_ingresos').select('monto, estado').eq('tipo', 'out').neq('estado', 'anulado');
-            if (data) {
-                let total = 0;
-                data.forEach(p => {
-                    total += parseFloat(p.monto) || 0;
-                });
-                this.state.kpis = { total };
+            const { data, error } = await supabase.rpc('get_pagos_kpis', { p_tipo: 'out' });
+            if (!error && data) {
+                this.state.kpis = { total: parseFloat(data.total) || 0 };
             }
         } catch (e) {
             console.error('Error calculando KPIs:', e);
