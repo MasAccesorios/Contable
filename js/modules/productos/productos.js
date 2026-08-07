@@ -426,7 +426,7 @@ export const ProductosModule = {
                         const { estado, saldoPendiente, totalPagado } = calcularEstadoFactura(f, tr);
                         return {
                             ...f,
-                            estado_dinamico: estado,
+                            estado,
                             saldoPendiente,
                             totalPagado
                         };
