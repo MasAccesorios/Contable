@@ -16,6 +16,98 @@ export const PagosRecibidosModule = {
     async init(element) {
         if (!element) return;
         this.element = element;
+        
+        window.abrirVistaA4Ingreso = async (id, mode = 'preview') => {
+            const { supabase } = await import('../../core/supabase.js');
+            const { data: t } = await supabase.from('pagos_ingresos').select('*, contactos(*), cuentas_bancarias(*), facturas(*)').eq('id', id).single();
+            if (!t) return;
+            
+            const htmlContent = `
+                <div style="padding: 20px; font-family: 'Inter', sans-serif; color: #333;">
+                    <div style="display: flex; justify-content: space-between; border-bottom: 2px solid #2cbfb7; padding-bottom: 20px; margin-bottom: 30px;">
+                        <div>
+                            <h1 style="margin: 0; font-size: 24px; color: #0c1a30; font-weight: 800;">DIEGO IZQUIERDO</h1>
+                            <p style="margin: 5px 0 0 0; font-size: 13px; color: #6c757d;">NIT: 79981638-4<br>Cra.111A No.148-50 4-1404<br>Tel: +57 3158512091<br><span style="background-color:#f8f9fa; border:1px solid #dee2e6; padding:2px 6px; font-size:10px; border-radius:4px; color:#6c757d;">No responsable de IVA</span></p>
+                        </div>
+                        <div style="text-align: right;">
+                            <h2 style="margin: 0; font-size: 20px; color: #2cbfb7;">COMPROBANTE DE INGRESO</h2>
+                            <p style="margin: 5px 0 0 0; font-size: 16px; font-weight: bold;">Nº ${t.numero || t.id}</p>
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 30px; background-color: #f8f9fa; padding: 15px; border-radius: 8px;">
+                        <div>
+                            <p style="margin: 0 0 5px 0; font-size: 12px; color: #6c757d; font-weight: bold;">FECHA</p>
+                            <p style="margin: 0; font-size: 14px;">${t.fecha}</p>
+                        </div>
+                        <div>
+                            <p style="margin: 0 0 5px 0; font-size: 12px; color: #6c757d; font-weight: bold;">RECIBIDO DE</p>
+                            <p style="margin: 0; font-size: 14px;">${t.contactos?.nombre || '---'}</p>
+                        </div>
+                        <div>
+                            <p style="margin: 0 0 5px 0; font-size: 12px; color: #6c757d; font-weight: bold;">CUENTA BANCARIA</p>
+                            <p style="margin: 0; font-size: 14px;">${t.cuentas_bancarias?.nombre || '---'}</p>
+                        </div>
+                    </div>
+
+                    <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
+                        <thead>
+                            <tr style="background-color: #0c1a30; color: white;">
+                                <th style="padding: 10px; text-align: left; font-size: 13px;">Concepto</th>
+                                <th style="padding: 10px; text-align: left; font-size: 13px;">Factura Asociada</th>
+                                <th style="padding: 10px; text-align: right; font-size: 13px;">Valor</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr style="border-bottom: 1px solid #dee2e6;">
+                                <td style="padding: 12px 10px; font-size: 14px;">${t.categoria || 'Abono / Pago'}</td>
+                                <td style="padding: 12px 10px; font-size: 14px;">${t.factura_id ? '#' + (t.facturas?.numero || t.factura_id) : 'Ninguna'}</td>
+                                <td style="padding: 12px 10px; text-align: right; font-weight: bold; font-size: 14px;">$${Number(t.monto).toLocaleString('es-CO')}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                        <div style="width: 60%;">
+                            <p style="margin: 0 0 5px 0; font-size: 12px; color: #6c757d; font-weight: bold;">OBSERVACIONES</p>
+                            <p style="margin: 0; font-size: 13px; font-style: italic;">${t.observaciones || 'Sin observaciones.'}</p>
+                        </div>
+                        <div style="width: 35%; background-color: #f8f9fa; padding: 15px; border-radius: 8px; text-align: right;">
+                            <p style="margin: 0 0 5px 0; font-size: 12px; color: #6c757d; font-weight: bold;">TOTAL PAGADO</p>
+                            <p style="margin: 0; font-size: 22px; font-weight: 900; color: #0c1a30;">$${Number(t.monto).toLocaleString('es-CO')}</p>
+                        </div>
+                    </div>
+                    
+                    <style>@media print { .no-print { display: none !important; } }</style>
+                    ${mode === 'preview' ? `
+                    <div class="no-print" style="margin-top: 40px; text-align: center;">
+                        <button onclick="window.editarTransaccionGlobalIn(${t.id})" style="background-color: #fff; border: 1px solid #dee2e6; padding: 8px 16px; border-radius: 6px; cursor: pointer; color: #495057;">
+                            <i class="bi bi-pencil me-1"></i> Editar este pago
+                        </button>
+                    </div>` : ''}
+                </div>
+            `;
+            const { PrintManager } = await import('../../shared/crud.js');
+            PrintManager._renderPreviewShell(htmlContent, { mode, title: 'Comprobante de Ingreso', fileName: `comprobante_ingreso_${t.numero || t.id}.png` });
+        };
+        
+        window.editarTransaccionGlobalIn = (id) => {
+            const printView = document.getElementById('print-view-container');
+            if (printView) printView.remove();
+            
+            import('../../shared/transaccionModal.js').then(async m => {
+                const { supabase } = await import('../../core/supabase.js');
+                const { data } = await supabase.from('pagos_ingresos').select('*').eq('id', id).single();
+                if (data) {
+                    m.mostrarDetalleTransaccion(data, () => this.cargarPagos());
+                    setTimeout(() => {
+                        const btnEdit = document.getElementById('btn-activar-edicion');
+                        if (btnEdit) btnEdit.click();
+                    }, 200);
+                }
+            });
+        };
+
         await this.cargarPagos();
     },
 
@@ -103,7 +195,7 @@ export const PagosRecibidosModule = {
                                     }
 
                                     return `
-                                        <tr>
+                                        <tr style="cursor: pointer;" onclick="if(!event.target.closest('.btn-menu-row') && !event.target.closest('.dropdown-menu') && !event.target.closest('a')) window.abrirVistaA4Ingreso(${pago.id})">
                                             <td class="ps-4 fw-medium text-dark">${pago.numero}</td>
                                             <td class="text-muted text-truncate" style="max-width: 200px;">${pago.cliente}</td>
                                             <td class="text-truncate" style="max-width: 200px;">${detallesHtml}</td>
@@ -270,11 +362,7 @@ export const PagosRecibidosModule = {
                         ev.preventDefault();
                         ev.stopPropagation();
                         window.cleanupFloatingElements();
-                        import('../../shared/transaccionModal.js').then(m => {
-                            supabase.from('pagos_ingresos').select('*').eq('id', id).single().then(({data}) => {
-                                if (data) m.mostrarDetalleTransaccion(data, () => this.cargarPagos());
-                            });
-                        });
+                        window.abrirVistaA4Ingreso(id, 'preview');
                     });
                 }
                 
@@ -284,22 +372,7 @@ export const PagosRecibidosModule = {
                         ev.preventDefault();
                         ev.stopPropagation();
                         window.cleanupFloatingElements();
-                        const { data: t } = await supabase.from('pagos_ingresos').select('*, contactos(*)').eq('id', id).single();
-                        if (t) {
-                            const { PrintManager } = await import('../../shared/crud.js');
-                            const htmlContent = `
-                                <div style="font-family: sans-serif; padding: 20px;">
-                                    <h2>Comprobante de Pago #${t.numero || t.id}</h2>
-                                    <p><strong>Fecha:</strong> ${t.fecha}</p>
-                                    <p><strong>Tercero:</strong> ${t.contactos?.nombre || 'N/A'}</p>
-                                    <p><strong>Monto:</strong> $${Number(t.monto).toLocaleString('es-CO')}</p>
-                                    <p><strong>Categoría:</strong> ${t.categoria || 'N/A'}</p>
-                                    <p><strong>Factura Asociada:</strong> ${t.factura_id ? '#' + t.factura_id : 'Ninguna'}</p>
-                                    <p><strong>Observaciones:</strong> ${t.observaciones || 'N/A'}</p>
-                                </div>
-                            `;
-                            PrintManager._renderPreviewShell(htmlContent, { title: 'Comprobante de Pago' });
-                        }
+                        window.abrirVistaA4Ingreso(id, 'print');
                     });
                 }
                 
