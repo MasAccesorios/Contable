@@ -269,6 +269,7 @@ export default {
         });
         
         this.bindFiltrosTabla(facturasPendientes, contactos);
+        this.bindDatePickerEvents();
     },
 
     bindFiltrosTabla(facturasPendientes, contactos) {
