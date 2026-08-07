@@ -201,14 +201,14 @@ export const ContactosModule = {
 
         let q = supabase
             .from('contactos')
-            .select('id, nombre, nit, telefono, tipo', { count: 'exact' })
+            .select('id, nombre, nit:identificacion, telefono, tipo', { count: 'exact' })
             .order('nombre', { ascending: true })
             .range(from, to);
 
         if (currentFilter !== 'todos') q = q.eq('tipo', currentFilter);
         if (searchQuery) {
             const s = searchQuery.replace(/'/g, "''");
-            q = q.or(`nombre.ilike.%${s}%,nit.ilike.%${s}%,telefono.ilike.%${s}%`);
+            q = q.or(`nombre.ilike.%${s}%,identificacion.ilike.%${s}%,telefono.ilike.%${s}%`);
         }
 
         const [{ data: rows, count }, kpis] = await Promise.all([q, this.fetchKpis()]);
