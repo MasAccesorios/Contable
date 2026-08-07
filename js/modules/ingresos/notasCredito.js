@@ -1,6 +1,7 @@
 import DB, { getLocalDate } from '../../core/db.js';
 import { supabase } from '../../core/supabase.js';
-import { CoreActions, InventarioUtils } from '../../shared/crud.js';
+import { CoreActions } from '../../shared/crud.js';
+import { InventarioUtils } from '../../shared/inventarioUtils.js';
 
 export const NotasCreditoModule = {
     async init(element) {
@@ -455,7 +456,7 @@ export const NotasCreditoModule = {
                                 // Para sacar del inventario, podríamos usar InventarioUtils.procesarSalidaInventario o simplemente crear una merma/movimiento
                                 // Por simplicidad, ya que el usuario anuló la NC, crearemos lotes negativos compensatorios, igual que una venta.
                                 const outItems = detallesNota.map(d => ({ productoId: d.producto_id, cantidad: d.cantidad }));
-                                const { procesarSalidaInventario } = await import('../../shared/crud.js').then(m => m.InventarioUtils);
+                                const { procesarSalidaInventario } = await import('../../shared/inventarioUtils.js').then(m => m.InventarioUtils);
                                 const outRes = await procesarSalidaInventario(outItems, nota.numero);
                                 if (!outRes.success) throw new Error(outRes.error);
 
