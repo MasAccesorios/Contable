@@ -186,7 +186,7 @@ export default {
 
                 if (val === 'estado_cuenta') {
                     containerCuenta.style.display = 'block';
-                    btnExportar.style.display = 'none';
+                    btnExportar.style.display = 'block';
                 } else {
                     containerCuenta.style.display = 'none';
                     containerCuenta.innerHTML = '';

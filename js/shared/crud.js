@@ -901,6 +901,11 @@ export const PrintManager = {
                 } catch (err) {
                     console.error('Error precargando imagen de compartir:', err);
                     btnCompartir.innerHTML = '<i class="bi bi-exclamation-triangle me-1"></i>Error al preparar';
+                    if (window.CoreActions) {
+                        window.CoreActions.showWarningModal('No se pudo generar la imagen para compartir. Por favor verifica tu conexión a internet o intenta de nuevo.');
+                    } else {
+                        alert('No se pudo generar la imagen para compartir. Por favor verifica tu conexión a internet.');
+                    }
                 }
             };
             
