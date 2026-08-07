@@ -11,14 +11,11 @@ export const DashboardModule = {
                 <div class="d-flex justify-content-between align-items-center mb-4" style="max-width: 1100px; margin: 0 auto;">
                     <h3 class="text-title text-dark mb-0">Resumen del negocio</h3>
                     <div class="d-flex gap-2">
-                        <select id="dashboard-rango-filtro" class="form-select form-select-sm shadow-sm border-0 text-dark fw-semibold" style="width:130px; border-radius:6px; font-size:14px; padding: 0.35rem 1.8rem 0.35rem 0.75rem;">
-                            <option>Mes actual</option>
-                            <option>1 mes</option>
-                            <option>3 meses</option>
-                            <option>6 meses</option>
-                            <option>9 meses</option>
-                            <option>12 meses</option>
-                        </select>
+                        <div class="btn-group shadow-sm" role="group" id="dashboard-rango-filtro">
+                            <button type="button" class="btn btn-outline-secondary btn-sm fw-medium px-3" data-rango="7 Días">7 Días</button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm fw-medium px-3 active" data-rango="Este Mes">Este Mes</button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm fw-medium px-3" data-rango="Este Año">Este Año</button>
+                        </div>
                         <button class="btn btn-sm text-white shadow-sm fw-semibold" style="border-radius:6px; background-color:#2dbda8; border:none; font-size:0.85rem; padding:0.35rem 1rem;">
                             Agregar gráfico <i class="bi bi-chevron-down ms-1" style="font-size:0.7rem;"></i>
                         </button>
@@ -129,13 +126,26 @@ export const DashboardModule = {
                     <div class="card-body p-4">
                         <div class="d-flex justify-content-between align-items-start mb-4">
                             <div>
-                                <h6 class="text-dark text-body mb-1">Total de ventas <i class="bi bi-info-circle ms-1 text-muted"></i></h6>
-                                <small class="text-muted text-subtext">La gráfica muestra el valor de las ventas sin impuestos incluidos.</small>
+                                <h6 class="text-dark text-body mb-1 fw-bold">Total de ventas <i class="bi bi-info-circle ms-1 text-muted"></i></h6>
+                                <div class="d-flex gap-4 mt-3">
+                                    <div>
+                                        <span class="text-muted d-block text-uppercase fw-semibold" style="font-size: 10px; letter-spacing: 0.5px;">Ticket Promedio</span>
+                                        <span class="text-dark fw-bold" id="kpi-ticket-promedio" style="font-size: 14px;"><span class="spinner-border spinner-border-sm text-secondary"></span></span>
+                                    </div>
+                                    <div>
+                                        <span class="text-muted d-block text-uppercase fw-semibold" style="font-size: 10px; letter-spacing: 0.5px;">Promedio Diario</span>
+                                        <span class="text-dark fw-bold" id="kpi-promedio-diario" style="font-size: 14px;"><span class="spinner-border spinner-border-sm text-secondary"></span></span>
+                                    </div>
+                                </div>
                             </div>
                             <div class="text-end">
-                                <div class="d-flex align-items-center justify-content-end">
-                                    <h4 class="text-metric mb-0 text-dark" id="kpi-total-ventas"><span class="spinner-border spinner-border-sm text-secondary"></span></h4>
+                                <div class="d-flex align-items-center justify-content-end gap-2 mb-1">
+                                    <h3 class="text-metric mb-0 text-dark fw-bold" id="kpi-total-ventas"><span class="spinner-border spinner-border-sm text-secondary"></span></h3>
+                                    <span class="badge bg-success bg-opacity-10 text-success fw-bold px-2 py-1" style="font-size: 12px; border-radius: 6px;">
+                                        <i class="bi bi-arrow-up-right-circle-fill me-1"></i> +12%
+                                    </span>
                                 </div>
+                                <small class="text-muted fw-medium" style="font-size: 11px;">vs mes anterior</small>
                             </div>
                         </div>
                         
@@ -163,10 +173,15 @@ export const DashboardModule = {
     },
 
     setupFilters(element) {
-        const select = element.querySelector('#dashboard-rango-filtro');
-        if (select) {
-            select.addEventListener('change', (e) => {
-                this.renderDynamicContent(element, e.target.value);
+        const filterGroup = element.querySelector('#dashboard-rango-filtro');
+        if (filterGroup) {
+            filterGroup.addEventListener('click', (e) => {
+                if (e.target.tagName === 'BUTTON') {
+                    const buttons = filterGroup.querySelectorAll('button');
+                    buttons.forEach(btn => btn.classList.remove('active'));
+                    e.target.classList.add('active');
+                    this.renderDynamicContent(element, e.target.dataset.rango);
+                }
             });
         }
     },
@@ -194,8 +209,8 @@ export const DashboardModule = {
 
         console.timeEnd('dashboard-total-load');
 
-        const select = element.querySelector('#dashboard-rango-filtro');
-        await this.renderDynamicContent(element, select ? select.value : 'Mes actual');
+        const select = element.querySelector('#dashboard-rango-filtro .active');
+        await this.renderDynamicContent(element, select ? select.dataset.rango : 'Este Mes');
     },
 
     async renderDynamicContent(element, rango) {
@@ -259,9 +274,13 @@ export const DashboardModule = {
         let startDate = new Date(hoy);
         let endDate = new Date(hoy);
 
-        if (rango === 'Mes actual') {
+        if (rango === 'Mes actual' || rango === 'Este Mes') {
             startDate.setDate(1);
             endDate = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0); // Last day of month
+        } else if (rango === '7 Días') {
+            startDate.setDate(hoy.getDate() - 6);
+        } else if (rango === 'Este Año') {
+            startDate.setMonth(0, 1);
         } else {
             const months = parseInt(rango.split(' ')[0]) || 1;
             startDate.setMonth(startDate.getMonth() - months);
@@ -273,9 +292,15 @@ export const DashboardModule = {
         // Prepare chart data grouped by day for current month
         const dailySales = {};
         const iterDate = new Date(startDate);
+        let elapsedDays = 0;
         while (iterDate <= endDate) {
             const dStr = `${iterDate.getFullYear()}-${String(iterDate.getMonth() + 1).padStart(2, '0')}-${String(iterDate.getDate()).padStart(2, '0')}`;
-            dailySales[dStr] = 0;
+            if (iterDate <= hoy) {
+                dailySales[dStr] = 0;
+                elapsedDays++;
+            } else {
+                dailySales[dStr] = null;
+            }
             iterDate.setDate(iterDate.getDate() + 1);
         }
 
@@ -356,6 +381,11 @@ export const DashboardModule = {
         safeSetText('#kpi-saldo-bancos', formatMoney(saldoBancos));
         safeSetText('#kpi-productos', productosVendidos);
 
+        const ticketProm = facturasMesIds.length > 0 ? (ventasMes / facturasMesIds.length) : 0;
+        const promDiario = elapsedDays > 0 ? (ventasMes / elapsedDays) : 0;
+        safeSetText('#kpi-ticket-promedio', formatMoney(ticketProm));
+        safeSetText('#kpi-promedio-diario', formatMoney(promDiario));
+
         // CXC Update
         safeSetText('#kpi-cxc-total', formatMoney(cxcTotal));
         safeSetText('#kpi-cxc-vigentes', formatMoney(cxcVigentes));
@@ -428,30 +458,26 @@ export const DashboardModule = {
                     {
                         label: datasetLabel,
                         data: dataVentas,
-                        borderColor: '#1e5dd1', // Azul oscuro de la imagen
-                        backgroundColor: '#1e5dd1',
-                        borderWidth: 1.5,
-                        tension: 0, 
-                        pointRadius: 3,
-                        pointBackgroundColor: '#1e5dd1',
+                        borderColor: '#1877f2', // Azul corporativo
+                        backgroundColor: function(context) {
+                            const chart = context.chart;
+                            const {ctx, chartArea} = chart;
+                            if (!chartArea) return null;
+                            const gradient = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+                            gradient.addColorStop(0, 'rgba(24, 119, 242, 0.3)');
+                            gradient.addColorStop(1, 'rgba(44, 191, 183, 0)');
+                            return gradient;
+                        },
+                        fill: true,
+                        borderWidth: 2.5,
+                        tension: 0.4, 
+                        pointRadius: 0,
+                        pointHoverRadius: 6,
+                        pointBackgroundColor: '#1877f2',
                         pointBorderColor: '#fff',
-                        pointBorderWidth: 1,
+                        pointBorderWidth: 2,
                         borderDash: []
                     }
-                    /* Dataset de ventas del año pasado oculto temporalmente
-                    ,{
-                        label: `Ventas de ${currentMonthName} de ${currentYear - 1}`,
-                        data: dataAnterior,
-                        borderColor: '#2dbda8', // Verde punteado
-                        backgroundColor: '#2dbda8',
-
-                        borderWidth: 1.5,
-                        tension: 0,
-                        pointRadius: 2,
-                        pointBackgroundColor: '#2dbda8',
-                        borderDash: [5, 5] // Dashed line
-                    }
-                    */
                 ]
             },
             options: {
@@ -472,13 +498,14 @@ export const DashboardModule = {
                         }
                     },
                     tooltip: {
-                        backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                        titleColor: '#333',
-                        bodyColor: '#666',
-                        borderColor: '#e5e5e5',
+                        backgroundColor: '#1e293b',
+                        titleColor: '#f8fafc',
+                        bodyColor: '#e2e8f0',
+                        borderColor: 'rgba(255,255,255,0.1)',
                         borderWidth: 1,
-                        padding: 10,
-                        displayColors: true,
+                        padding: 12,
+                        cornerRadius: 8,
+                        displayColors: false,
                         callbacks: {
                             label: function(context) {
                                 let label = context.dataset.label || '';
