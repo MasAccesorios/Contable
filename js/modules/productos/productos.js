@@ -2,6 +2,8 @@
 // Módulo de Gestión de Productos e Inventarios (Lotes FIFO) - Hoja Completa
 import DB, { getLocalDate } from '../../core/db.js';
 import { supabase } from '../../core/supabase.js';
+import { renderTablaFacturas } from '../../shared/tablaFacturas.js';
+import { calcularEstadoFactura } from '../../shared/carteraUtils.js';
 
 export const ProductosModule = {
     currentPage: 1,
@@ -109,6 +111,12 @@ export const ProductosModule = {
     },
 
     async renderTabla(element) {
+        const gridCard = element.querySelector('.module-container > .card.border-0');
+        if (gridCard) gridCard.classList.remove('d-none');
+
+        const viewContainer = element.querySelector('#productos-view-container');
+        if (viewContainer) viewContainer.innerHTML = '';
+
         const container = element.querySelector('#tbody-productos');
         if (!container) return;
 
@@ -392,7 +400,56 @@ export const ProductosModule = {
             `;
         });
 
+        const gridCard = element.querySelector('.module-container > .card.border-0');
+        if (gridCard) gridCard.classList.add('d-none');
+
+        let facturasAsociadas = [];
+        let contactosMap = {};
+        try {
+            const { data: detalles } = await supabase.from('factura_detalles').select('factura_id').eq('producto_id', id);
+            if (detalles && detalles.length > 0) {
+                const facturaIds = [...new Set(detalles.map(d => d.factura_id))];
+                const { data: facturas } = await supabase.from('facturas').select('*').in('id', facturaIds).eq('tipo', 'venta');
+                
+                if (facturas && facturas.length > 0) {
+                    const cliIds = [...new Set(facturas.map(f => f.clienteId || f.contacto_id || f.contactoId).filter(Boolean))];
+                    if (cliIds.length > 0) {
+                        const { data: contactos } = await supabase.from('contactos').select('id, nombre').in('id', cliIds);
+                        contactos?.forEach(c => contactosMap[c.id] = c.nombre);
+                    }
+
+                    const { data: transaccionesRaw } = await supabase.from('pagos_ingresos').select('*').in('factura_id', facturas.map(f => f.id));
+                    const transMapeadas = (transaccionesRaw || []).map(t => ({...t, tipo: t.tipo === 'in' ? 'ingreso' : 'egreso'}));
+
+                    facturasAsociadas = facturas.map(f => {
+                        const tr = transMapeadas.filter(t => t.factura_id === f.id);
+                        const { estado, saldoPendiente, totalPagado } = calcularEstadoFactura(f, tr);
+                        return {
+                            ...f,
+                            estado_dinamico: estado,
+                            saldoPendiente,
+                            totalPagado
+                        };
+                    });
+                    
+                    facturasAsociadas.sort((a, b) => new Date(b.fecha || 0) - new Date(a.fecha || 0));
+                }
+            }
+        } catch (e) {
+            console.error("Error al cargar facturas asociadas:", e);
+        }
+
         container.innerHTML = `
+            ${facturasAsociadas.length > 0 ? `
+            <div class="card border-0 mb-4 shadow-sm" style="border-radius: 8px;">
+                <div class="card-header bg-white border-bottom p-3">
+                    <h5 class="fw-bold mb-0" style="color: var(--text-main); font-size: 15px;">
+                        <i class="bi bi-receipt me-2 text-muted"></i>Facturas de Venta que incluyen este ítem
+                    </h5>
+                </div>
+                ${renderTablaFacturas(facturasAsociadas, contactosMap)}
+            </div>` : ''}
+
             <div class="row g-4">
                 <!-- Panel de Detalles del Producto & Carga de Lotes -->
                 <div class="col-lg-4">
