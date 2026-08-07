@@ -12,13 +12,33 @@ export const PagosRecibidosModule = {
         itemsPerPage: 10,
         searchQuery: '',
         totalItems: 0,
-        isLoading: false
+        isLoading: false,
+        kpis: { total: 0, aplicados: 0, directos: 0 }
     },
 
     async init(element) {
         if (!element) return;
         this.element = element;
+        await this.calcularKPIs();
         await this.cargarPagos();
+    },
+    
+    async calcularKPIs() {
+        try {
+            const { data } = await supabase.from('pagos_ingresos').select('monto, factura_id, estado').eq('tipo', 'in').neq('estado', 'anulado');
+            if (data) {
+                let total = 0, aplicados = 0, directos = 0;
+                data.forEach(p => {
+                    const amt = parseFloat(p.monto) || 0;
+                    total += amt;
+                    if (p.factura_id) aplicados += amt;
+                    else directos += amt;
+                });
+                this.state.kpis = { total, aplicados, directos };
+            }
+        } catch (e) {
+            console.error('Error calculando KPIs:', e);
+        }
     },
     
     async mostrarDetalle(id, mode = 'preview') {
@@ -207,6 +227,37 @@ export const PagosRecibidosModule = {
                     </div>
                 </div>
 
+                <!-- KPI CARDS PAGOS RECIBIDOS -->
+                <div class="row g-3 mb-4">
+                    <div class="col-12 col-sm-6 col-lg-4">
+                        <div class="card kpi-card kpi-primary">
+                            <div class="kpi-card-body">
+                                <i class="bi bi-cash-stack kpi-icon"></i>
+                                <h6 class="kpi-label">Total Recibido</h6>
+                                <h5 class="kpi-value">$ ${formatMoney(this.state.kpis?.total || 0).replace('$ ', '')}</h5>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-sm-6 col-lg-4">
+                        <div class="card kpi-card kpi-success">
+                            <div class="kpi-card-body">
+                                <i class="bi bi-file-earmark-check kpi-icon"></i>
+                                <h6 class="kpi-label">Aplicados a Facturas</h6>
+                                <h5 class="kpi-value">$ ${formatMoney(this.state.kpis?.aplicados || 0).replace('$ ', '')}</h5>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-sm-6 col-lg-4">
+                        <div class="card kpi-card kpi-info">
+                            <div class="kpi-card-body">
+                                <i class="bi bi-wallet2 kpi-icon"></i>
+                                <h6 class="kpi-label">Pagos Directos</h6>
+                                <h5 class="kpi-value">$ ${formatMoney(this.state.kpis?.directos || 0).replace('$ ', '')}</h5>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="card shadow-sm border border-light-subtle bg-white" style="border-radius: 6px;">
                     <div class="card-header bg-white border-bottom-0 p-3 d-flex justify-content-between align-items-center">
                         <div class="input-group" style="width: 300px;">
@@ -251,11 +302,10 @@ export const PagosRecibidosModule = {
                                             <td class="text-dark fw-medium text-truncate" style="max-width: 150px;">${pago.cuenta_bancaria}</td>
                                             <td>
                                                 ${pago.estado_transaccion === 'anulado' 
-                                                    ? `<span class="badge bg-danger bg-opacity-10 text-danger border border-danger-subtle rounded-pill" style="font-size: 11px;">Anulado</span>`
-                                                    : `<span class="d-flex align-items-center gap-1.5">
-                                                          <span style="color: ${pago.estado_conciliacion ? '#22c55e' : '#cbd5e1'}; font-size: 14px;">${pago.estado_conciliacion ? '●' : '○'}</span>
-                                                          <span class="text-secondary" style="font-size: 12.5px;">${pago.estado_conciliacion ? 'Conciliado' : 'No conciliado'}</span>
-                                                       </span>`
+                                                    ? `<span class="badge bg-secondary text-secondary bg-opacity-10 border border-secondary-subtle rounded-pill fw-medium" style="font-size: 11px; padding: 5px 10px;">Anulado</span>`
+                                                    : pago.estado_conciliacion
+                                                        ? `<span class="badge bg-success text-success bg-opacity-10 border border-success-subtle rounded-pill fw-medium" style="font-size: 11px; padding: 5px 10px;">Conciliado</span>`
+                                                        : `<span class="badge bg-warning text-warning-emphasis bg-opacity-10 border border-warning-subtle rounded-pill fw-medium" style="font-size: 11px; padding: 5px 10px;">No conciliado</span>`
                                                 }
                                             </td>
                                             <td class="text-end fw-bold pe-4 ${pago.estado_transaccion === 'anulado' ? 'text-muted text-decoration-line-through opacity-50' : 'text-success'}">

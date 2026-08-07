@@ -110,8 +110,41 @@ export class CrudFinanciero {
                 <div class="card shadow-sm border-0">
                     <div class="card-header bg-white border-bottom-0 pt-4 pb-2 d-flex justify-content-between align-items-center">
                         <h5 class="mb-0 text-secondary"><i class="bi bi-list-ul me-2"></i>${this.config.panelHistorialText}</h5>
-                        <h4 class="mb-0 ${this.config.colorMonto.replace('text-', 'text-')} fw-bold" id="${this.config.kpiId}">$0</h4>
                     </div>
+
+                    <!-- KPI CARDS DINÁMICAS -->
+                    <div class="card-body pb-0">
+                        <div class="row g-3 mb-2" id="kpi-cards-container">
+                            <div class="col-12 col-sm-6 col-lg-4">
+                                <div class="card kpi-card kpi-primary">
+                                    <div class="kpi-card-body">
+                                        <i class="bi bi-cash-stack kpi-icon"></i>
+                                        <h6 class="kpi-label" id="kpi-label-1">Total Global</h6>
+                                        <h5 class="kpi-value" id="kpi-val-1">$ 0</h5>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-6 col-lg-4">
+                                <div class="card kpi-card kpi-success">
+                                    <div class="kpi-card-body">
+                                        <i class="bi bi-file-earmark-check kpi-icon"></i>
+                                        <h6 class="kpi-label" id="kpi-label-2">Aplicados</h6>
+                                        <h5 class="kpi-value" id="kpi-val-2">$ 0</h5>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-6 col-lg-4">
+                                <div class="card kpi-card kpi-warning">
+                                    <div class="kpi-card-body">
+                                        <i class="bi bi-wallet2 kpi-icon"></i>
+                                        <h6 class="kpi-label" id="kpi-label-3">Directos</h6>
+                                        <h5 class="kpi-value" id="kpi-val-3">$ 0</h5>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="card-body">
                         <!-- Filtros -->
                         <div class="row g-2 mb-3">
@@ -356,26 +389,43 @@ export class CrudFinanciero {
             return this.renderTabla(element);
         }
 
-        // 2. Cálculo del KPI Optimizado (RPC nativo)
-        let total = 0;
-        if (totalItems > 0) {
-            const rpcParams = { 
-                p_tipo: this.config.tipoFiltroDb,
-                p_categoria: catFiltro !== 'todas' ? catFiltro : null,
-                p_fecha_desde: fechaDesde || null,
-                p_fecha_hasta: fechaHasta || null
-            };
-            
-            const { data: sumData, error: sumError } = await supabase.rpc('get_total_transacciones', rpcParams);
-            
-            if (!sumError && sumData !== null) {
-                total = Number(sumData);
-            } else {
-                console.error("Error obteniendo total KPI:", sumError);
+        // 2. Cálculo de los 3 KPIs globales
+        let total = 0, aplicados = 0, directos = 0;
+        try {
+            const { data: kpiData } = await supabase.from('pagos_ingresos').select('monto, factura_id, estado').eq('tipo', this.config.tipoFiltroDb).neq('estado', 'anulado');
+            if (kpiData) {
+                kpiData.forEach(p => {
+                    const amt = parseFloat(p.monto) || 0;
+                    total += amt;
+                    if (p.factura_id) aplicados += amt;
+                    else directos += amt;
+                });
             }
+        } catch (e) {
+            console.error("Error obteniendo KPIs globales:", e);
         }
-        
-        kpiTotal.textContent = `$${total.toLocaleString()}`;
+
+        const label1 = element.querySelector('#kpi-label-1');
+        const label2 = element.querySelector('#kpi-label-2');
+        const label3 = element.querySelector('#kpi-label-3');
+        const val1 = element.querySelector('#kpi-val-1');
+        const val2 = element.querySelector('#kpi-val-2');
+        const val3 = element.querySelector('#kpi-val-3');
+
+        if (label1) {
+            if (this.config.tipoFiltroDb === 'in') {
+                label1.textContent = 'Total Ingresos';
+                label2.textContent = 'Abonos a Facturas';
+                label3.textContent = 'Otros Ingresos (Directos)';
+            } else {
+                label1.textContent = 'Total Gastos/Egresos';
+                label2.textContent = 'Pagos a Proveedores';
+                label3.textContent = 'Gastos Directos';
+            }
+            val1.textContent = `$ ${total.toLocaleString('es-CO', {minimumFractionDigits: 2})}`;
+            val2.textContent = `$ ${aplicados.toLocaleString('es-CO', {minimumFractionDigits: 2})}`;
+            val3.textContent = `$ ${directos.toLocaleString('es-CO', {minimumFractionDigits: 2})}`;
+        }
 
         this.currentData = data || [];
         if (!data || data.length === 0) {
