@@ -225,7 +225,7 @@ export const PagosRealizadosModule = {
                     <div class="card dash-kpi-card border-0" style="border-radius: 14px; border: 1px solid #e2e8f0 !important; box-shadow: 0 4px 16px rgba(0,0,0,0.03); transition: all 0.25s ease;" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='translateY(0)'">
                         <div class="card-body p-3 d-flex flex-column justify-content-between" style="min-height: 90px;">
                             <div class="d-flex justify-content-between align-items-start">
-                                <span class="dash-kpi-label text-muted fw-semibold" style="font-size: 13px;">Total Egresos</span>
+                                <span class="dash-kpi-label text-muted fw-semibold" style="font-size: 13px;">Total Egresos (este mes)</span>
                                 <div class="dash-kpi-icon-box rounded p-2 d-flex align-items-center justify-content-center" style="background-color: rgba(220, 53, 69, 0.1); color: #dc3545; width: 32px; height: 32px;">
                                     <i class="bi bi-cash-stack"></i>
                                 </div>
