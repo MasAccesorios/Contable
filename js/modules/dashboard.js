@@ -141,7 +141,7 @@ export const DashboardModule = {
                 <!-- Chart Section -->
                 <div class="card dash-chart-card mb-4">
                     <div class="card-body p-4">
-                        <div class="d-flex justify-content-between align-items-start mb-4">
+                    <div class="dash-chart-header">
                             <div>
                                 <h6 class="text-dark text-body mb-1 fw-bold">Total de ventas <i class="bi bi-info-circle ms-1 text-muted"></i></h6>
                                 <div class="d-flex gap-4 mt-3">

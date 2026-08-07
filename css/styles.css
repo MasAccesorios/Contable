@@ -865,6 +865,23 @@ body {
     box-shadow: 0 8px 20px rgba(0,0,0,0.06);
 }
 
+/* Encabezado del grafico: flex-wrap para evitar desborde en movil */
+.dash-chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+.dash-chart-header .text-end { flex-shrink: 0; }
+
+/* Tipografia adaptativa: monto total de ventas no colisiona con badge en movil */
+#kpi-total-ventas {
+    font-size: clamp(1.25rem, 4.5vw, 1.75rem);
+    white-space: nowrap;
+}
+
 /* Responsividad */
 @media (max-width: 767.98px) {
     .dash-grid-top  { grid-template-columns: 1fr; }
