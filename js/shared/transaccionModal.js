@@ -38,21 +38,11 @@ export async function mostrarDetalleTransaccion(t, onSuccess) {
 
     let htmlFacturaAsociada = '';
     if (!t.grupo_pago_id) {
-        if (t.factura_id) {
-            const f = await DB.get('facturas', t.factura_id);
-            const numF = f ? (f.numero || f.id) : t.factura_id;
-            htmlFacturaAsociada = `
-            <div class="mb-3">
-                <div class="text-muted small">Factura asociada</div>
-                <div class="form-control bg-light text-primary" style="cursor: default;" disabled>Factura: #${numF}</div>
-            </div>`;
-        } else {
-            htmlFacturaAsociada = `
-            <div class="mb-3">
-                <div class="text-muted small">Factura asociada</div>
-                <div class="form-control text-muted" style="background-color: #f8f9fa;" disabled>Sin factura asociada</div>
-            </div>`;
-        }
+        htmlFacturaAsociada = `
+        <div class="mb-3">
+            <label class="form-label text-muted small">ID Factura Asociada (opcional)</label>
+            <input type="number" id="edit-trans-factura-id" class="form-control" value="${t.factura_id || ''}" placeholder="Ej. 1024" disabled>
+        </div>`;
     }
 
     const existingModal = document.getElementById('modalDetalleTransaccion');
@@ -132,6 +122,8 @@ export async function mostrarDetalleTransaccion(t, onSuccess) {
         });
         if (!isGroup) {
             document.getElementById('edit-trans-monto').disabled = false;
+            const facInput = document.getElementById('edit-trans-factura-id');
+            if (facInput) facInput.disabled = false;
         }
         document.getElementById('wrap-btn-guardar').style.display = 'block';
         document.getElementById('btn-activar-edicion').style.display = 'none';
@@ -147,8 +139,25 @@ export async function mostrarDetalleTransaccion(t, onSuccess) {
                 observaciones: document.getElementById('edit-trans-observaciones').value
             };
             
+            let oldFacturaId = t.factura_id;
+            let newFacturaId = null;
+            let oldMonto = Number(t.monto);
+            let newMonto = oldMonto;
+
             if (!isGroup) {
-                updatePayload.monto = parseCurrencyValue(document.getElementById('edit-trans-monto').value);
+                newMonto = parseCurrencyValue(document.getElementById('edit-trans-monto').value);
+                updatePayload.monto = newMonto;
+                
+                const facVal = document.getElementById('edit-trans-factura-id').value;
+                newFacturaId = facVal ? parseInt(facVal, 10) : null;
+                updatePayload.factura_id = newFacturaId;
+
+                if (newFacturaId) {
+                    const { data: fExist } = await supabase.from('facturas').select('id').eq('id', newFacturaId).single();
+                    if (!fExist) {
+                        throw new Error(`La factura con ID ${newFacturaId} no existe en la base de datos.`);
+                    }
+                }
             }
             
             const query = supabase.from('pagos_ingresos').update(updatePayload);
@@ -157,6 +166,28 @@ export async function mostrarDetalleTransaccion(t, onSuccess) {
                 : await query.eq('id', t.id);
                 
             if (error) throw error;
+            
+            // Recalcular facturas si hubo cambios en monto o reasignacion
+            if (!isGroup && (oldFacturaId !== newFacturaId || oldMonto !== newMonto)) {
+                const facturaIdsAfectadas = [...new Set([oldFacturaId, newFacturaId].filter(Boolean))];
+                if (facturaIdsAfectadas.length > 0) {
+                    const { data: transaccionesF } = await supabase.from('pagos_ingresos').select('*').in('factura_id', facturaIdsAfectadas);
+                    const { data: facturasF } = await supabase.from('facturas').select('*').in('id', facturaIdsAfectadas);
+                    
+                    if (facturasF && transaccionesF) {
+                        const { calcularEstadoFactura } = await import('./carteraUtils.js');
+                        for (let f of facturasF) {
+                            f.estado = 'pendiente';
+                            const txM = transaccionesF.filter(tx => tx.factura_id === f.id).map(tx => ({
+                                ...tx, tipo: tx.tipo === 'in' ? 'ingreso' : 'egreso'
+                            }));
+                            const metricas = calcularEstadoFactura(f, txM);
+                            await supabase.from('facturas').update({ estado: metricas.estado }).eq('id', f.id);
+                        }
+                    }
+                }
+            }
+
             modalInstance.hide();
             if (onSuccess) onSuccess();
         } catch (err) {
