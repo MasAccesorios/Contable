@@ -45,6 +45,7 @@ const routes = {
     'ingresos/cuenta-cobro': () => import('../modules/ingresos/cuentaCobro.js'),
     'ingresos/operativos': () => import('../modules/gastos/ingresos_operativos.js'),
     'ingresos/facturas': () => import('../modules/ventas/ventas.js'),
+    'ingresos/notas-credito': () => import('../modules/ingresos/notasCredito.js'),
     'ingresos/pagos/nuevo': () => import('../modules/ingresos/pagos_nuevo.js'),
     'cartera': () => import('../modules/cartera/cartera.js'),
     'bancos/conciliacion': () => import('../modules/bancos/conciliacion.js'),

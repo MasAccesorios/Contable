@@ -462,6 +462,11 @@ export const FacturasModule = {
             ...t,
             tipo: t.tipo === 'in' ? 'ingreso' : 'egreso'
         }));
+
+        const { data: rawNotasCredito } = facturaIdTransacciones.length > 0
+            ? await supabase.from('notas_credito').select('*').in('factura_id', facturaIdTransacciones)
+            : { data: [] };
+        const notasCredito = rawNotasCredito || [];
         
         // Estado por defecto
         let factura = {
@@ -667,6 +672,9 @@ export const FacturasModule = {
                         <li class="nav-item" role="presentation">
                             <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-pagos" type="button" role="tab" style="font-size: 13px; font-weight: var(--weight-medium); color: var(--text-main); border-bottom-color: transparent;">Pagos recibidos</button>
                         </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link text-muted" data-bs-toggle="tab" data-bs-target="#tab-notas-credito" type="button" role="tab" style="font-size: 13px; font-weight: var(--weight-medium); border-bottom-color: transparent;">Notas de crédito</button>
+                        </li>
                         ${factura.cotizacion_origen_id ? `
                         <li class="nav-item" role="presentation">
                             <button class="nav-link text-muted" data-bs-toggle="tab" data-bs-target="#tab-cotizacion" type="button" role="tab" style="font-size: 13px; font-weight: var(--weight-medium); border-bottom-color: transparent;">Cotización origen</button>
@@ -699,6 +707,35 @@ export const FacturasModule = {
                                 </table>
                             </div>
                         </div>
+                        
+                        <div class="tab-pane fade" id="tab-notas-credito" role="tabpanel">
+                            <div class="table-responsive">
+                                <table class="table table-sm align-middle mb-0" style="font-size: 13px;">
+                                    <thead>
+                                        <tr class="text-muted" style="border-bottom: 1px solid var(--border-color);">
+                                            <th class="fw-medium pb-2">Fecha</th>
+                                            <th class="fw-medium pb-2">Número NC</th>
+                                            <th class="fw-medium pb-2">Motivo</th>
+                                            <th class="fw-medium pb-2 text-center">Estado</th>
+                                            <th class="fw-medium pb-2 text-end">Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${(notasCredito && notasCredito.length > 0) ? notasCredito.map(nc => `
+                                        <tr style="border-bottom: 1px solid #f0f0f0; cursor: pointer; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#f8f9fa'" onmouseout="this.style.backgroundColor='transparent'" onclick="window.location.hash='#/ingresos/notas-credito/ver/${nc.id}'">
+                                            <td class="py-2 text-muted">${nc.fecha || ''}</td>
+                                            <td class="py-2">NC-${nc.numero || nc.id}</td>
+                                            <td class="py-2">${nc.motivo || '-'}</td>
+                                            <td class="py-2 text-center">${nc.estado === 'anulada' ? '<span class="text-danger fw-bold">Anulada</span>' : '<span class="text-success fw-bold">Activa</span>'}</td>
+                                            <td class="py-2 text-end fw-medium">$${Number(nc.total || 0).toLocaleString()}</td>
+                                        </tr>`).join('') : `
+                                        <tr><td colspan="5" class="text-muted text-center py-4">No hay notas de crédito registradas</td></tr>
+                                        `}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
                         
                         ${factura.cotizacion_origen_id ? `
                         <div class="tab-pane fade" id="tab-cotizacion" role="tabpanel">
