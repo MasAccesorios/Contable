@@ -374,36 +374,55 @@ export default {
                 return;
             }
             
-            const cabeceras = ["Número", "Tipo documento", "Cliente", "Creación", "Vencimiento", "Total", "Pagado", "Por cobrar"];
-            const escapeCSV = (str) => `"${String(str).replace(/"/g, '""')}"`;
-            const parseMoney = (str) => str.replace(/\$/g, '').replace(/\./g, '').replace(/,/g, '.').trim();
+            if (typeof XLSX === 'undefined') {
+                alert("La librería de exportación aún no se ha cargado.");
+                return;
+            }
             
-            const lineas = [cabeceras.join(',')];
+            const cabeceras = ["Número", "Tipo documento", "Cliente", "Creación", "Vencimiento", "Total", "Pagado", "Por cobrar"];
+            
+            const parseMoney = (str) => {
+                const parsed = parseFloat(str.replace(/\$/g, '').replace(/\./g, '').replace(/,/g, '.').trim());
+                return isNaN(parsed) ? 0 : parsed;
+            };
+            
+            const dataToExport = [];
+            
             visibles.forEach(tr => {
                 const tds = tr.querySelectorAll('td');
                 if (tds.length < 9) return;
                 
-                const cols = [
-                    tds[1].innerText.trim(), // Número
-                    tds[2].innerText.trim(), // Tipo
-                    tds[3].innerText.trim(), // Cliente
-                    tds[4].innerText.trim(), // Creación
-                    tds[5].innerText.trim(), // Vencimiento
-                    parseMoney(tds[6].innerText), // Total
-                    parseMoney(tds[7].innerText), // Pagado
-                    parseMoney(tds[8].innerText), // Por cobrar
-                ];
-                lineas.push(cols.map(escapeCSV).join(','));
+                dataToExport.push({
+                    "Número": tds[1].innerText.trim(),
+                    "Tipo documento": tds[2].innerText.trim(),
+                    "Cliente": tds[3].innerText.trim(),
+                    "Creación": tds[4].innerText.trim(),
+                    "Vencimiento": tds[5].innerText.trim(),
+                    "Total": parseMoney(tds[6].innerText),
+                    "Pagado": parseMoney(tds[7].innerText),
+                    "Por cobrar": parseMoney(tds[8].innerText)
+                });
             });
             
-            const blob = new Blob([lineas.join('\n')], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.setAttribute('href', url);
-            link.setAttribute('download', `Cuentas_por_cobrar_${new Date().toISOString().split('T')[0]}.csv`);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+            const ws = XLSX.utils.json_to_sheet(dataToExport, { header: cabeceras });
+            
+            // Formatear las columnas de moneda como $#,##0.00 en Excel
+            const range = XLSX.utils.decode_range(ws['!ref']);
+            for (let R = range.s.r + 1; R <= range.e.r; ++R) {
+                // Columnas F, G, H (Total, Pagado, Por cobrar) son indices 5, 6, 7
+                for (let C = 5; C <= 7; ++C) {
+                    const cellRef = XLSX.utils.encode_cell({c: C, r: R});
+                    if (ws[cellRef]) {
+                        ws[cellRef].z = '"$"#,##0.00';
+                    }
+                }
+            }
+
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Cartera");
+            
+            const fileName = `Cuentas_por_cobrar_${new Date().toISOString().split('T')[0]}.xlsx`;
+            XLSX.writeFile(wb, fileName);
         });
 
         const tabs = document.querySelectorAll('.tab-vencimiento');
