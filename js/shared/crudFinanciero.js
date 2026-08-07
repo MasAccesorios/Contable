@@ -395,14 +395,11 @@ export class CrudFinanciero {
         // 2. Cálculo de los 3 KPIs globales
         let total = 0, aplicados = 0, directos = 0;
         try {
-            const { data: kpiData } = await supabase.from('pagos_ingresos').select('monto, factura_id, estado').eq('tipo', this.config.tipoFiltroDb).neq('estado', 'anulado');
-            if (kpiData) {
-                kpiData.forEach(p => {
-                    const amt = parseFloat(p.monto) || 0;
-                    total += amt;
-                    if (p.factura_id) aplicados += amt;
-                    else directos += amt;
-                });
+            const { data, error } = await supabase.rpc('get_crud_kpis_mes', { p_tipo: this.config.tipoFiltroDb });
+            if (!error && data) {
+                total = parseFloat(data.total) || 0;
+                aplicados = parseFloat(data.aplicados) || 0;
+                directos = parseFloat(data.directos) || 0;
             }
         } catch (e) {
             console.error("Error obteniendo KPIs globales:", e);
