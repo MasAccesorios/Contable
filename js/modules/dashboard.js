@@ -175,16 +175,18 @@ export const DashboardModule = {
         console.time('dashboard-total-load');
 
         console.time('fetch-parallel');
-        const [facturas, lotes, contactos, dbCuentas] = await Promise.all([
+        const [facturas, lotes, contactos, dbCuentas, productos] = await Promise.all([
             DB.getAll('facturas'),
             DB.getAll('lotes_fifo'),
             DB.getAll('contactos'),
-            DB.getAll('cuentas_bancarias')
+            DB.getAll('cuentas_bancarias'),
+            DB.getAll('productos')
         ]);
         this.facturas = facturas;
         this.lotes = lotes;
         this.contactos = contactos;
         this.cuentasActivas = (dbCuentas || []).filter(c => c.estado === 'active' || c.estado === 'activo');
+        this.productos = productos;
         console.timeEnd('fetch-parallel');
 
         const { data: saldosRPC } = await supabase.rpc('get_saldos_por_cuenta');
