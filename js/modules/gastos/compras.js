@@ -109,10 +109,10 @@ export const ComprasModule = {
                     labelEstado = 'Anulada';
                 } else if (c.saldoPendiente <= 0) {
                     textEstadoColor = 'color: #2cbfb7;';
-                    labelEstado = 'Cobrada';
+                    labelEstado = 'Pagada';
                 } else {
                     textEstadoColor = 'color: #ef4444;';
-                    labelEstado = 'Por cobrar';
+                    labelEstado = 'Por pagar';
                 }
 
                 const numDisplay = c.numero || parseInt(String(c.id).replace(/\D/g, ''), 10) || c.id;
@@ -122,7 +122,7 @@ export const ComprasModule = {
                     const vDate = new Date(c.vencimiento);
                     const hoy = new Date();
                     hoy.setHours(0,0,0,0);
-                    if (vDate < hoy && labelEstado === 'Por cobrar') {
+                    if (vDate < hoy && labelEstado === 'Por pagar') {
                         vencimientoColor = '#ef4444';
                     }
                 }
@@ -220,8 +220,8 @@ export const ComprasModule = {
                                             Proveedor ${sortColumn === 'proveedor' ? (sortDirection === 'asc' ? ' ▲' : ' ▼') : ''}
                                         </th>
                                         <th class="py-3 fw-normal text-end">Total</th>
-                                        <th class="py-3 fw-normal text-end">Cobrado</th>
-                                        <th class="py-3 fw-normal text-end">Por cobrar</th>
+                                        <th class="py-3 fw-normal text-end">Pagado</th>
+                                        <th class="py-3 fw-normal text-end">Por pagar</th>
                                         <th class="py-3 fw-normal text-center">Estado</th>
                                         <th class="py-3 fw-normal text-end" style="width: 80px;"></th>
                                     </tr>
