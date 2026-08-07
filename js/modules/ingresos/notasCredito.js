@@ -405,17 +405,19 @@ export const NotasCreditoModule = {
                     btnGuardar.innerHTML = '<div class="spinner-border spinner-border-sm"></div> Guardando...';
 
                     try {
-                        const totalNC = parseFloat(totalDisplay.textContent.replace(/,/g, ''));
+                        let totalNC = 0;
                         const selectedItems = [];
                         
                         element.querySelectorAll('.nc-input-qty').forEach(inp => {
                             const qty = parseFloat(inp.value) || 0;
                             if (qty > 0) {
+                                const subtotal = qty * parseFloat(inp.dataset.price);
+                                totalNC += subtotal;
                                 selectedItems.push({
                                     productoId: inp.dataset.prodid,
                                     cantidad: qty,
                                     precio: inp.dataset.price,
-                                    subtotal: qty * parseFloat(inp.dataset.price)
+                                    subtotal: subtotal
                                 });
                             }
                         });
