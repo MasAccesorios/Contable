@@ -20,6 +20,30 @@ export const NotasCreditoModule = {
         }
     },
 
+    async anularNotaCredito(id) {
+        // Fetch nota
+        const { data: nota, error: errN } = await supabase.from('notas_credito').select('*').eq('id', id).single();
+        if (errN || !nota) throw new Error("No se encontró la nota de crédito");
+        
+        // Fetch detalles
+        const { data: detalles } = await supabase.from('nota_credito_detalles').select('*').eq('nota_credito_id', id);
+        
+        // Revertir inventario
+        if (detalles && detalles.length > 0) {
+            const outItems = detalles.map(d => ({ productoId: d.producto_id, cantidad: d.cantidad }));
+            const outRes = await InventarioUtils.procesarSalidaInventario(outItems, nota.numero);
+            if (!outRes.success) throw new Error(outRes.error);
+        }
+
+        // Anular nota
+        const { error: updErr1 } = await supabase.from('notas_credito').update({ estado: 'anulada' }).eq('id', id);
+        if (updErr1) throw new Error(updErr1.message);
+
+        // Anular pago
+        const { error: updErr2 } = await supabase.from('pagos_ingresos').update({ estado: 'anulado' }).eq('referencia', 'NC-' + nota.numero);
+        if (updErr2) throw new Error(updErr2.message);
+    },
+
     async renderList(element) {
         element.innerHTML = `
             <div class="d-flex justify-content-center align-items-center" style="min-height: 400px;">
@@ -46,12 +70,17 @@ export const NotasCreditoModule = {
                 const opacity = n.estado === 'anulada' ? '0.5' : '1';
                 
                 return `
-                    <tr style="cursor: pointer; opacity: ${opacity};" onclick="window.location.hash = '#/ingresos/notas-credito/ver/${n.id}'">
+                    <tr style="cursor: pointer; opacity: ${opacity}; transition: opacity 0.2s;" onclick="if(!event.target.closest('button')) window.location.hash = '#/ingresos/notas-credito/ver/${n.id}'">
                         <td class="py-3">${n.numero || n.id}</td>
                         <td class="py-3">${n.fecha || ''}</td>
                         <td class="py-3 fw-medium">${contactosMap[n.contacto_id] || 'Sin cliente'}</td>
                         <td class="py-3 text-end fw-medium">$${Number(n.total || 0).toLocaleString()}</td>
                         <td class="py-3 text-center">${estadoLabel}</td>
+                        <td class="py-3 text-end" style="position: relative;">
+                            <button class="btn btn-link text-muted p-0 btn-menu-row" data-id="${n.id}">
+                                <i class="bi bi-three-dots-vertical"></i>
+                            </button>
+                        </td>
                     </tr>
                 `;
             }).join('') : '<tr><td colspan="5" class="text-center py-5 text-muted">No se encontraron notas de crédito</td></tr>';
@@ -78,6 +107,7 @@ export const NotasCreditoModule = {
                                         <th class="py-3">Cliente</th>
                                         <th class="py-3 text-end">Total</th>
                                         <th class="py-3 text-center">Estado</th>
+                                        <th class="py-3 text-end">Acciones</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -88,6 +118,63 @@ export const NotasCreditoModule = {
                     </div>
                 </div>
             `;
+
+            // Row Menu Actions (Popovers Flotantes)
+            element.querySelectorAll('.btn-menu-row').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const existing = document.querySelector('.row-action-menu');
+                    if (existing) existing.remove();
+
+                    const id = e.currentTarget.dataset.id;
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    const n = notas.find(x => String(x.id) === String(id));
+                    const isAnulada = n && n.estado === 'anulada';
+                    
+                    const menuHtml = `
+                        <div class="row-action-menu position-absolute bg-white shadow rounded border py-2" 
+                             style="z-index: 1060; width: 150px; top: ${rect.bottom + window.scrollY}px; left: ${rect.left - 100}px;">
+                            <a href="#/ingresos/notas-credito/ver/${id}" class="d-block px-3 py-1 text-decoration-none text-body hover-bg-light" style="font-size: 13px;">Ver Detalle</a>
+                            ${!isAnulada ? `
+                                <div class="dropdown-divider my-1"></div>
+                                <a href="#" class="d-block px-3 py-1 text-decoration-none text-danger hover-bg-light btn-action-anular" data-id="${id}" style="font-size: 13px;">Anular</a>
+                            ` : ''}
+                        </div>
+                    `;
+                    document.body.insertAdjacentHTML('beforeend', menuHtml);
+                    
+                    const menu = document.querySelector('.row-action-menu');
+                    
+                    if (!isAnulada) {
+                        menu.querySelector('.btn-action-anular').addEventListener('click', async (ev) => {
+                            ev.preventDefault();
+                            menu.remove();
+                            if (confirm('¿Estás seguro de anular esta Nota de Crédito? Esto deshará la devolución de inventario y restaurará el saldo pendiente de la factura.')) {
+                                try {
+                                    CoreActions.showLoadingOverlay?.("Anulando nota de crédito...");
+                                    await this.anularNotaCredito(id);
+                                    if (CoreActions.hideLoadingOverlay) CoreActions.hideLoadingOverlay();
+                                    CoreActions.showSuccessModal("Nota de Crédito anulada correctamente.");
+                                    this.renderList(element);
+                                } catch (err) {
+                                    if (CoreActions.hideLoadingOverlay) CoreActions.hideLoadingOverlay();
+                                    CoreActions.showErrorModal("Error anulando: " + err.message);
+                                }
+                            }
+                        });
+                    }
+
+                    // Click outside to close
+                    const closeMenu = (evt) => {
+                        if (menu && !menu.contains(evt.target) && !e.currentTarget.contains(evt.target)) {
+                            menu.remove();
+                            document.removeEventListener('click', closeMenu);
+                        }
+                    };
+                    document.addEventListener('click', closeMenu);
+                });
+            });
+
         } catch (e) {
             console.error("Error cargando notas de credito:", e);
             element.innerHTML = `<div class="p-4 text-danger">Error cargando lista: ${e.message}</div>`;
@@ -492,21 +579,8 @@ export const NotasCreditoModule = {
                         if (confirm('¿Estás seguro de anular esta Nota de Crédito? Esto deshará la devolución de inventario y restaurará el saldo pendiente de la factura.')) {
                             btnAnular.disabled = true;
                             try {
-                                // 1. Revertir el stock devuelto (es decir, volver a sacarlo del inventario)
-                                // Para sacar del inventario, podríamos usar InventarioUtils.procesarSalidaInventario o simplemente crear una merma/movimiento
-                                // Por simplicidad, ya que el usuario anuló la NC, crearemos lotes negativos compensatorios, igual que una venta.
-                                const outItems = detallesNota.map(d => ({ productoId: d.producto_id, cantidad: d.cantidad }));
-                                const { procesarSalidaInventario } = await import('../../shared/inventarioUtils.js').then(m => m.InventarioUtils);
-                                const outRes = await procesarSalidaInventario(outItems, nota.numero);
-                                if (!outRes.success) throw new Error(outRes.error);
-
-                                // 2. Marcar la NC como anulada
-                                const { error: updErr1 } = await supabase.from('notas_credito').update({ estado: 'anulada' }).eq('id', id);
-                                if (updErr1) throw new Error(updErr1.message);
-
-                                // 3. Anular el pago cruzado
-                                const { error: updErr2 } = await supabase.from('pagos_ingresos').update({ estado: 'anulado' }).eq('referencia', 'NC-' + nota.numero);
-                                if (updErr2) throw new Error(updErr2.message);
+                                // 1. Anular por la función centralizada
+                                await this.anularNotaCredito(id);
 
                                 CoreActions.showSuccessModal("Nota de Crédito anulada correctamente.");
                                 this.renderForm(element, id, true);
