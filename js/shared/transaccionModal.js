@@ -34,6 +34,25 @@ export async function mostrarDetalleTransaccion(t, onSuccess) {
         }
     }
 
+    let htmlFacturaAsociada = '';
+    if (!t.grupo_pago_id) {
+        if (t.factura_id) {
+            const f = await DB.get('facturas', t.factura_id);
+            const numF = f ? (f.numero || f.id) : t.factura_id;
+            htmlFacturaAsociada = `
+            <div class="mb-3">
+                <div class="text-muted small">Factura asociada</div>
+                <div class="form-control bg-light text-primary" style="cursor: default;" disabled>Factura: #${numF}</div>
+            </div>`;
+        } else {
+            htmlFacturaAsociada = `
+            <div class="mb-3">
+                <div class="text-muted small">Factura asociada</div>
+                <div class="form-control text-muted" style="background-color: #f8f9fa;" disabled>Sin factura asociada</div>
+            </div>`;
+        }
+    }
+
     const existingModal = document.getElementById('modalDetalleTransaccion');
     if (existingModal) existingModal.remove();
 
@@ -56,6 +75,7 @@ export async function mostrarDetalleTransaccion(t, onSuccess) {
                             <div class="text-muted small">Valor total</div>
                             <div class="h4 fw-bold">$${Number(t.monto).toLocaleString()}</div>
                         </div>
+                        ${htmlFacturaAsociada}
                         <div class="row mb-3 g-3">
                             <div class="col-6">
                                 <label class="form-label text-muted small">Fecha</label>
