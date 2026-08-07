@@ -13,7 +13,7 @@ export const PagosRecibidosModule = {
         searchQuery: '',
         totalItems: 0,
         isLoading: false,
-        kpis: { total: 0, aplicados: 0, directos: 0 }
+        kpis: { total: 0 }
     },
 
     async init(element) {
@@ -25,16 +25,13 @@ export const PagosRecibidosModule = {
     
     async calcularKPIs() {
         try {
-            const { data } = await supabase.from('pagos_ingresos').select('monto, factura_id, estado').eq('tipo', 'in').neq('estado', 'anulado');
+            const { data } = await supabase.from('pagos_ingresos').select('monto, estado').eq('tipo', 'in').neq('estado', 'anulado');
             if (data) {
-                let total = 0, aplicados = 0, directos = 0;
+                let total = 0;
                 data.forEach(p => {
-                    const amt = parseFloat(p.monto) || 0;
-                    total += amt;
-                    if (p.factura_id) aplicados += amt;
-                    else directos += amt;
+                    total += parseFloat(p.monto) || 0;
                 });
-                this.state.kpis = { total, aplicados, directos };
+                this.state.kpis = { total };
             }
         } catch (e) {
             console.error('Error calculando KPIs:', e);
@@ -228,7 +225,7 @@ export const PagosRecibidosModule = {
                 </div>
 
                 <!-- KPI CARDS PAGOS RECIBIDOS -->
-                <div class="dash-grid-kpis mb-4" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem;">
+                <div class="dash-grid-kpis mb-4" style="display: grid; grid-template-columns: 1fr; gap: 1.25rem;">
                     <div class="card dash-kpi-card border-0" style="border-radius: 14px; border: 1px solid #e2e8f0 !important; box-shadow: 0 4px 16px rgba(0,0,0,0.03); transition: all 0.25s ease;" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='translateY(0)'">
                         <div class="card-body p-3 d-flex flex-column justify-content-between" style="min-height: 90px;">
                             <div class="d-flex justify-content-between align-items-start">
@@ -238,28 +235,6 @@ export const PagosRecibidosModule = {
                                 </div>
                             </div>
                             <div class="dash-kpi-value text-dark fw-bold fs-4 mt-2">$ ${formatMoney(this.state.kpis?.total || 0).replace('$ ', '')}</div>
-                        </div>
-                    </div>
-                    <div class="card dash-kpi-card border-0" style="border-radius: 14px; border: 1px solid #e2e8f0 !important; box-shadow: 0 4px 16px rgba(0,0,0,0.03); transition: all 0.25s ease;" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='translateY(0)'">
-                        <div class="card-body p-3 d-flex flex-column justify-content-between" style="min-height: 90px;">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <span class="dash-kpi-label text-muted fw-semibold" style="font-size: 13px;">Aplicados a Facturas</span>
-                                <div class="dash-kpi-icon-box rounded p-2 d-flex align-items-center justify-content-center" style="background-color: rgba(46, 204, 113, 0.1); color: #2ecc71; width: 32px; height: 32px;">
-                                    <i class="bi bi-file-earmark-check"></i>
-                                </div>
-                            </div>
-                            <div class="dash-kpi-value text-dark fw-bold fs-4 mt-2">$ ${formatMoney(this.state.kpis?.aplicados || 0).replace('$ ', '')}</div>
-                        </div>
-                    </div>
-                    <div class="card dash-kpi-card border-0" style="border-radius: 14px; border: 1px solid #e2e8f0 !important; box-shadow: 0 4px 16px rgba(0,0,0,0.03); transition: all 0.25s ease;" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='translateY(0)'">
-                        <div class="card-body p-3 d-flex flex-column justify-content-between" style="min-height: 90px;">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <span class="dash-kpi-label text-muted fw-semibold" style="font-size: 13px;">Pagos Directos</span>
-                                <div class="dash-kpi-icon-box rounded p-2 d-flex align-items-center justify-content-center" style="background-color: rgba(142, 68, 173, 0.1); color: #8e44ad; width: 32px; height: 32px;">
-                                    <i class="bi bi-wallet2"></i>
-                                </div>
-                            </div>
-                            <div class="dash-kpi-value text-dark fw-bold fs-4 mt-2">$ ${formatMoney(this.state.kpis?.directos || 0).replace('$ ', '')}</div>
                         </div>
                     </div>
                 </div>
@@ -435,7 +410,7 @@ export const PagosRecibidosModule = {
         if (inputPage) {
             inputPage.addEventListener('change', (e) => {
                 let p = parseInt(e.target.value, 10);
-                const max = parseInt(e.target.max, 10);
+                const max = Math.ceil(this.state.totalItems / this.state.itemsPerPage) || 1;
                 if (p < 1) p = 1;
                 if (p > max) p = max;
                 this.state.currentPage = p;
@@ -456,7 +431,7 @@ export const PagosRecibidosModule = {
         const btnNext = this.element.querySelector('#btn-next');
         if (btnNext) {
             btnNext.addEventListener('click', () => {
-                const max = parseInt(this.element.querySelector('#input-page').max, 10);
+                const max = Math.ceil(this.state.totalItems / this.state.itemsPerPage) || 1;
                 if (this.state.currentPage < max) {
                     this.state.currentPage++;
                     this.cargarPagos();
