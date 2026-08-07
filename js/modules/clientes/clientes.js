@@ -5,7 +5,6 @@ import DB from '../../core/db.js';
 import { supabase } from '../../core/supabase.js';
 import { AbonoModal } from '../../shared/abonoModal.js';
 import { calcularEstadoFactura } from '../../shared/carteraUtils.js';
-import { CATEGORIAS_GASTO } from '../gastos/gastos.js';
 import { agruparTransaccionesPorPago } from '../../shared/transaccionesUtils.js';
 import { mostrarDetalleTransaccion } from '../../shared/transaccionModal.js';
 
