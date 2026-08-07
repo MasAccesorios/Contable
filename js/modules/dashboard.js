@@ -207,22 +207,26 @@ export const DashboardModule = {
         let utilidadMes = 0;
         let productosVendidos = 0;
         
-        // Mapa rápido de productos para cruzar SKU en O(1)
-        const productosMap = {};
-        for (const p of (this.productos || [])) {
-            productosMap[p.id] = p;
-        }
+        // Inventario Valorizado (Lógica unificada con valorizacion.js)
+        let inventarioValorizado = 0;
+        const productosActivos = (this.productos || []).filter(p => p.estado !== 'inactivo' && p.estado !== 'inactive');
         
-        // Inventario Valorizado (Lotes reales, regla de sobreventa excepto SKU 500)
-        let inventarioValorizado = lotes.reduce((sum, l) => {
-            const p = productosMap[l.productoId];
-            const isRollo = p && p.sku && p.sku.startsWith('500');
+        productosActivos.forEach(p => {
+            const stockTotal = parseFloat(p.stock) || 0;
             
-            // Si el lote está en negativo y NO es rollo, su valor se anula ($0)
-            const valorCero = (l.cantidadActual < 0 && !isRollo);
+            const lotesProd = (lotes || []).filter(l => l.productoId === p.id);
+            const lotesPositivos = lotesProd.filter(l => l.cantidadActual > 0);
+            const stockLotesPos = lotesPositivos.reduce((sum, l) => sum + l.cantidadActual, 0);
+            const costoLotes = lotesPositivos.reduce((sum, l) => sum + (l.cantidadActual * (l.costoUnitario || 0)), 0);
             
-            return sum + (valorCero ? 0 : (l.cantidadActual * (l.costoUnitario || 0)));
-        }, 0);
+            const costoPromedio = stockTotal > 0 ? 
+                (stockLotesPos > 0 ? costoLotes / stockLotesPos : (parseFloat(p.costoBase) || 0)) 
+                : (parseFloat(p.costoBase) || 0);
+            
+            const valorTotal = stockTotal * costoPromedio;
+            const isRollo = p.sku && p.sku.startsWith('500');
+            inventarioValorizado += (stockTotal < 0 && !isRollo) ? 0 : valorTotal;
+        });
         
         // Saldo Total Bancos (Usando la fuente de verdad de Supabase)
         let saldoBancos = 0;
