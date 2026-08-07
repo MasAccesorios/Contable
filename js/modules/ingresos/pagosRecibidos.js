@@ -99,38 +99,38 @@ export const PagosRecibidosModule = {
                                     
                                     let detallesHtml = pago.categoria || 'Sin detalle';
                                     if (pago.factura_id) {
-                                        detallesHtml = \`<a href="#/ingresos/facturas/ver/\${pago.factura_id}" class="text-decoration-none text-primary" onclick="event.stopPropagation()">Factura #\${pago.factura_numero || pago.factura_id}</a>\`;
+                                        detallesHtml = `<a href="#/ingresos/facturas/ver/${pago.factura_id}" class="text-decoration-none text-primary" onclick="event.stopPropagation()">Factura #${pago.factura_numero || pago.factura_id}</a>`;
                                     }
 
-                                    return \`
+                                    return `
                                         <tr>
-                                            <td class="ps-4 fw-medium text-dark">\${pago.numero}</td>
-                                            <td class="text-muted text-truncate" style="max-width: 200px;">\${pago.cliente}</td>
-                                            <td class="text-truncate" style="max-width: 200px;">\${detallesHtml}</td>
-                                            <td class="text-muted">\${formatFecha(pago.fecha)}</td>
-                                            <td class="text-dark fw-medium text-truncate" style="max-width: 150px;">\${pago.cuenta_bancaria}</td>
+                                            <td class="ps-4 fw-medium text-dark">${pago.numero}</td>
+                                            <td class="text-muted text-truncate" style="max-width: 200px;">${pago.cliente}</td>
+                                            <td class="text-truncate" style="max-width: 200px;">${detallesHtml}</td>
+                                            <td class="text-muted">${formatFecha(pago.fecha)}</td>
+                                            <td class="text-dark fw-medium text-truncate" style="max-width: 150px;">${pago.cuenta_bancaria}</td>
                                             <td>
                                                 <span class="d-flex align-items-center gap-1.5">
-                                                    <span style="color: \${pago.estado_conciliacion ? '#22c55e' : '#cbd5e1'}; font-size: 14px;">\${pago.estado_conciliacion ? '●' : '○'}</span>
-                                                    <span class="text-secondary" style="font-size: 12.5px;">\${pago.estado_conciliacion ? 'Conciliado' : 'No conciliado'}</span>
+                                                    <span style="color: ${pago.estado_conciliacion ? '#22c55e' : '#cbd5e1'}; font-size: 14px;">${pago.estado_conciliacion ? '●' : '○'}</span>
+                                                    <span class="text-secondary" style="font-size: 12.5px;">${pago.estado_conciliacion ? 'Conciliado' : 'No conciliado'}</span>
                                                 </span>
                                             </td>
                                             <td class="text-end fw-bold pe-4 text-success">
-                                                + \${formatMoney(pago.monto)}
+                                                + ${formatMoney(pago.monto)}
                                             </td>
                                             <td class="pe-3 position-relative">
-                                                <button class="btn btn-sm btn-link text-secondary p-0 border-0 btn-menu-row" data-id="\${pago.id}" data-conciliado="\${pago.estado_conciliacion}" style="text-decoration: none; font-size: 16px;">⋮</button>
+                                                <button class="btn btn-sm btn-link text-secondary p-0 border-0 btn-menu-row" data-id="${pago.id}" data-conciliado="${pago.estado_conciliacion}" style="text-decoration: none; font-size: 16px;">⋮</button>
                                             </td>
                                         </tr>
-                                    \`;
-                                }).join('') : \`
+                                    `;
+                                }).join('') : `
                                     <tr>
                                         <td colspan="8" class="text-center text-muted py-5">
                                             <div class="mb-3"><i class="bi bi-inbox fs-1 text-secondary opacity-50"></i></div>
                                             <p class="mb-0">No se encontraron pagos recibidos.</p>
                                         </td>
                                     </tr>
-                                \`}
+                                `}
                             </tbody>
                         </table>
                     </div>
@@ -140,17 +140,17 @@ export const PagosRecibidosModule = {
                         <div class="d-flex align-items-center gap-2">
                             <span>Ítems por página:</span>
                             <select id="select-limit" class="form-select form-select-sm border-light-subtle" style="width: 65px; font-size: 12px; padding-top: 2px; padding-bottom: 2px;">
-                                <option value="10" \${this.state.itemsPerPage === 10 ? 'selected' : ''}>10</option>
-                                <option value="20" \${this.state.itemsPerPage === 20 ? 'selected' : ''}>20</option>
-                                <option value="50" \${this.state.itemsPerPage === 50 ? 'selected' : ''}>50</option>
+                                <option value="10" ${this.state.itemsPerPage === 10 ? 'selected' : ''}>10</option>
+                                <option value="20" ${this.state.itemsPerPage === 20 ? 'selected' : ''}>20</option>
+                                <option value="50" ${this.state.itemsPerPage === 50 ? 'selected' : ''}>50</option>
                             </select>
-                            <span class="ms-2">\${this.state.totalItems > 0 ? \`\${startItem}-\${endItem} de \${this.state.totalItems}\` : '0-0 de 0'}</span>
+                            <span class="ms-2">${this.state.totalItems > 0 ? `${startItem}-${endItem} de ${this.state.totalItems}` : '0-0 de 0'}</span>
                         </div>
                         <div class="d-flex align-items-center gap-3">
-                            <span>Página <input type="number" id="input-page" min="1" max="\${totalPages}" value="\${this.state.currentPage}" class="form-control form-control-sm d-inline-block text-center" style="width: 45px; font-size: 12px; padding-top: 2px; padding-bottom: 2px;"> de \${totalPages}</span>
+                            <span>Página <input type="number" id="input-page" min="1" max="${totalPages}" value="${this.state.currentPage}" class="form-control form-control-sm d-inline-block text-center" style="width: 45px; font-size: 12px; padding-top: 2px; padding-bottom: 2px;"> de ${totalPages}</span>
                             <div class="d-flex gap-1">
-                                <button id="btn-prev" class="btn btn-sm btn-light border py-0 px-2" \${this.state.currentPage <= 1 ? 'disabled' : ''}>❮</button>
-                                <button id="btn-next" class="btn btn-sm btn-light border py-0 px-2" \${this.state.currentPage >= totalPages ? 'disabled' : ''}>❯</button>
+                                <button id="btn-prev" class="btn btn-sm btn-light border py-0 px-2" ${this.state.currentPage <= 1 ? 'disabled' : ''}>❮</button>
+                                <button id="btn-next" class="btn btn-sm btn-light border py-0 px-2" ${this.state.currentPage >= totalPages ? 'disabled' : ''}>❯</button>
                             </div>
                         </div>
                     </div>
@@ -229,25 +229,25 @@ export const PagosRecibidosModule = {
                 const menu = document.createElement('div');
                 menu.className = 'dropdown-menu row-action-menu show shadow-sm border border-light-subtle';
                 menu.style.position = 'fixed';
-                menu.style.top = \`\${rect.bottom + window.scrollY}px\`;
-                menu.style.left = \`\${rect.left - 120}px\`;
+                menu.style.top = `${rect.bottom + window.scrollY}px`;
+                menu.style.left = `${rect.left - 120}px`;
                 menu.style.zIndex = '1050';
                 menu.style.minWidth = '140px';
                 menu.style.fontSize = '13px';
                 menu.style.borderRadius = '6px';
                 
-                menu.innerHTML = \`
-                    <a class="dropdown-item py-2 d-flex align-items-center gap-2 text-dark" href="#" id="action-ver-\${id}">
+                menu.innerHTML = `
+                    <a class="dropdown-item py-2 d-flex align-items-center gap-2 text-dark" href="#" id="action-ver-${id}">
                         <i class="bi bi-eye text-secondary"></i> Ver detalle
                     </a>
-                    \${!conciliado ? \`<a class="dropdown-item py-2 d-flex align-items-center gap-2 text-dark" href="#" id="action-anular-\${id}">
+                    ${!conciliado ? `<a class="dropdown-item py-2 d-flex align-items-center gap-2 text-dark" href="#" id="action-anular-${id}">
                         <i class="bi bi-x-circle text-secondary"></i> Anular
-                    </a>\` : \`<div class="px-3 py-2 text-muted small fst-italic">No se puede anular un pago conciliado</div>\`}
-                \`;
+                    </a>` : `<div class="px-3 py-2 text-muted small fst-italic">No se puede anular un pago conciliado</div>`}
+                `;
 
                 document.body.appendChild(menu);
 
-                const actionVer = document.getElementById(\`action-ver-\${id}\`);
+                const actionVer = document.getElementById(`action-ver-${id}`);
                 if (actionVer) {
                     actionVer.addEventListener('click', (ev) => {
                         ev.preventDefault();
@@ -261,7 +261,7 @@ export const PagosRecibidosModule = {
                     });
                 }
 
-                const actionAnular = document.getElementById(\`action-anular-\${id}\`);
+                const actionAnular = document.getElementById(`action-anular-${id}`);
                 if (actionAnular) {
                     actionAnular.addEventListener('click', async (ev) => {
                         ev.preventDefault();
