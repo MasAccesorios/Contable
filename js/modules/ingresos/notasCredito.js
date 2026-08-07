@@ -319,6 +319,15 @@ export const NotasCreditoModule = {
                             btnGuardar.classList.add('d-none');
                             return;
                         }
+                        
+                        if (facts[0].estado === 'anulada' || facts[0].estado === 'void') {
+                            resultDiv.innerHTML = '<span class="text-danger fw-medium">Esta factura está anulada, no se puede generar una nota de crédito sobre ella.</span>';
+                            currentFactura = null;
+                            element.querySelector('#items-container').classList.add('d-none');
+                            btnGuardar.classList.add('d-none');
+                            return;
+                        }
+                        
                         currentFactura = facts[0];
                         
                         // Cargar detalles de la factura
@@ -449,20 +458,22 @@ export const NotasCreditoModule = {
                             precio_unitario: si.precio,
                             subtotal: si.subtotal
                         }));
-                        await supabase.from('nota_credito_detalles').insert(detallesArr);
+                        const { error: detErr } = await supabase.from('nota_credito_detalles').insert(detallesArr);
+                        if (detErr) throw new Error("Error al guardar detalles de la nota: " + detErr.message);
 
                         // 5. Inyectar pago cruzado en pagos_ingresos
-                        await supabase.from('pagos_ingresos').insert([{
+                        // NOTA: Se remueve referenciaId que no existe en BD, el vínculo queda en factura_id y observaciones
+                        const { error: pagoErr } = await supabase.from('pagos_ingresos').insert([{
                             factura_id: currentFactura.id,
                             fecha: element.querySelector('#nc-fecha').value,
                             monto: totalNC,
                             tipo: 'in', // abono a la factura
                             metodo_pago: 'nota_credito',
-                            referenciaId: ncGuardada.id,
                             cuenta_id: null,
                             estado: 'completado',
                             observaciones: 'Pago cruzado por Nota de Crédito #' + ncNumero
                         }]);
+                        if (pagoErr) throw new Error("Error al cruzar saldo en pagos: " + pagoErr.message);
 
                         CoreActions.showSuccessModal("Nota de crédito creada con éxito. Inventario revertido.");
                         window.location.hash = '#/ingresos/notas-credito';
