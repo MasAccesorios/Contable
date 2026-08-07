@@ -1,6 +1,6 @@
 import DB, { getLocalDate } from '../../core/db.js';
 import { supabase } from '../../core/supabase.js';
-import { CoreActions } from '../../shared/crud.js';
+import { CoreActions, ItemEngine } from '../../shared/crud.js';
 import { InventarioUtils } from '../../shared/inventarioUtils.js';
 
 export const NotasCreditoModule = {
@@ -188,14 +188,13 @@ export const NotasCreditoModule = {
                     <div id="items-container" class="d-none">
                         <h6 class="fw-bold mb-3">Ítems a Devolver</h6>
                         <div class="table-responsive">
-                            <table class="table table-bordered align-middle">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th>Producto</th>
-                                        <th class="text-end">Precio Facturado</th>
-                                        <th class="text-center">Cant. Original</th>
-                                        <th class="text-center" style="width: 120px;">Cant. a Devolver</th>
-                                        <th class="text-end">Subtotal NC</th>
+                            <table class="table table-borderless align-middle" style="border-spacing: 0; min-width: 600px;">
+                                <thead style="border-bottom: 1px solid var(--border-color);">
+                                    <tr style="color: var(--text-muted); font-weight: var(--weight-regular); font-size: 13px;">
+                                        <th>Producto o servicio</th>
+                                        <th class="text-end" style="width: 150px;">Precio Facturado</th>
+                                        <th class="text-center" style="width: 150px;">Cant. a Devolver</th>
+                                        <th class="text-end" style="width: 150px;">Subtotal NC</th>
                                     </tr>
                                 </thead>
                                 <tbody id="nc-tbody"></tbody>
@@ -231,22 +230,24 @@ export const NotasCreditoModule = {
                     
                     <h6 class="fw-bold mb-3">Ítems Devueltos</h6>
                     <div class="table-responsive mb-4">
-                        <table class="table table-bordered align-middle">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Producto</th>
-                                    <th class="text-center">Cant. Devuelta</th>
-                                    <th class="text-end">Precio Unit.</th>
-                                    <th class="text-end">Subtotal</th>
+                        <table class="table table-borderless align-middle" style="border-spacing: 0; min-width: 600px;">
+                            <thead style="border-bottom: 1px solid var(--border-color);">
+                                <tr style="color: var(--text-muted); font-weight: var(--weight-regular); font-size: 13px;">
+                                    <th>Producto o servicio</th>
+                                    <th class="text-center" style="width: 100px;">Cant. Devuelta</th>
+                                    <th class="text-end" style="width: 150px;">Precio Unit.</th>
+                                    <th class="text-end" style="width: 150px;">Subtotal</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 ${detallesNota.map(d => `
-                                    <tr>
-                                        <td>${productosMap[d.producto_id] || 'Ítem ' + d.producto_id}</td>
-                                        <td class="text-center fw-medium">${d.cantidad}</td>
-                                        <td class="text-end">$${Number(d.precio_unitario || 0).toLocaleString()}</td>
-                                        <td class="text-end fw-bold">$${Number(d.subtotal || 0).toLocaleString()}</td>
+                                    <tr style="border-bottom: 1px solid var(--border-color);">
+                                        <td class="align-top py-2">
+                                            <div class="fw-medium text-dark" style="font-size: 13px;">${productosMap[d.producto_id] || 'Ítem ' + d.producto_id}</div>
+                                        </td>
+                                        <td class="align-top text-center py-2" style="font-size: 13px;">${d.cantidad}</td>
+                                        <td class="align-top text-end py-2" style="font-size: 13px;">$${Number(d.precio_unitario || 0).toLocaleString()}</td>
+                                        <td class="align-top text-end fw-bold py-2" style="font-size: 13px;">$${Number(d.subtotal || 0).toLocaleString()}</td>
                                     </tr>
                                 `).join('')}
                             </tbody>
@@ -328,6 +329,16 @@ export const NotasCreditoModule = {
                             resultDiv.innerHTML = '<span class="text-warning fw-medium">Factura encontrada pero no tiene ítems guardados.</span>';
                             return;
                         }
+                        
+                        // Extraer IDs únicos de productos y traer sus nombres y SKUs reales
+                        const pIds = [...new Set(currentDetalles.map(d => d.producto_id).filter(Boolean))];
+                        let productosFactura = [];
+                        if (pIds.length > 0) {
+                            const { data: prodsData } = await supabase.from('productos').select('id, sku, nombre').in('id', pIds);
+                            if (prodsData) {
+                                productosFactura = prodsData;
+                            }
+                        }
 
                         let clientName = currentFactura.clienteId;
                         if (currentFactura.contacto_id || currentFactura.clienteId) {
@@ -339,16 +350,33 @@ export const NotasCreditoModule = {
                         element.querySelector('#items-container').classList.remove('d-none');
                         
                         tbody.innerHTML = currentDetalles.map((d, index) => {
-                            const price = parseFloat(d.precio) || 0;
+                            const price = parseFloat(d.precio_unitario || d.precio) || 0; // Se lee precio_unitario, fallback a precio
+                            
+                            // Mockeamos el objeto detalle para ItemEngine
+                            const detalleMock = {
+                                productoId: d.producto_id,
+                                descripcion_personalizada: d.descripcion_personalizada || ''
+                            };
+                            
                             return `
-                                <tr>
-                                    <td>${productosMap[d.producto_id] || 'Ítem ' + d.producto_id}</td>
-                                    <td class="text-end">$${price.toLocaleString()}</td>
-                                    <td class="text-center">${d.cantidad}</td>
-                                    <td class="text-center">
-                                        <input type="number" class="form-control form-control-sm text-center nc-input-qty" data-index="${index}" data-max="${d.cantidad}" data-price="${price}" data-prodid="${d.producto_id}" value="0" min="0" max="${d.cantidad}" step="1">
+                                <tr style="border-bottom: 1px solid var(--border-color);">
+                                    <td class="align-top py-3">
+                                        ${ItemEngine.renderProductSearchBox(detalleMock, productosFactura, true)}
                                     </td>
-                                    <td class="text-end fw-bold">$<span class="nc-subtotal">0</span></td>
+                                    <td class="align-top text-end py-3">
+                                        <input type="text" class="form-control form-control-sm border-0 bg-light text-end" value="$${price.toLocaleString()}" disabled>
+                                    </td>
+                                    <td class="align-top py-3">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <input type="number" class="form-control form-control-sm border-0 bg-light nc-input-qty text-center" 
+                                                   data-index="${index}" data-max="${d.cantidad}" data-price="${price}" data-prodid="${d.producto_id}" 
+                                                   value="0" min="0" max="${d.cantidad}" step="1">
+                                            <span class="text-muted small text-nowrap">/ ${d.cantidad}</span>
+                                        </div>
+                                    </td>
+                                    <td class="text-end align-top py-3 fw-bold">
+                                        $<span class="nc-subtotal">0</span>
+                                    </td>
                                 </tr>
                             `;
                         }).join('');
