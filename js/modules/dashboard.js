@@ -10,13 +10,13 @@ export const DashboardModule = {
             <div class="p-4" style="background-color: transparent; min-height: 100vh;">
                 <div class="d-flex justify-content-between align-items-center mb-4" style="max-width: 1100px; margin: 0 auto;">
                     <h3 class="text-title text-dark mb-0">Resumen del negocio</h3>
-                    <div class="d-flex gap-2">
-                        <div class="btn-group shadow-sm" role="group" id="dashboard-rango-filtro">
+                    <div class="d-flex flex-wrap gap-2 align-items-center mt-3 mt-md-0" style="flex: 1; justify-content: flex-end; min-width: 250px;">
+                        <div class="btn-group shadow-sm d-flex" role="group" id="dashboard-rango-filtro" style="flex: 1 1 auto; white-space: nowrap; overflow-x: auto;">
                             <button type="button" class="btn btn-outline-primary btn-sm fw-medium px-3" data-rango="7 Días">7 Días</button>
                             <button type="button" class="btn btn-primary btn-sm fw-medium px-3 active text-white" data-rango="Este Mes" style="background-color: #1877f2; border-color: #1877f2;">Este Mes</button>
                             <button type="button" class="btn btn-outline-primary btn-sm fw-medium px-3" data-rango="Este Año">Este Año</button>
                         </div>
-                        <button class="btn btn-sm text-white shadow-sm fw-semibold" style="border-radius:6px; background-color:#2dbda8; border:none; font-size:0.85rem; padding:0.35rem 1rem;">
+                        <button class="btn btn-sm text-white shadow-sm fw-semibold" style="border-radius:6px; background-color:#2dbda8; border:none; font-size:0.85rem; padding:0.35rem 1rem; flex: 0 0 auto;">
                             Agregar gráfico <i class="bi bi-chevron-down ms-1" style="font-size:0.7rem;"></i>
                         </button>
                     </div>
@@ -25,7 +25,7 @@ export const DashboardModule = {
                 <!-- Cards Row -->
                 <div class="row g-3 mb-4" style="max-width: 1100px; margin: 0 auto;">
                     <!-- Cuentas por cobrar -->
-                    <div class="col-md-4">
+                    <div class="col-12 col-lg-4">
                         <div class="card border-0 shadow-sm h-100" style="border-radius:10px; cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'" onclick="window.location.hash = '#/cartera'">
                             <div class="card-body p-4">
                                 <h6 class="text-dark mb-3 text-body">Cuentas por cobrar</h6>
@@ -53,7 +53,7 @@ export const DashboardModule = {
                     </div>
                     
                     <!-- Cuentas por pagar -->
-                    <div class="col-md-4">
+                    <div class="col-12 col-lg-4">
                         <div class="card border-0 shadow-sm h-100" style="border-radius:10px;">
                             <div class="card-body p-4">
                                 <h6 class="text-dark mb-3 text-body">Cuentas por pagar</h6>
@@ -80,42 +80,41 @@ export const DashboardModule = {
                     </div>
 
                     <!-- 4 Small KPIs -->
-                    <div class="col-md-4">
+                    <div class="col-12 col-lg-4">
                         <div class="row g-3 h-100">
-                            <div class="col-6">
-                                <div class="card border-0 shadow-sm h-100 border-start border-4 border-success bg-success bg-opacity-10" style="border-radius:10px;">
-                                    <div class="card-body p-3 position-relative">
-                                        <i class="bi bi-graph-up-arrow position-absolute top-0 end-0 mt-3 me-3 text-success fs-5 opacity-75"></i>
-                                        <h6 class="text-dark mb-3 text-subtext fw-bold pe-4">Utilidad (Mes)</h6>
-                                        <h5 class="text-title mb-0 text-success fw-bold" style="font-size: 1.1rem;" id="kpi-utilidad-mes"><span class="spinner-border spinner-border-sm text-secondary"></span></h5>
+                            <div class="col-12 col-sm-6">
+                                <div class="card kpi-card kpi-success">
+                                    <div class="kpi-card-body">
+                                        <i class="bi bi-graph-up-arrow kpi-icon"></i>
+                                        <h6 class="kpi-label">Utilidad (Mes)</h6>
+                                        <h5 class="kpi-value" id="kpi-utilidad-mes"><span class="spinner-border spinner-border-sm text-secondary"></span></h5>
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-6">
-                                <div class="card border-0 shadow-sm h-100 border-start border-4 border-dark bg-secondary bg-opacity-10" style="border-radius:10px;">
-                                    <div class="card-body p-3 position-relative">
-                                        <i class="bi bi-box-seam position-absolute top-0 end-0 mt-3 me-3 text-dark fs-5 opacity-75"></i>
-                                        <h6 class="text-dark mb-3 text-subtext fw-bold pe-4">Productos</h6>
-                                        <h5 class="text-title mb-0 text-dark fw-bold" style="font-size: 1.1rem;" id="kpi-productos"><span class="spinner-border spinner-border-sm text-secondary"></span></h5>
+                            <div class="col-12 col-sm-6">
+                                <div class="card kpi-card kpi-dark">
+                                    <div class="kpi-card-body">
+                                        <i class="bi bi-box-seam kpi-icon"></i>
+                                        <h6 class="kpi-label">Productos</h6>
+                                        <h5 class="kpi-value" id="kpi-productos"><span class="spinner-border spinner-border-sm text-secondary"></span></h5>
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-6">
-                                <div class="card border-0 shadow-sm h-100 border-start border-4 border-primary bg-primary bg-opacity-10" style="border-radius:10px;">
-                                    <div class="card-body p-3 position-relative">
-                                        <i class="bi bi-boxes position-absolute top-0 end-0 mt-3 me-3 text-primary fs-5 opacity-75"></i>
-                                        <h6 class="text-dark mb-1 text-subtext fw-bold pe-4" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Inventario Val.</h6>
-                                        <span class="text-muted mb-2 d-block text-subtext">Costo total</span>
-                                        <h5 class="text-title mb-0 text-primary fw-bold" style="font-size: 1.1rem;" id="kpi-inventario-valorizado"><span class="spinner-border spinner-border-sm text-secondary"></span></h5>
+                            <div class="col-12 col-sm-6">
+                                <div class="card kpi-card kpi-primary">
+                                    <div class="kpi-card-body">
+                                        <i class="bi bi-boxes kpi-icon"></i>
+                                        <h6 class="kpi-label">Inventario Val.</h6>
+                                        <h5 class="kpi-value" id="kpi-inventario-valorizado"><span class="spinner-border spinner-border-sm text-secondary"></span></h5>
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-6">
-                                <div class="card border-0 shadow-sm h-100 border-start border-4 border-info bg-info bg-opacity-10" style="border-radius:10px;">
-                                    <div class="card-body p-3 position-relative">
-                                        <i class="bi bi-bank position-absolute top-0 end-0 mt-3 me-3 text-info fs-5 opacity-75"></i>
-                                        <h6 class="text-dark mb-3 text-subtext fw-bold pe-4">Saldo Bancos</h6>
-                                        <h5 class="text-title mb-0 text-info fw-bold" style="font-size: 1.1rem;" id="kpi-saldo-bancos"><span class="spinner-border spinner-border-sm text-secondary"></span></h5>
+                            <div class="col-12 col-sm-6">
+                                <div class="card kpi-card kpi-info">
+                                    <div class="kpi-card-body">
+                                        <i class="bi bi-bank kpi-icon"></i>
+                                        <h6 class="kpi-label">Saldo Bancos</h6>
+                                        <h5 class="kpi-value" id="kpi-saldo-bancos"><span class="spinner-border spinner-border-sm text-secondary"></span></h5>
                                     </div>
                                 </div>
                             </div>

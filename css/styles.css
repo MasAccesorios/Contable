@@ -38,6 +38,8 @@
 body {
     background-color: var(--bg-main);
     color: var(--text-body);
+    overflow-x: hidden;
+    max-width: 100vw;
 }
 
 /* Tipografía y Normalización */
@@ -68,6 +70,8 @@ body {
 #app-container {
     display: flex;
     min-height: 100vh;
+    width: 100%;
+    overflow-x: hidden;
 }
 
 /* SIDEBAR */
@@ -523,3 +527,73 @@ body {
         border-right: none !important;
     }
 }
+
+/* =========================================
+   DESIGN SYSTEM - MICRO-TARJETAS (KPIs)
+   ========================================= */
+.kpi-card {
+    border: none;
+    border-radius: 10px;
+    box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.03), 0px 1px 3px rgba(0, 0, 0, 0.05);
+    height: 100%;
+}
+
+.kpi-card-body {
+    padding: 1rem;
+    position: relative;
+}
+
+.kpi-icon {
+    position: absolute;
+    top: 0;
+    right: 0;
+    margin-top: 1rem;
+    margin-right: 1rem;
+    font-size: 1.25rem;
+    opacity: 0.75;
+}
+
+.kpi-label {
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    padding-right: 1.5rem;
+}
+
+.kpi-value {
+    font-size: clamp(1rem, 2vw, 1.1rem);
+    font-weight: 700;
+    margin-bottom: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.kpi-success {
+    border-left: 4px solid var(--bs-success) !important;
+    background-color: rgba(var(--bs-success-rgb), 0.1) !important;
+}
+.kpi-success .kpi-label { color: var(--bs-gray-700); }
+.kpi-success .kpi-value, .kpi-success .kpi-icon { color: var(--bs-success); }
+
+.kpi-dark {
+    border-left: 4px solid var(--bs-dark) !important;
+    background-color: rgba(var(--bs-secondary-rgb), 0.1) !important;
+}
+.kpi-dark .kpi-label { color: var(--bs-gray-700); }
+.kpi-dark .kpi-value, .kpi-dark .kpi-icon { color: var(--bs-dark); }
+
+.kpi-primary {
+    border-left: 4px solid var(--bs-primary) !important;
+    background-color: rgba(var(--bs-primary-rgb), 0.1) !important;
+}
+.kpi-primary .kpi-label { color: var(--bs-gray-700); }
+.kpi-primary .kpi-value, .kpi-primary .kpi-icon { color: var(--bs-primary); }
+
+.kpi-info {
+    border-left: 4px solid var(--bs-info) !important;
+    background-color: rgba(var(--bs-info-rgb), 0.1) !important;
+}
+.kpi-info .kpi-label { color: var(--bs-gray-700); }
+.kpi-info .kpi-value, .kpi-info .kpi-icon { color: var(--bs-info); }
+

@@ -16,21 +16,52 @@ export const ProductosModule = {
         element.innerHTML = `
             <div class="module-container p-4" style="max-width: 1200px; margin: 0 auto;">
                 <!-- TOP BAR -->
-                <div class="d-flex justify-content-between align-items-center mb-4">
+                <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
                     <div>
                         <h2 class="h3 fw-bold mb-1" style="color: var(--text-main);">Ítems de venta</h2>
                         <p class="text-muted mb-0" style="font-size: 14px;">Gestiona tus productos, su costo promedio y el inventario disponible.</p>
                     </div>
-                    <div class="d-flex gap-2">
-                        <button id="btn-refresh-list" class="btn btn-light bg-white border me-2" style="font-weight: var(--weight-medium); font-size: 14px; color: var(--text-body);">
+                    <div class="d-flex flex-wrap gap-2 w-100 w-md-auto justify-content-md-end">
+                        <button id="btn-refresh-list" class="btn btn-light bg-white border" style="flex: 1 1 auto; font-weight: var(--weight-medium); font-size: 14px; color: var(--text-body);">
                             <i class="bi bi-arrow-clockwise me-1"></i> Actualizar
                         </button>
-                        <button id="btn-export-list" class="btn btn-light bg-white border" style="font-weight: var(--weight-medium); font-size: 14px; color: var(--text-body);">
+                        <button id="btn-export-list" class="btn btn-light bg-white border" style="flex: 1 1 auto; font-weight: var(--weight-medium); font-size: 14px; color: var(--text-body);">
                             <i class="bi bi-download me-1"></i> Exportar
                         </button>
-                        <button id="btn-nuevo-producto" class="btn text-white" style="background-color: #2cbfb7; font-weight: var(--weight-medium); font-size: 14px;">
+                        <button id="btn-nuevo-producto" class="btn text-white" style="flex: 1 1 auto; background-color: #2cbfb7; font-weight: var(--weight-medium); font-size: 14px;">
                             <i class="bi bi-plus-lg me-1"></i> Nuevo producto
                         </button>
+                    </div>
+                </div>
+
+                <!-- KPI CARDS PILOT -->
+                <div class="row g-3 mb-4">
+                    <div class="col-12 col-md-4">
+                        <div class="card kpi-card kpi-primary">
+                            <div class="kpi-card-body">
+                                <i class="bi bi-box-seam kpi-icon"></i>
+                                <h6 class="kpi-label">Total Ítems</h6>
+                                <h5 class="kpi-value" id="inv-kpi-total"><span class="spinner-border spinner-border-sm text-secondary"></span></h5>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <div class="card kpi-card kpi-info">
+                            <div class="kpi-card-body">
+                                <i class="bi bi-check-circle kpi-icon"></i>
+                                <h6 class="kpi-label">Productos Activos</h6>
+                                <h5 class="kpi-value" id="inv-kpi-activos"><span class="spinner-border spinner-border-sm text-secondary"></span></h5>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <div class="card kpi-card kpi-dark">
+                            <div class="kpi-card-body">
+                                <i class="bi bi-exclamation-triangle kpi-icon"></i>
+                                <h6 class="kpi-label">Agotados (Stock 0)</h6>
+                                <h5 class="kpi-value" id="inv-kpi-agotados"><span class="spinner-border spinner-border-sm text-secondary"></span></h5>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -136,6 +167,20 @@ export const ProductosModule = {
         if (productIds.length > 0) {
             const { data } = await supabase.from('lotes_fifo').select('*').in('producto_id', productIds).gt('cantidad_actual', 0);
             if (data) lotes = data.map(l => DB._mapToFrontend('lotes_fifo', l));
+        }
+
+        // Render KPI values
+        const allProducts = (await DB.getAll('productos')).filter(p => p.estado !== 'inactivo' && p.estado !== 'inactive');
+        const kpiTotal = element.querySelector('#inv-kpi-total');
+        if(kpiTotal) kpiTotal.textContent = totalItems;
+        
+        const kpiActivos = element.querySelector('#inv-kpi-activos');
+        if(kpiActivos) kpiActivos.textContent = allProducts.length;
+
+        const kpiAgotados = element.querySelector('#inv-kpi-agotados');
+        if(kpiAgotados) {
+            // Un producto está agotado si stock + lotes es <= 0. Para el piloto lo simplificamos usando p.stock si no tenemos todos los lotes cacheados.
+            kpiAgotados.textContent = allProducts.filter(p => (parseFloat(p.stock) || 0) <= 0).length;
         }
 
         if (productos.length === 0) {
