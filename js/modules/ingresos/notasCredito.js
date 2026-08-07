@@ -499,10 +499,12 @@ export const NotasCreditoModule = {
                                 if (!outRes.success) throw new Error(outRes.error);
 
                                 // 2. Marcar la NC como anulada
-                                await supabase.from('notas_credito').update({ estado: 'anulada' }).eq('id', id);
+                                const { error: updErr1 } = await supabase.from('notas_credito').update({ estado: 'anulada' }).eq('id', id);
+                                if (updErr1) throw new Error(updErr1.message);
 
                                 // 3. Anular el pago cruzado
-                                await supabase.from('pagos_ingresos').update({ estado: 'anulado' }).eq('referenciaId', id).eq('metodo_pago', 'nota_credito');
+                                const { error: updErr2 } = await supabase.from('pagos_ingresos').update({ estado: 'anulado' }).eq('referencia', 'NC-' + nota.numero);
+                                if (updErr2) throw new Error(updErr2.message);
 
                                 CoreActions.showSuccessModal("Nota de Crédito anulada correctamente.");
                                 this.renderForm(element, id, true);
