@@ -218,71 +218,78 @@ export const PagosRecibidosModule = {
         const endItem = Math.min(this.state.currentPage * this.state.itemsPerPage, this.state.totalItems);
 
         this.element.innerHTML = `
-            <div class="py-3 px-4" style="font-family: 'Inter', sans-serif; background-color: #f8f9fa; min-height: 100vh; font-size: 13px;">
+            <div class="dash-layout">
                 
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <div>
-                        <h2 class="fw-bold text-dark m-0" style="font-size: 22px; color: #0c1a30 !important;">Pagos Recibidos</h2>
-                        <p class="text-muted m-0 mt-1" style="font-size: 13px;">Historial de todos los ingresos de dinero (tipo "Entrada").</p>
+                        <h2 class="h4 mb-1 text-dark fw-bold">Pagos Recibidos</h2>
+                        <p class="text-muted small mb-0">Historial de todos los ingresos de dinero (tipo "Entrada").</p>
                     </div>
                 </div>
 
                 <!-- KPI CARDS PAGOS RECIBIDOS -->
-                <div class="row g-3 mb-4">
-                    <div class="col-12 col-sm-6 col-lg-4">
-                        <div class="card kpi-card kpi-primary">
-                            <div class="kpi-card-body">
-                                <i class="bi bi-cash-stack kpi-icon"></i>
-                                <h6 class="kpi-label">Total Recibido</h6>
-                                <h5 class="kpi-value">$ ${formatMoney(this.state.kpis?.total || 0).replace('$ ', '')}</h5>
+                <div class="dash-grid-kpis mb-4" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem;">
+                    <div class="card dash-kpi-card border-0" style="border-radius: 14px; border: 1px solid #e2e8f0 !important; box-shadow: 0 4px 16px rgba(0,0,0,0.03); transition: all 0.25s ease;" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='translateY(0)'">
+                        <div class="card-body p-3 d-flex flex-column justify-content-between" style="min-height: 90px;">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <span class="dash-kpi-label text-muted fw-semibold" style="font-size: 13px;">Total Recibido</span>
+                                <div class="dash-kpi-icon-box rounded p-2 d-flex align-items-center justify-content-center" style="background-color: rgba(24, 119, 242, 0.1); color: #1877f2; width: 32px; height: 32px;">
+                                    <i class="bi bi-cash-stack"></i>
+                                </div>
                             </div>
+                            <div class="dash-kpi-value text-dark fw-bold fs-4 mt-2">$ ${formatMoney(this.state.kpis?.total || 0).replace('$ ', '')}</div>
                         </div>
                     </div>
-                    <div class="col-12 col-sm-6 col-lg-4">
-                        <div class="card kpi-card kpi-success">
-                            <div class="kpi-card-body">
-                                <i class="bi bi-file-earmark-check kpi-icon"></i>
-                                <h6 class="kpi-label">Aplicados a Facturas</h6>
-                                <h5 class="kpi-value">$ ${formatMoney(this.state.kpis?.aplicados || 0).replace('$ ', '')}</h5>
+                    <div class="card dash-kpi-card border-0" style="border-radius: 14px; border: 1px solid #e2e8f0 !important; box-shadow: 0 4px 16px rgba(0,0,0,0.03); transition: all 0.25s ease;" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='translateY(0)'">
+                        <div class="card-body p-3 d-flex flex-column justify-content-between" style="min-height: 90px;">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <span class="dash-kpi-label text-muted fw-semibold" style="font-size: 13px;">Aplicados a Facturas</span>
+                                <div class="dash-kpi-icon-box rounded p-2 d-flex align-items-center justify-content-center" style="background-color: rgba(46, 204, 113, 0.1); color: #2ecc71; width: 32px; height: 32px;">
+                                    <i class="bi bi-file-earmark-check"></i>
+                                </div>
                             </div>
+                            <div class="dash-kpi-value text-dark fw-bold fs-4 mt-2">$ ${formatMoney(this.state.kpis?.aplicados || 0).replace('$ ', '')}</div>
                         </div>
                     </div>
-                    <div class="col-12 col-sm-6 col-lg-4">
-                        <div class="card kpi-card kpi-info">
-                            <div class="kpi-card-body">
-                                <i class="bi bi-wallet2 kpi-icon"></i>
-                                <h6 class="kpi-label">Pagos Directos</h6>
-                                <h5 class="kpi-value">$ ${formatMoney(this.state.kpis?.directos || 0).replace('$ ', '')}</h5>
+                    <div class="card dash-kpi-card border-0" style="border-radius: 14px; border: 1px solid #e2e8f0 !important; box-shadow: 0 4px 16px rgba(0,0,0,0.03); transition: all 0.25s ease;" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='translateY(0)'">
+                        <div class="card-body p-3 d-flex flex-column justify-content-between" style="min-height: 90px;">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <span class="dash-kpi-label text-muted fw-semibold" style="font-size: 13px;">Pagos Directos</span>
+                                <div class="dash-kpi-icon-box rounded p-2 d-flex align-items-center justify-content-center" style="background-color: rgba(142, 68, 173, 0.1); color: #8e44ad; width: 32px; height: 32px;">
+                                    <i class="bi bi-wallet2"></i>
+                                </div>
                             </div>
+                            <div class="dash-kpi-value text-dark fw-bold fs-4 mt-2">$ ${formatMoney(this.state.kpis?.directos || 0).replace('$ ', '')}</div>
                         </div>
                     </div>
                 </div>
 
-                <div class="card shadow-sm border border-light-subtle bg-white" style="border-radius: 6px;">
-                    <div class="card-header bg-white border-bottom-0 p-3 d-flex justify-content-between align-items-center">
-                        <div class="input-group" style="width: 300px;">
-                            <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
-                            <input type="text" class="form-control border-start-0 ps-0" id="search-pagos" placeholder="Buscar por número o cliente..." value="${this.state.searchQuery}" style="font-size: 13px;">
+                <div class="card border-0 shadow-sm" style="border-radius: 14px;">
+                    <div class="card-body p-0">
+                        <div class="d-flex justify-content-between mb-3 px-4 pt-4">
+                            <div class="input-group" style="max-width: 300px;">
+                                <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
+                                <input type="text" class="form-control border-start-0 ps-0" id="search-pagos" placeholder="Buscar por número o cliente..." value="${this.state.searchQuery}" style="box-shadow: none;">
+                            </div>
                         </div>
-                    </div>
 
-                    <div class="table-responsive position-relative">
+                        <div class="view-container p-4 pt-0">
                         ${this.state.isLoading ? `
                             <div class="position-absolute top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center bg-white bg-opacity-75" style="z-index: 10;">
                                 <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Cargando...</span></div>
                             </div>
                         ` : ''}
                         <table class="table align-middle table-hover m-0 text-nowrap">
-                            <thead class="table-light text-secondary fw-semibold border-bottom" style="--bs-table-bg: #f9fbfd; font-size: 12px;">
+                            <thead class="table-light text-muted small text-uppercase border-bottom">
                                 <tr>
-                                    <th class="ps-4 py-2.5">Número</th>
-                                    <th>Cliente</th>
-                                    <th>Detalles</th>
-                                    <th>Creación</th>
-                                    <th>Cuenta bancaria</th>
-                                    <th>Estado</th>
-                                    <th class="text-end pe-4">Monto</th>
-                                    <th style="width: 50px;"></th>
+                                    <th class="ps-4 py-2">Número</th>
+                                    <th class="py-2">Cliente</th>
+                                    <th class="py-2">Detalles</th>
+                                    <th class="py-2">Creación</th>
+                                    <th class="py-2">Cuenta bancaria</th>
+                                    <th class="py-2">Estado</th>
+                                    <th class="py-2 text-end pe-4">Monto</th>
+                                    <th class="py-2" style="width: 50px;"></th>
                                 </tr>
                             </thead>
                             <tbody style="font-size: 13px; color: #2c3e50;">
@@ -295,23 +302,23 @@ export const PagosRecibidosModule = {
 
                                     return `
                                         <tr style="cursor: pointer;" class="row-pago" data-id="${pago.id}">
-                                            <td class="ps-4 fw-medium text-dark">${pago.numero}</td>
-                                            <td class="text-muted text-truncate" style="max-width: 200px;">${pago.cliente}</td>
-                                            <td class="text-truncate" style="max-width: 200px;">${detallesHtml}</td>
-                                            <td class="text-muted">${formatFecha(pago.fecha)}</td>
-                                            <td class="text-dark fw-medium text-truncate" style="max-width: 150px;">${pago.cuenta_bancaria}</td>
-                                            <td>
+                                            <td class="ps-4 py-1 fw-bold text-dark">${pago.numero}</td>
+                                            <td class="py-1 text-dark text-truncate" style="max-width: 200px;">${pago.cliente}</td>
+                                            <td class="py-1 text-truncate" style="max-width: 200px;">${detallesHtml}</td>
+                                            <td class="py-1 text-muted">${formatFecha(pago.fecha)}</td>
+                                            <td class="py-1 text-dark text-truncate" style="max-width: 150px;">${pago.cuenta_bancaria}</td>
+                                            <td class="py-1">
                                                 ${pago.estado_transaccion === 'anulado' 
-                                                    ? `<span class="badge bg-secondary text-secondary bg-opacity-10 border border-secondary-subtle rounded-pill fw-medium" style="font-size: 11px; padding: 5px 10px;">Anulado</span>`
+                                                    ? `<span class="badge bg-secondary text-secondary bg-opacity-10 border border-secondary-subtle rounded-pill fw-medium" style="font-size: 10px; padding: 3px 8px;">Anulado</span>`
                                                     : pago.estado_conciliacion
-                                                        ? `<span class="badge bg-success text-success bg-opacity-10 border border-success-subtle rounded-pill fw-medium" style="font-size: 11px; padding: 5px 10px;">Conciliado</span>`
-                                                        : `<span class="badge bg-warning text-warning-emphasis bg-opacity-10 border border-warning-subtle rounded-pill fw-medium" style="font-size: 11px; padding: 5px 10px;">No conciliado</span>`
+                                                        ? `<span class="badge bg-success text-success bg-opacity-10 border border-success-subtle rounded-pill fw-medium" style="font-size: 10px; padding: 3px 8px;">Conciliado</span>`
+                                                        : `<span class="badge bg-warning text-warning-emphasis bg-opacity-10 border border-warning-subtle rounded-pill fw-medium" style="font-size: 10px; padding: 3px 8px;">No conciliado</span>`
                                                 }
                                             </td>
-                                            <td class="text-end fw-bold pe-4 ${pago.estado_transaccion === 'anulado' ? 'text-muted text-decoration-line-through opacity-50' : 'text-success'}">
-                                                + ${formatMoney(pago.monto)}
+                                            <td class="py-1 text-end fw-bold pe-4 ${pago.estado_transaccion === 'anulado' ? 'text-muted text-decoration-line-through opacity-50' : 'text-dark'}">
+                                                ${formatMoney(pago.monto)}
                                             </td>
-                                            <td class="pe-3 position-relative">
+                                            <td class="py-1 pe-3 position-relative">
                                                 <button class="btn btn-sm btn-link text-secondary p-0 border-0 btn-menu-row" data-id="${pago.id}" data-conciliado="${pago.estado_conciliacion}" data-factura="${pago.factura_id || ''}" data-anulado="${pago.estado_transaccion === 'anulado'}" style="text-decoration: none; font-size: 16px;">⋮</button>
                                             </td>
                                         </tr>
@@ -326,25 +333,31 @@ export const PagosRecibidosModule = {
                                 `}
                             </tbody>
                         </table>
-                    </div>
-
-                    <!-- PAGINADOR SERVER-SIDE -->
-                    <div class="card-footer bg-white border-top d-flex justify-content-between align-items-center px-4 py-3 text-muted" style="font-size: 12px;">
-                        <div class="d-flex align-items-center gap-2">
-                            <span>Ítems por página:</span>
-                            <select id="select-limit" class="form-select form-select-sm border-light-subtle" style="width: 65px; font-size: 12px; padding-top: 2px; padding-bottom: 2px;">
-                                <option value="10" ${this.state.itemsPerPage === 10 ? 'selected' : ''}>10</option>
-                                <option value="20" ${this.state.itemsPerPage === 20 ? 'selected' : ''}>20</option>
-                                <option value="50" ${this.state.itemsPerPage === 50 ? 'selected' : ''}>50</option>
-                            </select>
-                            <span class="ms-2">${this.state.totalItems > 0 ? `${startItem}-${endItem} de ${this.state.totalItems}` : '0-0 de 0'}</span>
                         </div>
-                        <div class="d-flex align-items-center gap-3">
-                            <span>Página <input type="number" id="input-page" min="1" max="${totalPages}" value="${this.state.currentPage}" class="form-control form-control-sm d-inline-block text-center" style="width: 45px; font-size: 12px; padding-top: 2px; padding-bottom: 2px;"> de ${totalPages}</span>
-                            <div class="d-flex gap-1">
-                                <button id="btn-prev" class="btn btn-sm btn-light border py-0 px-2" ${this.state.currentPage <= 1 ? 'disabled' : ''}>❮</button>
-                                <button id="btn-next" class="btn btn-sm btn-light border py-0 px-2" ${this.state.currentPage >= totalPages ? 'disabled' : ''}>❯</button>
+
+                        <!-- PAGINADOR SERVER-SIDE -->
+                        <div class="d-flex justify-content-between align-items-center mt-3 text-muted small">
+                            <div class="d-flex align-items-center gap-3">
+                                <span>Página <span id="current-page">${this.state.currentPage}</span> de <span id="total-pages">${totalPages}</span></span>
+                                <div class="btn-group">
+                                    <button class="btn btn-sm btn-light border text-muted" id="btn-prev" ${this.state.currentPage <= 1 ? 'disabled' : ''}><i class="bi bi-chevron-left"></i></button>
+                                    <button class="btn btn-sm btn-light border text-muted" id="btn-next" ${this.state.currentPage >= totalPages ? 'disabled' : ''}><i class="bi bi-chevron-right"></i></button>
+                                </div>
                             </div>
+                            <div class="d-flex align-items-center gap-3">
+                                <span class="d-flex align-items-center gap-2">
+                                    Pagos por página:
+                                    <select id="select-limit" class="form-select form-select-sm border-0 bg-transparent text-muted fw-bold" style="width: 60px; box-shadow: none; cursor: pointer;">
+                                        <option value="10" ${this.state.itemsPerPage === 10 ? 'selected' : ''}>10</option>
+                                        <option value="20" ${this.state.itemsPerPage === 20 ? 'selected' : ''}>20</option>
+                                        <option value="50" ${this.state.itemsPerPage === 50 ? 'selected' : ''}>50</option>
+                                    </select>
+                                </span>
+                                <span id="showing-count">${this.state.totalItems > 0 ? `${startItem}-${endItem} de ${this.state.totalItems}` : '0-0 de 0'}</span>
+                                <button id="btn-refresh" class="btn btn-sm btn-light border text-muted rounded-circle" style="width: 30px; height: 30px; padding: 0;"><i class="bi bi-arrow-clockwise"></i></button>
+                            </div>
+                        </div>
+
                         </div>
                     </div>
                 </div>
