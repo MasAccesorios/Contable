@@ -79,20 +79,45 @@ export const DetalleBancoModule = {
                 
                 let facturasMap = {};
                 if (facturaIds.length > 0) {
-                    const { data: facturas } = await supabase.from('facturas').select('id, numero').in('id', facturaIds);
+                    // Cambio A: añadir contacto_id para poder resolver el tercero desde la factura
+                    const { data: facturas } = await supabase.from('facturas').select('id, numero, contacto_id').in('id', facturaIds);
                     if (facturas) {
                         facturas.forEach(f => facturasMap[f.id] = f);
                     }
                 }
 
+                // Ampliar el lookup de contactos con los contacto_id que vienen
+                // indirectamente a través de las facturas (caso más frecuente en pagos_ingresos)
+                const contactoIdsDesdeFacturas = [...new Set(
+                    Object.values(facturasMap).map(f => f.contacto_id).filter(Boolean)
+                )];
+                const contactoIdsFaltantes = contactoIdsDesdeFacturas.filter(id => !contactosMap[id]);
+                if (contactoIdsFaltantes.length > 0) {
+                    const { data: contactosExtra } = await supabase
+                        .from('contactos')
+                        .select('id, nombre, identificacion')
+                        .in('id', contactoIdsFaltantes);
+                    if (contactosExtra) {
+                        contactosExtra.forEach(c => contactosMap[c.id] = c);
+                    }
+                }
+
                 const mapped = pagos.map(item => {
-                    const contacto = contactosMap[item.contacto_id];
+                    // Cambio B: resolver tercero primero por contacto_id directo,
+                    // luego por el contacto_id de la factura asociada
+                    const contactoIdDirecto = item.contacto_id;
+                    const facturaAsociada = item.factura_id ? facturasMap[item.factura_id] : null;
+                    const contactoIdViaFactura = facturaAsociada ? facturaAsociada.contacto_id : null;
+                    const contacto = contactosMap[contactoIdDirecto] || contactosMap[contactoIdViaFactura] || null;
                     let terceroNombre = contacto ? contacto.nombre : (item.referencia || 'Desconocido');
                     let terceroNit = contacto && contacto.identificacion ? contacto.identificacion : '';
-                    
+
                     let cuentaContable = 'Otros movimientos';
                     if (item.factura_id && facturasMap[item.factura_id]) {
-                        cuentaContable = `Facturas: ${facturasMap[item.factura_id].numero}`;
+                        const fNum = facturasMap[item.factura_id].numero;
+                        const fId  = item.factura_id;
+                        // Cambio B: enlace clickeable a la factura (stopPropagation evita abrir el modal de fila)
+                        cuentaContable = `<a href="#/ingresos/facturas/ver/${fId}" class="text-decoration-none text-primary" onclick="event.stopPropagation()">Factura #${fNum}</a>`;
                     } else if (item.categoria) {
                         cuentaContable = item.categoria;
                     } else if (item.observaciones) {
