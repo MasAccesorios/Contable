@@ -180,10 +180,14 @@ export const AbonoModal = {
 
             const factura = await DB.get('facturas', this.facturaId);
             if (factura) {
+                // Inferir tipo de pago automáticamente desde el tipo de factura
+                // venta → ingreso (entrada de dinero), compra/gasto → egreso (salida de dinero)
+                const tipoPago = (factura.tipo === 'compra' || factura.tipo === 'gasto') ? 'egreso' : 'ingreso';
+
                 const transaccion = {
                     id: 'trx_' + Date.now(),
                     factura_id: factura.id,
-                    tipo: 'ingreso',
+                    tipo: tipoPago,
                     monto: montoAbono,
                     fecha: fecha,
                     cuenta_id: cuentaId

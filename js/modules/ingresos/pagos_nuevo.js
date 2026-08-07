@@ -246,12 +246,16 @@ export default {
                 // Registrar cada pago de forma iterativa y limpia
                 const grupoPagoId = 'pago_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
                 for (const abono of abonos) {
+                    // Inferir tipo de pago desde la factura
+                    const facturaParaTipo = this.facturasData.find(f => String(f.id) === String(abono.factura_id));
+                    const tipoPago = (facturaParaTipo && (facturaParaTipo.tipo === 'compra' || facturaParaTipo.tipo === 'gasto')) ? 'egreso' : 'ingreso';
+
                     const transaccion = {
                         id: 'trx_' + Date.now() + '_' + Math.floor(Math.random() * 10000),
                         factura_id: parseInt(abono.factura_id, 10),
                         contacto_id: parseInt(this.clienteId, 10),
                         grupo_pago_id: grupoPagoId,
-                        tipo: 'ingreso',
+                        tipo: tipoPago,
                         monto: parseFloat(abono.monto),
                         fecha: fecha,
                         cuenta_id: parseInt(cuentaId, 10)
