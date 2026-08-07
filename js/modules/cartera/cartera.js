@@ -154,7 +154,7 @@ export default {
                 <!-- TABLA DE DETALLE DE CARTERA POR FACTURA -->
                 <div class="card border-0 shadow-sm bg-white" style="border-radius: 6px;">
                     <div class="p-2 d-flex justify-content-end border-bottom">
-                        <button class="btn btn-sm btn-light border bg-white text-secondary" style="font-size: 12px;">⚙️ Filtrar</button>
+                        <button id="btn-toggle-filtros" class="btn btn-sm btn-light border bg-white text-secondary" style="font-size: 12px;">⚙️ Filtrar</button>
                     </div>
                     
                     <div class="table-responsive">
@@ -172,6 +172,31 @@ export default {
                                     <th class="text-end pe-3">Por cobrar</th>
                                     <th class="text-center">Acción</th>
                                 </tr>
+                                <tr id="row-filtros-cartera" class="d-none bg-light" style="font-size: 11px;">
+                                    <th></th>
+                                    <th></th>
+                                    <th></th>
+                                    <th><input type="text" id="filtro-cliente" class="form-control form-control-sm py-0" placeholder="Buscar cliente..." style="font-size: 11px;"></th>
+                                    <th></th>
+                                    <th>
+                                        <select id="filtro-estado" class="form-select form-select-sm py-0" style="font-size: 11px;">
+                                            <option value="todos">Todos</option>
+                                            <option value="vigente">Vigente</option>
+                                            <option value="vencida">Vencida</option>
+                                        </select>
+                                    </th>
+                                    <th></th>
+                                    <th></th>
+                                    <th class="pe-3">
+                                        <select id="filtro-monto" class="form-select form-select-sm py-0 text-end" style="font-size: 11px;">
+                                            <option value="todos">Todos</option>
+                                            <option value="100k">&gt; $100K</option>
+                                            <option value="500k">&gt; $500K</option>
+                                            <option value="1m">&gt; $1M</option>
+                                        </select>
+                                    </th>
+                                    <th></th>
+                                </tr>
                             </thead>
                             <tbody>
                                 ${facturasPendientes.map(f => {
@@ -182,7 +207,7 @@ export default {
                                     const isVencida = new Date(f.vencimiento) < new Date();
                                     
                                     return `
-                                    <tr style="cursor: pointer;" onclick="if(!event.target.closest('button')) { sessionStorage.setItem('origenVolver', JSON.stringify({hash: '#/cartera', label: 'Volver a Cuentas por Cobrar'})); window.location.hash = '#/ingresos/facturas/ver/${f.id}'; }">
+                                    <tr class="tr-factura" data-cliente="${(cliente.nombre||'').replace(/"/g, '&quot;').toLowerCase()}" data-vencida="${isVencida ? 'true' : 'false'}" data-saldo="${saldo}" style="cursor: pointer;" onclick="if(!event.target.closest('button')) { sessionStorage.setItem('origenVolver', JSON.stringify({hash: '#/cartera', label: 'Volver a Cuentas por Cobrar'})); window.location.hash = '#/ingresos/facturas/ver/${f.id}'; }">
                                         <td class="ps-3"><input type="checkbox" class="form-check-input"></td>
                                         <td class="text-primary fw-medium" style="cursor: pointer; white-space: nowrap;">${f.numero || f.id}</td>
                                         <td class="text-muted" style="white-space: nowrap;">Factura de venta</td>
@@ -208,7 +233,7 @@ export default {
                             <span>Página 1 de 1</span>
                         </div>
                         <div class="d-flex align-items-center gap-3">
-                            <span>Mostrando 1-${facturasPendientes.length} de ${facturasPendientes.length}</span>
+                            <span id="lbl-conteo-mostrando">Mostrando 1-${facturasPendientes.length} de ${facturasPendientes.length}</span>
                             <select class="form-select form-select-sm border-light-subtle py-0" style="width: 110px; font-size: 11px;">
                                 <option>Resultados por página: 20</option>
                             </select>
@@ -236,6 +261,56 @@ export default {
                     }, 500);
                 });
             });
+        });
+        
+        this.bindFiltrosTabla();
+    },
+
+    bindFiltrosTabla() {
+        const aplicarFiltros = () => {
+            const txtCliente = (document.getElementById('filtro-cliente')?.value || '').toLowerCase();
+            const valEstado = document.getElementById('filtro-estado')?.value || 'todos';
+            const valMonto = document.getElementById('filtro-monto')?.value || 'todos';
+
+            let nuevoTotal = 0;
+            let visibles = 0;
+
+            document.querySelectorAll('.tr-factura').forEach(tr => {
+                const cliente = tr.getAttribute('data-cliente');
+                const isVencida = tr.getAttribute('data-vencida') === 'true';
+                const saldo = parseFloat(tr.getAttribute('data-saldo')) || 0;
+
+                let match = true;
+                if (txtCliente && !cliente.includes(txtCliente)) match = false;
+                if (valEstado === 'vencida' && !isVencida) match = false;
+                if (valEstado === 'vigente' && isVencida) match = false;
+                
+                if (valMonto === '100k' && saldo <= 100000) match = false;
+                if (valMonto === '500k' && saldo <= 500000) match = false;
+                if (valMonto === '1m' && saldo <= 1000000) match = false;
+
+                if (match) {
+                    tr.classList.remove('d-none');
+                    nuevoTotal += saldo;
+                    visibles++;
+                } else {
+                    tr.classList.add('d-none');
+                }
+            });
+
+            const lblTotal = document.getElementById('lbl-total-por-cobrar');
+            if (lblTotal) lblTotal.innerText = '$ ' + nuevoTotal.toLocaleString('es-CO', {minimumFractionDigits: 2});
+            
+            const lblConteo = document.getElementById('lbl-conteo-mostrando');
+            if (lblConteo) lblConteo.innerText = `Mostrando 1-${visibles} de ${visibles}`;
+        };
+
+        document.getElementById('filtro-cliente')?.addEventListener('input', aplicarFiltros);
+        document.getElementById('filtro-estado')?.addEventListener('change', aplicarFiltros);
+        document.getElementById('filtro-monto')?.addEventListener('change', aplicarFiltros);
+
+        document.getElementById('btn-toggle-filtros')?.addEventListener('click', () => {
+            document.getElementById('row-filtros-cartera')?.classList.toggle('d-none');
         });
     },
 
