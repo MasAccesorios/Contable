@@ -10,11 +10,11 @@ import { mostrarDetalleTransaccion } from '../../shared/transaccionModal.js';
 
 export const ContactosModule = {
     state: {
-        contactosData: [],
         currentPage: 1,
-        itemsPerPage: 10,
+        itemsPerPage: 25,
         currentFilter: 'todos',
-        searchQuery: ''
+        searchQuery: '',
+        totalCount: 0
     },
 
     async init(element) {
@@ -164,78 +164,82 @@ export const ContactosModule = {
         if (action === 'ver' && routeId) {
             await this.renderDetalle(routeId);
         } else if (action === 'nueva') {
-            await this.cargarDatos(); // Carga inicial
-            this.renderTabla();       // Render inicial
-            this.renderForm();        // Abre el modal de nuevo contacto
+            await this.cargarPagina();
+            this.renderForm();
         } else {
-            await this.cargarDatos(); // Carga inicial
-            this.renderTabla();       // Render inicial
+            await this.cargarPagina();
         }
     },
 
-    async cargarDatos() {
-        // Obtenemos de Firestore vía el enrutador de DB
-        const raw = await DB.getAll('contactos');
-        this.state.contactosData = raw; // Se eliminó el filtro especulativo de 'estado !== inactivo'
+    // ─── DATOS: paginación real server-side ────────────────────────────────────
+
+    async fetchKpis() {
+        try {
+            const { data } = await supabase
+                .from('contactos')
+                .select('tipo');
+            const total      = data?.length ?? 0;
+            const clientes   = data?.filter(c => (c.tipo || '').toLowerCase() === 'cliente').length ?? 0;
+            const proveedores = data?.filter(c => (c.tipo || '').toLowerCase() === 'proveedor').length ?? 0;
+            return { total, clientes, proveedores };
+        } catch { return { total: 0, clientes: 0, proveedores: 0 }; }
     },
 
-    renderTabla() {
+    renderKpis({ total, clientes, proveedores }) {
+        const kpiTotal = this.element.querySelector('#kpi-total-contactos');
+        const kpiCli   = this.element.querySelector('#kpi-clientes');
+        const kpiProv  = this.element.querySelector('#kpi-proveedores');
+        if (kpiTotal)  kpiTotal.textContent  = total;
+        if (kpiCli)    kpiCli.textContent    = clientes;
+        if (kpiProv)   kpiProv.textContent   = proveedores;
+    },
+
+    async cargarPagina() {
+        const { currentPage, itemsPerPage, currentFilter, searchQuery } = this.state;
+        const from = (currentPage - 1) * itemsPerPage;
+        const to   = from + itemsPerPage - 1;
+
+        let q = supabase
+            .from('contactos')
+            .select('id, nombre, nit, telefono, tipo', { count: 'exact' })
+            .order('nombre', { ascending: true })
+            .range(from, to);
+
+        if (currentFilter !== 'todos') q = q.eq('tipo', currentFilter);
+        if (searchQuery) {
+            const s = searchQuery.replace(/'/g, "''");
+            q = q.or(`nombre.ilike.%${s}%,nit.ilike.%${s}%,telefono.ilike.%${s}%`);
+        }
+
+        const [{ data: rows, count }, kpis] = await Promise.all([q, this.fetchKpis()]);
+        this.state.totalCount = count ?? 0;
+        this.renderTabla(rows || [], this.state.totalCount);
+        this.renderKpis(kpis);
+    },
+
+    renderTabla(rows, totalCount) {
         const wrapper = this.element.querySelector('#tabla-contactos-wrapper');
         if (wrapper) wrapper.style.display = 'block';
 
         const container = this.element.querySelector('#tbody-contactos');
         if (!container) return;
 
-        const { contactosData, currentFilter, searchQuery, itemsPerPage } = this.state;
+        const { currentPage, itemsPerPage } = this.state;
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        const endIndex   = Math.min(startIndex + rows.length, totalCount);
+        const totalPages = Math.ceil(totalCount / itemsPerPage) || 1;
 
-        // Actualizar KPIs
-        const kpiTotal = this.element.querySelector('#kpi-total-contactos');
-        const kpiClientes = this.element.querySelector('#kpi-clientes');
-        const kpiProveedores = this.element.querySelector('#kpi-proveedores');
-        if (kpiTotal) {
-            let cli = 0, prov = 0;
-            contactosData.forEach(c => {
-                if ((c.tipo || '').toLowerCase() === 'cliente') cli++;
-                if ((c.tipo || '').toLowerCase() === 'proveedor') prov++;
-            });
-            kpiTotal.textContent = contactosData.length;
-            kpiClientes.textContent = cli;
-            kpiProveedores.textContent = prov;
-        }
-
-        // A. Filtrado por Tipo y Búsqueda (Combinado)
-        let filtrados = contactosData.filter(c => {
-            if (currentFilter !== 'todos' && c.tipo !== currentFilter) return false;
-            if (searchQuery) {
-                const searchStr = `${c.nombre || ''} ${c.nit || ''} ${c.telefono || ''}`.toLowerCase();
-                if (!searchStr.includes(searchQuery)) return false;
-            }
-            return true;
-        });
-
-        // B. Cálculos de Paginación
-        const totalItems = filtrados.length;
-        const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
-        
-        if (this.state.currentPage > totalPages) {
-            this.state.currentPage = totalPages;
-        }
-
-        const startIndex = (this.state.currentPage - 1) * itemsPerPage;
-        const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
-        const paginaActual = filtrados.slice(startIndex, endIndex);
-
-        // C. Renderizado
-        if (paginaActual.length === 0) {
+        // Renderizado de filas
+        if (rows.length === 0) {
             container.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted">No se encontraron contactos que coincidan con la búsqueda.</td></tr>`;
         } else {
             let html = '';
-            paginaActual.forEach(c => {
-                const inicial = c.nombre ? c.nombre.charAt(0).toUpperCase() : '?';
-                const isCliente = (c.tipo || '').toLowerCase() === 'cliente';
+            rows.forEach(c => {
+                const inicial    = c.nombre ? c.nombre.charAt(0).toUpperCase() : '?';
+                const isCliente  = (c.tipo || '').toLowerCase() === 'cliente';
                 const isProveedor = (c.tipo || '').toLowerCase() === 'proveedor';
                 let tipoBadge = `<span class="badge bg-light text-dark border rounded-pill fw-medium" style="font-size: 11px; padding: 5px 10px;">${c.tipo || '-'}</span>`;
-                if (isCliente) tipoBadge = `<span class="badge bg-success text-success bg-opacity-10 border border-success-subtle rounded-pill fw-medium" style="font-size: 11px; padding: 5px 10px;">Cliente</span>`;
+                if (isCliente)   tipoBadge = `<span class="badge bg-success text-success bg-opacity-10 border border-success-subtle rounded-pill fw-medium" style="font-size: 11px; padding: 5px 10px;">Cliente</span>`;
                 else if (isProveedor) tipoBadge = `<span class="badge bg-primary text-primary bg-opacity-10 border border-primary-subtle rounded-pill fw-medium" style="font-size: 11px; padding: 5px 10px;">Proveedor</span>`;
 
                 html += `
@@ -269,27 +273,27 @@ export const ContactosModule = {
             container.innerHTML = html;
         }
 
-        // D. Actualización UI Paginación
-        const paginasEl = this.element.querySelector('#current-page');
-        if(paginasEl) paginasEl.textContent = this.state.currentPage;
-        
-        const totalPagEl = this.element.querySelector('#total-pages');
-        if(totalPagEl) totalPagEl.textContent = totalPages;
-        
+        // UI Paginación
+        const paginasEl      = this.element.querySelector('#current-page');
+        const totalPagEl     = this.element.querySelector('#total-pages');
         const showingCountEl = this.element.querySelector('#showing-count');
-        if(showingCountEl) showingCountEl.textContent = totalItems > 0 ? `${startIndex + 1}-${endIndex} de ${totalItems}` : `0-0 de 0`;
-        
-        const prevBtn = this.element.querySelector('#btn-prev-page');
-        if(prevBtn) prevBtn.disabled = (this.state.currentPage === 1);
-        
-        const nextBtn = this.element.querySelector('#btn-next-page');
-        if(nextBtn) nextBtn.disabled = (this.state.currentPage === totalPages);
+        const prevBtn        = this.element.querySelector('#btn-prev-page');
+        const nextBtn        = this.element.querySelector('#btn-next-page');
+
+        if (paginasEl)      paginasEl.textContent  = currentPage;
+        if (totalPagEl)     totalPagEl.textContent  = totalPages;
+        if (showingCountEl) showingCountEl.textContent = totalCount > 0
+            ? `${startIndex + 1}-${endIndex} de ${totalCount}`
+            : '0-0 de 0';
+        if (prevBtn) prevBtn.disabled = (currentPage === 1);
+        if (nextBtn) nextBtn.disabled = (currentPage >= totalPages);
 
         this.bindFilaEvents();
     },
 
     bindEvents() {
         const el = this.element;
+        let _searchTimer = null;
 
         el.querySelector('#btn-nuevo-contacto')?.addEventListener('click', () => this.renderForm());
 
@@ -298,18 +302,19 @@ export const ContactosModule = {
             const originalHtml = btn.innerHTML;
             btn.disabled = true;
             btn.innerHTML = `<span class="spinner-border spinner-border-sm" aria-hidden="true"></span>`;
-            
-            this.state.contactosData = await DB.refreshCache('contactos');
-            this.renderTabla();
-            
+            await this.cargarPagina();
             btn.innerHTML = originalHtml;
             btn.disabled = false;
         });
 
+        // Buscador con debounce 350ms
         el.querySelector('#search-contacto')?.addEventListener('input', (e) => {
-            this.state.searchQuery = e.target.value.toLowerCase().trim();
-            this.state.currentPage = 1;
-            this.renderTabla();
+            clearTimeout(_searchTimer);
+            _searchTimer = setTimeout(() => {
+                this.state.searchQuery = e.target.value.toLowerCase().trim();
+                this.state.currentPage = 1;
+                this.cargarPagina();
+            }, 350);
         });
 
         el.querySelectorAll('.nav-link[data-filter]').forEach(tab => {
@@ -320,41 +325,42 @@ export const ContactosModule = {
                     t.classList.add('text-muted');
                     t.style.borderBottomColor = 'transparent';
                 });
-                
                 e.target.classList.add('active', 'text-dark');
                 e.target.classList.remove('text-muted');
                 e.target.style.borderBottomColor = 'var(--primary)';
 
                 this.state.currentFilter = e.target.dataset.filter;
                 this.state.currentPage = 1;
-                this.renderTabla();
+                this.cargarPagina();
             });
         });
 
         el.querySelector('#items-per-page')?.addEventListener('change', (e) => {
             this.state.itemsPerPage = parseInt(e.target.value);
             this.state.currentPage = 1;
-            this.renderTabla();
+            this.cargarPagina();
         });
 
         el.querySelector('#btn-prev-page')?.addEventListener('click', () => {
             if (this.state.currentPage > 1) {
                 this.state.currentPage--;
-                this.renderTabla();
+                this.cargarPagina();
             }
         });
 
         el.querySelector('#btn-next-page')?.addEventListener('click', () => {
-            this.state.currentPage++;
-            this.renderTabla();
+            const totalPages = Math.ceil(this.state.totalCount / this.state.itemsPerPage) || 1;
+            if (this.state.currentPage < totalPages) {
+                this.state.currentPage++;
+                this.cargarPagina();
+            }
         });
 
         el.querySelector('#btn-refresh')?.addEventListener('click', async (e) => {
             const icon = e.currentTarget.querySelector('i');
-            if(icon) icon.classList.add('spin-animation');
-            await this.cargarDatos();
-            this.renderTabla();
-            if(icon) {
+            if (icon) icon.classList.add('spin-animation');
+            await this.cargarPagina();
+            if (icon) {
                 if (window._clientesRefreshTimeout) clearTimeout(window._clientesRefreshTimeout);
                 window._clientesRefreshTimeout = setTimeout(() => {
                     if (document.body.contains(icon)) icon.classList.remove('spin-animation');
@@ -384,8 +390,7 @@ export const ContactosModule = {
                 e.preventDefault();
                 if (confirm('¿Está seguro de eliminar este contacto?')) {
                     await DB.delete('contactos', e.currentTarget.dataset.id);
-                    await this.cargarDatos();
-                    this.renderTabla();
+                    await this.cargarPagina();
                 }
             });
         });
@@ -511,7 +516,7 @@ export const ContactosModule = {
                 ...datos
             };
             await DB.save('contactos', nuevoContacto);
-            await this.cargarDatos();
+            await this.cargarPagina();
             this.restaurarVistaTabla();
         });
     },
@@ -827,7 +832,6 @@ export const ContactosModule = {
     },
 
     async restaurarVistaTabla() {
-        await this.cargarDatos();
         const tabs = this.element.querySelector('#contactos-tabs');
         if (tabs) tabs.style.display = 'flex';
         
@@ -867,25 +871,25 @@ export const ContactosModule = {
                         </div>
                         <div class="d-flex align-items-center gap-3">
                             <span class="d-flex align-items-center gap-2">
-                                Contactos por página: 
+                                Contactos por página:
                                 <select id="items-per-page" class="form-select form-select-sm border-0 bg-transparent text-muted fw-bold" style="width: 60px; box-shadow: none; cursor: pointer;">
                                     <option value="10" ${this.state.itemsPerPage === 10 ? 'selected' : ''}>10</option>
                                     <option value="25" ${this.state.itemsPerPage === 25 ? 'selected' : ''}>25</option>
                                     <option value="50" ${this.state.itemsPerPage === 50 ? 'selected' : ''}>50</option>
                                 </select>
                             </span>
-                            <span id="showing-count">1-10 de 709</span>
+                            <span id="showing-count">...</span>
                             <button id="btn-refresh" class="btn btn-sm btn-light border text-muted rounded-circle" style="width: 30px; height: 30px; padding: 0;"><i class="bi bi-arrow-clockwise"></i></button>
                         </div>
                     </div>
                 </div>
             `;
-            if(this.state.searchQuery) {
+            if (this.state.searchQuery) {
                 const search = this.element.querySelector('#search-contacto');
-                if(search) search.value = this.state.searchQuery;
+                if (search) search.value = this.state.searchQuery;
             }
             this.bindEvents();
-            this.renderTabla();
+            await this.cargarPagina();
         }
     },
 
