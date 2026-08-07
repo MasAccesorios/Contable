@@ -29,15 +29,6 @@ export const CotizacionesModule = {
                 </div>
             </div>
         `;
-        const cotizacionesData = await DB.getAll('cotizaciones');
-
-        // Obtener contactos para mostrar los nombres
-        const contactos = await DB.getAll('contactos');
-        const getClienteName = (id) => {
-            const cliente = contactos.find(c => c.id === id);
-            return cliente ? cliente.nombre : 'Sin Cliente';
-        };
-
         // Estado de Paginación, Ordenamiento y Filtro
         let sortColumn = 'numero';
         let sortDirection = 'desc';
@@ -45,82 +36,56 @@ export const CotizacionesModule = {
         let itemsPerPage = 10;
         let searchQuery = '';
         let filterCriteria = 'todos'; // todos, numero, cliente, fecha, estado
-        let filteredData = [];
+        let filteredData = []; // Mantenido para exportación rápida de la página actual
 
         const formatMoney = (val) => '$ ' + parseFloat(val || 0).toLocaleString('es-CO', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 
-        const renderGrid = () => {
-            // Aplicar Filtro Multi-Criterio
-            filteredData = cotizacionesData.filter(c => {
-                if (!searchQuery) return true;
-                const clientName = getClienteName(c.clienteId).toLowerCase();
-                const num = (c.numero || '').toString();
-                const state = c.convertidoAFactura ? 'facturada' : 'borrador';
-                const date = c.fecha || '';
-
-                if (filterCriteria === 'numero') return num.toLowerCase().includes(searchQuery);
-                if (filterCriteria === 'cliente') return clientName.includes(searchQuery);
-                if (filterCriteria === 'fecha') return date.includes(searchQuery);
-                if (filterCriteria === 'estado') return state.includes(searchQuery);
-                
-                // Búsqueda Transversal Global
-                return clientName.includes(searchQuery) || num.toLowerCase().includes(searchQuery) || state.includes(searchQuery) || date.includes(searchQuery);
+        const renderGrid = async () => {
+            // Paginación Real vía RPC
+            const { data: response, error } = await supabase.rpc('get_cotizaciones_page', {
+                p_page: currentPage,
+                p_limit: itemsPerPage,
+                p_sort_column: sortColumn,
+                p_sort_direction: sortDirection,
+                p_search_query: searchQuery,
+                p_filter_criteria: filterCriteria
             });
 
-            // Aplicar Ordenamiento Dinámico
-            filteredData.sort((a, b) => {
-                let valA, valB;
-                if (sortColumn === 'numero') {
-                    valA = parseInt(String(a.numero !== undefined && a.numero !== null && String(a.numero).trim() !== '' ? a.numero : 0).replace(/\D/g, ''), 10) || 0;
-                    valB = parseInt(String(b.numero !== undefined && b.numero !== null && String(b.numero).trim() !== '' ? b.numero : 0).replace(/\D/g, ''), 10) || 0;
-                    if (valA === valB) {
-                        valA = parseInt(String(a.id).replace(/\D/g, ''), 10) || 0;
-                        valB = parseInt(String(b.id).replace(/\D/g, ''), 10) || 0;
-                    }
-                } else if (sortColumn === 'cliente') {
-                    valA = getClienteName(a.clienteId || a.contactoId).toLowerCase();
-                    valB = getClienteName(b.clienteId || b.contactoId).toLowerCase();
-                } else if (sortColumn === 'fecha') {
-                    valA = a.fecha || '';
-                    valB = b.fecha || '';
-                }
+            if (error) {
+                console.error("Error cargando cotizaciones:", error);
+                element.innerHTML = `<div class="p-4 text-center text-danger">Error al cargar cotizaciones: ${error.message}</div>`;
+                return;
+            }
 
-                let comparison = 0;
-                if (typeof valA === 'number' && typeof valB === 'number') {
-                    comparison = valA - valB;
-                } else {
-                    comparison = String(valA).localeCompare(String(valB));
-                }
+            const currentItems = response?.[0]?.data || [];
+            const totalItems = parseInt(response?.[0]?.total_count || 0, 10);
+            filteredData = currentItems; // Para exportar solo la página
 
-                return sortDirection === 'asc' ? comparison : -comparison;
-            });
-
-            const totalItems = filteredData.length;
             const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
             if (currentPage > totalPages) currentPage = totalPages;
             if (currentPage < 1) currentPage = 1;
-
             const startIndex = (currentPage - 1) * itemsPerPage;
-            const currentItems = filteredData.slice(startIndex, startIndex + itemsPerPage);
 
+            // KPIs vía RPC
+            const { data: kpis, error: errKpi } = await supabase.rpc('get_cotizaciones_kpis');
             let totalCotizado = 0, totalAprobado = 0, totalPendiente = 0;
-            cotizacionesData.forEach(c => {
-                const tot = parseFloat(c.total) || 0;
-                totalCotizado += tot;
-                if (c.convertidoAFactura) totalAprobado += tot;
-                else totalPendiente += tot;
-            });
+            if (!errKpi && kpis) {
+                totalCotizado = parseFloat(kpis.totalCotizado) || 0;
+                totalAprobado = parseFloat(kpis.totalAprobado) || 0;
+                totalPendiente = parseFloat(kpis.totalPendiente) || 0;
+            }
 
             const tbodyHtml = currentItems.length > 0 ? currentItems.map(c => {
-                const isFacturada = c.convertidoAFactura;
+                const isFacturada = c.convertido_a_factura;
                 const badgeClass = isFacturada ? 'bg-success text-success bg-opacity-10 border border-success-subtle' : 'bg-warning text-warning-emphasis bg-opacity-10 border border-warning-subtle';
                 const labelEstado = isFacturada ? 'Aprobada' : 'Pendiente';
                 const numDisplay = (c.numero || c.id);
+                const clientNameDisplay = c.cliente_nombre || 'Sin Cliente';
                 
                 return `
                     <tr style="cursor: pointer; border-bottom: 1px solid var(--border-color); font-size: 13px; color: var(--text-body);" onclick="if(!event.target.closest('button')) window.location.hash = '#/ingresos/cotizaciones/ver/${c.id}'">
                         <td class="py-3">${numDisplay}</td>
-                        <td class="py-3" style="color: var(--text-main); font-weight: var(--weight-medium);">${getClienteName(c.clienteId)}</td>
+                        <td class="py-3" style="color: var(--text-main); font-weight: var(--weight-medium);">${clientNameDisplay}</td>
                         <td class="py-3">${c.fecha}</td>
                         <td class="py-3 text-end">${formatMoney(c.total)}</td>
                         <td class="py-3 text-center">
@@ -325,7 +290,7 @@ export const CotizacionesModule = {
 
             // Exportar Lista a CSV
             element.querySelector('#btn-export-list')?.addEventListener('click', (e) => {
-                ExportManager.exportDataToExcel(filteredData, 'Cotizaciones', getClienteName, e.currentTarget);
+                ExportManager.exportDataToExcel(filteredData, 'Cotizaciones', (id, c) => c ? c.cliente_nombre : 'Sin Cliente', e.currentTarget);
             });
 
             // Actualizar Caché
@@ -335,10 +300,7 @@ export const CotizacionesModule = {
                 btn.disabled = true;
                 btn.innerHTML = `<span class="spinner-border spinner-border-sm" aria-hidden="true"></span>`;
                 
-                cotizacionesData = await DB.refreshCache('cotizaciones');
-                contactos = await DB.refreshCache('contactos');
-                
-                renderGrid();
+                await renderGrid();
                 
                 btn.innerHTML = originalHtml;
                 btn.disabled = false;
@@ -397,9 +359,7 @@ export const CotizacionesModule = {
                             // El inventario solo se descuenta cuando se convierten a facturas.
                             await DB.delete('cotizaciones', id);
                             menu.remove();
-                            // Recargar DB local
-                            const idx = cotizacionesData.findIndex(c => c.id === id);
-                            if (idx > -1) cotizacionesData.splice(idx, 1);
+                            // Recargar DB vía RPC
                             renderGrid();
                         }
                     });
@@ -413,6 +373,7 @@ export const CotizacionesModule = {
                     const id = e.currentTarget.dataset.id;
                     const doc = await DB.get('cotizaciones', id);
                     if (doc) {
+                        const contactos = await DB.getAll('contactos');
                         const productos = await DB.getAll('productos');
                         PrintManager.printDocument(doc, 'Cotización', contactos, productos);
                     }
