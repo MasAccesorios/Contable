@@ -50,13 +50,41 @@ export const ComprasModule = {
         let currentItems = [];
         let totalItems = 0;
         let totalPages = 1;
-
         const formatMoney = (val) => '$ ' + parseFloat(val || 0).toLocaleString('es-CO', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        
+        let kpiDataCxp = null;
 
         const renderGrid = async () => {
             // Spinner while loading
             if (element.querySelector('tbody')) {
                 element.querySelector('tbody').innerHTML = `<tr><td colspan="9" class="text-center py-5"><div class="spinner-border spinner-border-sm text-primary"></div> Cargando...</td></tr>`;
+            }
+
+            if (!kpiDataCxp) {
+                try {
+                    const { data: cxpData } = await supabase.rpc('get_cartera_con_saldos', { p_tipo_cartera: 'cxp' });
+                    if (cxpData) {
+                        let total = 0, vigente = 0, vencido = 0;
+                        const hoyUTC = Date.UTC(new Date().getFullYear(), new Date().getMonth(), new Date().getDate());
+                        cxpData.forEach(f => {
+                            const saldo = parseFloat(f.saldo !== undefined ? f.saldo : f.total) || 0;
+                            total += saldo;
+                            let diasVencida = 0;
+                            if (f.vencimiento) {
+                                const vDate = new Date(f.vencimiento);
+                                const utcVenc = Date.UTC(vDate.getFullYear(), vDate.getMonth(), vDate.getDate());
+                                diasVencida = Math.floor((hoyUTC - utcVenc) / (1000 * 60 * 60 * 24));
+                            }
+                            if (diasVencida >= 1) vencido += saldo;
+                            else vigente += saldo;
+                        });
+                        kpiDataCxp = { total, vigente, vencido };
+                    } else {
+                        kpiDataCxp = { total: 0, vigente: 0, vencido: 0 };
+                    }
+                } catch(e) {
+                    kpiDataCxp = { total: 0, vigente: 0, vencido: 0 };
+                }
             }
 
             try {
@@ -101,45 +129,45 @@ export const ComprasModule = {
 
             const tbodyHtml = currentItems.length > 0 ? currentItems.map(c => {
                 const estado = c.estado || 'por_pagar';
-                let textEstadoColor = '';
                 let labelEstado = '';
+                let badgeClass = '';
                 
-                if (estado === 'anulada' || estado === 'voided' || estado === 'void') {
-                    textEstadoColor = 'color: #ef4444;';
-                    labelEstado = 'Anulada';
-                } else if (c.saldoPendiente <= 0) {
-                    textEstadoColor = 'color: #2cbfb7;';
-                    labelEstado = 'Pagada';
-                } else {
-                    textEstadoColor = 'color: #ef4444;';
-                    labelEstado = 'Por pagar';
-                }
-
-                const numDisplay = c.numero || parseInt(String(c.id).replace(/\D/g, ''), 10) || c.id;
-                
-                let vencimientoColor = 'var(--text-body)';
+                let isVencida = false;
                 if (c.vencimiento) {
                     const vDate = new Date(c.vencimiento);
                     const hoy = new Date();
                     hoy.setHours(0,0,0,0);
-                    if (vDate < hoy && labelEstado === 'Por pagar') {
-                        vencimientoColor = '#ef4444';
-                    }
+                    if (vDate < hoy) isVencida = true;
                 }
                 
+                if (estado === 'anulada' || estado === 'voided' || estado === 'void') {
+                    labelEstado = 'Anulada';
+                    badgeClass = 'bg-secondary text-secondary bg-opacity-10 border border-secondary-subtle';
+                } else if (c.saldoPendiente <= 0) {
+                    labelEstado = 'Pagada';
+                    badgeClass = 'bg-primary text-primary bg-opacity-10 border border-primary-subtle';
+                } else if (isVencida) {
+                    labelEstado = 'Vencida';
+                    badgeClass = 'bg-danger text-danger bg-opacity-10 border border-danger-subtle';
+                } else {
+                    labelEstado = 'Vigente';
+                    badgeClass = 'bg-success text-success bg-opacity-10 border border-success-subtle';
+                }
+
+                const numDisplay = c.numero || parseInt(String(c.id).replace(/\D/g, ''), 10) || c.id;
                 const rowOpacity = (estado === 'anulada' || estado === 'voided' || estado === 'void') ? '0.5' : '1';
                 
                 return `
                     <tr style="cursor: pointer; border-bottom: 1px solid var(--border-color); font-size: 13px; color: var(--text-body); opacity: ${rowOpacity}; transition: opacity 0.2s;" onclick="if(!event.target.closest('button')) window.location.hash = '#/gastos/proveedores/ver/${c.id}'">
                         <td class="py-3">${numDisplay}</td>
                         <td class="py-3">${c.fecha || ''}</td>
-                        <td class="py-3" style="color: ${vencimientoColor};">${c.vencimiento || ''}</td>
+                        <td class="py-3 ${isVencida && c.saldoPendiente > 0 ? 'text-danger fw-semibold' : ''}">${c.vencimiento || ''}</td>
                         <td class="py-3" style="color: var(--text-main); font-weight: var(--weight-medium);">${contactosMap[c.proveedorId || c.contacto_id || c.contactoId] || 'Sin Proveedor'}</td>
                         <td class="py-3 text-end">${formatMoney(c.total)}</td>
                         <td class="py-3 text-end">${formatMoney(c.totalPagado)}</td>
-                        <td class="py-3 text-end">${formatMoney(c.saldoPendiente)}</td>
-                        <td class="py-3 text-center" style="${textEstadoColor} font-weight: 500;">
-                            ${labelEstado}
+                        <td class="py-3 text-end fw-bold text-dark">${formatMoney(c.saldoPendiente)}</td>
+                        <td class="py-3 text-center">
+                            <span class="badge ${badgeClass} rounded-pill fw-medium" style="font-size: 11px; padding: 5px 10px;">${labelEstado}</span>
                         </td>
                         <td class="py-3 text-end" style="position: relative;">
                             <button class="btn btn-link text-muted p-0 me-2 btn-imprimir-row" data-id="${c.id}">
@@ -177,6 +205,37 @@ export const ComprasModule = {
                                     <i class="bi bi-plus-lg me-1"></i> Nueva factura
                                 </button>
                                 <button class="btn text-white px-2 dropdown-toggle dropdown-toggle-split" style="background-color: #2cbfb7; border-left: 1px solid rgba(255,255,255,0.2);"></button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- KPI CARDS COMPRAS -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-12 col-sm-6 col-lg-4">
+                            <div class="card kpi-card kpi-primary">
+                                <div class="kpi-card-body">
+                                    <i class="bi bi-wallet2 kpi-icon"></i>
+                                    <h6 class="kpi-label">Total por Pagar</h6>
+                                    <h5 class="kpi-value">$ ${formatMoney(kpiDataCxp.total).replace('$ ', '')}</h5>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-lg-4">
+                            <div class="card kpi-card kpi-success">
+                                <div class="kpi-card-body">
+                                    <i class="bi bi-check-circle kpi-icon"></i>
+                                    <h6 class="kpi-label">Cuentas Vigentes</h6>
+                                    <h5 class="kpi-value">$ ${formatMoney(kpiDataCxp.vigente).replace('$ ', '')}</h5>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-lg-4">
+                            <div class="card kpi-card kpi-danger">
+                                <div class="kpi-card-body">
+                                    <i class="bi bi-exclamation-triangle kpi-icon"></i>
+                                    <h6 class="kpi-label">Cuentas Vencidas</h6>
+                                    <h5 class="kpi-value">$ ${formatMoney(kpiDataCxp.vencido).replace('$ ', '')}</h5>
+                                </div>
                             </div>
                         </div>
                     </div>

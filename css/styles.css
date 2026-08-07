@@ -597,3 +597,17 @@ body {
 .kpi-info .kpi-label { color: var(--bs-gray-700); }
 .kpi-info .kpi-value, .kpi-info .kpi-icon { color: var(--bs-info); }
 
+.kpi-danger {
+    border-left: 4px solid var(--bs-danger) !important;
+    background-color: rgba(var(--bs-danger-rgb), 0.1) !important;
+}
+.kpi-danger .kpi-label { color: var(--bs-gray-700); }
+.kpi-danger .kpi-value, .kpi-danger .kpi-icon { color: var(--bs-danger); }
+
+.kpi-warning {
+    border-left: 4px solid var(--bs-warning) !important;
+    background-color: rgba(var(--bs-warning-rgb), 0.1) !important;
+}
+.kpi-warning .kpi-label { color: var(--bs-gray-700); }
+.kpi-warning .kpi-value, .kpi-warning .kpi-icon { color: var(--bs-warning); }
+

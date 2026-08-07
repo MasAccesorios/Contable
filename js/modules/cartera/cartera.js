@@ -38,11 +38,29 @@ export default {
         const getCliente = (id) => contactos.find(c => String(c.id) === String(id)) || { nombre: 'Desconocido' };
         const formatMoney = (val) => '$ ' + parseFloat(val || 0).toLocaleString('es-CO', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 
-        const totalCartera = facturasPendientes.reduce((sum, f) => {
+        let totalCartera = 0;
+        let totalVigente = 0;
+        let totalVencido = 0;
+        
+        const hoyUTC = Date.UTC(new Date().getFullYear(), new Date().getMonth(), new Date().getDate());
+
+        facturasPendientes.forEach(f => {
             const total = parseFloat(f.total) || 0;
             const saldo = parseFloat(f.saldo !== undefined ? f.saldo : total);
-            return sum + saldo;
-        }, 0);
+            totalCartera += saldo;
+            
+            let diasVencida = 0;
+            if (f.vencimiento) {
+                const vDate = new Date(f.vencimiento);
+                const utcVenc = Date.UTC(vDate.getFullYear(), vDate.getMonth(), vDate.getDate());
+                diasVencida = Math.floor((hoyUTC - utcVenc) / (1000 * 60 * 60 * 24));
+            }
+            if (diasVencida >= 1) {
+                totalVencido += saldo;
+            } else {
+                totalVigente += saldo;
+            }
+        });
 
         const html = `
             <div class="py-3 px-4" style="font-family: 'Inter', sans-serif; background-color: #f8f9fa; min-height: 100vh; font-size: 13px;">
@@ -136,18 +154,34 @@ export default {
                     </div>
                 </div>
 
-                <!-- BARRAS / PESTAÑAS DE VENCIMIENTO Y TOTAL GENERAL -->
-                <div class="card border-0 shadow-sm bg-white mb-3" style="border-radius: 6px; overflow: hidden;">
-                    <div class="d-flex border-bottom text-center text-muted" style="font-size: 12px;">
-                        <div class="flex-fill py-2 px-1 border-end bg-light-subtle tab-vencimiento" data-rango="0-30" style="cursor: pointer;">Vencidas 30 días o menos</div>
-                        <div class="flex-fill py-2 px-1 border-end bg-light-subtle tab-vencimiento" data-rango="31-60" style="cursor: pointer;">Vencidas 31 a de 60 días</div>
-                        <div class="flex-fill py-2 px-1 border-end bg-light-subtle tab-vencimiento" data-rango="61-90" style="cursor: pointer;">Vencidas 61 a de 90 días</div>
-                        <div class="flex-fill py-2 px-1 border-end bg-light-subtle tab-vencimiento" data-rango="91+" style="cursor: pointer;">Vencidas 91+</div>
-                        <div class="flex-fill py-2 px-1 bg-light-subtle tab-vencimiento" data-rango="no-vencidas" style="cursor: pointer;">No vencidas</div>
+                <!-- KPI CARDS CARTERA -->
+                <div class="row g-3 mb-4">
+                    <div class="col-12 col-sm-6 col-lg-4">
+                        <div class="card kpi-card kpi-primary">
+                            <div class="kpi-card-body">
+                                <i class="bi bi-wallet2 kpi-icon"></i>
+                                <h6 class="kpi-label">Total por Cobrar</h6>
+                                <h5 class="kpi-value" id="lbl-total-por-cobrar">$ ${totalCartera.toLocaleString('es-CO', {minimumFractionDigits: 2})}</h5>
+                            </div>
+                        </div>
                     </div>
-                    <div class="p-3 text-center">
-                        <div class="text-muted" style="font-size: 11px;">Total por cobrar</div>
-                        <div class="fw-bold" style="font-size: 18px; color: #ef4444;" id="lbl-total-por-cobrar">$ ${totalCartera.toLocaleString('es-CO', {minimumFractionDigits: 2})}</div>
+                    <div class="col-12 col-sm-6 col-lg-4">
+                        <div class="card kpi-card kpi-success">
+                            <div class="kpi-card-body">
+                                <i class="bi bi-check-circle kpi-icon"></i>
+                                <h6 class="kpi-label">Cartera Vigente</h6>
+                                <h5 class="kpi-value" id="lbl-total-vigente">$ ${totalVigente.toLocaleString('es-CO', {minimumFractionDigits: 2})}</h5>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-sm-6 col-lg-4">
+                        <div class="card kpi-card kpi-danger">
+                            <div class="kpi-card-body">
+                                <i class="bi bi-exclamation-triangle kpi-icon"></i>
+                                <h6 class="kpi-label">Cartera Vencida</h6>
+                                <h5 class="kpi-value" id="lbl-total-vencido">$ ${totalVencido.toLocaleString('es-CO', {minimumFractionDigits: 2})}</h5>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -187,6 +221,7 @@ export default {
                                     <th>Cliente</th>
                                     <th>Creación</th>
                                     <th>Vencimiento</th>
+                                    <th>Estado</th>
                                     <th class="text-end">Total</th>
                                     <th class="text-end">Cobrado</th>
                                     <th class="text-end pe-3">Por cobrar</th>
@@ -219,6 +254,9 @@ export default {
                                         <td class="text-dark" style="white-space: nowrap;">${cliente.nombre}</td>
                                         <td class="text-muted" style="white-space: nowrap;">${f.fecha || 'N/A'}</td>
                                         <td class="${isVencida ? 'text-danger fw-semibold' : 'text-muted'}" style="white-space: nowrap;">${f.vencimiento || 'N/A'}</td>
+                                        <td style="white-space: nowrap;">
+                                            <span class="badge ${isVencida ? 'bg-danger text-danger bg-opacity-10 border border-danger-subtle' : 'bg-success text-success bg-opacity-10 border border-success-subtle'} rounded-pill fw-medium" style="font-size: 11px; padding: 5px 10px;">${isVencida ? 'Vencida' : 'Vigente'}</span>
+                                        </td>
                                         <td class="text-end text-dark" style="white-space: nowrap;">$ ${total.toLocaleString('es-CO', {minimumFractionDigits: 2})}</td>
                                         <td class="text-end text-muted" style="white-space: nowrap;">$ ${cobrado.toLocaleString('es-CO', {minimumFractionDigits: 2})}</td>
                                         <td class="text-end fw-bold text-dark pe-3" style="white-space: nowrap;">$ ${saldo.toLocaleString('es-CO', {minimumFractionDigits: 2})}</td>
