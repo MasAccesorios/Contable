@@ -147,25 +147,26 @@ export const ValorizacionModule = {
         let granTotalAcumulado = 0;
         
         this.state.datosCalculados = this.state.productos.map(p => {
-            const lotesProd = rawLotes.filter(l => l.productoId === p.id && l.cantidadActual > 0);
+            const lotesProd = rawLotes.filter(l => l.productoId === p.id);
             
-            // Priorizar stock importado estático y sumarle los lotes nuevos si los hay
-            const stockBase = parseFloat(p.stock) || 0;
-            const stockLotes = lotesProd.reduce((sum, l) => sum + l.cantidadActual, 0);
-            const stockTotal = stockBase + stockLotes;
+            // El trigger de base de datos ya garantiza que p.stock = SUM(lotes_fifo)
+            const stockTotal = parseFloat(p.stock) || 0;
             
-            // Calcular costo usando el estático si no hay lotes
-            const costoLotes = lotesProd.reduce((sum, l) => sum + (l.cantidadActual * (l.costoUnitario || 0)), 0);
+            // Calcular costo usando solo los lotes positivos para no distorsionar el promedio
+            const lotesPositivos = lotesProd.filter(l => l.cantidadActual > 0);
+            const stockLotesPositivos = lotesPositivos.reduce((sum, l) => sum + l.cantidadActual, 0);
+            const costoLotes = lotesPositivos.reduce((sum, l) => sum + (l.cantidadActual * (l.costoUnitario || 0)), 0);
             
             // Si el stock es 0, hace fallback al costo base para no mostrar $0 en promedio
             const costoPromedio = stockTotal > 0 ? 
-                (stockLotes > 0 ? costoLotes / stockLotes : (p.costoBase || 0)) 
-                : (p.costoBase || 0);
+                (stockLotesPositivos > 0 ? costoLotes / stockLotesPositivos : (parseFloat(p.costoBase) || 0)) 
+                : (parseFloat(p.costoBase) || 0);
             
-            // Pero el Total siempre debe ser 0 si el stock es 0 (stockTotal * costoPromedio)
             const valorTotal = stockTotal * costoPromedio; 
 
-            granTotalAcumulado += valorTotal;
+            // REGLA: Stock negativo aporta $0 (excepto SKU 500x que son rollos de corte bajo demanda)
+            const isRollo = p.sku && p.sku.startsWith('500');
+            granTotalAcumulado += (stockTotal < 0 && !isRollo) ? 0 : valorTotal;
 
             return {
                 id: p.id,
@@ -270,8 +271,11 @@ export const ValorizacionModule = {
             csvContent += row.join(";") + "\n";
         });
 
-        // Añadir sumatoria al final del CSV de lo que se acaba de exportar
-        const totalExportado = this.state.filtrados.reduce((sum, item) => sum + item.valorTotal, 0);
+        // Excepción de sumatoria CSV para SKU serie 500
+        const totalExportado = this.state.filtrados.reduce((sum, item) => {
+            const isRollo = item.sku && item.sku.startsWith('500');
+            return sum + ((item.stockTotal < 0 && !isRollo) ? 0 : item.valorTotal);
+        }, 0);
         csvContent += `\n"Total Valorizado";"";"";"";"${formatDecimalLatam(totalExportado)}"\n`;
 
         const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });

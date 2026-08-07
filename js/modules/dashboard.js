@@ -207,8 +207,22 @@ export const DashboardModule = {
         let utilidadMes = 0;
         let productosVendidos = 0;
         
-        // Inventario Valorizado
-        let inventarioValorizado = lotes.reduce((sum, l) => sum + (l.cantidadActual * l.costoUnitario), 0);
+        // Mapa rápido de productos para cruzar SKU en O(1)
+        const productosMap = {};
+        for (const p of (this.productos || [])) {
+            productosMap[p.id] = p;
+        }
+        
+        // Inventario Valorizado (Lotes reales, regla de sobreventa excepto SKU 500)
+        let inventarioValorizado = lotes.reduce((sum, l) => {
+            const p = productosMap[l.productoId];
+            const isRollo = p && p.sku && p.sku.startsWith('500');
+            
+            // Si el lote está en negativo y NO es rollo, su valor se anula ($0)
+            const valorCero = (l.cantidadActual < 0 && !isRollo);
+            
+            return sum + (valorCero ? 0 : (l.cantidadActual * (l.costoUnitario || 0)));
+        }, 0);
         
         // Saldo Total Bancos (Usando la fuente de verdad de Supabase)
         let saldoBancos = 0;
