@@ -2,6 +2,7 @@ import DB, { getLocalDate } from '../../core/db.js';
 import { supabase } from '../../core/supabase.js';
 import { CoreActions, ItemEngine, NumberingManager, ExportManager, PrintManager } from '../../shared/crud.js';
 import { renderTablaFacturas } from '../../shared/tablaFacturas.js';
+import { mostrarDetalleTransaccion } from '../../shared/transaccionModal.js';
 import { ContactosModule } from '../clientes/clientes.js';
 import { UI } from '../../shared/combobox.js';
 import { calcularEstadoFactura } from '../../shared/carteraUtils.js';
@@ -520,9 +521,14 @@ export const FacturasModule = {
                 if (pData) productosFactura = pData.map(p => DB._mapToFrontend('productos', p));
             }
         }
+        
+        const dbContactos = await DB.getAll('contactos') || [];
+        const clientes = dbContactos.filter(c => c.estado === 'activo' && (c.es_cliente || c.tipo !== 'proveedor'));
 
         const dbCuentas = await DB.getAll('cuentas_bancarias') || [];
         const cuentasActivas = dbCuentas.filter(c => c.estado === 'activo');
+        const cuentasMap = {};
+        dbCuentas.forEach(c => cuentasMap[c.id] = c.nombre);
 
         element.innerHTML = `
             <div class="module-container p-4" style="max-width: 1100px; margin: 0 auto;">
@@ -680,10 +686,10 @@ export const FacturasModule = {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        ${(transacciones && transacciones.length > 0) ? transacciones.map(p => `
-                                        <tr style="border-bottom: 1px solid #f0f0f0;">
+                                        ${(transacciones && transacciones.length > 0) ? transacciones.map((p, idx) => `
+                                        <tr class="fila-pago" data-index="${idx}" style="border-bottom: 1px solid #f0f0f0; cursor: pointer; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#f8f9fa'" onmouseout="this.style.backgroundColor='transparent'">
                                             <td class="py-2 text-muted">${p.fecha || p.created_at?.split('T')[0] || ''}</td>
-                                            <td class="py-2">${p.cuentaId || p.cuenta_id || '-'}</td>
+                                            <td class="py-2">${cuentasMap[p.cuentaId || p.cuenta_id] || (p.cuentaId || p.cuenta_id || '-')}</td>
                                             <td class="py-2">${p.metodo_pago || p.metodoPago || '-'}</td>
                                             <td class="py-2 text-end fw-medium">$${Number(p.monto || p.valor || 0).toLocaleString()}</td>
                                         </tr>`).join('') : `
@@ -725,6 +731,17 @@ export const FacturasModule = {
         if (id) {
             // Pasamos 'factura' en vez de 'cotizacion' para que evite renderizar "Convertir a Factura"
             CoreActions.bindActionEvents(element, factura, 'factura', {});
+            
+            element.querySelectorAll('.fila-pago').forEach(row => {
+                row.addEventListener('click', () => {
+                    const idx = parseInt(row.dataset.index, 10);
+                    if (!isNaN(idx) && transacciones && transacciones[idx]) {
+                        mostrarDetalleTransaccion(transacciones[idx], () => {
+                            this.renderForm(element, id, isViewOnly);
+                        });
+                    }
+                });
+            });
         }
 
         // ==========================================
