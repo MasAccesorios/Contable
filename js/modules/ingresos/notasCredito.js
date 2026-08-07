@@ -65,8 +65,22 @@ export const NotasCreditoModule = {
                 }
             }
 
+            let totalAnulada = 0, totalAplicadas = 0, totalPendientes = 0;
+            if (notas) {
+                notas.forEach(n => {
+                    const tot = parseFloat(n.total) || 0;
+                    if (n.estado === 'anulada') {
+                        totalAnulada += tot;
+                    } else {
+                        totalAplicadas += tot; // Asumiremos que las activas están aplicadas a facturas
+                    }
+                });
+            }
+
             const tbodyHtml = (notas && notas.length > 0) ? notas.map(n => {
-                const estadoLabel = n.estado === 'anulada' ? '<span class="text-danger fw-bold">Anulada</span>' : '<span class="text-success fw-bold">Activa</span>';
+                let badgeClass = n.estado === 'anulada' ? 'bg-secondary text-secondary bg-opacity-10 border border-secondary-subtle' : 'bg-success text-success bg-opacity-10 border border-success-subtle';
+                let labelEstado = n.estado === 'anulada' ? 'Anulada' : 'Aplicada';
+                const estadoLabel = `<span class="badge ${badgeClass} rounded-pill fw-medium" style="font-size: 11px; padding: 5px 10px;">${labelEstado}</span>`;
                 const opacity = n.estado === 'anulada' ? '0.5' : '1';
                 
                 return `
@@ -95,6 +109,37 @@ export const NotasCreditoModule = {
                         <button class="btn text-white" style="background-color: #2cbfb7; font-weight: 500;" onclick="window.location.hash='#/ingresos/notas-credito/nueva'">
                             <i class="bi bi-plus-lg me-1"></i> Nueva Nota
                         </button>
+                    </div>
+
+                    <!-- KPI CARDS NOTAS CREDITO -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-12 col-sm-6 col-lg-4">
+                            <div class="card kpi-card kpi-dark">
+                                <div class="kpi-card-body">
+                                    <i class="bi bi-x-circle kpi-icon"></i>
+                                    <h6 class="kpi-label">Total Anuladas</h6>
+                                    <h5 class="kpi-value">$ ${Number(totalAnulada).toLocaleString('es-CO', {minimumFractionDigits: 2})}</h5>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-lg-4">
+                            <div class="card kpi-card kpi-success">
+                                <div class="kpi-card-body">
+                                    <i class="bi bi-check2-all kpi-icon"></i>
+                                    <h6 class="kpi-label">Notas Aplicadas</h6>
+                                    <h5 class="kpi-value">$ ${Number(totalAplicadas).toLocaleString('es-CO', {minimumFractionDigits: 2})}</h5>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-lg-4">
+                            <div class="card kpi-card kpi-warning">
+                                <div class="kpi-card-body">
+                                    <i class="bi bi-clock-history kpi-icon"></i>
+                                    <h6 class="kpi-label">Notas Pendientes</h6>
+                                    <h5 class="kpi-value">$ ${Number(totalPendientes).toLocaleString('es-CO', {minimumFractionDigits: 2})}</h5>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="card border-0 shadow-sm" style="border-radius: 8px;">

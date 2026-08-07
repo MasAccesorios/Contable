@@ -3,31 +3,32 @@ export function renderTablaFacturas(facturas, contactosMap, sortColumn = 'fecha'
 
     const tbodyHtml = facturas.length > 0 ? facturas.map(c => {
         const estado = c.estado || 'por_pagar';
-        let textEstadoColor = '';
         let labelEstado = '';
+        let badgeClass = '';
         
-        if (estado === 'anulada' || estado === 'voided' || estado === 'void') {
-            textEstadoColor = 'color: #ef4444;';
-            labelEstado = 'Anulada';
-        } else if (c.saldoPendiente <= 0) {
-            textEstadoColor = 'color: #2cbfb7;';
-            labelEstado = 'Cobrada';
-        } else {
-            textEstadoColor = 'color: #ef4444;';
-            labelEstado = 'Por cobrar';
-        }
-
-        const numDisplay = c.numero || parseInt(String(c.id).replace(/\D/g, ''), 10) || c.id;
-        
-        let vencimientoColor = 'var(--text-body)';
+        let isVencida = false;
         if (c.vencimiento) {
             const vDate = new Date(c.vencimiento);
             const hoy = new Date();
             hoy.setHours(0,0,0,0);
-            if (vDate < hoy && labelEstado === 'Por cobrar') {
-                vencimientoColor = '#ef4444';
-            }
+            if (vDate < hoy) isVencida = true;
         }
+
+        if (estado === 'anulada' || estado === 'voided' || estado === 'void') {
+            labelEstado = 'Anulada';
+            badgeClass = 'bg-secondary text-secondary bg-opacity-10 border border-secondary-subtle';
+        } else if (c.saldoPendiente <= 0) {
+            labelEstado = 'Cobrada';
+            badgeClass = 'bg-primary text-primary bg-opacity-10 border border-primary-subtle';
+        } else if (isVencida) {
+            labelEstado = 'Vencida';
+            badgeClass = 'bg-danger text-danger bg-opacity-10 border border-danger-subtle';
+        } else {
+            labelEstado = 'Por cobrar';
+            badgeClass = 'bg-warning text-warning-emphasis bg-opacity-10 border border-warning-subtle';
+        }
+
+        const numDisplay = c.numero || parseInt(String(c.id).replace(/\D/g, ''), 10) || c.id;
         
         const rowOpacity = (estado === 'anulada' || estado === 'voided' || estado === 'void') ? '0.5' : '1';
         
@@ -35,13 +36,13 @@ export function renderTablaFacturas(facturas, contactosMap, sortColumn = 'fecha'
             <tr style="cursor: pointer; border-bottom: 1px solid var(--border-color); font-size: 13px; color: var(--text-body); opacity: ${rowOpacity}; transition: opacity 0.2s;" onclick="if(!event.target.closest('button')) window.location.hash = '#/ingresos/facturas/ver/${c.id}'">
                 <td class="py-3">${numDisplay}</td>
                 <td class="py-3">${c.fecha || ''}</td>
-                <td class="py-3" style="color: ${vencimientoColor};">${c.vencimiento || ''}</td>
+                <td class="py-3 ${isVencida && c.saldoPendiente > 0 ? 'text-danger fw-semibold' : ''}">${c.vencimiento || ''}</td>
                 <td class="py-3" style="color: var(--text-main); font-weight: var(--weight-medium);">${contactosMap[c.clienteId || c.contacto_id || c.contactoId] || 'Sin Cliente'}</td>
                 <td class="py-3 text-end">${formatMoney(c.total)}</td>
                 <td class="py-3 text-end">${formatMoney(c.totalPagado)}</td>
-                <td class="py-3 text-end">${formatMoney(c.saldoPendiente)}</td>
-                <td class="py-3 text-center" style="${textEstadoColor} font-weight: 500;">
-                    ${labelEstado}
+                <td class="py-3 text-end fw-bold text-dark">${formatMoney(c.saldoPendiente)}</td>
+                <td class="py-3 text-center">
+                    <span class="badge ${badgeClass} rounded-pill fw-medium" style="font-size: 11px; padding: 5px 10px;">${labelEstado}</span>
                 </td>
                 <td class="py-3 text-end" style="position: relative;">
                     <button class="btn btn-link text-muted p-0 me-2 btn-imprimir-row" data-id="${c.id}">

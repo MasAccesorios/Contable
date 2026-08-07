@@ -54,11 +54,36 @@ export const FacturasModule = {
         let totalPages = 1;
 
         const formatMoney = (val) => '$ ' + parseFloat(val || 0).toLocaleString('es-CO', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        
+        let kpiDataCxc = null;
 
         const renderGrid = async () => {
             // Spinner while loading
             if (element.querySelector('tbody')) {
                 element.querySelector('tbody').innerHTML = `<tr><td colspan="9" class="text-center py-5"><div class="spinner-border spinner-border-sm text-primary"></div> Cargando...</td></tr>`;
+            }
+
+            if (!kpiDataCxc) {
+                try {
+                    const { data: facturas } = await supabase.from('facturas_venta').select('total, total_pagado, saldo, estado');
+                    if (facturas) {
+                        let totalFacturado = 0, totalCobrado = 0, totalPendiente = 0;
+                        facturas.forEach(f => {
+                            if (f.estado === 'anulada' || f.estado === 'voided') return;
+                            const tot = parseFloat(f.total) || 0;
+                            const sal = parseFloat(f.saldo !== undefined ? f.saldo : tot) || 0;
+                            const cob = parseFloat(f.total_pagado !== undefined ? f.total_pagado : (tot - sal)) || 0;
+                            totalFacturado += tot;
+                            totalPendiente += sal;
+                            totalCobrado += cob;
+                        });
+                        kpiDataCxc = { facturado: totalFacturado, cobrado: totalCobrado, pendiente: totalPendiente };
+                    } else {
+                        kpiDataCxc = { facturado: 0, cobrado: 0, pendiente: 0 };
+                    }
+                } catch(e) {
+                    kpiDataCxc = { facturado: 0, cobrado: 0, pendiente: 0 };
+                }
             }
 
             try {
@@ -125,6 +150,37 @@ export const FacturasModule = {
                                     <i class="bi bi-plus-lg me-1"></i> Nueva factura
                                 </button>
                                 <button class="btn text-white px-2 dropdown-toggle dropdown-toggle-split" style="background-color: #2cbfb7; border-left: 1px solid rgba(255,255,255,0.2);"></button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- KPI CARDS FACTURAS -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-12 col-sm-6 col-lg-4">
+                            <div class="card kpi-card kpi-primary">
+                                <div class="kpi-card-body">
+                                    <i class="bi bi-receipt kpi-icon"></i>
+                                    <h6 class="kpi-label">Total Facturado</h6>
+                                    <h5 class="kpi-value">$ ${formatMoney(kpiDataCxc.facturado).replace('$ ', '')}</h5>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-lg-4">
+                            <div class="card kpi-card kpi-success">
+                                <div class="kpi-card-body">
+                                    <i class="bi bi-check-circle kpi-icon"></i>
+                                    <h6 class="kpi-label">Total Cobrado</h6>
+                                    <h5 class="kpi-value">$ ${formatMoney(kpiDataCxc.cobrado).replace('$ ', '')}</h5>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-lg-4">
+                            <div class="card kpi-card kpi-warning">
+                                <div class="kpi-card-body">
+                                    <i class="bi bi-clock-history kpi-icon"></i>
+                                    <h6 class="kpi-label">Total Pendiente</h6>
+                                    <h5 class="kpi-value">$ ${formatMoney(kpiDataCxc.pendiente).replace('$ ', '')}</h5>
+                                </div>
                             </div>
                         </div>
                     </div>

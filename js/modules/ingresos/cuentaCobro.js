@@ -34,6 +34,16 @@ export const CuentaCobroModule = {
 
         const formatMoney = (val) => '$ ' + parseFloat(val || 0).toLocaleString('es-CO', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 
+        let totalFacturado = 0, totalCobrado = 0, totalPendiente = 0;
+        listData.forEach(c => {
+            const tot = parseFloat(c.total) || 0;
+            const sal = parseFloat(c.saldo !== undefined ? c.saldo : tot) || 0;
+            const cob = parseFloat(c.total_pagado !== undefined ? c.total_pagado : (tot - sal)) || 0;
+            totalFacturado += tot;
+            totalPendiente += sal;
+            totalCobrado += cob;
+        });
+
         const rowsHtml = listData.map(c => `
             <tr style="border-bottom: 1px solid var(--border-color); font-size: 13px; color: var(--text-body);">
                 <td style="padding: 12px 16px; font-weight: 500;">No. ${c.numero}</td>
@@ -42,6 +52,9 @@ export const CuentaCobroModule = {
                     <div style="font-weight: 500; color: var(--text-main);">${c.cliente_razon_social}</div>
                 </td>
                 <td style="padding: 12px 16px; text-align: right; font-weight: 600;">${formatMoney(c.total)}</td>
+                <td style="padding: 12px 16px; text-align: center;">
+                    <span class="badge bg-warning text-warning-emphasis bg-opacity-10 border border-warning-subtle rounded-pill fw-medium" style="font-size: 11px; padding: 5px 10px;">Pendiente</span>
+                </td>
                 <td style="padding: 12px 16px; text-align: right;">
                     <button class="btn btn-sm btn-light border btn-ver-row" data-id="${c.id}" title="Ver"><i class="bi bi-eye"></i></button>
                     <button class="btn btn-sm btn-light border ms-1 btn-imprimir-row" data-id="${c.id}" title="Imprimir"><i class="bi bi-printer"></i></button>
@@ -58,6 +71,38 @@ export const CuentaCobroModule = {
                         <i class="bi bi-plus-lg me-2"></i>Nueva Cuenta de Cobro
                     </a>
                 </div>
+
+                <!-- KPI CARDS CUENTA DE COBRO -->
+                <div class="row g-3 mb-4">
+                    <div class="col-12 col-sm-6 col-lg-4">
+                        <div class="card kpi-card kpi-primary">
+                            <div class="kpi-card-body">
+                                <i class="bi bi-receipt kpi-icon"></i>
+                                <h6 class="kpi-label">Total Emitido</h6>
+                                <h5 class="kpi-value">$ ${formatMoney(totalFacturado).replace('$ ', '')}</h5>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-sm-6 col-lg-4">
+                        <div class="card kpi-card kpi-success">
+                            <div class="kpi-card-body">
+                                <i class="bi bi-check-circle kpi-icon"></i>
+                                <h6 class="kpi-label">Total Cobrado</h6>
+                                <h5 class="kpi-value">$ ${formatMoney(totalCobrado).replace('$ ', '')}</h5>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-sm-6 col-lg-4">
+                        <div class="card kpi-card kpi-warning">
+                            <div class="kpi-card-body">
+                                <i class="bi bi-clock-history kpi-icon"></i>
+                                <h6 class="kpi-label">Total Pendiente</h6>
+                                <h5 class="kpi-value">$ ${formatMoney(totalPendiente).replace('$ ', '')}</h5>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="card border-0 shadow-sm" style="border-radius: 12px; overflow: hidden;">
                     <div class="table-responsive">
                         <table class="table table-hover mb-0" style="width: 100%; border-collapse: collapse;">
@@ -67,6 +112,7 @@ export const CuentaCobroModule = {
                                     <th style="padding: 12px 16px; font-weight: 600;">Fecha</th>
                                     <th style="padding: 12px 16px; font-weight: 600;">Cliente</th>
                                     <th style="padding: 12px 16px; text-align: right; font-weight: 600;">Total</th>
+                                    <th style="padding: 12px 16px; text-align: center; font-weight: 600;">Estado</th>
                                     <th style="padding: 12px 16px; text-align: right; font-weight: 600;">Acciones</th>
                                 </tr>
                             </thead>

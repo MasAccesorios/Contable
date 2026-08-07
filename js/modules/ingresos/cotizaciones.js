@@ -103,10 +103,18 @@ export const CotizacionesModule = {
             const startIndex = (currentPage - 1) * itemsPerPage;
             const currentItems = filteredData.slice(startIndex, startIndex + itemsPerPage);
 
+            let totalCotizado = 0, totalAprobado = 0, totalPendiente = 0;
+            cotizacionesData.forEach(c => {
+                const tot = parseFloat(c.total) || 0;
+                totalCotizado += tot;
+                if (c.convertidoAFactura) totalAprobado += tot;
+                else totalPendiente += tot;
+            });
+
             const tbodyHtml = currentItems.length > 0 ? currentItems.map(c => {
                 const isFacturada = c.convertidoAFactura;
-                const badgeColor = isFacturada ? 'color: #15803d; background-color: #dcfce7;' : 'color: #b45309; background-color: #fef3c7;';
-                const labelEstado = isFacturada ? 'Facturada' : 'Borrador';
+                const badgeClass = isFacturada ? 'bg-success text-success bg-opacity-10 border border-success-subtle' : 'bg-warning text-warning-emphasis bg-opacity-10 border border-warning-subtle';
+                const labelEstado = isFacturada ? 'Aprobada' : 'Pendiente';
                 const numDisplay = (c.numero || c.id);
                 
                 return `
@@ -116,7 +124,7 @@ export const CotizacionesModule = {
                         <td class="py-3">${c.fecha}</td>
                         <td class="py-3 text-end">${formatMoney(c.total)}</td>
                         <td class="py-3 text-center">
-                            <span style="${badgeColor} padding: 4px 12px; border-radius: 12px; font-size: 11px; font-weight: var(--weight-medium);">${labelEstado}</span>
+                            <span class="badge ${badgeClass} rounded-pill fw-medium" style="font-size: 11px; padding: 5px 10px;">${labelEstado}</span>
                         </td>
                         <td class="py-3 text-end" style="position: relative;">
                             <button class="btn btn-link text-muted p-0 me-2 btn-imprimir-row" data-id="${c.id}">
@@ -149,11 +157,39 @@ export const CotizacionesModule = {
                             <button id="btn-export-list" class="btn btn-light bg-white border" style="font-weight: var(--weight-medium); font-size: 14px; color: var(--text-body);">
                                 <i class="bi bi-download me-1"></i> Exportar
                             </button>
-                            <div class="btn-group">
-                                <button id="btn-nueva-cotizacion" class="btn text-white" style="background-color: #2cbfb7; font-weight: var(--weight-medium); font-size: 14px;">
-                                    <i class="bi bi-plus-lg me-1"></i> Nueva cotización
-                                </button>
-                                <button class="btn text-white px-2 dropdown-toggle dropdown-toggle-split" style="background-color: #2cbfb7; border-left: 1px solid rgba(255,255,255,0.2);"></button>
+                            <a href="#/ingresos/cotizaciones/nueva" class="btn text-white" style="background-color: #2cbfb7; font-weight: var(--weight-medium); font-size: 14px;">
+                                <i class="bi bi-plus-lg me-1"></i> Nueva cotización
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- KPI CARDS COTIZACIONES -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-12 col-sm-6 col-lg-4">
+                            <div class="card kpi-card kpi-primary">
+                                <div class="kpi-card-body">
+                                    <i class="bi bi-file-earmark-text kpi-icon"></i>
+                                    <h6 class="kpi-label">Total Cotizado</h6>
+                                    <h5 class="kpi-value">$ ${formatMoney(totalCotizado).replace('$ ', '')}</h5>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-lg-4">
+                            <div class="card kpi-card kpi-success">
+                                <div class="kpi-card-body">
+                                    <i class="bi bi-check-circle kpi-icon"></i>
+                                    <h6 class="kpi-label">Cotizaciones Aprobadas</h6>
+                                    <h5 class="kpi-value">$ ${formatMoney(totalAprobado).replace('$ ', '')}</h5>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-lg-4">
+                            <div class="card kpi-card kpi-warning">
+                                <div class="kpi-card-body">
+                                    <i class="bi bi-clock kpi-icon"></i>
+                                    <h6 class="kpi-label">Cotizaciones Pendientes</h6>
+                                    <h5 class="kpi-value">$ ${formatMoney(totalPendiente).replace('$ ', '')}</h5>
+                                </div>
                             </div>
                         </div>
                     </div>
