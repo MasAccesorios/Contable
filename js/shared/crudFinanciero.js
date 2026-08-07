@@ -38,13 +38,13 @@ export class CrudFinanciero {
         this.categorias = categoriasDB || [];
 
         element.innerHTML = `
-            <div class="container-fluid py-4">
+            <div class="dash-layout">
                 <div class="d-flex justify-content-between flex-wrap pt-3 pb-2 mb-3 border-bottom">
                     <h1 class="h2">${this.config.titulo}</h1>
                 </div>
 
                 <!-- Panel Superior: Creación Rápida -->
-                <div class="card mb-4 shadow-sm border-0">
+                <div class="card mb-4 border-0 shadow-sm" style="border-radius: 14px; border: 1px solid #e2e8f0 !important;">
                     <div class="card-header bg-white border-bottom-0 pt-4 pb-0">
                         <h5 class="mb-0 text-primary"><i class="bi bi-receipt me-2"></i>${this.config.btnNuevoText}</h5>
                     </div>
@@ -107,47 +107,50 @@ export class CrudFinanciero {
                 </div>
 
                 <!-- Panel Inferior: Gestión y Listado -->
-                <div class="card shadow-sm border-0">
-                    <div class="card-header bg-white border-bottom-0 pt-4 pb-2 d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0 text-secondary"><i class="bi bi-list-ul me-2"></i>${this.config.panelHistorialText}</h5>
-                    </div>
+                
+                <h5 class="mb-4 mt-2 text-secondary"><i class="bi bi-list-ul me-2"></i>${this.config.panelHistorialText}</h5>
 
-                    <!-- KPI CARDS DINÁMICAS -->
-                    <div class="card-body pb-0">
-                        <div class="row g-3 mb-2" id="kpi-cards-container">
-                            <div class="col-12 col-sm-6 col-lg-4">
-                                <div class="card kpi-card kpi-primary">
-                                    <div class="kpi-card-body">
-                                        <i class="bi bi-cash-stack kpi-icon"></i>
-                                        <h6 class="kpi-label" id="kpi-label-1">Total Global</h6>
-                                        <h5 class="kpi-value" id="kpi-val-1">$ 0</h5>
-                                    </div>
+                <!-- KPI CARDS DINÁMICAS -->
+                <div class="dash-grid-kpis mb-4" id="kpi-cards-container" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem;">
+                    <div class="card dash-kpi-card border-0" style="border-radius: 14px; border: 1px solid #e2e8f0 !important; box-shadow: 0 4px 16px rgba(0,0,0,0.03); transition: all 0.25s ease;" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='translateY(0)'">
+                        <div class="card-body p-3 d-flex flex-column justify-content-between" style="min-height: 90px;">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <span class="dash-kpi-label text-muted fw-semibold" style="font-size: 13px;" id="kpi-label-1">Total Global</span>
+                                <div class="dash-kpi-icon-box rounded p-2 d-flex align-items-center justify-content-center" style="background-color: rgba(24, 119, 242, 0.1); color: #1877f2; width: 32px; height: 32px;">
+                                    <i class="bi bi-cash-stack"></i>
                                 </div>
                             </div>
-                            <div class="col-12 col-sm-6 col-lg-4">
-                                <div class="card kpi-card kpi-success">
-                                    <div class="kpi-card-body">
-                                        <i class="bi bi-file-earmark-check kpi-icon"></i>
-                                        <h6 class="kpi-label" id="kpi-label-2">Aplicados</h6>
-                                        <h5 class="kpi-value" id="kpi-val-2">$ 0</h5>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-12 col-sm-6 col-lg-4">
-                                <div class="card kpi-card kpi-warning">
-                                    <div class="kpi-card-body">
-                                        <i class="bi bi-wallet2 kpi-icon"></i>
-                                        <h6 class="kpi-label" id="kpi-label-3">Directos</h6>
-                                        <h5 class="kpi-value" id="kpi-val-3">$ 0</h5>
-                                    </div>
-                                </div>
-                            </div>
+                            <div class="dash-kpi-value text-dark fw-bold fs-4 mt-2" id="kpi-val-1">$ 0</div>
                         </div>
                     </div>
+                    <div class="card dash-kpi-card border-0" style="border-radius: 14px; border: 1px solid #e2e8f0 !important; box-shadow: 0 4px 16px rgba(0,0,0,0.03); transition: all 0.25s ease;" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='translateY(0)'">
+                        <div class="card-body p-3 d-flex flex-column justify-content-between" style="min-height: 90px;">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <span class="dash-kpi-label text-muted fw-semibold" style="font-size: 13px;" id="kpi-label-2">Aplicados</span>
+                                <div class="dash-kpi-icon-box rounded p-2 d-flex align-items-center justify-content-center" style="background-color: rgba(46, 204, 113, 0.1); color: #2ecc71; width: 32px; height: 32px;">
+                                    <i class="bi bi-file-earmark-check"></i>
+                                </div>
+                            </div>
+                            <div class="dash-kpi-value text-dark fw-bold fs-4 mt-2" id="kpi-val-2">$ 0</div>
+                        </div>
+                    </div>
+                    <div class="card dash-kpi-card border-0" style="border-radius: 14px; border: 1px solid #e2e8f0 !important; box-shadow: 0 4px 16px rgba(0,0,0,0.03); transition: all 0.25s ease;" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='translateY(0)'">
+                        <div class="card-body p-3 d-flex flex-column justify-content-between" style="min-height: 90px;">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <span class="dash-kpi-label text-muted fw-semibold" style="font-size: 13px;" id="kpi-label-3">Directos</span>
+                                <div class="dash-kpi-icon-box rounded p-2 d-flex align-items-center justify-content-center" style="background-color: rgba(142, 68, 173, 0.1); color: #8e44ad; width: 32px; height: 32px;">
+                                    <i class="bi bi-wallet2"></i>
+                                </div>
+                            </div>
+                            <div class="dash-kpi-value text-dark fw-bold fs-4 mt-2" id="kpi-val-3">$ 0</div>
+                        </div>
+                    </div>
+                </div>
 
-                    <div class="card-body">
+                <div class="card border-0 shadow-sm" style="border-radius: 14px; overflow: hidden;">
+                    <div class="card-body p-0">
                         <!-- Filtros -->
-                        <div class="row g-2 mb-3">
+                        <div class="row g-2 mb-3 p-4 pb-0">
                             <div class="col-md-3">
                                 <select class="form-select form-select-sm" id="filtro-categoria">
                                     <option value="todas">Todas las categorías</option>
@@ -166,18 +169,18 @@ export class CrudFinanciero {
                         </div>
 
                         <!-- Tabla -->
-                        <div class="table-responsive mt-3">
+                        <div class="table-responsive mt-3 px-4 pb-4">
                             <table class="table table-hover align-middle border-0" style="font-size: 0.875rem;">
-                                <thead class="bg-white text-muted border-bottom">
+                                <thead class="table-light text-muted small text-uppercase border-bottom">
                                     <tr class="small text-uppercase fw-semibold text-secondary" style="letter-spacing: 0.5px; white-space: nowrap;">
-                                        <th class="border-0 py-3">Fecha</th>
-                                        <th class="border-0 py-3">Categoría</th>
-                                        <th class="border-0 py-3">Descripción</th>
-                                        <th class="border-0 py-3">Proveedor</th>
-                                        <th class="border-0 py-3">Cuenta</th>
-                                        <th class="border-0 py-3">Referencia</th>
-                                        <th class="border-0 py-3 text-end">Monto</th>
-                                        <th class="border-0 py-3 text-center">Acciones</th>
+                                        <th class="border-0 py-2">Fecha</th>
+                                        <th class="border-0 py-2">Categoría</th>
+                                        <th class="border-0 py-2">Descripción</th>
+                                        <th class="border-0 py-2">Proveedor</th>
+                                        <th class="border-0 py-2">Cuenta</th>
+                                        <th class="border-0 py-2">Referencia</th>
+                                        <th class="border-0 py-2 text-end">Monto</th>
+                                        <th class="border-0 py-2 text-center">Acciones</th>
                                     </tr>
                                 </thead>
                                 <tbody id="${this.config.tbodyId}">
@@ -455,14 +458,14 @@ export class CrudFinanciero {
                 : '-';
             return `
             <tr style="border-bottom: 1px solid #f1f5f9;">
-                <td class="py-3 text-muted" style="white-space: nowrap;">${g.fecha}</td>
-                <td class="py-3" style="white-space: nowrap;"><span class="badge bg-light text-dark border">${g.categoria}</span></td>
-                <td class="py-3" style="white-space: nowrap;">${g.descripcion}</td>
-                <td class="py-3 text-muted" style="white-space: nowrap;">${proveedorNombre}</td>
-                <td class="py-3 text-muted" style="white-space: nowrap;">${cuentaNombre}</td>
-                <td class="py-3 text-muted" style="white-space: nowrap;">${g.referencia || '-'}</td>
-                <td class="py-3 text-end fw-bold ${this.config.colorMonto}" style="white-space: nowrap;">${this.config.prefijoMonto}$${g.monto.toLocaleString()}</td>
-                <td class="py-3 text-center" style="white-space: nowrap;">
+                <td class="py-1 text-muted" style="white-space: nowrap;">${g.fecha}</td>
+                <td class="py-1" style="white-space: nowrap;"><span class="badge bg-light text-dark border">${g.categoria}</span></td>
+                <td class="py-1" style="white-space: nowrap;">${g.descripcion}</td>
+                <td class="py-1 text-muted" style="white-space: nowrap;">${proveedorNombre}</td>
+                <td class="py-1 text-muted" style="white-space: nowrap;">${cuentaNombre}</td>
+                <td class="py-1 text-muted" style="white-space: nowrap;">${g.referencia || '-'}</td>
+                <td class="py-1 text-end fw-bold ${this.config.colorMonto}" style="white-space: nowrap;">${this.config.prefijoMonto}$${g.monto.toLocaleString()}</td>
+                <td class="py-1 text-center" style="white-space: nowrap;">
                     <div class="dropdown">
                         <button class="btn btn-sm btn-link p-0 text-muted mx-1" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Más opciones" style="color: #6c757d !important; transition: opacity 0.2s;" onmouseover="this.style.opacity=0.7" onmouseout="this.style.opacity=1">
                             <i class="bi bi-three-dots-vertical fs-6"></i>
