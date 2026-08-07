@@ -31,7 +31,7 @@ export const NotasCreditoModule = {
         // Revertir inventario
         if (detalles && detalles.length > 0) {
             const outItems = detalles.map(d => ({ productoId: d.producto_id, cantidad: d.cantidad }));
-            const outRes = await InventarioUtils.procesarSalidaInventario(outItems, nota.numero);
+            const outRes = await InventarioUtils.procesarSalidaInventario(outItems);
             if (!outRes.success) throw new Error(outRes.error);
         }
 
