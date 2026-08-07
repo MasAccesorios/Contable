@@ -8,9 +8,10 @@ export const DashboardModule = {
 
         element.innerHTML = `
             <div class="p-3 p-md-4" style="background-color: transparent; min-height: 100vh;">
+                <div class="dash-layout">
 
                 <!-- ═══ HEADER ═══ -->
-                <div style="max-width: 1100px; margin: 0 auto 1.5rem;">
+                <div class="mb-4">
                     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
                         <div>
                             <h3 class="fw-bold mb-0" style="font-size: 20px; color: #0f172a; letter-spacing: -0.3px;">Resumen del negocio</h3>
@@ -25,7 +26,7 @@ export const DashboardModule = {
                 </div>
 
                 <!-- ═══ CxC / CxP ROW ═══ -->
-                <div class="row g-3 mb-3" style="max-width: 1100px; margin: 0 auto;">
+                <div class="row g-3 mb-3">
 
                     <!-- Cuentas por cobrar -->
                     <div class="col-12 col-md-6">
@@ -87,7 +88,7 @@ export const DashboardModule = {
                 </div>
 
                 <!-- ═══ 4 MICRO-KPIs ═══ -->
-                <div class="row g-3 mb-3" style="max-width: 1100px; margin: 0 auto;">
+                <div class="row g-3 mb-4">
                     <!-- Utilidad -->
                     <div class="col-12 col-sm-6 col-xl-3">
                         <div class="card dash-kpi-card h-100">
@@ -146,8 +147,7 @@ export const DashboardModule = {
                     </div>
 
                 <!-- Chart Section -->
-
-                <div class="card border-0 shadow-sm mb-4" style="max-width: 1100px; margin: 0 auto; border-radius:10px;">
+                <div class="card dash-chart-card mb-4">
                     <div class="card-body p-4">
                         <div class="d-flex justify-content-between align-items-start mb-4">
                             <div>
@@ -179,6 +179,8 @@ export const DashboardModule = {
                         </div>
                     </div>
                 </div>
+
+                </div><!-- /.dash-layout -->
             </div>
         `;
 

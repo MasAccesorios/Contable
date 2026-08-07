@@ -659,13 +659,18 @@ body {
     box-shadow: 0 4px 16px rgba(0,0,0,0.03), 0 1px 3px rgba(0,0,0,0.04);
     padding: 1.25rem 1.4rem 1.1rem;
     height: 100%;
-    transition: box-shadow 0.2s;
+    transition: all 0.25s ease;
 }
 .dash-card-link {
     cursor: pointer;
 }
 .dash-card-link:hover {
-    box-shadow: 0 8px 24px rgba(0,0,0,0.07);
+    transform: translateY(-3px);
+    box-shadow: 0 12px 24px -6px rgba(0,0,0,0.06);
+}
+.dash-card-premium:not(.dash-card-link):hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 24px -6px rgba(0,0,0,0.06);
 }
 .dash-card-label {
     display: block;
@@ -755,10 +760,11 @@ body {
     border: 1px solid #e2e8f0 !important;
     border-radius: 14px !important;
     box-shadow: 0 4px 16px rgba(0,0,0,0.03), 0 1px 3px rgba(0,0,0,0.04) !important;
-    transition: box-shadow 0.2s;
+    transition: all 0.25s ease !important;
 }
 .dash-kpi-card:hover {
-    box-shadow: 0 8px 24px rgba(0,0,0,0.07) !important;
+    transform: translateY(-3px);
+    box-shadow: 0 12px 24px -6px rgba(0,0,0,0.06) !important;
 }
 .dash-kpi-label {
     font-size: 12px;
@@ -812,4 +818,23 @@ body {
     .dash-card-metric  { font-size: 1.2rem; }
     .dashboard-pill-group { width: 100%; justify-content: stretch; }
     .dpg-btn { flex: 1; text-align: center; }
+}
+
+/* =========================================
+   DASHBOARD — LAYOUT UNIFICADO
+   ========================================= */
+.dash-layout {
+    max-width: 1100px;
+    margin: 0 auto;
+}
+
+/* Tarjeta del gráfico de ventas */
+.dash-chart-card {
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.03), 0 1px 3px rgba(0,0,0,0.04);
+    transition: all 0.25s ease;
+}
+.dash-chart-card:hover {
+    box-shadow: 0 8px 20px rgba(0,0,0,0.06);
 }
