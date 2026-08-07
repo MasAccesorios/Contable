@@ -28,7 +28,7 @@ export class CrudFinanciero {
     async init(element) {
         // Cargar contactos para el selector de proveedor
         const contactos = await DB.getAll('contactos');        // Add legacy fallback for contacts not yet synced to IndexedDB
-        this.proveedores = contactos.filter(c => c.es_proveedor !== undefined ? c.es_proveedor : c.tipo === 'proveedor');
+        this.proveedores = contactos; // Search across all contacts, not just suppliers
 
         // Cargar cuentas bancarias
         this.cuentasActivas = await DB.getAll('cuentas_bancarias') || [];
@@ -218,6 +218,17 @@ export class CrudFinanciero {
             if (!cuentaValida) {
                 alert("Por favor seleccione una cuenta bancaria válida de la lista.");
                 return;
+            }
+
+            // Validar si escribió texto de proveedor pero el ID está vacío
+            const proveedorText = element.querySelector('#search-proveedor').value.trim();
+            const proveedorIdVal = element.querySelector('#select-proveedor-id').value;
+            if (proveedorText !== '' && !proveedorIdVal) {
+                const proceed = confirm("Escribiste un nombre de tercero pero no seleccionaste ninguno de la lista, por lo que se guardará SIN tercero. ¿Deseas continuar de todos modos?");
+                if (!proceed) {
+                    btn.disabled = false;
+                    return;
+                }
             }
 
             const datos = {

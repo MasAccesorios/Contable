@@ -144,11 +144,40 @@ export const UI = {
             }, 150);
         });
         
-        // Hide on Escape
+        // Handle Keyboard Events
         inputEl.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
                 dropdown.style.display = 'none';
                 inputEl.blur();
+            } else if (e.key === 'Enter' || e.key === 'Tab') {
+                if (dropdown.style.display === 'block') {
+                    const normQuery = normalizeText(inputEl.value);
+                    if (normQuery.length > 0) {
+                        const optionElements = Array.from(dropdown.querySelectorAll('.combobox-item'));
+                        if (optionElements.length > 0) {
+                            let matchedEl = optionElements.find(el => normalizeText(el.innerText) === normQuery);
+                            if (!matchedEl && optionElements.length > 0) {
+                                matchedEl = optionElements[0];
+                            }
+                            
+                            if (matchedEl) {
+                                if (e.key === 'Enter') e.preventDefault(); // Evitar submit del form
+                                const id = matchedEl.dataset.id;
+                                const selectedItem = items.find(i => String(i.id) === String(id));
+                                
+                                if (selectedItem) {
+                                    inputEl.value = selectedItem[displayProp];
+                                    if (hiddenIdEl) {
+                                        hiddenIdEl.value = selectedItem.id;
+                                        hiddenIdEl.dispatchEvent(new Event('change', { bubbles: true }));
+                                    }
+                                    if (onSelect) onSelect(selectedItem);
+                                }
+                            }
+                        }
+                    }
+                    dropdown.style.display = 'none';
+                }
             }
         });
     },
