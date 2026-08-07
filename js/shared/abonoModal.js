@@ -10,7 +10,7 @@ export const AbonoModal = {
     currentSaldo: 0,
     facturaId: null,
 
-    async show(facturaId, onSuccess) {
+    async show(facturaId, onSuccess, precalculatedSaldo = null) {
         this.facturaId = facturaId;
         this.onSuccessCallback = onSuccess;
         this.clienteId = null;
@@ -26,9 +26,13 @@ export const AbonoModal = {
                 return;
             }
 
-            const transacciones = await DB.getAll('transacciones') || [];
-            const estadoDinamico = calcularEstadoFactura(facturaData, transacciones);
-            this.currentSaldo = estadoDinamico.saldo;
+            if (precalculatedSaldo !== null && precalculatedSaldo !== undefined) {
+                this.currentSaldo = precalculatedSaldo;
+            } else {
+                const transacciones = await DB.getAll('transacciones') || [];
+                const estadoDinamico = calcularEstadoFactura(facturaData, transacciones);
+                this.currentSaldo = estadoDinamico.saldo;
+            }
             this.clienteId = facturaData.contacto_id || facturaData.clienteId;
             numDoc = facturaData.numero || facturaData.id;
 
