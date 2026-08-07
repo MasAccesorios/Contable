@@ -53,6 +53,37 @@ export const ContactosModule = {
                     </div>
                 </div>
 
+                <!-- KPI CARDS CONTACTOS -->
+                <div class="row g-3 mb-4">
+                    <div class="col-12 col-sm-6 col-lg-4">
+                        <div class="card kpi-card kpi-primary">
+                            <div class="kpi-card-body">
+                                <i class="bi bi-people kpi-icon"></i>
+                                <h6 class="kpi-label">Total Contactos</h6>
+                                <h5 class="kpi-value" id="kpi-total-contactos">0</h5>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-sm-6 col-lg-4">
+                        <div class="card kpi-card kpi-success">
+                            <div class="kpi-card-body">
+                                <i class="bi bi-person-check kpi-icon"></i>
+                                <h6 class="kpi-label">Clientes Registrados</h6>
+                                <h5 class="kpi-value" id="kpi-clientes">0</h5>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-sm-6 col-lg-4">
+                        <div class="card kpi-card kpi-info">
+                            <div class="kpi-card-body">
+                                <i class="bi bi-shop kpi-icon"></i>
+                                <h6 class="kpi-label">Proveedores</h6>
+                                <h5 class="kpi-value" id="kpi-proveedores">0</h5>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Pestañas de Filtro (Tabs) -->
                 <ul class="nav nav-tabs mb-4 border-bottom-0 gap-3" id="contactos-tabs" style="border-bottom: 2px solid var(--border-color) !important;">
                     <li class="nav-item">
@@ -157,6 +188,21 @@ export const ContactosModule = {
 
         const { contactosData, currentFilter, searchQuery, itemsPerPage } = this.state;
 
+        // Actualizar KPIs
+        const kpiTotal = this.element.querySelector('#kpi-total-contactos');
+        const kpiClientes = this.element.querySelector('#kpi-clientes');
+        const kpiProveedores = this.element.querySelector('#kpi-proveedores');
+        if (kpiTotal) {
+            let cli = 0, prov = 0;
+            contactosData.forEach(c => {
+                if ((c.tipo || '').toLowerCase() === 'cliente') cli++;
+                if ((c.tipo || '').toLowerCase() === 'proveedor') prov++;
+            });
+            kpiTotal.textContent = contactosData.length;
+            kpiClientes.textContent = cli;
+            kpiProveedores.textContent = prov;
+        }
+
         // A. Filtrado por Tipo y Búsqueda (Combinado)
         let filtrados = contactosData.filter(c => {
             if (currentFilter !== 'todos' && c.tipo !== currentFilter) return false;
@@ -186,6 +232,12 @@ export const ContactosModule = {
             let html = '';
             paginaActual.forEach(c => {
                 const inicial = c.nombre ? c.nombre.charAt(0).toUpperCase() : '?';
+                const isCliente = (c.tipo || '').toLowerCase() === 'cliente';
+                const isProveedor = (c.tipo || '').toLowerCase() === 'proveedor';
+                let tipoBadge = `<span class="badge bg-light text-dark border rounded-pill fw-medium" style="font-size: 11px; padding: 5px 10px;">${c.tipo || '-'}</span>`;
+                if (isCliente) tipoBadge = `<span class="badge bg-success text-success bg-opacity-10 border border-success-subtle rounded-pill fw-medium" style="font-size: 11px; padding: 5px 10px;">Cliente</span>`;
+                else if (isProveedor) tipoBadge = `<span class="badge bg-primary text-primary bg-opacity-10 border border-primary-subtle rounded-pill fw-medium" style="font-size: 11px; padding: 5px 10px;">Proveedor</span>`;
+
                 html += `
                     <tr data-id="${c.id}" style="cursor: pointer; border-bottom: 1px solid var(--border-color); font-size: 13px; color: var(--text-body);" onclick="if(!event.target.closest('button') && !event.target.closest('input')) window.location.hash = '#/contactos/ver/${c.id}'">
                         <td><input type="checkbox" class="form-check-input contact-check"></td>
@@ -199,7 +251,7 @@ export const ContactosModule = {
                         </td>
                         <td class="text-muted">${c.nit || '-'}</td>
                         <td class="text-muted">${c.telefono || '-'}</td>
-                        <td class="text-muted text-capitalize">${c.tipo || '-'}</td>
+                        <td>${tipoBadge}</td>
                         <td class="text-end">
                             <button class="btn btn-sm btn-light text-muted btn-editar me-1" data-id="${c.id}" title="Editar"><i class="bi bi-pencil"></i></button>
                             <div class="dropdown d-inline-block">

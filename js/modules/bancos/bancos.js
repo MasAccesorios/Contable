@@ -57,6 +57,37 @@ export const TesoreriaModule = {
                     </div>
                 </div>
 
+                <!-- KPI CARDS BANCOS -->
+                <div class="row g-3 mb-4">
+                    <div class="col-12 col-sm-6 col-lg-4">
+                        <div class="card kpi-card kpi-primary">
+                            <div class="kpi-card-body">
+                                <i class="bi bi-bank kpi-icon"></i>
+                                <h6 class="kpi-label">Saldo Total en Cuentas</h6>
+                                <h5 class="kpi-value" id="kpi-saldo-total">$ 0</h5>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-sm-6 col-lg-4">
+                        <div class="card kpi-card kpi-info">
+                            <div class="kpi-card-body">
+                                <i class="bi bi-credit-card kpi-icon"></i>
+                                <h6 class="kpi-label">Cuentas Bancarias Activas</h6>
+                                <h5 class="kpi-value" id="kpi-bancos-activos">0</h5>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-sm-6 col-lg-4">
+                        <div class="card kpi-card kpi-success">
+                            <div class="kpi-card-body">
+                                <i class="bi bi-cash kpi-icon"></i>
+                                <h6 class="kpi-label">Cajas / Efectivo</h6>
+                                <h5 class="kpi-value" id="kpi-efectivo-activos">0</h5>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- ROW FOR CHART AND RESUMEN -->
                 <div class="row g-4 mb-4">
                     <!-- Chart -->
@@ -485,9 +516,23 @@ export const TesoreriaModule = {
         
         const resumenBancos = this.element.querySelector('#resumen-bancos');
         const resumenTotal = this.element.querySelector('#resumen-total');
+        const kpiSaldoTotal = this.element.querySelector('#kpi-saldo-total');
+        const kpiBancosActivos = this.element.querySelector('#kpi-bancos-activos');
+        const kpiEfectivoActivos = this.element.querySelector('#kpi-efectivo-activos');
+
+        let bancosCount = 0;
+        let cajasCount = 0;
+        
+        this.state.cuentasActivas.forEach(c => {
+            if ((c.tipo || '').toLowerCase() === 'efectivo') cajasCount++;
+            else bancosCount++;
+        });
 
         if (resumenBancos) resumenBancos.textContent = formatMoney(this.state.totalConsolidado);
         if (resumenTotal) resumenTotal.textContent = formatMoney(this.state.totalConsolidado);
+        if (kpiSaldoTotal) kpiSaldoTotal.textContent = formatMoney(this.state.totalConsolidado);
+        if (kpiBancosActivos) kpiBancosActivos.textContent = bancosCount;
+        if (kpiEfectivoActivos) kpiEfectivoActivos.textContent = cajasCount;
     },
 
     renderTabla(searchQuery = '') {
@@ -519,10 +564,14 @@ export const TesoreriaModule = {
             
             const isActivo = c.estado !== 'inactivo';
             const opacityStyle = isActivo ? '' : 'opacity: 0.6;';
-            const badge = isActivo ? '' : '<span class="badge bg-secondary ms-2" style="font-size: 10px;">Inactiva</span>';
+            const badge = isActivo 
+                ? '<span class="badge bg-success text-success bg-opacity-10 border border-success-subtle rounded-pill ms-2 fw-medium" style="font-size: 10px; padding: 4px 8px;">Activa</span>' 
+                : '<span class="badge bg-secondary text-secondary bg-opacity-10 border border-secondary-subtle rounded-pill ms-2 fw-medium" style="font-size: 10px; padding: 4px 8px;">Inactiva</span>';
             const actionBtnIcon = isActivo ? 'bi-pause-circle' : 'bi-play-circle';
             const actionBtnColor = isActivo ? 'text-danger' : 'text-success';
             const actionBtnTitle = isActivo ? 'Desactivar cuenta' : 'Activar cuenta';
+            
+            const tipoBadgeColor = isEfectivo ? 'bg-success text-success' : 'bg-primary text-primary';
             
             // Layout de Alegra: ícono gris tenue a la izquierda del nombre
             html += `
@@ -534,7 +583,7 @@ export const TesoreriaModule = {
                         <span style="color: var(--text-main); font-weight: 500;">${c.nombre}</span>
                         ${badge}
                     </td>
-                    <td class="py-3" style="white-space: nowrap;"><i class="bi bi-wallet2 me-2 text-muted"></i>${c.tipo}</td>
+                    <td class="py-3" style="white-space: nowrap;"><span class="badge ${tipoBadgeColor} bg-opacity-10 border border-${isEfectivo?'success':'primary'}-subtle rounded-pill fw-medium" style="font-size: 12px; padding: 5px 10px;">${c.tipo}</span></td>
                     <td class="py-3 font-monospace text-muted" style="white-space: nowrap;">${c.numero || '-'}</td>
                     <td class="py-3" style="color: #2cbfb7; font-weight: 500; white-space: nowrap;">${formatMoney(saldo)}</td>
                     <td class="py-3 pe-4">
