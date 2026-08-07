@@ -37,7 +37,7 @@ export const PagosRecibidosModule = {
             this.state.totalItems = this.state.pagos.length > 0 ? Number(this.state.pagos[0].total_count) : 0;
         } catch (error) {
             console.error('Error cargando pagos recibidos:', error);
-            CoreActions.showWarningModal('Error al cargar la lista de pagos.');
+            CoreActions.showWarningModal('Error al cargar la lista de pagos: ' + (error.message || error));
         } finally {
             this.state.isLoading = false;
             this.render();
