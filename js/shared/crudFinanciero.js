@@ -33,6 +33,10 @@ export class CrudFinanciero {
         // Cargar cuentas bancarias
         this.cuentasActivas = await DB.getAll('cuentas_bancarias') || [];
 
+        // Cargar categorías contables
+        const { data: categoriasDB } = await supabase.from('categorias_contables').select('nombre, tipo_flujo').eq('estado', 'activa');
+        this.categorias = categoriasDB || [];
+
         element.innerHTML = `
             <div class="container-fluid py-4">
                 <div class="d-flex justify-content-between flex-wrap pt-3 pb-2 mb-3 border-bottom">
@@ -54,7 +58,14 @@ export class CrudFinanciero {
                                 <label class="form-label text-muted small fw-semibold mb-1">Categoría *</label>
                                 <select class="form-select" id="transaccion-categoria" required>
                                     <option value="">Seleccione...</option>
-                                    ${this.config.categorias.map(c => `<option value="${c}">${c}</option>`).join('')}
+                                    ${this.categorias.map(c => `<option value="${c.nombre}">${c.nombre}</option>`).join('')}
+                                </select>
+                            </div>
+                            <div class="col-6 col-md-2">
+                                <label class="form-label text-muted small fw-semibold mb-1">Tipo *</label>
+                                <select class="form-select" id="transaccion-tipo" required>
+                                    <option value="ingreso" ${this.config.tipoTransaccion === 'ingreso' ? 'selected' : ''}>Entrada</option>
+                                    <option value="egreso" ${this.config.tipoTransaccion === 'egreso' ? 'selected' : ''}>Salida</option>
                                 </select>
                             </div>
                             <div class="col-6 col-md-2">
@@ -107,7 +118,7 @@ export class CrudFinanciero {
                             <div class="col-md-3">
                                 <select class="form-select form-select-sm" id="filtro-categoria">
                                     <option value="todas">Todas las categorías</option>
-                                    ${this.config.categorias.map(c => `<option value="${c}">${c}</option>`).join('')}
+                                    ${this.categorias.map(c => `<option value="${c.nombre}">${c.nombre}</option>`).join('')}
                                 </select>
                             </div>
                             <div class="col-md-2">
@@ -182,6 +193,14 @@ export class CrudFinanciero {
         const fechaHoy = getLocalDate();
         element.querySelector('#transaccion-fecha').value = fechaHoy;
         
+        // Auto-seleccionar tipo de flujo según la categoría
+        element.querySelector('#transaccion-categoria').addEventListener('change', (e) => {
+            const cat = this.categorias.find(c => c.nombre === e.target.value);
+            if (cat && cat.tipo_flujo) {
+                element.querySelector('#transaccion-tipo').value = cat.tipo_flujo === 'in' ? 'ingreso' : 'egreso';
+            }
+        });
+        
         const hace3Meses = new Date();
         hace3Meses.setMonth(hace3Meses.getMonth() - 3);
         element.querySelector('#filtro-fecha-desde').value = getLocalDate(hace3Meses);
@@ -235,6 +254,7 @@ export class CrudFinanciero {
                 id: this.editingId,
                 fecha: element.querySelector('#transaccion-fecha').value,
                 categoria: element.querySelector('#transaccion-categoria').value,
+                tipoManual: element.querySelector('#transaccion-tipo').value,
                 monto: parseCurrencyValue(element.querySelector('#transaccion-monto').value),
                 cuentaId: parseInt(cuentaIdRaw, 10),
                 proveedorId: element.querySelector('#select-proveedor-id').value || null,
@@ -270,7 +290,7 @@ export class CrudFinanciero {
             let transaccion = {
                 cuenta_id: parseInt(datosPrevios.cuentaId, 10),
                 fecha: datosPrevios.fecha,
-                tipo: this.config.tipoTransaccion, 
+                tipo: datosPrevios.tipoManual || this.config.tipoTransaccion, 
                 monto: datosPrevios.monto,
                 categoria: datosPrevios.categoria, 
                 referencia: datosPrevios.referencia || null, 

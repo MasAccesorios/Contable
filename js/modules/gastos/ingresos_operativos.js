@@ -1,7 +1,5 @@
 import { CrudFinanciero } from '../../shared/crudFinanciero.js';
 
-const CATEGORIAS_INGRESO = ["Ventas de Mostrador", "Servicios Adicionales", "Intereses", "Otros Ingresos"];
-
 const configIngresos = {
     titulo: 'Ingresos Operativos',
     btnNuevoText: 'Registrar Nuevo Ingreso',
@@ -9,7 +7,6 @@ const configIngresos = {
     kpiId: 'kpi-total-ingresos',
     formId: 'form-nuevo-ingreso',
     tbodyId: 'tbody-ingresos',
-    categorias: CATEGORIAS_INGRESO,
     colorMonto: 'text-success',
     prefijoMonto: '+',
     tipoTransaccion: 'ingreso',

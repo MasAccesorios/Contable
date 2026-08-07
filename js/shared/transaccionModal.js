@@ -1,9 +1,11 @@
 import DB from '../core/db.js';
 import { supabase } from '../core/supabase.js';
-import { CATEGORIAS_GASTO } from '../modules/gastos/gastos.js';
 import { applyCurrencyFormatting, parseCurrencyValue } from './formatters.js';
 
 export async function mostrarDetalleTransaccion(t, onSuccess) {
+    const { data: categoriasDB } = await supabase.from('categorias_contables').select('nombre').eq('estado', 'activa');
+    const categoriasDin = categoriasDB ? categoriasDB.map(c => c.nombre) : [];
+
     const isGroup = !!t.grupo_pago_id;
     const transIdVisual = t.grupo_pago_id || t.id;
     let facturasAsociadasHtml = '';
@@ -91,7 +93,7 @@ export async function mostrarDetalleTransaccion(t, onSuccess) {
                                 <label class="form-label text-muted small">Categoría</label>
                                 <select id="edit-trans-categoria" class="form-select" disabled>
                                     <option value="">Sin categoría</option>
-                                    ${CATEGORIAS_GASTO.map(cat => `<option value="${cat}" ${t.categoria === cat ? 'selected' : ''}>${cat}</option>`).join('')}
+                                    ${categoriasDin.map(cat => `<option value="${cat}" ${t.categoria === cat ? 'selected' : ''}>${cat}</option>`).join('')}
                                 </select>
                             </div>
                             <div class="col-6">
