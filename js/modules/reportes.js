@@ -185,20 +185,16 @@ export default {
                     }
                 } 
                 else if (tipo === 'cartera') {
-                    const facturas = await DB.getAll('facturas');
-                    let pendientes = facturas.filter(f => f.tipo === 'venta' && (f.estado === 'pendiente' || f.estado === 'por_pagar' || f.estado === 'parcial'));
-                    dataToExport = pendientes.map(f => {
-                        const total = parseFloat(f.total) || 0;
-                        const saldo = f.saldo !== undefined ? parseFloat(f.saldo) : total;
-                        return {
-                            'Cliente': getClienteName(f.clienteId || f.contactoId),
-                            'Documento': f.numero || parseInt(String(f.id).replace(/\D/g, ''), 10) || f.id,
-                            'Fecha Emisión': f.fecha,
-                            'Fecha Vencimiento': f.vencimiento || '',
-                            'Total Factura': Math.round(total),
-                            'Saldo Pendiente': Math.round(saldo)
-                        };
-                    });
+                    const { data: cartera, error: errC } = await supabase.rpc('get_cartera_con_saldos', { p_tipo_cartera: 'cxc' });
+                    if (errC) throw new Error('Error al cargar cartera: ' + errC.message);
+                    dataToExport = (cartera || []).map(f => ({
+                        'Cliente':           getClienteName(f.contacto_id),
+                        'Documento':         f.numero,
+                        'Fecha Emisión':     f.fecha,
+                        'Fecha Vencimiento': f.vencimiento || '',
+                        'Total Factura':     Math.round(parseFloat(f.total) || 0),
+                        'Saldo Pendiente':   Math.round(parseFloat(f.saldo) || 0)
+                    }));
                 }
                 else if (tipo === 'inventario') {
                     const lotes = await DB.getAll('lotes_fifo');
