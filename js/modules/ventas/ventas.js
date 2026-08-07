@@ -65,19 +65,13 @@ export const FacturasModule = {
 
             if (!kpiDataCxc) {
                 try {
-                    const { data: facturas } = await supabase.from('facturas_venta').select('total, total_pagado, saldo, estado');
-                    if (facturas) {
-                        let totalFacturado = 0, totalCobrado = 0, totalPendiente = 0;
-                        facturas.forEach(f => {
-                            if (f.estado === 'anulada' || f.estado === 'voided') return;
-                            const tot = parseFloat(f.total) || 0;
-                            const sal = parseFloat(f.saldo !== undefined ? f.saldo : tot) || 0;
-                            const cob = parseFloat(f.total_pagado !== undefined ? f.total_pagado : (tot - sal)) || 0;
-                            totalFacturado += tot;
-                            totalPendiente += sal;
-                            totalCobrado += cob;
-                        });
-                        kpiDataCxc = { facturado: totalFacturado, cobrado: totalCobrado, pendiente: totalPendiente };
+                    const { data, error } = await supabase.rpc('get_facturas_kpis', { p_tipo: 'venta' });
+                    if (!error && data) {
+                        kpiDataCxc = {
+                            facturado: parseFloat(data.facturado) || 0,
+                            cobrado: parseFloat(data.cobrado) || 0,
+                            pendiente: parseFloat(data.pendiente) || 0
+                        };
                     } else {
                         kpiDataCxc = { facturado: 0, cobrado: 0, pendiente: 0 };
                     }
