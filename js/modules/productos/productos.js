@@ -423,11 +423,11 @@ export const ProductosModule = {
 
                     facturasAsociadas = facturas.map(f => {
                         const tr = transMapeadas.filter(t => t.factura_id === f.id);
-                        const { estado, saldoPendiente, totalPagado } = calcularEstadoFactura(f, tr);
+                        const { estado, saldo, totalPagado } = calcularEstadoFactura(f, tr);
                         return {
                             ...f,
                             estado,
-                            saldoPendiente,
+                            saldoPendiente: saldo,
                             totalPagado
                         };
                     });
