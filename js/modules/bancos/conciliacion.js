@@ -1,8 +1,8 @@
 import DB, { getLocalDate } from '../../core/db.js';
+import { supabase } from '../../core/supabase.js';
 
 export const ConciliacionModule = {
     state: {
-        transacciones: [],
         cuentas: [],
         historialConciliaciones: [],
         bancoId: null,
@@ -32,6 +32,7 @@ export const ConciliacionModule = {
 
         await this.loadData();
         this.renderBase();
+        await this.cargarDatosRPC();
         this.calcularTotales();
         this.renderTabla();
         this.renderHistorial();
@@ -44,8 +45,25 @@ export const ConciliacionModule = {
         if (!this.state.bancoId && this.state.cuentas.length > 0) {
             this.state.bancoId = this.state.cuentas[0].id;
         }
-        this.state.transacciones = await DB.getAll('transacciones') || [];
+        // transacciones ya NO se cargan en masa — se obtienen vía RPC por cuenta/rango
         this.state.historialConciliaciones = await DB.getAll('conciliaciones') || [];
+    },
+
+    async cargarDatosRPC() {
+        if (!this.state.bancoId) return;
+        const { data, error } = await supabase.rpc('get_conciliacion_bancaria', {
+            p_cuenta_id:   parseInt(this.state.bancoId, 10),
+            p_fecha_desde: this.state.fechaDesde,
+            p_fecha_hasta: this.state.fechaHasta
+        });
+        if (error) {
+            console.error('[Conciliacion] RPC error:', error);
+            return;
+        }
+        this.state.saldoAnterior    = Number(data.saldo_anterior) || 0;
+        this.state.entradas         = Number(data.entradas)       || 0;
+        this.state.salidas          = Number(data.salidas)        || 0;
+        this.state.movimientosRango = data.movimientos            || [];
     },
 
     formatMoney(val) {
@@ -54,37 +72,11 @@ export const ConciliacionModule = {
 
     calcularTotales() {
         if (!this.state.bancoId) return;
-
-        let saldoAnterior = 0;
-        let entradas = 0;
-        let salidas = 0;
-        this.state.movimientosRango = [];
-
-        this.state.transacciones.forEach(t => {
-            if (t.cuentaId !== this.state.bancoId) return;
-            if (t.estado === 'anulado') return;
-            const fechaTx = (t.fecha || '').substring(0, 10);
-
-            if (fechaTx < this.state.fechaDesde) {
-                if (t.tipo === 'ingreso') saldoAnterior += t.monto;
-                else if (t.tipo === 'egreso' || t.tipo === 'gasto') saldoAnterior -= t.monto;
-            } else if (fechaTx >= this.state.fechaDesde && fechaTx <= this.state.fechaHasta) {
-                this.state.movimientosRango.push(t);
-                if (t.tipo === 'ingreso') entradas += t.monto;
-                else if (t.tipo === 'egreso' || t.tipo === 'gasto') salidas += t.monto;
-            }
-        });
-
-        this.state.saldoAnterior = saldoAnterior;
-        this.state.entradas = entradas;
-        this.state.salidas = salidas;
-
-        // Actualizar UI
+        // Los valores ya vienen calculados desde el RPC — solo actualizar la UI
+        const { saldoAnterior, entradas, salidas } = this.state;
         this.element.querySelector('#concil-saldo-anterior').textContent = this.formatMoney(saldoAnterior);
-        
         const saldoTotal = saldoAnterior + entradas - salidas;
         this.element.querySelector('#concil-saldo-total').textContent = this.formatMoney(saldoTotal);
-
         this.calcularDiferencia(saldoTotal);
     },
 
@@ -343,21 +335,24 @@ export const ConciliacionModule = {
             checks.forEach(cb => cb.checked = isChecked);
         });
 
-        this.element.querySelector('#concil-cuenta').addEventListener('change', (e) => {
+        this.element.querySelector('#concil-cuenta').addEventListener('change', async (e) => {
             this.state.bancoId = e.target.value;
+            await this.cargarDatosRPC();
             this.calcularTotales();
             this.renderTabla();
             this.renderHistorial();
         });
 
-        this.element.querySelector('#concil-desde').addEventListener('change', (e) => {
+        this.element.querySelector('#concil-desde').addEventListener('change', async (e) => {
             this.state.fechaDesde = e.target.value;
+            await this.cargarDatosRPC();
             this.calcularTotales();
             this.renderTabla();
         });
 
-        this.element.querySelector('#concil-hasta').addEventListener('change', (e) => {
+        this.element.querySelector('#concil-hasta').addEventListener('change', async (e) => {
             this.state.fechaHasta = e.target.value;
+            await this.cargarDatosRPC();
             this.calcularTotales();
             this.renderTabla();
         });
@@ -404,8 +399,7 @@ export const ConciliacionModule = {
                 try {
                     await DB.save('transacciones', payload);
                     alert(`Ajuste guardado correctamente.`);
-                    // Invalidar cache de DB si es necesario, pero loadData llama a getAll
-                    await this.loadData();
+                    await this.cargarDatosRPC();
                     this.calcularTotales();
                     this.renderTabla();
                     this.renderHistorial();
@@ -459,7 +453,21 @@ export const ConciliacionModule = {
                 const concil = this.state.historialConciliaciones.find(c => c.id === id);
                 if (!concil) return;
 
-                const movs = this.state.transacciones.filter(t => (concil.movimientos_conciliados || []).includes(t.id));
+                // Lookup acotado por IDs — no escanea state.transacciones completo
+                const ids = (concil.movimientos_conciliados || []).map(i => parseInt(i, 10)).filter(Boolean);
+                let movs = [];
+                if (ids.length > 0) {
+                    const { data: movsData } = await supabase
+                        .from('pagos_ingresos')
+                        .select('id, fecha, observaciones, referencia, tipo, monto')
+                        .in('id', ids);
+                    movs = (movsData || []).map(m => ({
+                        ...m,
+                        tipo:   m.tipo === 'in' ? 'ingreso' : 'egreso',
+                        detalle: m.observaciones || m.referencia || ''
+                    }));
+                }
+
                 let tableHtml = `
                     <div class="table-responsive">
                         <table class="table table-sm">
@@ -480,16 +488,16 @@ export const ConciliacionModule = {
                         tableHtml += `
                         <tr style="font-size: 13px;">
                             <td class="py-2">${(m.fecha || '').substring(0,10)}</td>
-                            <td class="py-2 fw-medium">${m.detalle || m.referencia || m.descripcion || '-'}</td>
+                            <td class="py-2 fw-medium">${m.detalle || m.referencia || '-'}</td>
                             <td class="py-2 text-end text-${esIngreso ? 'success' : 'danger'} fw-medium">${this.formatMoney(m.monto)}</td>
                         </tr>`;
                     });
                 }
                 tableHtml += `</tbody></table></div>`;
-                
+
                 const modalBody = document.getElementById('modal-detalle-body');
                 if (modalBody) modalBody.innerHTML = tableHtml;
-                
+
                 const modalEl = document.getElementById('modal-detalle-conciliacion');
                 if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
                     const modal = new bootstrap.Modal(modalEl);
@@ -520,7 +528,8 @@ export const ConciliacionModule = {
                 this.state.fechaDesde = concil.fecha_desde;
                 this.state.fechaHasta = concil.fecha_hasta;
                 this.state.saldoBancario = concil.saldo_bancario;
-                
+
+                await this.cargarDatosRPC();
                 this.calcularTotales();
                 this.renderTabla();
 
