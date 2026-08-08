@@ -996,3 +996,71 @@ body {
   align-items: flex-end !important;
 }
 
+
+/* ==========================================================
+   MEJORAS VISUALES GLOBALES (DESKTOP)
+   ========================================================== */
+@media (min-width: 769px) {
+
+    /* CAMBIO 1: Centrar Buscador y Botón + */
+    #navbar {
+        position: relative;
+        justify-content: flex-end !important; /* Manda el perfil de usuario a la derecha */
+    }
+    
+    .search-box {
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 100%;
+        max-width: 500px;
+        justify-content: center;
+    }
+
+    /* CAMBIO 2: Sidebar Colapsable (Estilo VSCode/Notion) */
+    
+    /* 2.1 - Estado inicial colapsado */
+    #sidebar {
+        width: 68px !important;
+        transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease !important;
+        overflow-x: hidden;
+        white-space: nowrap; /* Evita que los textos bajen a otra línea al encogerse */
+    }
+    
+    /* 2.2 - El main-wrapper se ajusta al ancho de 68px y NO se mueve 
+             (Solo aplica si el usuario está autenticado para no romper el Login) */
+    #app-container:not(.unauthenticated) #main-wrapper {
+        margin-left: 68px !important;
+        width: calc(100% - 68px) !important;
+    }
+    
+    /* 2.3 - Estado expandido (Hover) flotando sobre el contenido */
+    #sidebar:hover {
+        width: var(--sidebar-width) !important; /* 250px */
+        box-shadow: 4px 0 25px rgba(0,0,0,0.15) !important;
+    }
+    
+    /* 2.4 - Ocultar textos y logo cuando está colapsado */
+    #sidebar:not(:hover) .label,
+    #sidebar:not(:hover) .arrow,
+    #sidebar:not(:hover) .brand .logo {
+        opacity: 0;
+        visibility: hidden;
+    }
+    
+    /* 2.5 - Transiciones y delays para que aparezcan suavemente */
+    #sidebar .label,
+    #sidebar .arrow,
+    #sidebar .brand .logo {
+        transition: opacity 0.2s ease, visibility 0.2s ease;
+    }
+    
+    #sidebar:hover .label,
+    #sidebar:hover .arrow,
+    #sidebar:hover .brand .logo {
+        opacity: 1;
+        visibility: visible;
+        transition-delay: 0.1s; /* Delay sutil para que abra el sidebar antes de mostrar texto */
+    }
+}
+
