@@ -626,6 +626,10 @@ export const ComprasModule = {
             }
         }
 
+        // Fetch full contact/product lists for Print & Preview
+        const { data: contactosData } = await supabase.from('contactos').select('*').limit(2000);
+        const contactos = contactosData || [];
+
         const dbCuentas = await DB.getAll('cuentas_bancarias') || [];
         const cuentasActivas = dbCuentas.filter(c => c.estado === 'activo');
 
@@ -1048,7 +1052,7 @@ export const ComprasModule = {
                 }, 3000);
                 return;
             }
-            PrintManager.printDocument(factura, 'Factura de Compra', contactos, productos);
+            PrintManager.printDocument(factura, 'Factura de Compra', contactos, productosFactura);
         });
 
         // Evento Vista Previa Global (Acción Superior)
@@ -1066,7 +1070,7 @@ export const ComprasModule = {
                 }, 3000);
                 return;
             }
-            PrintManager.printDocument(factura, 'Factura de Compra', contactos, productos, 'preview');
+            PrintManager.printDocument(factura, 'Factura de Compra', contactos, productosFactura, 'preview');
         });
 
         // Evento Registrar Pago (Acción Superior - Solo Vista)
