@@ -45,39 +45,70 @@ export const NotasCreditoModule = {
     },
 
     async renderList(element) {
-        element.innerHTML = `
-            <div class="d-flex justify-content-center align-items-center" style="min-height: 400px;">
-                <div class="spinner-border" style="color: #2cbfb7;" role="status"></div>
-            </div>
-        `;
+        let currentPage = 1;
+        let itemsPerPage = 50;
+        let searchQuery = '';
+        let sortColumn = 'numero';
+        let sortDirection = 'desc';
+        let kpiDataNC = null;
 
-        try {
-            // Obtener todas las notas de crédito
-            const { data: notas } = await supabase.from('notas_credito').select('*').order('created_at', { ascending: false });
-            
-            // Obtener info de clientes
-            const contactosMap = {};
-            if (notas && notas.length > 0) {
-                const cIds = [...new Set(notas.map(n => n.contacto_id).filter(Boolean))];
-                if (cIds.length > 0) {
-                    const { data: contactos } = await supabase.from('contactos').select('id, nombre').in('id', cIds);
-                    contactos?.forEach(c => contactosMap[c.id] = c.nombre);
+        const renderGrid = async () => {
+            element.innerHTML = `
+                <div class="d-flex justify-content-center align-items-center" style="min-height: 400px;">
+                    <div class="spinner-border" style="color: #2cbfb7;" role="status"></div>
+                </div>
+            `;
+
+            if (!kpiDataNC) {
+                try {
+                    const { data, error } = await supabase.rpc('get_notas_credito_kpis');
+                    if (!error && data) {
+                        kpiDataNC = {
+                            totalAnulada: parseFloat(data.totalAnulada) || 0,
+                            totalAplicadas: parseFloat(data.totalAplicadas) || 0,
+                            totalPendientes: parseFloat(data.totalPendientes) || 0
+                        };
+                    } else {
+                        kpiDataNC = { totalAnulada: 0, totalAplicadas: 0, totalPendientes: 0 };
+                    }
+                } catch(e) {
+                    kpiDataNC = { totalAnulada: 0, totalAplicadas: 0, totalPendientes: 0 };
                 }
             }
 
-            let totalAnulada = 0, totalAplicadas = 0, totalPendientes = 0;
-            if (notas) {
-                notas.forEach(n => {
-                    const tot = parseFloat(n.total) || 0;
-                    if (n.estado === 'anulada') {
-                        totalAnulada += tot;
-                    } else {
-                        totalAplicadas += tot; // Asumiremos que las activas están aplicadas a facturas
-                    }
+            let totalItems = 0;
+            let totalPages = 1;
+            let currentItems = [];
+
+            try {
+                const { data: pageData, error } = await supabase.rpc('get_notas_credito_paginadas', {
+                    p_page: currentPage,
+                    p_limit: itemsPerPage,
+                    p_sort_col: sortColumn,
+                    p_sort_dir: sortDirection,
+                    p_search: searchQuery
                 });
+
+                if (error) throw error;
+                
+                totalItems = pageData && pageData.length > 0 ? pageData[0].total_count : 0;
+                totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
+                
+                if (currentPage > totalPages && totalPages > 0) {
+                    currentPage = totalPages;
+                    return renderGrid();
+                }
+
+                currentItems = pageData || [];
+            } catch (e) {
+                console.error("Error cargando notas de credito:", e);
+                element.innerHTML = `<div class="p-4 text-danger">Error cargando lista: ${e.message}</div>`;
+                return;
             }
 
-            const tbodyHtml = (notas && notas.length > 0) ? notas.map(n => {
+            const startIndex = (currentPage - 1) * itemsPerPage;
+
+            const tbodyHtml = currentItems.length > 0 ? currentItems.map(n => {
                 let badgeClass = n.estado === 'anulada' ? 'bg-secondary text-secondary bg-opacity-10 border border-secondary-subtle' : 'bg-success text-success bg-opacity-10 border border-success-subtle';
                 let labelEstado = n.estado === 'anulada' ? 'Anulada' : 'Aplicada';
                 const estadoLabel = `<span class="badge ${badgeClass} rounded-pill fw-medium" style="font-size: 11px; padding: 5px 10px;">${labelEstado}</span>`;
@@ -87,20 +118,20 @@ export const NotasCreditoModule = {
                     <tr style="cursor: pointer; opacity: ${opacity}; transition: opacity 0.2s;" onclick="if(!event.target.closest('button')) window.location.hash = '#/ingresos/notas-credito/ver/${n.id}'">
                         <td class="py-3">${n.numero || n.id}</td>
                         <td class="py-3">${n.fecha || ''}</td>
-                        <td class="py-3 fw-medium">${contactosMap[n.contacto_id] || 'Sin cliente'}</td>
-                        <td class="py-3 text-end fw-medium">$${Number(n.total || 0).toLocaleString()}</td>
+                        <td class="py-3 fw-medium">${n.contacto_nombre || 'Sin cliente'}</td>
+                        <td class="py-3 text-end fw-medium">$${Number(n.total || 0).toLocaleString('es-CO', {minimumFractionDigits: 2})}</td>
                         <td class="py-3 text-center">${estadoLabel}</td>
                         <td class="py-3 text-end" style="position: relative;">
-                            <button class="btn btn-link text-muted p-0 btn-menu-row" data-id="${n.id}">
+                            <button class="btn btn-link text-muted p-0 btn-menu-row" data-id="${n.id}" data-estado="${n.estado}">
                                 <i class="bi bi-three-dots-vertical"></i>
                             </button>
                         </td>
                     </tr>
                 `;
-            }).join('') : '<tr><td colspan="5" class="text-center py-5 text-muted">No se encontraron notas de crédito</td></tr>';
+            }).join('') : '<tr><td colspan="6" class="text-center py-5 text-muted">No se encontraron notas de crédito</td></tr>';
 
             element.innerHTML = `
-                <div class="module-container p-4" style="max-width: 1200px; margin: 0 auto;">
+                <div class="dash-layout p-4" style="max-width: 1100px; margin: 0 auto;">
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <div>
                             <h2 class="h3 fw-bold mb-1" style="color: var(--text-main);">Notas de Crédito</h2>
@@ -114,35 +145,44 @@ export const NotasCreditoModule = {
                     <!-- KPI CARDS NOTAS CREDITO -->
                     <div class="row g-3 mb-4">
                         <div class="col-12 col-sm-6 col-lg-4">
-                            <div class="card kpi-card kpi-dark">
-                                <div class="kpi-card-body">
-                                    <i class="bi bi-x-circle kpi-icon"></i>
-                                    <h6 class="kpi-label">Total Anuladas</h6>
-                                    <h5 class="kpi-value">$ ${Number(totalAnulada).toLocaleString('es-CO', {minimumFractionDigits: 2})}</h5>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-12 col-sm-6 col-lg-4">
-                            <div class="card kpi-card kpi-success">
+                            <div class="card dash-kpi-card">
                                 <div class="kpi-card-body">
                                     <i class="bi bi-check2-all kpi-icon"></i>
-                                    <h6 class="kpi-label">Notas Aplicadas</h6>
-                                    <h5 class="kpi-value">$ ${Number(totalAplicadas).toLocaleString('es-CO', {minimumFractionDigits: 2})}</h5>
+                                    <h6 class="kpi-label">Notas Aplicadas (este mes)</h6>
+                                    <h5 class="kpi-value">$ ${Number(kpiDataNC.totalAplicadas).toLocaleString('es-CO', {minimumFractionDigits: 2})}</h5>
                                 </div>
                             </div>
                         </div>
                         <div class="col-12 col-sm-6 col-lg-4">
-                            <div class="card kpi-card kpi-warning">
+                            <div class="card dash-kpi-card">
                                 <div class="kpi-card-body">
                                     <i class="bi bi-clock-history kpi-icon"></i>
-                                    <h6 class="kpi-label">Notas Pendientes</h6>
-                                    <h5 class="kpi-value">$ ${Number(totalPendientes).toLocaleString('es-CO', {minimumFractionDigits: 2})}</h5>
+                                    <h6 class="kpi-label">Notas Pendientes (este mes)</h6>
+                                    <h5 class="kpi-value">$ ${Number(kpiDataNC.totalPendientes).toLocaleString('es-CO', {minimumFractionDigits: 2})}</h5>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-lg-4">
+                            <div class="card dash-kpi-card">
+                                <div class="kpi-card-body">
+                                    <i class="bi bi-x-circle kpi-icon"></i>
+                                    <h6 class="kpi-label">Total Anuladas (este mes)</h6>
+                                    <h5 class="kpi-value">$ ${Number(kpiDataNC.totalAnulada).toLocaleString('es-CO', {minimumFractionDigits: 2})}</h5>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <div class="card border-0 shadow-sm" style="border-radius: 8px;">
+                    <div class="card border-0" style="box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.03), 0px 1px 3px rgba(0, 0, 0, 0.05); border-radius: 8px;">
+                        <!-- FILTERS -->
+                        <div class="card-header bg-white border-bottom p-3 d-flex gap-3 align-items-center" style="border-radius: 8px 8px 0 0;">
+                            <div class="input-group input-group-sm" style="width: 250px;">
+                                <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
+                                <input type="text" class="form-control border-start-0 ps-0 text-muted" id="search-input" placeholder="Buscar..." value="${searchQuery}" style="font-size: 13px; box-shadow: none;">
+                            </div>
+                        </div>
+
+                        <!-- GRID -->
                         <div class="table-responsive">
                             <table class="table table-borderless align-middle mb-0">
                                 <thead style="border-bottom: 1px solid var(--border-color);">
@@ -160,11 +200,83 @@ export const NotasCreditoModule = {
                                 </tbody>
                             </table>
                         </div>
+
+                        <!-- PAGINATION FOOTER -->
+                        <div class="card-footer bg-white border-top p-3 d-flex justify-content-between align-items-center" style="border-radius: 0 0 8px 8px;">
+                            <div class="d-flex align-items-center gap-3" style="font-size: 13px; color: var(--text-body);">
+                                <div class="d-flex align-items-center gap-2">
+                                    <span>Resultados por página:</span>
+                                    <select class="form-select form-select-sm text-muted" id="select-per-page" style="width: 70px;">
+                                        <option value="10" ${itemsPerPage===10?'selected':''}>10</option>
+                                        <option value="20" ${itemsPerPage===20?'selected':''}>20</option>
+                                        <option value="50" ${itemsPerPage===50?'selected':''}>50</option>
+                                        <option value="100" ${itemsPerPage===100?'selected':''}>100</option>
+                                    </select>
+                                </div>
+                                <span class="text-muted border-start ps-3">${totalItems > 0 ? startIndex + 1 : 0}-${Math.min(startIndex + itemsPerPage, totalItems)} de ${totalItems}</span>
+                            </div>
+
+                            <div class="d-flex align-items-center gap-2" style="font-size: 13px; color: var(--text-body);">
+                                <span>Página</span>
+                                <input type="number" id="input-page" class="form-control form-control-sm text-center text-muted" value="${currentPage}" min="1" max="${totalPages}" style="width: 50px;">
+                                <span>de ${totalPages}</span>
+                                <div class="ms-2">
+                                    <button class="btn btn-link text-muted p-0 me-1" id="btn-prev-page" ${currentPage === 1 ? 'disabled' : ''}><i class="bi bi-chevron-left"></i></button>
+                                    <button class="btn btn-link text-muted p-0" id="btn-next-page" ${currentPage === totalPages ? 'disabled' : ''}><i class="bi bi-chevron-right"></i></button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             `;
 
-            // Row Menu Actions (Popovers Flotantes)
+            bindGridEvents();
+        };
+
+        const bindGridEvents = () => {
+            // Búsqueda
+            const searchInput = element.querySelector('#search-input');
+            if (searchInput) {
+                searchInput.focus();
+                const val = searchInput.value;
+                searchInput.value = '';
+                searchInput.value = val;
+
+                let debounceTimer;
+                searchInput.addEventListener('input', (e) => {
+                    clearTimeout(debounceTimer);
+                    debounceTimer = setTimeout(() => {
+                        searchQuery = e.target.value;
+                        currentPage = 1;
+                        renderGrid();
+                    }, 400);
+                });
+            }
+
+            // Paginación
+            element.querySelector('#select-per-page')?.addEventListener('change', (e) => {
+                itemsPerPage = parseInt(e.target.value);
+                currentPage = 1;
+                renderGrid();
+            });
+
+            element.querySelector('#input-page')?.addEventListener('change', (e) => {
+                let val = parseInt(e.target.value) || 1;
+                currentPage = val;
+                renderGrid();
+            });
+
+            element.querySelector('#btn-prev-page')?.addEventListener('click', () => {
+                if (currentPage > 1) { currentPage--; renderGrid(); }
+            });
+
+            element.querySelector('#btn-next-page')?.addEventListener('click', () => {
+                const inputPage = element.querySelector('#input-page');
+                const max = parseInt(inputPage.max);
+                if (currentPage < max) { currentPage++; renderGrid(); }
+            });
+
+            // Acciones de Fila
             element.querySelectorAll('.btn-menu-row').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     e.stopPropagation();
@@ -172,9 +284,9 @@ export const NotasCreditoModule = {
                     if (existing) existing.remove();
 
                     const id = e.currentTarget.dataset.id;
+                    const estado = e.currentTarget.dataset.estado;
                     const rect = e.currentTarget.getBoundingClientRect();
-                    const n = notas.find(x => String(x.id) === String(id));
-                    const isAnulada = n && n.estado === 'anulada';
+                    const isAnulada = estado === 'anulada';
                     
                     const menuHtml = `
                         <div class="row-action-menu position-absolute bg-white shadow rounded border py-2" 
@@ -197,10 +309,12 @@ export const NotasCreditoModule = {
                             if (confirm('¿Estás seguro de anular esta Nota de Crédito? Esto deshará la devolución de inventario y restaurará el saldo pendiente de la factura.')) {
                                 try {
                                     CoreActions.showLoadingOverlay?.("Anulando nota de crédito...");
-                                    await this.anularNotaCredito(id);
+                                    await NotasCreditoModule.anularNotaCredito(id);
                                     if (CoreActions.hideLoadingOverlay) CoreActions.hideLoadingOverlay();
                                     CoreActions.showSuccessModal("Nota de Crédito anulada correctamente.");
-                                    this.renderList(element);
+                                    
+                                    kpiDataNC = null; // Refrescar KPIs
+                                    renderGrid();
                                 } catch (err) {
                                     if (CoreActions.hideLoadingOverlay) CoreActions.hideLoadingOverlay();
                                     CoreActions.showErrorModal("Error anulando: " + err.message);
@@ -209,7 +323,6 @@ export const NotasCreditoModule = {
                         });
                     }
 
-                    // Click outside to close
                     const closeMenu = (evt) => {
                         if (menu && !menu.contains(evt.target) && !e.currentTarget.contains(evt.target)) {
                             menu.remove();
@@ -219,11 +332,9 @@ export const NotasCreditoModule = {
                     document.addEventListener('click', closeMenu);
                 });
             });
+        };
 
-        } catch (e) {
-            console.error("Error cargando notas de credito:", e);
-            element.innerHTML = `<div class="p-4 text-danger">Error cargando lista: ${e.message}</div>`;
-        }
+        renderGrid();
     },
 
     async renderForm(element, id, isViewOnly) {
