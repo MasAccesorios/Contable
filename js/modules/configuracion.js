@@ -88,17 +88,16 @@ export const ConfiguracionModule = {
     async loadData() {
         try {
             // Leer el MAX(numero) actual de cada tabla en Supabase para mostrar el próximo número
-            const [resFacturas, resCotizaciones] = await Promise.all([
-                supabase.from('facturas').select('numero').eq('tipo', 'venta').order('numero', { ascending: false }).limit(1).single(),
-                supabase.from('cotizaciones').select('numero').order('numero', { ascending: false }).limit(1).single()
+            const [resFactura, resCotizacion] = await Promise.all([
+                supabase.rpc('get_next_numero', { p_table: 'facturas' }),
+                supabase.rpc('get_next_numero', { p_table: 'cotizaciones' })
             ]);
 
-            const maxFactura = resFacturas.data?.numero ?? 0;
-            const maxCotizacion = resCotizaciones.data?.numero ?? 0;
+            if (resFactura.error) console.error('Error obteniendo próximo número de factura:', resFactura.error);
+            if (resCotizacion.error) console.error('Error obteniendo próximo número de cotización:', resCotizacion.error);
 
-            // Mostrar el PRÓXIMO número (max actual + 1)
-            this.inputFactura.value = maxFactura + 1;
-            this.inputCotizacion.value = maxCotizacion + 1;
+            this.inputFactura.value = resFactura.data ?? 1;
+            this.inputCotizacion.value = resCotizacion.data ?? 1;
 
             // Mostrar el formulario
             this.loader.classList.add('d-none');
