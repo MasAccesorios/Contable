@@ -1,4 +1,4 @@
-﻿@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 :root {
     --primary: #2dbda8;
@@ -1004,17 +1004,19 @@ body {
 
     /* CAMBIO 1: Centrar Buscador y Botón + */
     #navbar {
-        position: relative;
+        position: relative !important;
         justify-content: flex-end !important; /* Manda el perfil de usuario a la derecha */
+        width: 100%;
     }
     
     .search-box {
-        position: absolute;
-        left: 50%;
-        transform: translateX(-50%);
+        position: absolute !important;
+        left: 50% !important;
+        margin-left: -250px !important; /* Mitad exacta del max-width */
         width: 100%;
         max-width: 500px;
         justify-content: center;
+        transform: none !important;
     }
 
     /* CAMBIO 2: Sidebar Colapsable (Estilo VSCode/Notion) */
