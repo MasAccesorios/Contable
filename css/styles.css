@@ -975,3 +975,24 @@ body {
   gap: 1rem !important;
   align-items: end !important;
 }
+
+/* Nuevas clases Fintech para el crudFinanciero */
+.form-fintech-row-1 {
+  display: grid !important;
+  grid-template-columns: 160px 1fr 140px 200px !important;
+  gap: 1.25rem !important;
+  margin-bottom: 1.25rem !important;
+}
+.form-fintech-row-2 {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr 1fr !important;
+  gap: 1.25rem !important;
+  margin-bottom: 1.25rem !important;
+}
+.form-fintech-row-3 {
+  display: grid !important;
+  grid-template-columns: 1fr 200px !important;
+  gap: 1.25rem !important;
+  align-items: flex-end !important;
+}
+

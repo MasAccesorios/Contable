@@ -44,14 +44,17 @@ export class CrudFinanciero {
                 </div>
 
                 <!-- Panel Superior: Creación Rápida -->
-                <div class="dash-table-container mb-4" style="overflow: visible;">
-                    <div class="card-header bg-white border-bottom-0 pt-4 pb-0">
-                        <h5 class="mb-0 text-primary"><i class="bi bi-receipt me-2"></i>${this.config.btnNuevoText}</h5>
+                <div class="dash-kpi-card mb-4" style="overflow: visible; padding: 1.5rem;">
+                    <div class="d-flex align-items-center mb-4">
+                        <div class="dash-icon-box variant-blue me-3">
+                            <i class="bi bi-receipt"></i>
+                        </div>
+                        <h5 class="mb-0" style="color: #0f172a; font-size: 1.1rem; font-weight: 700;">${this.config.btnNuevoText}</h5>
                     </div>
-                    <div class="card-body">
+                    <div>
                         <form id="${this.config.formId}">
                             <!-- Fila 1 -->
-                            <div class="form-grid-row-1">
+                            <div class="form-fintech-row-1">
                                 <div>
                                     <label class="form-label text-muted small fw-semibold mb-1">Fecha *</label>
                                     <input type="date" class="form-control" id="transaccion-fecha" required>
@@ -77,7 +80,7 @@ export class CrudFinanciero {
                             </div>
                             
                             <!-- Fila 2 -->
-                            <div class="form-grid-row-2">
+                            <div class="form-fintech-row-2">
                                 <div>
                                     <label class="form-label text-muted small fw-semibold mb-1">Proveedor (Opcional)</label>
                                     <div class="custom-combobox" id="combo-proveedor-container">
@@ -99,16 +102,16 @@ export class CrudFinanciero {
                             </div>
 
                             <!-- Fila 3 -->
-                            <div class="form-grid-row-3">
+                            <div class="form-fintech-row-3">
                                 <div>
                                     <label class="form-label text-muted small fw-semibold mb-1">Descripción *</label>
                                     <input type="text" class="form-control" id="transaccion-descripcion" placeholder="Ej. Pago servicio de internet" required minlength="3">
                                 </div>
-                                <div class="d-flex flex-column gap-2 mt-4 mt-md-0">
-                                    <button type="submit" class="btn btn-primary-action w-100" id="btn-guardar-transaccion">
+                                <div class="d-flex flex-column gap-2">
+                                    <button type="submit" class="btn btn-primary-action w-100" id="btn-guardar-transaccion" style="height: 42px;">
                                         <i class="bi bi-plus-circle me-1"></i>Registrar
                                     </button>
-                                    <button type="button" class="btn btn-outline-secondary w-100 d-none" id="btn-cancelar-edicion">
+                                    <button type="button" class="btn btn-outline-secondary w-100 d-none" id="btn-cancelar-edicion" style="height: 42px;">
                                         Cancelar
                                     </button>
                                 </div>
