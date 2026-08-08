@@ -310,9 +310,8 @@ export const AjustesInventarioModule = {
                         });
                     }
 
-                    const tipoSelect = tr.querySelector('.select-tipo-ajuste');
-                    const costoInput = tr.querySelector('.input-costo');
                     
+
                     tipoSelect.addEventListener('change', () => {
                         if (tipoSelect.value === 'incremento') {
                             costoInput.disabled = false;
