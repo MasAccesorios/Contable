@@ -34,42 +34,7 @@ export const ProductosModule = {
                     </div>
                 </div>
 
-                <!-- KPI CARDS PILOT -->
-                <div class="row g-3 mb-4">
-                    <div class="col-12 col-md-4">
-                        <div class="dash-kpi-card d-flex flex-column justify-content-between" style="min-height: 90px;">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <span class="dash-kpi-label">Total Ítems</span>
-                                <div class="dash-icon-box variant-blue">
-                                    <i class="bi bi-box-seam"></i>
-                                </div>
-                            </div>
-                            <div class="dash-kpi-value" id="inv-kpi-total"><span class="spinner-border spinner-border-sm text-secondary"></span></div>
-                        </div>
-                    </div>
-                    <div class="col-12 col-md-4">
-                        <div class="dash-kpi-card d-flex flex-column justify-content-between" style="min-height: 90px;">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <span class="dash-kpi-label">Productos Activos</span>
-                                <div class="dash-icon-box variant-green">
-                                    <i class="bi bi-check-circle"></i>
-                                </div>
-                            </div>
-                            <div class="dash-kpi-value" id="inv-kpi-activos"><span class="spinner-border spinner-border-sm text-secondary"></span></div>
-                        </div>
-                    </div>
-                    <div class="col-12 col-md-4">
-                        <div class="dash-kpi-card d-flex flex-column justify-content-between" style="min-height: 90px;">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <span class="dash-kpi-label">Agotados (Stock 0)</span>
-                                <div class="dash-icon-box variant-red">
-                                    <i class="bi bi-exclamation-triangle"></i>
-                                </div>
-                            </div>
-                            <div class="dash-kpi-value" id="inv-kpi-agotados"><span class="spinner-border spinner-border-sm text-secondary"></span></div>
-                        </div>
-                    </div>
-                </div>
+
 
                 <!-- DATA TABLE CARD -->
                 <div class="dash-table-container">
@@ -145,24 +110,9 @@ export const ProductosModule = {
         } else {
             await this.renderTabla(element);
         }
-        await this.actualizarKPIs(element);
     },
 
-    async actualizarKPIs(element) {
-        const kpiTotal = element.querySelector('#inv-kpi-total');
-        const kpiActivos = element.querySelector('#inv-kpi-activos');
-        const kpiAgotados = element.querySelector('#inv-kpi-agotados');
-        if(!kpiTotal || !kpiActivos || !kpiAgotados) return;
 
-        try {
-            const allProducts = (await DB.getAll('productos')).filter(p => p.estado !== 'inactivo' && p.estado !== 'inactive');
-            kpiTotal.textContent = allProducts.length;
-            kpiActivos.textContent = allProducts.length;
-            kpiAgotados.textContent = allProducts.filter(p => (parseFloat(p.stock) || 0) <= 0).length;
-        } catch (e) {
-            console.error("Error al actualizar KPIs de inventario:", e);
-        }
-    },
 
     async renderTabla(element) {
         const gridCard = element.querySelector('.dash-table-container');
@@ -191,8 +141,6 @@ export const ProductosModule = {
             const { data } = await supabase.from('lotes_fifo').select('*').in('producto_id', productIds).gt('cantidad_actual', 0);
             if (data) lotes = data.map(l => DB._mapToFrontend('lotes_fifo', l));
         }
-
-        await this.actualizarKPIs(element);
 
         if (productos.length === 0) {
             container.innerHTML = `<tr><td colspan="6" class="text-center py-5 text-muted">No hay productos registrados en el inventario.</td></tr>`;
