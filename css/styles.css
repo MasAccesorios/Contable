@@ -1050,6 +1050,11 @@ body {
         visibility: hidden;
     }
     
+    /* 2.4b - Ocultar submenús abiertos al colapsar (evita cortes y colapsa el espacio) */
+    #sidebar:not(:hover) .dropdown-content {
+        display: none !important;
+    }
+    
     /* 2.5 - Transiciones y delays para que aparezcan suavemente */
     #sidebar .label,
     #sidebar .arrow,
