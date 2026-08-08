@@ -291,7 +291,8 @@ window.addEventListener('DOMContentLoaded', () => {
             }
 
             // Inyectamos el módulo de Login
-            renderLogin(viewport);
+            const currentViewport = document.getElementById('view-viewport');
+            if (currentViewport) renderLogin(currentViewport);
         }
     });
 });

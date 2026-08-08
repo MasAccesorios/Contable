@@ -199,30 +199,36 @@ export const DashboardModule = {
     },
 
     async loadData(element) {
-        console.time('dashboard-total-load');
+        if (this._loading) return;
+        this._loading = true;
+        try {
+            console.time('dashboard-total-load');
 
-        console.time('fetch-parallel');
-        const [facturas, lotes, contactos, dbCuentas, productos] = await Promise.all([
-            DB.getAll('facturas'),
-            DB.getAll('lotes_fifo'),
-            DB.getAll('contactos'),
-            DB.getAll('cuentas_bancarias'),
-            DB.getAll('productos')
-        ]);
-        this.facturas = facturas;
-        this.lotes = lotes;
-        this.contactos = contactos;
-        this.cuentasActivas = (dbCuentas || []).filter(c => c.estado === 'active' || c.estado === 'activo');
-        this.productos = productos;
-        console.timeEnd('fetch-parallel');
+            console.time('fetch-parallel');
+            const [facturas, lotes, contactos, dbCuentas, productos] = await Promise.all([
+                DB.getAll('facturas'),
+                DB.getAll('lotes_fifo'),
+                DB.getAll('contactos'),
+                DB.getAll('cuentas_bancarias'),
+                DB.getAll('productos')
+            ]);
+            this.facturas = facturas;
+            this.lotes = lotes;
+            this.contactos = contactos;
+            this.cuentasActivas = (dbCuentas || []).filter(c => c.estado === 'active' || c.estado === 'activo');
+            this.productos = productos;
+            console.timeEnd('fetch-parallel');
 
-        const { data: saldosRPC } = await supabase.rpc('get_saldos_por_cuenta');
-        this.saldosRPC = saldosRPC;
+            const { data: saldosRPC } = await supabase.rpc('get_saldos_por_cuenta');
+            this.saldosRPC = saldosRPC;
 
-        console.timeEnd('dashboard-total-load');
+            console.timeEnd('dashboard-total-load');
 
-        const select = element.querySelector('#dashboard-rango-filtro .dpg-btn--active');
-        await this.renderDynamicContent(element, select ? select.dataset.rango : 'Este Mes');
+            const select = element.querySelector('#dashboard-rango-filtro .dpg-btn--active');
+            await this.renderDynamicContent(element, select ? select.dataset.rango : 'Este Mes');
+        } finally {
+            this._loading = false;
+        }
     },
 
     async renderDynamicContent(element, rango) {
