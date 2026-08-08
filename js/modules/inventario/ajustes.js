@@ -419,7 +419,7 @@ export const AjustesInventarioModule = {
                                 cantidad_actual: item.cantidad,
                                 costo_unitario: item.costo_unitario,
                                 fecha_ingreso: fecha,
-                                referencia: \`Ajuste de Inventario #\${nextNumero}\`
+                                referencia: `Ajuste de Inventario #${nextNumero}`
                             }));
                             const { error: insErr } = await supabase.from('lotes_fifo').insert(lotesInsert);
                             if (insErr) throw insErr;
