@@ -51,60 +51,60 @@ export class CrudFinanciero {
                     <div class="card-body">
                         <form id="${this.config.formId}">
                             <!-- Fila 1 -->
-                            <div class="row g-3 mb-3 align-items-end">
-                                <div class="col-md-2">
+                            <div class="form-grid-row-1">
+                                <div>
                                     <label class="form-label text-muted small fw-semibold mb-1">Fecha *</label>
                                     <input type="date" class="form-control" id="transaccion-fecha" required>
                                 </div>
-                                <div class="col-md-3">
+                                <div>
                                     <label class="form-label text-muted small fw-semibold mb-1">Categoría *</label>
                                     <select class="form-select" id="transaccion-categoria" required>
                                         <option value="">Seleccione...</option>
                                         ${this.categorias.map(c => `<option value="${c.nombre}">${c.nombre}</option>`).join('')}
                                     </select>
                                 </div>
-                                <div class="col-md-2">
+                                <div>
                                     <label class="form-label text-muted small fw-semibold mb-1">Tipo *</label>
                                     <select class="form-select" id="transaccion-tipo" required>
                                         <option value="ingreso" ${this.config.tipoTransaccion === 'ingreso' ? 'selected' : ''}>Entrada</option>
                                         <option value="egreso" ${this.config.tipoTransaccion === 'egreso' ? 'selected' : ''}>Salida</option>
                                     </select>
                                 </div>
-                                <div class="col-md-5">
+                                <div>
                                     <label class="form-label text-muted small fw-semibold mb-1">Monto ($) *</label>
                                     <input type="text" class="form-control" id="transaccion-monto" required>
                                 </div>
                             </div>
                             
                             <!-- Fila 2 -->
-                            <div class="row g-3 mb-3 align-items-end">
-                                <div class="col-md-4">
+                            <div class="form-grid-row-2">
+                                <div>
                                     <label class="form-label text-muted small fw-semibold mb-1">Proveedor (Opcional)</label>
                                     <div class="custom-combobox" id="combo-proveedor-container">
                                         <input type="text" class="form-control" id="search-proveedor" placeholder="Buscar proveedor..." autocomplete="off">
                                         <input type="hidden" id="select-proveedor-id">
                                     </div>
                                 </div>
-                                <div class="col-md-4">
+                                <div>
                                     <label class="form-label text-muted small fw-semibold mb-1">Cuenta Bancaria *</label>
                                     <div class="custom-combobox" id="combo-cuenta-container">
                                         <input type="text" class="form-control" id="transaccion-cuenta" placeholder="Buscar cuenta..." required autocomplete="off">
                                         <input type="hidden" id="transaccion-cuenta-id" required>
                                     </div>
                                 </div>
-                                <div class="col-md-4">
+                                <div>
                                     <label class="form-label text-muted small fw-semibold mb-1">Referencia (Opcional)</label>
                                     <input type="text" class="form-control" id="transaccion-referencia" placeholder="Nro Factura / Recibo">
                                 </div>
                             </div>
 
                             <!-- Fila 3 -->
-                            <div class="row g-3 align-items-end">
-                                <div class="col-md-9">
+                            <div class="form-grid-row-3">
+                                <div>
                                     <label class="form-label text-muted small fw-semibold mb-1">Descripción *</label>
                                     <input type="text" class="form-control" id="transaccion-descripcion" placeholder="Ej. Pago servicio de internet" required minlength="3">
                                 </div>
-                                <div class="col-md-3 d-flex flex-column gap-2 mt-4 mt-md-0">
+                                <div class="d-flex flex-column gap-2 mt-4 mt-md-0">
                                     <button type="submit" class="btn btn-primary-action w-100" id="btn-guardar-transaccion">
                                         <i class="bi bi-plus-circle me-1"></i>Registrar
                                     </button>

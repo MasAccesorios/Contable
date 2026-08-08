@@ -951,3 +951,25 @@ body {
     border-radius: 8px !important; font-weight: 600 !important; color: white !important;
 }
 
+
+/* Grilla expl¨ªcita para formulario de Operativos */
+.form-grid-row-1 {
+  display: grid !important;
+  grid-template-columns: 1.5fr 2.5fr 1.5fr 2fr !important;
+  gap: 1rem !important;
+  margin-bottom: 1rem !important;
+}
+
+.form-grid-row-2 {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr 1fr !important;
+  gap: 1rem !important;
+  margin-bottom: 1rem !important;
+}
+
+.form-grid-row-3 {
+  display: grid !important;
+  grid-template-columns: 1fr 200px !important;
+  gap: 1rem !important;
+  align-items: end !important;
+}
