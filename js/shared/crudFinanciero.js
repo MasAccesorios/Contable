@@ -38,13 +38,13 @@ export class CrudFinanciero {
         this.categorias = categoriasDB || [];
 
         element.innerHTML = `
-            <div class="dash-layout">
+            <div class="dash-layout p-4">
                 <div class="d-flex justify-content-between flex-wrap pt-3 pb-2 mb-3 border-bottom">
                     <h1 class="h2">${this.config.titulo}</h1>
                 </div>
 
                 <!-- Panel Superior: Creación Rápida -->
-                <div class="card mb-4 border-0 shadow-sm" style="border-radius: 14px; border: 1px solid #e2e8f0 !important;">
+                <div class="dash-table-container mb-4" style="overflow: visible;">
                     <div class="card-header bg-white border-bottom-0 pt-4 pb-0">
                         <h5 class="mb-0 text-primary"><i class="bi bi-receipt me-2"></i>${this.config.btnNuevoText}</h5>
                     </div>
@@ -95,7 +95,7 @@ export class CrudFinanciero {
                                 <input type="text" class="form-control" id="transaccion-descripcion" placeholder="Ej. Pago servicio de internet" required minlength="3">
                             </div>
                             <div class="col-12 col-md-2 d-flex flex-column gap-2 mt-4 mt-md-0">
-                                <button type="submit" class="btn btn-primary w-100" id="btn-guardar-transaccion">
+                                <button type="submit" class="btn btn-primary-action w-100" id="btn-guardar-transaccion">
                                     <i class="bi bi-plus-circle me-1"></i>Registrar
                                 </button>
                                 <button type="button" class="btn btn-outline-secondary w-100 d-none" id="btn-cancelar-edicion">
@@ -111,43 +111,43 @@ export class CrudFinanciero {
                 <h5 class="mb-4 mt-2 text-secondary"><i class="bi bi-list-ul me-2"></i>${this.config.panelHistorialText}</h5>
 
                 <!-- KPI CARDS DINÁMICAS -->
-                <div class="dash-grid-kpis mb-4" id="kpi-cards-container" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem;">
-                    <div class="card dash-kpi-card border-0" style="border-radius: 14px; border: 1px solid #e2e8f0 !important; box-shadow: 0 4px 16px rgba(0,0,0,0.03); transition: all 0.25s ease;" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='translateY(0)'">
-                        <div class="card-body p-3 d-flex flex-column justify-content-between" style="min-height: 90px;">
+                <div class="row g-3 mb-4" id="kpi-cards-container">
+                    <div class="col-12 col-sm-6 col-lg-4">
+                        <div class="dash-kpi-card d-flex flex-column justify-content-between" style="min-height: 90px;">
                             <div class="d-flex justify-content-between align-items-start">
-                                <span class="dash-kpi-label text-muted fw-semibold" style="font-size: 13px;" id="kpi-label-1">Total Global</span>
-                                <div class="dash-kpi-icon-box rounded p-2 d-flex align-items-center justify-content-center" style="background-color: rgba(24, 119, 242, 0.1); color: #1877f2; width: 32px; height: 32px;">
+                                <span class="dash-kpi-label" id="kpi-label-1">Total Global</span>
+                                <div class="dash-icon-box variant-blue">
                                     <i class="bi bi-cash-stack"></i>
                                 </div>
                             </div>
-                            <div class="dash-kpi-value text-dark fw-bold fs-4 mt-2" id="kpi-val-1">$ 0</div>
+                            <div class="dash-kpi-value" id="kpi-val-1">$ 0</div>
                         </div>
                     </div>
-                    <div class="card dash-kpi-card border-0" style="border-radius: 14px; border: 1px solid #e2e8f0 !important; box-shadow: 0 4px 16px rgba(0,0,0,0.03); transition: all 0.25s ease;" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='translateY(0)'">
-                        <div class="card-body p-3 d-flex flex-column justify-content-between" style="min-height: 90px;">
+                    <div class="col-12 col-sm-6 col-lg-4">
+                        <div class="dash-kpi-card d-flex flex-column justify-content-between" style="min-height: 90px;">
                             <div class="d-flex justify-content-between align-items-start">
-                                <span class="dash-kpi-label text-muted fw-semibold" style="font-size: 13px;" id="kpi-label-2">Aplicados</span>
-                                <div class="dash-kpi-icon-box rounded p-2 d-flex align-items-center justify-content-center" style="background-color: rgba(46, 204, 113, 0.1); color: #2ecc71; width: 32px; height: 32px;">
+                                <span class="dash-kpi-label" id="kpi-label-2">Aplicados</span>
+                                <div class="dash-icon-box variant-green">
                                     <i class="bi bi-file-earmark-check"></i>
                                 </div>
                             </div>
-                            <div class="dash-kpi-value text-dark fw-bold fs-4 mt-2" id="kpi-val-2">$ 0</div>
+                            <div class="dash-kpi-value" id="kpi-val-2">$ 0</div>
                         </div>
                     </div>
-                    <div class="card dash-kpi-card border-0" style="border-radius: 14px; border: 1px solid #e2e8f0 !important; box-shadow: 0 4px 16px rgba(0,0,0,0.03); transition: all 0.25s ease;" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='translateY(0)'">
-                        <div class="card-body p-3 d-flex flex-column justify-content-between" style="min-height: 90px;">
+                    <div class="col-12 col-sm-6 col-lg-4">
+                        <div class="dash-kpi-card d-flex flex-column justify-content-between" style="min-height: 90px;">
                             <div class="d-flex justify-content-between align-items-start">
-                                <span class="dash-kpi-label text-muted fw-semibold" style="font-size: 13px;" id="kpi-label-3">Directos</span>
-                                <div class="dash-kpi-icon-box rounded p-2 d-flex align-items-center justify-content-center" style="background-color: rgba(142, 68, 173, 0.1); color: #8e44ad; width: 32px; height: 32px;">
+                                <span class="dash-kpi-label" id="kpi-label-3">Directos</span>
+                                <div class="dash-icon-box variant-yellow">
                                     <i class="bi bi-wallet2"></i>
                                 </div>
                             </div>
-                            <div class="dash-kpi-value text-dark fw-bold fs-4 mt-2" id="kpi-val-3">$ 0</div>
+                            <div class="dash-kpi-value" id="kpi-val-3">$ 0</div>
                         </div>
                     </div>
                 </div>
 
-                <div class="card border-0 shadow-sm" style="border-radius: 14px; overflow: hidden;">
+                <div class="dash-table-container">
                     <div class="card-body p-0">
                         <!-- Filtros -->
                         <div class="row g-2 mb-3 p-4 pb-0">

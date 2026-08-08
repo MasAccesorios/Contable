@@ -64,10 +64,10 @@ export const CuentaCobroModule = {
         `).join('');
 
         element.innerHTML = `
-            <div class="module-container p-4" style="max-width: 1200px; margin: 0 auto;">
+            <div class="dash-layout p-4">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <h2 class="h3 fw-bold mb-0" style="color: var(--text-main);">Cuentas de Cobro</h2>
-                    <a href="#/ingresos/cuenta-cobro/nueva" class="btn btn-primary fw-medium px-4" style="background-color: #2cbfb7; border: none; border-radius: 8px;">
+                    <a href="#/ingresos/cuenta-cobro/nueva" class="btn btn-primary-action px-4">
                         <i class="bi bi-plus-lg me-2"></i>Nueva Cuenta de Cobro
                     </a>
                 </div>
@@ -75,35 +75,41 @@ export const CuentaCobroModule = {
                 <!-- KPI CARDS CUENTA DE COBRO -->
                 <div class="row g-3 mb-4">
                     <div class="col-12 col-sm-6 col-lg-4">
-                        <div class="card kpi-card kpi-primary">
-                            <div class="kpi-card-body">
-                                <i class="bi bi-receipt kpi-icon"></i>
-                                <h6 class="kpi-label">Total Emitido</h6>
-                                <h5 class="kpi-value">$ ${formatMoney(totalFacturado).replace('$ ', '')}</h5>
+                        <div class="dash-kpi-card d-flex flex-column justify-content-between" style="min-height: 90px;">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <span class="dash-kpi-label">Total Emitido</span>
+                                <div class="dash-icon-box variant-blue">
+                                    <i class="bi bi-receipt"></i>
+                                </div>
                             </div>
+                            <div class="dash-kpi-value">$ ${formatMoney(totalFacturado).replace('$ ', '')}</div>
                         </div>
                     </div>
                     <div class="col-12 col-sm-6 col-lg-4">
-                        <div class="card kpi-card kpi-success">
-                            <div class="kpi-card-body">
-                                <i class="bi bi-check-circle kpi-icon"></i>
-                                <h6 class="kpi-label">Total Cobrado</h6>
-                                <h5 class="kpi-value">$ ${formatMoney(totalCobrado).replace('$ ', '')}</h5>
+                        <div class="dash-kpi-card d-flex flex-column justify-content-between" style="min-height: 90px;">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <span class="dash-kpi-label">Total Cobrado</span>
+                                <div class="dash-icon-box variant-green">
+                                    <i class="bi bi-check-circle"></i>
+                                </div>
                             </div>
+                            <div class="dash-kpi-value">$ ${formatMoney(totalCobrado).replace('$ ', '')}</div>
                         </div>
                     </div>
                     <div class="col-12 col-sm-6 col-lg-4">
-                        <div class="card kpi-card kpi-warning">
-                            <div class="kpi-card-body">
-                                <i class="bi bi-clock-history kpi-icon"></i>
-                                <h6 class="kpi-label">Total Pendiente</h6>
-                                <h5 class="kpi-value">$ ${formatMoney(totalPendiente).replace('$ ', '')}</h5>
+                        <div class="dash-kpi-card d-flex flex-column justify-content-between" style="min-height: 90px;">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <span class="dash-kpi-label">Total Pendiente</span>
+                                <div class="dash-icon-box variant-yellow">
+                                    <i class="bi bi-clock-history"></i>
+                                </div>
                             </div>
+                            <div class="dash-kpi-value">$ ${formatMoney(totalPendiente).replace('$ ', '')}</div>
                         </div>
                     </div>
                 </div>
 
-                <div class="card border-0 shadow-sm" style="border-radius: 12px; overflow: hidden;">
+                <div class="dash-table-container">
                     <div class="table-responsive">
                         <table class="table table-hover mb-0" style="width: 100%; border-collapse: collapse;">
                             <thead style="background-color: #f8f9fa;">
@@ -197,7 +203,7 @@ export const CuentaCobroModule = {
                 </button>
                 ` : ''}
                 ${!isViewOnly ? `
-                <button class="btn btn-primary fw-medium px-4 qa-action-btn shadow-sm" id="btn-save" style="background-color: #2cbfb7; border: none; border-radius: 8px;">
+                <button class="btn btn-primary-action px-4 qa-action-btn shadow-sm" id="btn-save">
                     <i class="bi bi-save me-2"></i>Guardar
                 </button>
                 ` : ''}
@@ -210,7 +216,7 @@ export const CuentaCobroModule = {
         `;
 
         element.innerHTML = `
-            <div class="module-container p-4" style="max-width: 1100px; margin: 0 auto;">
+            <div class="dash-layout p-4">
                 <div class="d-flex justify-content-between align-items-start mb-4">
                     <div>
                         ${headerHtml}
@@ -219,7 +225,7 @@ export const CuentaCobroModule = {
                     ${actionsHtml}
                 </div>
 
-                <div class="card border-0 shadow-sm mb-4" style="border-radius: 12px; overflow: visible;">
+                <div class="dash-table-container mb-4" style="overflow: visible;">
                     <div class="card-header bg-white border-bottom py-3 px-4">
                         <h6 class="mb-0 fw-bold" style="color: var(--text-main);">Información del Cliente</h6>
                     </div>

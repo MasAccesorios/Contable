@@ -131,13 +131,13 @@ export const NotasCreditoModule = {
             }).join('') : '<tr><td colspan="6" class="text-center py-5 text-muted">No se encontraron notas de crédito</td></tr>';
 
             element.innerHTML = `
-                <div class="dash-layout p-4" style="max-width: 1100px; margin: 0 auto;">
+                <div class="dash-layout p-4">
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <div>
                             <h2 class="h3 fw-bold mb-1" style="color: var(--text-main);">Notas de Crédito</h2>
                             <p class="text-muted mb-0" style="font-size: 14px;">Gestiona las devoluciones y saldos a favor de tus clientes.</p>
                         </div>
-                        <button class="btn text-white" style="background-color: #2cbfb7; font-weight: 500;" onclick="window.location.hash='#/ingresos/notas-credito/nueva'">
+                        <button class="btn btn-primary-action" onclick="window.location.hash='#/ingresos/notas-credito/nueva'">
                             <i class="bi bi-plus-lg me-1"></i> Nueva Nota
                         </button>
                     </div>
@@ -145,35 +145,41 @@ export const NotasCreditoModule = {
                     <!-- KPI CARDS NOTAS CREDITO -->
                     <div class="row g-3 mb-4">
                         <div class="col-12 col-sm-6 col-lg-4">
-                            <div class="card dash-kpi-card">
-                                <div class="kpi-card-body">
-                                    <i class="bi bi-check2-all kpi-icon"></i>
-                                    <h6 class="kpi-label">Notas Aplicadas (este mes)</h6>
-                                    <h5 class="kpi-value">$ ${Number(kpiDataNC.totalAplicadas).toLocaleString('es-CO', {minimumFractionDigits: 2})}</h5>
+                            <div class="dash-kpi-card d-flex flex-column justify-content-between" style="min-height: 90px;">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <span class="dash-kpi-label">Notas Aplicadas (este mes)</span>
+                                    <div class="dash-icon-box variant-green">
+                                        <i class="bi bi-check2-all"></i>
+                                    </div>
                                 </div>
+                                <div class="dash-kpi-value">$ ${Number(kpiDataNC.totalAplicadas).toLocaleString('es-CO', {minimumFractionDigits: 2})}</div>
                             </div>
                         </div>
                         <div class="col-12 col-sm-6 col-lg-4">
-                            <div class="card dash-kpi-card">
-                                <div class="kpi-card-body">
-                                    <i class="bi bi-clock-history kpi-icon"></i>
-                                    <h6 class="kpi-label">Notas Pendientes (este mes)</h6>
-                                    <h5 class="kpi-value">$ ${Number(kpiDataNC.totalPendientes).toLocaleString('es-CO', {minimumFractionDigits: 2})}</h5>
+                            <div class="dash-kpi-card d-flex flex-column justify-content-between" style="min-height: 90px;">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <span class="dash-kpi-label">Notas Pendientes (este mes)</span>
+                                    <div class="dash-icon-box variant-yellow">
+                                        <i class="bi bi-clock-history"></i>
+                                    </div>
                                 </div>
+                                <div class="dash-kpi-value">$ ${Number(kpiDataNC.totalPendientes).toLocaleString('es-CO', {minimumFractionDigits: 2})}</div>
                             </div>
                         </div>
                         <div class="col-12 col-sm-6 col-lg-4">
-                            <div class="card dash-kpi-card">
-                                <div class="kpi-card-body">
-                                    <i class="bi bi-x-circle kpi-icon"></i>
-                                    <h6 class="kpi-label">Total Anuladas (este mes)</h6>
-                                    <h5 class="kpi-value">$ ${Number(kpiDataNC.totalAnulada).toLocaleString('es-CO', {minimumFractionDigits: 2})}</h5>
+                            <div class="dash-kpi-card d-flex flex-column justify-content-between" style="min-height: 90px;">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <span class="dash-kpi-label">Total Anuladas (este mes)</span>
+                                    <div class="dash-icon-box variant-red">
+                                        <i class="bi bi-x-circle"></i>
+                                    </div>
                                 </div>
+                                <div class="dash-kpi-value">$ ${Number(kpiDataNC.totalAnulada).toLocaleString('es-CO', {minimumFractionDigits: 2})}</div>
                             </div>
                         </div>
                     </div>
 
-                    <div class="card border-0" style="box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.03), 0px 1px 3px rgba(0, 0, 0, 0.05); border-radius: 8px;">
+                    <div class="dash-table-container">
                         <!-- FILTERS -->
                         <div class="card-header bg-white border-bottom p-3 d-flex gap-3 align-items-center" style="border-radius: 8px 8px 0 0;">
                             <div class="input-group input-group-sm" style="width: 250px;">
@@ -384,7 +390,7 @@ export const NotasCreditoModule = {
             let headerSubtitle = id ? 'NC-' + (nota.numero || nota.id) : 'Crear documento de devolución';
 
             let html = `
-                <div class="module-container p-4" style="max-width: 900px; margin: 0 auto;">
+                <div class="dash-layout p-4">
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <div>
                             <button class="btn btn-link text-muted p-0 text-decoration-none mb-2" onclick="window.location.hash='#/ingresos/notas-credito'">
@@ -402,7 +408,7 @@ export const NotasCreditoModule = {
             `;
 
             // Form container
-            html += `<div class="card border-0 shadow-sm mb-4" style="border-radius: 8px;">
+            html += `<div class="dash-table-container mb-4" style="overflow: visible;">
                 <div class="card-body p-4">`;
 
             if (!id) {
@@ -414,7 +420,7 @@ export const NotasCreditoModule = {
                             <div class="input-group">
                                 <span class="input-group-text bg-light border-end-0"><i class="bi bi-search"></i></span>
                                 <input type="number" id="input-buscar-factura" class="form-control border-start-0" placeholder="Ej. 6750">
-                                <button id="btn-buscar-factura" class="btn text-white" style="background-color: var(--primary);">Buscar</button>
+                                <button id="btn-buscar-factura" class="btn btn-primary-action">Buscar</button>
                             </div>
                             <div id="factura-search-result" class="mt-2 small"></div>
                         </div>
@@ -508,7 +514,7 @@ export const NotasCreditoModule = {
                 html += `
                     <div class="d-flex justify-content-end gap-3 mb-5">
                         <button class="btn btn-outline-secondary px-4 bg-white" onclick="window.location.hash='#/ingresos/notas-credito'">Cancelar</button>
-                        <button id="btn-guardar-nc" class="btn btn-primary px-5 fw-medium d-none">Crear Nota de Crédito</button>
+                        <button id="btn-guardar-nc" class="btn btn-primary-action px-5 d-none">Crear Nota de Crédito</button>
                     </div>
                 `;
             }

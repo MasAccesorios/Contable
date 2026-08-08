@@ -211,31 +211,31 @@ export const PagosRecibidosModule = {
         const endItem = Math.min(this.state.currentPage * this.state.itemsPerPage, this.state.totalItems);
 
         this.element.innerHTML = `
-            <div class="dash-layout">
+            <div class="dash-layout p-4">
                 
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <div>
-                        <h2 class="h4 mb-1 text-dark fw-bold">Pagos Recibidos</h2>
+                        <h2 class="h3 fw-bold mb-1 text-dark">Pagos Recibidos</h2>
                         <p class="text-muted small mb-0">Historial de todos los ingresos de dinero (tipo "Entrada").</p>
                     </div>
                 </div>
 
                 <!-- KPI CARDS PAGOS RECIBIDOS -->
-                <div class="dash-grid-kpis mb-4" style="display: grid; grid-template-columns: 1fr; gap: 1.25rem;">
-                    <div class="card dash-kpi-card border-0" style="border-radius: 14px; border: 1px solid #e2e8f0 !important; box-shadow: 0 4px 16px rgba(0,0,0,0.03); transition: all 0.25s ease;" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='translateY(0)'">
-                        <div class="card-body p-3 d-flex flex-column justify-content-between" style="min-height: 90px;">
+                <div class="row g-3 mb-4">
+                    <div class="col-12 col-sm-6 col-lg-4">
+                        <div class="dash-kpi-card d-flex flex-column justify-content-between" style="min-height: 90px;">
                             <div class="d-flex justify-content-between align-items-start">
-                                <span class="dash-kpi-label text-muted fw-semibold" style="font-size: 13px;">Total Recibido (este mes)</span>
-                                <div class="dash-kpi-icon-box rounded p-2 d-flex align-items-center justify-content-center" style="background-color: rgba(24, 119, 242, 0.1); color: #1877f2; width: 32px; height: 32px;">
+                                <span class="dash-kpi-label">Total Recibido (este mes)</span>
+                                <div class="dash-icon-box variant-blue">
                                     <i class="bi bi-cash-stack"></i>
                                 </div>
                             </div>
-                            <div class="dash-kpi-value text-dark fw-bold fs-4 mt-2">$ ${formatMoney(this.state.kpis?.total || 0).replace('$ ', '')}</div>
+                            <div class="dash-kpi-value">$ ${formatMoney(this.state.kpis?.total || 0).replace('$ ', '')}</div>
                         </div>
                     </div>
                 </div>
 
-                <div class="card border-0 shadow-sm" style="border-radius: 14px;">
+                <div class="dash-table-container">
                     <div class="card-body p-0">
                         <div class="d-flex justify-content-between mb-3 px-4 pt-4">
                             <div class="input-group" style="max-width: 300px;">
