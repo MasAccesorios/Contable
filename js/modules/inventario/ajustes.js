@@ -254,38 +254,61 @@ export const AjustesInventarioModule = {
                     const descInput = tr.querySelector('.input-prod-desc');
                     if(descInput) descInput.style.display = 'none';
 
-                    ItemEngine.bindLineEvents(tr, null, productos, { isCompra: false });
-
-                    // Custom Event: On Product Selected -> fetch actual stock
                     const inputProdId = tr.querySelector('.input-prod-id');
                     const searchInput = tr.querySelector('.input-prod-search');
-                    
-                    const updateStockLabel = async () => {
-                        const pid = inputProdId.value;
-                        const stockLbl = tr.querySelector('.stock-actual-lbl');
-                        if (!pid) { stockLbl.textContent = '--'; return; }
-                        
-                        stockLbl.innerHTML = `<span class="spinner-border spinner-border-sm" role="status"></span>`;
-                        try {
-                            const { data } = await supabase.from('lotes_fifo').select('cantidad_actual').eq('producto_id', pid);
-                            const sum = data ? data.reduce((acc, l) => acc + l.cantidad_actual, 0) : 0;
-                            stockLbl.textContent = sum;
-                        } catch(e) {
-                            stockLbl.textContent = '?';
-                        }
-                    };
+                    const tipoSelect = tr.querySelector('.select-tipo-ajuste');
+                    const costoInput = tr.querySelector('.input-costo');
+                    const stockLbl = tr.querySelector('.stock-actual-lbl');
 
-                    // Hacky way to detect when ItemEngine sets the ID (since it doesn't fire natural events on hidden input)
-                    const observer = new MutationObserver((mutations) => {
-                        mutations.forEach((mutation) => {
-                            if (mutation.type === "attributes" && mutation.attributeName === "value") {
-                                updateStockLabel();
+                    import('../../shared/combobox.js').then(({ UI }) => {
+                        UI.createAsyncCombobox({
+                            inputEl: searchInput,
+                            hiddenIdEl: inputProdId,
+                            fetchItems: async (query) => {
+                                const { data } = await supabase.from('productos')
+                                    .select('*')
+                                    .or(`nombre.ilike.%${query}%,sku.ilike.%${query}%`)
+                                    .limit(20);
+                                return data ? data.map(p => DB._mapToFrontend('productos', p)) : [];
+                            },
+                            displayProp: 'nombre',
+                            renderItem: (p) => {
+                                return `<strong style="color: var(--text-main);">[${p.sku || p.reference || 'S/N'}]</strong> - ${p.nombre || p.name}`;
+                            },
+                            allowCreate: false,
+                            onSelect: async (p) => {
+                                // 1. Formato exacto
+                                searchInput.value = `[${p.sku || p.reference || 'S/N'}] - ${p.nombre || p.name}`;
+                                
+                                // 2. Consultar Stock Real
+                                stockLbl.innerHTML = `<span class="spinner-border spinner-border-sm" role="status"></span>`;
+                                try {
+                                    const { data } = await supabase.from('lotes_fifo').select('cantidad_actual').eq('producto_id', p.id);
+                                    const sum = data ? data.reduce((acc, l) => acc + l.cantidad_actual, 0) : 0;
+                                    stockLbl.textContent = sum;
+                                } catch(e) {
+                                    stockLbl.textContent = '?';
+                                }
+
+                                // 3. Sugerir costo automáticamente si el tipo es Incremento
+                                if (tipoSelect.value === 'incremento') {
+                                    const precioSugerido = p.precio_compra || p.precioCompra;
+                                    if (precioSugerido && !costoInput.value) {
+                                        costoInput.value = `$ ${Number(precioSugerido).toLocaleString('es-CO')}`;
+                                    }
+                                }
                             }
                         });
                     });
-                    observer.observe(inputProdId, { attributes: true });
 
-                    if (inputProdId.value) updateStockLabel();
+                    // Carga inicial de stock si el producto ya venía seleccionado
+                    if (inputProdId.value && inputProdId.value !== '') {
+                        stockLbl.innerHTML = `<span class="spinner-border spinner-border-sm" role="status"></span>`;
+                        supabase.from('lotes_fifo').select('cantidad_actual').eq('producto_id', inputProdId.value).then(({data}) => {
+                            const sum = data ? data.reduce((acc, l) => acc + l.cantidad_actual, 0) : 0;
+                            stockLbl.textContent = sum;
+                        });
+                    }
 
                     const tipoSelect = tr.querySelector('.select-tipo-ajuste');
                     const costoInput = tr.querySelector('.input-costo');
