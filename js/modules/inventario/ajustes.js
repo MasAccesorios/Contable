@@ -172,7 +172,7 @@ export const AjustesInventarioModule = {
                             <h6 class="mb-0 fw-bold" style="color: var(--text-main);">Ítems a ajustar</h6>
                         </div>
                         <div class="card-body p-0">
-                            <div class="table-responsive">
+                            <div class="table-responsive" style="overflow: visible;">
                                 <table class="table table-borderless align-middle mb-0" id="ajustes-table">
                                     <thead class="bg-light" style="border-bottom: 1px solid var(--border-color);">
                                         <tr style="color: var(--text-muted); font-size: 13px; font-weight: 500;">
