@@ -495,7 +495,7 @@ export class CrudFinanciero {
                 if (e.target.closest('.dropdown')) return;
                 const id = tr.dataset.id;
                 const registro = transacciones.find(t => String(t.id) === String(id));
-                if (registro) this.mostrarDetalleRegistro(registro);
+                if (registro) this.mostrarDetalleRegistro(registro, element);
             });
         });
 
@@ -611,7 +611,8 @@ export class CrudFinanciero {
         await anularTransaccion(id);
     }
 
-    mostrarDetalleRegistro(registro) {
+    mostrarDetalleRegistro(registro, element) {
+        this.element = element;
         const proveedorNombre = registro.proveedorId
             ? (this.proveedores || []).find(p => String(p.id) === String(registro.proveedorId))?.nombre || '-'
             : '-';
@@ -621,57 +622,62 @@ export class CrudFinanciero {
         const esIngreso = this.config.tipoFiltroDb === 'in';
         const montoFormateado = `${this.config.prefijoMonto}$${Number(registro.monto).toLocaleString('es-CO', {minimumFractionDigits: 2})}`;
 
-        const existingModal = document.getElementById('modalDetalleRegistroShared');
-        if (existingModal) existingModal.remove();
-
-        const html = `
-    <div class="modal fade" id="modalDetalleRegistroShared" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content border-0 shadow-lg" style="border-radius: 12px;">
-                <div class="modal-header border-0 pb-0 pt-4 px-4">
-                    <h5 class="modal-title fw-bold" style="color: #1f2937;">Detalle del ${esIngreso ? 'ingreso' : 'gasto'}</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body px-4 pt-3 pb-4">
-                    <div class="text-center mb-4">
-                        <div class="fw-bold ${this.config.colorMonto}" style="font-size: 2rem;">${montoFormateado}</div>
-                        <span class="badge bg-light text-dark border">${escapeHtml(registro.categoria)}</span>
+        element.innerHTML = `
+        <div class="py-4 px-4" style="font-family: 'Inter', sans-serif; background-color: #f8f9fa; min-height: 100vh;">
+            <div class="mb-4 pb-3 border-bottom" style="max-width: 750px; margin: 0 auto;">
+                <button class="btn btn-link text-decoration-none text-muted p-0 d-flex align-items-center gap-2 fw-medium" id="btn-volver-detalle-registro">
+                    <i class="bi bi-arrow-left"></i> Volver a ${this.config.panelHistorialText}
+                </button>
+            </div>
+            <div class="card border-light-subtle rounded-4 shadow-sm" style="max-width: 750px; margin: 0 auto; background: #fff;">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-start mb-3 pb-2 border-bottom">
+                        <div>
+                            <img src="LogoMas.png" alt="MAS Accesorios" style="max-height: 45px;">
+                        </div>
+                        <div class="text-end">
+                            <div class="text-muted fw-medium mb-1" style="font-size: 13px;">Detalle del ${esIngreso ? 'ingreso' : 'gasto'}</div>
+                            <span class="badge bg-light text-dark border">${escapeHtml(registro.categoria)}</span>
+                        </div>
                     </div>
+
+                    <div class="text-center my-4">
+                        <div class="fw-bold ${this.config.colorMonto}" style="font-size: 2.2rem;">${montoFormateado}</div>
+                    </div>
+
                     <div class="row gy-3">
                         <div class="col-6">
-                            <div class="text-muted small text-uppercase">Fecha</div>
-                            <div class="fw-semibold">${registro.fecha}</div>
+                            <label class="form-label text-muted fw-semibold m-0" style="font-size: 12px;">Fecha</label>
+                            <div class="fw-medium text-dark" style="font-size: 14px;">${registro.fecha}</div>
                         </div>
                         <div class="col-6">
-                            <div class="text-muted small text-uppercase">Estado</div>
-                            <div class="fw-semibold">${escapeHtml(registro.estado || '-')}</div>
+                            <label class="form-label text-muted fw-semibold m-0" style="font-size: 12px;">Estado</label>
+                            <div class="fw-medium text-dark" style="font-size: 14px;">${escapeHtml(registro.estado || '-')}</div>
                         </div>
                         <div class="col-6">
-                            <div class="text-muted small text-uppercase">${esIngreso ? 'Proveedor' : 'Beneficiario'}</div>
-                            <div class="fw-semibold">${escapeHtml(proveedorNombre)}</div>
+                            <label class="form-label text-muted fw-semibold m-0" style="font-size: 12px;">${esIngreso ? 'Proveedor' : 'Beneficiario'}</label>
+                            <div class="fw-medium text-dark" style="font-size: 14px;">${escapeHtml(proveedorNombre)}</div>
                         </div>
                         <div class="col-6">
-                            <div class="text-muted small text-uppercase">Cuenta</div>
-                            <div class="fw-semibold">${escapeHtml(cuentaNombre)}</div>
+                            <label class="form-label text-muted fw-semibold m-0" style="font-size: 12px;">Cuenta</label>
+                            <div class="fw-medium text-dark" style="font-size: 14px;">${escapeHtml(cuentaNombre)}</div>
                         </div>
                         <div class="col-6">
-                            <div class="text-muted small text-uppercase">Referencia</div>
-                            <div class="fw-semibold">${registro.referencia || '-'}</div>
+                            <label class="form-label text-muted fw-semibold m-0" style="font-size: 12px;">Referencia</label>
+                            <div class="fw-medium text-dark" style="font-size: 14px;">${registro.referencia || '-'}</div>
                         </div>
                         <div class="col-12">
-                            <div class="text-muted small text-uppercase">Descripción</div>
-                            <div class="fw-semibold">${escapeHtml(registro.descripcion)}</div>
+                            <label class="form-label text-muted fw-semibold m-0" style="font-size: 12px;">Descripción</label>
+                            <div class="fw-medium text-dark" style="font-size: 14px;">${escapeHtml(registro.descripcion)}</div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>`;
+    `;
 
-        document.body.insertAdjacentHTML('beforeend', html);
-        const modalEl = document.getElementById('modalDetalleRegistroShared');
-        const modalInstance = new bootstrap.Modal(modalEl);
-        modalEl.addEventListener('hidden.bs.modal', () => modalEl.remove());
-        modalInstance.show();
+        element.querySelector('#btn-volver-detalle-registro').addEventListener('click', () => {
+            this.init(element);
+        });
     }
 }
