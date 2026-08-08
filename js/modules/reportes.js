@@ -12,41 +12,47 @@ export default {
         const inicioRango = getLocalDate(hace3MesesDate);
 
         element.innerHTML = `
-            <div class="module-container p-4" style="max-width: 900px; margin: 0 auto;">
-                <h3 class="fw-bold text-dark mb-4" style="font-size: 22px;">Reportes y Exportaciones</h3>
+            <div class="dash-layout p-4">
+                <h2 class="h3 fw-bold mb-4 text-dark">Reportes y Exportaciones</h2>
                 
                 <!-- KPI CARDS REPORTES -->
                 <div class="row g-3 mb-4">
                     <div class="col-12 col-sm-6 col-lg-4">
-                        <div class="card kpi-card kpi-primary">
-                            <div class="kpi-card-body">
-                                <i class="bi bi-file-earmark-bar-graph kpi-icon"></i>
-                                <h6 class="kpi-label">Informes Disponibles</h6>
-                                <h5 class="kpi-value">6</h5>
+                        <div class="dash-kpi-card d-flex flex-column justify-content-between" style="min-height: 90px;">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <span class="dash-kpi-label">Informes Disponibles</span>
+                                <div class="dash-icon-box variant-blue">
+                                    <i class="bi bi-file-earmark-bar-graph"></i>
+                                </div>
                             </div>
+                            <div class="dash-kpi-value">6</div>
                         </div>
                     </div>
                     <div class="col-12 col-sm-6 col-lg-4">
-                        <div class="card kpi-card kpi-success">
-                            <div class="kpi-card-body">
-                                <i class="bi bi-cloud-download kpi-icon"></i>
-                                <h6 class="kpi-label">Exportaciones Hoy</h6>
-                                <h5 class="kpi-value" id="kpi-exportaciones">0</h5>
+                        <div class="dash-kpi-card d-flex flex-column justify-content-between" style="min-height: 90px;">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <span class="dash-kpi-label">Exportaciones Hoy</span>
+                                <div class="dash-icon-box variant-green">
+                                    <i class="bi bi-cloud-download"></i>
+                                </div>
                             </div>
+                            <div class="dash-kpi-value" id="kpi-exportaciones">0</div>
                         </div>
                     </div>
                     <div class="col-12 col-sm-6 col-lg-4">
-                        <div class="card kpi-card kpi-info">
-                            <div class="kpi-card-body">
-                                <i class="bi bi-clock-history kpi-icon"></i>
-                                <h6 class="kpi-label">Último Reporte</h6>
-                                <h5 class="kpi-value text-truncate" id="kpi-ultimo">N/A</h5>
+                        <div class="dash-kpi-card d-flex flex-column justify-content-between" style="min-height: 90px;">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <span class="dash-kpi-label">Último Reporte</span>
+                                <div class="dash-icon-box variant-yellow">
+                                    <i class="bi bi-clock-history"></i>
+                                </div>
                             </div>
+                            <div class="dash-kpi-value text-truncate" id="kpi-ultimo">N/A</div>
                         </div>
                     </div>
                 </div>
 
-                <div class="card border-0 shadow-sm" style="border-radius: 12px;">
+                <div class="dash-table-container">
                     <div class="card-body p-4">
                         <form id="form-reportes">
                             <div class="mb-4">
@@ -152,7 +158,7 @@ export default {
                             </div>
 
                             <div class="d-flex justify-content-end">
-                                <button type="submit" class="btn text-white px-4 py-2 w-100 w-md-auto" id="btn-exportar" style="background-color: #1877f2; border-radius: 8px; font-weight: 500; display: none;">
+                                <button type="submit" class="btn btn-primary-action w-100 w-md-auto" id="btn-exportar" style="display: none;">
                                     <i class="bi bi-file-earmark-excel me-2"></i>Generar Exportable
                                 </button>
                             </div>

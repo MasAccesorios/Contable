@@ -4,18 +4,20 @@ import DB from '../core/db.js';
 export async function init(container = null) {
     if (!container) container = document.getElementById('view-viewport');
     container.innerHTML = `
-        <div class="content-header">
-            <h2 class="content-title">🛡️ Auditoría de Integridad</h2>
-            <div class="header-actions">
-                <button id="btn-run-audit" class="btn btn-primary">
-                    <i class="bi bi-play-fill"></i> Ejecutar Auditoría
-                </button>
+        <div class="dash-layout p-4">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="h3 fw-bold mb-1 text-dark">🛡️ Auditoría de Integridad</h2>
+                    <p class="text-muted mb-0" style="font-size: 14px;">Este módulo ejecuta verificaciones lógicas de integridad de datos en la base de datos para detectar discrepancias e inconsistencias, como sobreventas, huérfanos o saldos desalineados.</p>
+                </div>
+                <div>
+                    <button id="btn-run-audit" class="btn btn-primary-action">
+                        <i class="bi bi-play-fill me-1"></i> Ejecutar Auditoría
+                    </button>
+                </div>
             </div>
-        </div>
-        <div class="content-body" style="padding: 20px;">
-            <p class="text-muted">Este módulo ejecuta verificaciones lógicas de integridad de datos en la base de datos para detectar discrepancias e inconsistencias, como sobreventas, huérfanos o saldos desalineados.</p>
             
-            <div id="audit-results" style="display: flex; flex-direction: column; gap: 1rem; margin-top: 1.5rem;">
+            <div id="audit-results" class="d-flex flex-column gap-3">
                 <!-- Aquí se inyectarán los resultados -->
             </div>
         </div>

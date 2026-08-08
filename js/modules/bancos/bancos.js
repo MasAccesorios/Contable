@@ -40,7 +40,7 @@ export const TesoreriaModule = {
         this.element = element;
 
         element.innerHTML = `
-            <div class=\"dash-layout p-4\" style=\"max-width: 1100px; margin: 0 auto;\">
+            <div class="dash-layout p-4">
                 <!-- TOP BAR -->
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <div>
@@ -51,7 +51,7 @@ export const TesoreriaModule = {
                         <button id="btn-transferir" class="btn bg-white border fw-medium shadow-sm d-flex align-items-center px-3" style="color: #475569; font-size: 14px; border-radius: 6px;">
                             <i class="bi bi-arrow-down-up me-2"></i> Transferir
                         </button>
-                        <button id="btn-agregar-banco" class="btn text-white fw-medium shadow-sm d-flex align-items-center px-3" style="background-color: #2cbfb7; font-size: 14px; border-radius: 6px;">
+                        <button id="btn-agregar-banco" class="btn btn-primary-action">
                             <i class="bi bi-plus-lg me-2"></i> Agregar banco
                         </button>
                     </div>
@@ -60,30 +60,36 @@ export const TesoreriaModule = {
                 <!-- KPI CARDS BANCOS -->
                 <div class="row g-3 mb-4">
                     <div class="col-12 col-sm-6 col-lg-4">
-                        <div class="card dash-kpi-card">
-                            <div class="kpi-card-body">
-                                <i class="bi bi-bank kpi-icon"></i>
-                                <h6 class="kpi-label">Saldo Total en Cuentas</h6>
-                                <h5 class="kpi-value" id="kpi-saldo-total">$ 0</h5>
+                        <div class="dash-kpi-card d-flex flex-column justify-content-between" style="min-height: 90px;">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <span class="dash-kpi-label">Saldo Total en Cuentas</span>
+                                <div class="dash-icon-box variant-blue">
+                                    <i class="bi bi-bank"></i>
+                                </div>
                             </div>
+                            <div class="dash-kpi-value" id="kpi-saldo-total">$ 0</div>
                         </div>
                     </div>
                     <div class="col-12 col-sm-6 col-lg-4">
-                        <div class="card dash-kpi-card">
-                            <div class="kpi-card-body">
-                                <i class="bi bi-credit-card kpi-icon"></i>
-                                <h6 class="kpi-label">Cuentas Bancarias Activas</h6>
-                                <h5 class="kpi-value" id="kpi-bancos-activos">0</h5>
+                        <div class="dash-kpi-card d-flex flex-column justify-content-between" style="min-height: 90px;">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <span class="dash-kpi-label">Cuentas Bancarias Activas</span>
+                                <div class="dash-icon-box variant-green">
+                                    <i class="bi bi-credit-card"></i>
+                                </div>
                             </div>
+                            <div class="dash-kpi-value" id="kpi-bancos-activos">0</div>
                         </div>
                     </div>
                     <div class="col-12 col-sm-6 col-lg-4">
-                        <div class="card dash-kpi-card">
-                            <div class="kpi-card-body">
-                                <i class="bi bi-cash kpi-icon"></i>
-                                <h6 class="kpi-label">Cajas / Efectivo</h6>
-                                <h5 class="kpi-value" id="kpi-efectivo-activos">0</h5>
+                        <div class="dash-kpi-card d-flex flex-column justify-content-between" style="min-height: 90px;">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <span class="dash-kpi-label">Cajas / Efectivo</span>
+                                <div class="dash-icon-box variant-yellow">
+                                    <i class="bi bi-cash"></i>
+                                </div>
                             </div>
+                            <div class="dash-kpi-value" id="kpi-efectivo-activos">0</div>
                         </div>
                     </div>
                 </div>
@@ -134,7 +140,7 @@ export const TesoreriaModule = {
                 </div>
 
                 <!-- TABLE -->
-                <div class="card border-0" style="box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.03), 0px 1px 3px rgba(0, 0, 0, 0.05); border-radius: 8px;">
+                <div class="dash-table-container">
                     <div class="card-header bg-white border-bottom p-3 d-flex gap-3 align-items-center" style="border-radius: 8px 8px 0 0;">
                         <div class="input-group input-group-sm" style="width: 300px;">
                             <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>

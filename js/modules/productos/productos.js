@@ -14,7 +14,7 @@ export const ProductosModule = {
         if (!element) return;
         
         element.innerHTML = `
-            <div class=\"dash-layout p-4\" style=\"max-width: 1100px; margin: 0 auto;\">
+            <div class="dash-layout p-4">
                 <!-- TOP BAR -->
                 <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
                     <div>
@@ -28,7 +28,7 @@ export const ProductosModule = {
                         <button id="btn-export-list" class="btn btn-light bg-white border" style="flex: 1 1 auto; font-weight: var(--weight-medium); font-size: 14px; color: var(--text-body);">
                             <i class="bi bi-download me-1"></i> Exportar
                         </button>
-                        <button id="btn-nuevo-producto" class="btn text-white" style="flex: 1 1 auto; background-color: #2cbfb7; font-weight: var(--weight-medium); font-size: 14px;">
+                        <button id="btn-nuevo-producto" class="btn btn-primary-action" style="flex: 1 1 auto;">
                             <i class="bi bi-plus-lg me-1"></i> Nuevo producto
                         </button>
                     </div>
@@ -37,36 +37,42 @@ export const ProductosModule = {
                 <!-- KPI CARDS PILOT -->
                 <div class="row g-3 mb-4">
                     <div class="col-12 col-md-4">
-                        <div class="card dash-kpi-card">
-                            <div class="kpi-card-body">
-                                <i class="bi bi-box-seam kpi-icon"></i>
-                                <h6 class="kpi-label">Total Ítems</h6>
-                                <h5 class="kpi-value" id="inv-kpi-total"><span class="spinner-border spinner-border-sm text-secondary"></span></h5>
+                        <div class="dash-kpi-card d-flex flex-column justify-content-between" style="min-height: 90px;">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <span class="dash-kpi-label">Total Ítems</span>
+                                <div class="dash-icon-box variant-blue">
+                                    <i class="bi bi-box-seam"></i>
+                                </div>
                             </div>
+                            <div class="dash-kpi-value" id="inv-kpi-total"><span class="spinner-border spinner-border-sm text-secondary"></span></div>
                         </div>
                     </div>
                     <div class="col-12 col-md-4">
-                        <div class="card dash-kpi-card">
-                            <div class="kpi-card-body">
-                                <i class="bi bi-check-circle kpi-icon"></i>
-                                <h6 class="kpi-label">Productos Activos</h6>
-                                <h5 class="kpi-value" id="inv-kpi-activos"><span class="spinner-border spinner-border-sm text-secondary"></span></h5>
+                        <div class="dash-kpi-card d-flex flex-column justify-content-between" style="min-height: 90px;">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <span class="dash-kpi-label">Productos Activos</span>
+                                <div class="dash-icon-box variant-green">
+                                    <i class="bi bi-check-circle"></i>
+                                </div>
                             </div>
+                            <div class="dash-kpi-value" id="inv-kpi-activos"><span class="spinner-border spinner-border-sm text-secondary"></span></div>
                         </div>
                     </div>
                     <div class="col-12 col-md-4">
-                        <div class="card dash-kpi-card">
-                            <div class="kpi-card-body">
-                                <i class="bi bi-exclamation-triangle kpi-icon"></i>
-                                <h6 class="kpi-label">Agotados (Stock 0)</h6>
-                                <h5 class="kpi-value" id="inv-kpi-agotados"><span class="spinner-border spinner-border-sm text-secondary"></span></h5>
+                        <div class="dash-kpi-card d-flex flex-column justify-content-between" style="min-height: 90px;">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <span class="dash-kpi-label">Agotados (Stock 0)</span>
+                                <div class="dash-icon-box variant-red">
+                                    <i class="bi bi-exclamation-triangle"></i>
+                                </div>
                             </div>
+                            <div class="dash-kpi-value" id="inv-kpi-agotados"><span class="spinner-border spinner-border-sm text-secondary"></span></div>
                         </div>
                     </div>
                 </div>
 
                 <!-- DATA TABLE CARD -->
-                <div class="card border-0" style="box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.03), 0px 1px 3px rgba(0, 0, 0, 0.05); border-radius: 8px;">
+                <div class="dash-table-container">
                     
                     <!-- FILTERS -->
                     <div class="card-header bg-white border-bottom p-3 d-flex gap-3 align-items-center" style="border-radius: 8px 8px 0 0;">

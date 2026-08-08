@@ -8,7 +8,7 @@ export const ConfiguracionModule = {
         this.element = element;
 
         element.innerHTML = `
-            <div class=\"dash-layout p-4\" style=\"max-width: 1100px; margin: 0 auto;\">
+            <div class="dash-layout p-4">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <div>
                         <h2 class="h3 fw-bold mb-1" style="color: var(--text-main);">Configuración</h2>
@@ -16,7 +16,7 @@ export const ConfiguracionModule = {
                     </div>
                 </div>
                 
-                <div class="card shadow-sm border-0 mb-4" style="border-radius: 12px; overflow: hidden;">
+                <div class="dash-table-container mb-4">
                     <div class="card-header bg-white border-bottom py-3">
                         <h5 class="mb-0 fw-bold" style="color: #2cbfb7;">Numeración de documentos</h5>
                     </div>
@@ -40,7 +40,7 @@ export const ConfiguracionModule = {
                                     <div class="input-group">
                                         <span class="input-group-text bg-light">F-</span>
                                         <input type="number" id="next-factura-input" class="form-control" min="1" step="1">
-                                        <button class="btn text-white fw-medium px-4" id="btn-save-factura" style="background-color: #2cbfb7;">
+                                        <button class="btn btn-primary-action px-4" id="btn-save-factura">
                                             Guardar
                                         </button>
                                     </div>
@@ -55,7 +55,7 @@ export const ConfiguracionModule = {
                                     <div class="input-group">
                                         <span class="input-group-text bg-light">C-</span>
                                         <input type="number" id="next-cotizacion-input" class="form-control" min="1" step="1">
-                                        <button class="btn text-white fw-medium px-4" id="btn-save-cotizacion" style="background-color: #2cbfb7;">
+                                        <button class="btn btn-primary-action px-4" id="btn-save-cotizacion">
                                             Guardar
                                         </button>
                                     </div>

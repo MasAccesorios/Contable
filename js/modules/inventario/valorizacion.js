@@ -20,7 +20,7 @@ export const ValorizacionModule = {
         const hoy = getLocalDate();
         
         element.innerHTML = `
-            <div class="module-container p-4" style="max-width: 1200px; margin: 0 auto;">
+            <div class="dash-layout p-4">
                 <!-- TOP BAR -->
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <div>
@@ -31,7 +31,7 @@ export const ValorizacionModule = {
                         <span class="badge bg-light text-dark border d-flex align-items-center px-3" style="font-size: 13px; font-weight: var(--weight-medium);">
                             <i class="bi bi-calendar-check me-2 text-muted"></i> Hasta: ${hoy}
                         </span>
-                        <button id="btn-descargar-csv" class="btn text-white" style="background-color: #2cbfb7; font-weight: var(--weight-medium); font-size: 14px;">
+                        <button id="btn-descargar-csv" class="btn btn-primary-action">
                             <i class="bi bi-download me-1"></i> Descargar
                         </button>
                     </div>
@@ -40,36 +40,42 @@ export const ValorizacionModule = {
                 <!-- KPI CARDS VALORIZACION -->
                 <div class="row g-3 mb-4">
                     <div class="col-12 col-sm-6 col-lg-4">
-                        <div class="card kpi-card kpi-primary">
-                            <div class="kpi-card-body">
-                                <i class="bi bi-box-seam kpi-icon"></i>
-                                <h6 class="kpi-label">Valor Total del Inventario</h6>
-                                <h5 class="kpi-value" id="kpi-valor-total">$ 0</h5>
+                        <div class="dash-kpi-card d-flex flex-column justify-content-between" style="min-height: 90px;">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <span class="dash-kpi-label">Valor Total del Inventario</span>
+                                <div class="dash-icon-box variant-blue">
+                                    <i class="bi bi-box-seam"></i>
+                                </div>
                             </div>
+                            <div class="dash-kpi-value" id="kpi-valor-total">$ 0</div>
                         </div>
                     </div>
                     <div class="col-12 col-sm-6 col-lg-4">
-                        <div class="card kpi-card kpi-info">
-                            <div class="kpi-card-body">
-                                <i class="bi bi-boxes kpi-icon"></i>
-                                <h6 class="kpi-label">Total Unidades Físicas</h6>
-                                <h5 class="kpi-value" id="kpi-unidades-fisicas">0</h5>
+                        <div class="dash-kpi-card d-flex flex-column justify-content-between" style="min-height: 90px;">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <span class="dash-kpi-label">Total Unidades Físicas</span>
+                                <div class="dash-icon-box variant-green">
+                                    <i class="bi bi-boxes"></i>
+                                </div>
                             </div>
+                            <div class="dash-kpi-value" id="kpi-unidades-fisicas">0</div>
                         </div>
                     </div>
                     <div class="col-12 col-sm-6 col-lg-4">
-                        <div class="card kpi-card kpi-warning">
-                            <div class="kpi-card-body">
-                                <i class="bi bi-exclamation-triangle kpi-icon"></i>
-                                <h6 class="kpi-label">Stock Bajo / Agotado</h6>
-                                <h5 class="kpi-value" id="kpi-stock-bajo">0</h5>
+                        <div class="dash-kpi-card d-flex flex-column justify-content-between" style="min-height: 90px;">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <span class="dash-kpi-label">Stock Bajo / Agotado</span>
+                                <div class="dash-icon-box variant-red">
+                                    <i class="bi bi-exclamation-triangle"></i>
+                                </div>
                             </div>
+                            <div class="dash-kpi-value" id="kpi-stock-bajo">0</div>
                         </div>
                     </div>
                 </div>
 
                 <!-- DATA TABLE CARD -->
-                <div class="card border-0" style="box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.03), 0px 1px 3px rgba(0, 0, 0, 0.05); border-radius: 8px;">
+                <div class="dash-table-container">
                     
                     <!-- FILTERS -->
                     <div class="card-header bg-white border-bottom p-3 d-flex gap-3 align-items-center" style="border-radius: 8px 8px 0 0;">
