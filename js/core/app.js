@@ -243,6 +243,20 @@ window.addEventListener('DOMContentLoaded', () => {
     GlobalSearch.init();
     QuickActions.init();
     
+    const btnLogout = document.getElementById('btn-logout');
+    if (btnLogout) {
+        btnLogout.addEventListener('click', async () => {
+            if (window.hayCambiosSinGuardar) {
+                const resultado = confirm('Tienes cambios sin guardar. ¿Deseas cerrar sesión de todas formas?');
+                if (!resultado) return;
+                window.hayCambiosSinGuardar = false;
+            } else {
+                if (!confirm('¿Deseas cerrar sesión?')) return;
+            }
+            await supabase.auth.signOut();
+        });
+    }
+
     const sidebar = document.getElementById('sidebar');
     const navbar = document.getElementById('navbar');
     const viewport = document.getElementById('view-viewport');

@@ -98,7 +98,7 @@ body {
 }
 
 .brand .logo {
-    max-height: 35px;
+    max-height: 50px;
 }
 
 .menu {
@@ -252,6 +252,28 @@ body {
 .user-profile {
     display: flex;
     align-items: center;
+    gap: 12px;
+}
+
+.btn-logout {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1px solid #e2e8f0;
+    background-color: #fff;
+    color: #ef4444;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.btn-logout:hover {
+    background-color: #fef2f2;
+    border-color: #fecaca;
+    color: #dc2626;
 }
 
 #user-avatar {
