@@ -468,7 +468,7 @@ export class CrudFinanciero {
                 ? (this.cuentasActivas || []).find(c => String(c.id) === String(g.cuentaId))?.nombre || g.cuentaId
                 : '-';
             return `
-            <tr style="border-bottom: 1px solid #f1f5f9;">
+            <tr class="fila-detalle-registro" data-id="${g.id}" style="border-bottom: 1px solid #f1f5f9; cursor: pointer;">
                 <td class="py-1 text-muted" style="white-space: nowrap;">${g.fecha}</td>
                 <td class="py-1" style="white-space: nowrap;"><span class="badge bg-light text-dark border">${g.categoria}</span></td>
                 <td class="py-1" style="white-space: nowrap;">${escapeHtml(g.descripcion)}</td>
@@ -478,7 +478,7 @@ export class CrudFinanciero {
                 <td class="py-1 text-end fw-bold ${this.config.colorMonto}" style="white-space: nowrap;">${this.config.prefijoMonto}$${g.monto.toLocaleString()}</td>
                 <td class="py-1 text-center" style="white-space: nowrap;">
                     <div class="dropdown">
-                        <button class="btn btn-sm btn-link p-0 text-muted mx-1" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Más opciones" style="color: #6c757d !important; transition: opacity 0.2s;" onmouseover="this.style.opacity=0.7" onmouseout="this.style.opacity=1">
+                        <button class="btn btn-sm btn-link p-0 text-muted mx-1 btn-opciones-registro" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Más opciones" style="color: #6c757d !important; transition: opacity 0.2s;" onmouseover="this.style.opacity=0.7" onmouseout="this.style.opacity=1">
                             <i class="bi bi-three-dots-vertical fs-6"></i>
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end shadow border-0" style="font-size: 13px;">
@@ -489,6 +489,15 @@ export class CrudFinanciero {
                 </td>
             </tr>`;
         }).join('');
+
+        tbody.querySelectorAll('.fila-detalle-registro').forEach(tr => {
+            tr.addEventListener('click', (e) => {
+                if (e.target.closest('.dropdown')) return;
+                const id = tr.dataset.id;
+                const registro = transacciones.find(t => String(t.id) === String(id));
+                if (registro) this.mostrarDetalleRegistro(registro);
+            });
+        });
 
         tbody.querySelectorAll('.btn-editar-registro').forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -600,5 +609,69 @@ export class CrudFinanciero {
 
     async anularTransaccionObj(id) {
         await anularTransaccion(id);
+    }
+
+    mostrarDetalleRegistro(registro) {
+        const proveedorNombre = registro.proveedorId
+            ? (this.proveedores || []).find(p => String(p.id) === String(registro.proveedorId))?.nombre || '-'
+            : '-';
+        const cuentaNombre = registro.cuentaId
+            ? (this.cuentasActivas || []).find(c => String(c.id) === String(registro.cuentaId))?.nombre || registro.cuentaId
+            : '-';
+        const esIngreso = this.config.tipoFiltroDb === 'in';
+        const montoFormateado = `${this.config.prefijoMonto}$${Number(registro.monto).toLocaleString('es-CO', {minimumFractionDigits: 2})}`;
+
+        const existingModal = document.getElementById('modalDetalleRegistroShared');
+        if (existingModal) existingModal.remove();
+
+        const html = `
+    <div class="modal fade" id="modalDetalleRegistroShared" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg" style="border-radius: 12px;">
+                <div class="modal-header border-0 pb-0 pt-4 px-4">
+                    <h5 class="modal-title fw-bold" style="color: #1f2937;">Detalle del ${esIngreso ? 'ingreso' : 'gasto'}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body px-4 pt-3 pb-4">
+                    <div class="text-center mb-4">
+                        <div class="fw-bold ${this.config.colorMonto}" style="font-size: 2rem;">${montoFormateado}</div>
+                        <span class="badge bg-light text-dark border">${escapeHtml(registro.categoria)}</span>
+                    </div>
+                    <div class="row gy-3">
+                        <div class="col-6">
+                            <div class="text-muted small text-uppercase">Fecha</div>
+                            <div class="fw-semibold">${registro.fecha}</div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-muted small text-uppercase">Estado</div>
+                            <div class="fw-semibold">${escapeHtml(registro.estado || '-')}</div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-muted small text-uppercase">${esIngreso ? 'Proveedor' : 'Beneficiario'}</div>
+                            <div class="fw-semibold">${escapeHtml(proveedorNombre)}</div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-muted small text-uppercase">Cuenta</div>
+                            <div class="fw-semibold">${escapeHtml(cuentaNombre)}</div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-muted small text-uppercase">Referencia</div>
+                            <div class="fw-semibold">${registro.referencia || '-'}</div>
+                        </div>
+                        <div class="col-12">
+                            <div class="text-muted small text-uppercase">Descripción</div>
+                            <div class="fw-semibold">${escapeHtml(registro.descripcion)}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>`;
+
+        document.body.insertAdjacentHTML('beforeend', html);
+        const modalEl = document.getElementById('modalDetalleRegistroShared');
+        const modalInstance = new bootstrap.Modal(modalEl);
+        modalEl.addEventListener('hidden.bs.modal', () => modalEl.remove());
+        modalInstance.show();
     }
 }
