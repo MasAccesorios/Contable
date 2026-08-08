@@ -250,6 +250,39 @@ export const TesoreriaModule = {
                     </div>
                 </div>
             </div>
+
+            <!-- MODAL EDITAR BANCO -->
+            <div class="modal fade" id="modal-editar-banco" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content border-0 shadow" style="border-radius: 12px;">
+                        <div class="modal-header border-bottom-0 pb-0">
+                            <h5 class="modal-title fw-bold" style="color: var(--text-main);">Editar cuenta bancaria</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body p-4">
+                            <form id="form-editar-banco">
+                                <input type="hidden" id="banco-edit-id">
+                                <div class="mb-3">
+                                    <label class="form-label text-muted small fw-semibold">Nombre *</label>
+                                    <input type="text" class="form-control" id="banco-edit-nombre" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label text-muted small fw-semibold">Tipo *</label>
+                                    <input type="text" class="form-control" id="banco-edit-tipo" placeholder="Ej. Banco, Efectivo, Nequi..." required>
+                                </div>
+                                <div class="mb-4">
+                                    <label class="form-label text-muted small fw-semibold">Número de cuenta (Opcional)</label>
+                                    <input type="text" class="form-control" id="banco-edit-numero-cuenta" placeholder="Ej. **** 1234">
+                                </div>
+                                <div class="d-flex gap-2 justify-content-end">
+                                    <button type="button" class="btn btn-light border px-4" data-bs-dismiss="modal">Cancelar</button>
+                                    <button type="submit" class="btn text-white px-4" style="background-color: #2cbfb7;" id="btn-confirmar-editar-banco">Guardar cambios</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
         `;
 
         this.bindEvents();
@@ -351,6 +384,12 @@ export const TesoreriaModule = {
         });
 
         el.querySelector('#tbody-bancos')?.addEventListener('click', (e) => {
+            const editarBtn = e.target.closest('.btn-editar-cuenta');
+            if (editarBtn) {
+                this.abrirModalEditarCuenta(editarBtn.dataset);
+                return;
+            }
+
             const toggleBtn = e.target.closest('.btn-toggle-estado');
             if (toggleBtn) {
                 const id = toggleBtn.getAttribute('data-id');
@@ -361,7 +400,12 @@ export const TesoreriaModule = {
 
             const conciliarBtn = e.target.closest('.btn-conciliar');
             if (conciliarBtn) {
-                return; // Evitar que la fila dispare navegación
+                return;
+            }
+
+            const menuBtn = e.target.closest('.btn-abrir-menu-cuenta') || e.target.closest('.dropdown-menu');
+            if (menuBtn) {
+                return;
             }
 
             const row = e.target.closest('.banco-row');
@@ -464,6 +508,43 @@ export const TesoreriaModule = {
             await this.loadData();
 
             if (btn) { btn.disabled = false; btn.innerHTML = 'Guardar'; }
+        });
+
+        el.querySelector('#form-editar-banco')?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('btn-confirmar-editar-banco');
+            if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Guardando...'; }
+
+            const id = document.getElementById('banco-edit-id').value;
+            const nombre = document.getElementById('banco-edit-nombre').value.trim();
+            const tipo = document.getElementById('banco-edit-tipo').value.trim();
+            const numero_cuenta = document.getElementById('banco-edit-numero-cuenta').value.trim() || null;
+
+            const { error } = await supabase.from('cuentas_bancarias').update({
+                nombre,
+                tipo,
+                numero_cuenta
+            }).eq('id', id);
+
+            if (error) {
+                console.error('Error al editar cuenta:', error);
+                if (btn) { btn.disabled = false; btn.innerHTML = 'Guardar cambios'; }
+                alert('Error al guardar los cambios: ' + error.message);
+                return;
+            }
+
+            const modalEl = document.getElementById('modal-editar-banco');
+            if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                const modalInstance = bootstrap.Modal.getInstance(modalEl);
+                if (modalInstance) modalInstance.hide();
+            } else if (modalEl) {
+                modalEl.classList.remove('show', 'd-block');
+                modalEl.style.backgroundColor = '';
+            }
+
+            await this.loadData();
+
+            if (btn) { btn.disabled = false; btn.innerHTML = 'Guardar cambios'; }
         });
     },
 
@@ -593,13 +674,19 @@ export const TesoreriaModule = {
                     <td class=\"py-2 font-monospace text-muted\" style="white-space: nowrap;">${c.numero || '-'}</td>
                     <td class=\"py-2\" style="color: #2cbfb7; font-weight: 500; white-space: nowrap;">${formatMoney(saldo)}</td>
                     <td class=\"py-2 pe-4\">
-                        <div class="d-flex gap-2">
+                        <div class="d-flex gap-2 align-items-center">
                             <button class="btn btn-sm btn-light border px-3 text-muted btn-conciliar" style="font-size: 12px; font-weight: 500; border-radius: 4px;" onclick="event.stopPropagation(); window.location.hash='#/bancos/conciliacion?banco_id=${c.id}'">
                                 Conciliar
                             </button>
-                            <button class="btn btn-sm btn-light border ${actionBtnColor} btn-toggle-estado" data-id="${c.id}" data-estado="${c.estado || 'activo'}" title="${actionBtnTitle}" style="border-radius: 4px;">
-                                <i class="bi ${actionBtnIcon}"></i>
-                            </button>
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-light border text-muted px-2 btn-abrir-menu-cuenta" data-bs-toggle="dropdown" aria-expanded="false" title="Más opciones" style="border-radius: 4px;">
+                                    <i class="bi bi-three-dots-vertical"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end shadow border-0" style="font-size: 13px;">
+                                    <li><a class="dropdown-item btn-editar-cuenta" href="javascript:void(0)" data-id="${c.id}" data-nombre="${c.nombre}" data-tipo="${c.tipo}" data-numero="${c.numero || ''}">Editar</a></li>
+                                    <li><a class="dropdown-item ${actionBtnColor} btn-toggle-estado" href="javascript:void(0)" data-id="${c.id}" data-estado="${c.estado || 'activo'}">${actionBtnTitle}</a></li>
+                                </ul>
+                            </div>
                         </div>
                     </td>
                 </tr>
@@ -803,6 +890,22 @@ export const TesoreriaModule = {
         } catch (err) {
             console.error('Error al actualizar estado:', err);
             alert('Error al actualizar el estado de la cuenta.');
+        }
+    },
+
+    abrirModalEditarCuenta(dataset) {
+        document.getElementById('banco-edit-id').value = dataset.id || '';
+        document.getElementById('banco-edit-nombre').value = dataset.nombre || '';
+        document.getElementById('banco-edit-tipo').value = dataset.tipo || '';
+        document.getElementById('banco-edit-numero-cuenta').value = dataset.numero || '';
+
+        const modalEl = document.getElementById('modal-editar-banco');
+        if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+            const modalInstance = new bootstrap.Modal(modalEl);
+            modalInstance.show();
+        } else if (modalEl) {
+            modalEl.classList.add('show', 'd-block');
+            modalEl.style.backgroundColor = 'rgba(0,0,0,0.5)';
         }
     }
 };
