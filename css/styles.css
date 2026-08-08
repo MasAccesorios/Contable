@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+﻿@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 :root {
     --primary: #2dbda8;
@@ -12,7 +12,7 @@
     /* Box Shadows (Alegra Style) */
     --shadow-soft: 0px 4px 12px rgba(0, 0, 0, 0.03), 0px 1px 3px rgba(0, 0, 0, 0.05);
 
-    /* Paleta Cromática Suave de Textos (Cero Negro Puro) */
+    /* Paleta Crom谩tica Suave de Textos (Cero Negro Puro) */
     --text-main: #0c1a30;
     --text-body: #4a5568;
     --text-muted: #718096;
@@ -42,7 +42,7 @@ body {
     max-width: 100vw;
 }
 
-/* Tipografía y Normalización */
+/* Tipograf铆a y Normalizaci贸n */
 .text-metric {
     font-size: 24px !important;
     font-weight: 750 !important;
@@ -187,7 +187,7 @@ body {
     width: calc(100% - var(--sidebar-width));
 }
 
-/* Sin sesión: el main-wrapper ocupa el 100% (sin el hueco del sidebar) */
+/* Sin sesi贸n: el main-wrapper ocupa el 100% (sin el hueco del sidebar) */
 #app-container.unauthenticated #main-wrapper {
     margin-left: 0;
     width: 100%;
@@ -293,7 +293,7 @@ body {
 }
 
 /* ==============================================================
-   MOTOR DE IMPRESIÓN (SINGLE SOURCE OF TRUTH)
+   MOTOR DE IMPRESI脫N (SINGLE SOURCE OF TRUTH)
    ============================================================== */
 @media screen {
     .print-document-template {
@@ -338,7 +338,7 @@ body {
         color: #212529;
     }
 
-    /* Regla de tamaño dinámico según cantidad de ítems */
+    /* Regla de tama帽o din谩mico seg煤n cantidad de 铆tems */
     .print-document-template.media-hoja { 
         min-height: 148mm; 
         max-height: none; 
@@ -374,7 +374,7 @@ body {
         padding: 12px !important;
     }
     
-    /* Adaptar cabecera superior (Top Bar) en columnas en móviles */
+    /* Adaptar cabecera superior (Top Bar) en columnas en m贸viles */
     .module-container > .d-flex:first-of-type {
         flex-direction: column !important;
         align-items: flex-start !important;
@@ -391,7 +391,7 @@ body {
         gap: 12px !important;
     }
 
-    /* Área de toque mínima de 44px para botones del Top Bar y menú móvil */
+    /* 脕rea de toque m铆nima de 44px para botones del Top Bar y men煤 m贸vil */
     .module-container > .d-flex:first-of-type button,
     .module-container > .d-flex:first-of-type .btn,
     #mobile-menu-toggle {
@@ -402,7 +402,7 @@ body {
         justify-content: center !important;
     }
     
-    /* Prevenir que las tablas grandes rompan la pantalla en móvil */
+    /* Prevenir que las tablas grandes rompan la pantalla en m贸vil */
     .table-responsive,
     .form-table-wrapper,
     table {
@@ -444,7 +444,7 @@ body {
         margin: 0 !important;
     }
 
-    /* Fila 1: Número de línea (título de la tarjeta) - 100% */
+    /* Fila 1: N煤mero de l铆nea (t铆tulo de la tarjeta) - 100% */
     #tabla-detalles tbody td:nth-of-type(1) {
         width: 100% !important;
         font-weight: 700 !important;
@@ -472,7 +472,7 @@ body {
     }
     #tabla-detalles tbody td:nth-of-type(4)::before { content: "Precio"; font-size: 11px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 4px; }
 
-    /* Fila 4: Descuento (49%) e Impuesto (49%) - Ocultos por defecto en móvil */
+    /* Fila 4: Descuento (49%) e Impuesto (49%) - Ocultos por defecto en m贸vil */
     #tabla-detalles tbody tr:not(.show-discount-tax) td:nth-of-type(5),
     #tabla-detalles tbody tr:not(.show-discount-tax) td:nth-of-type(6) {
         display: none !important;
@@ -505,7 +505,7 @@ body {
         color: var(--text-muted);
     }
 
-    /* Fila 6: Botón de eliminar (posicionado absoluto) */
+    /* Fila 6: Bot贸n de eliminar (posicionado absoluto) */
     #tabla-detalles tbody td:nth-of-type(8) {
         position: absolute !important;
         top: 16px !important;
@@ -513,7 +513,7 @@ body {
         width: auto !important;
     }
 
-    /* Layout resumen conciliacion móvil */
+    /* Layout resumen conciliacion m贸vil */
     #resumen-conciliacion-row {
         flex-wrap: wrap !important;
     }
@@ -613,7 +613,7 @@ body {
 
 
 /* =========================================
-   DASHBOARD — BOTONERA PÍLDORA (DPG)
+   DASHBOARD 鈥?BOTONERA P脥LDORA (DPG)
    ========================================= */
 .dashboard-pill-group {
     display: inline-flex;
@@ -650,7 +650,7 @@ body {
 }
 
 /* =========================================
-   DASHBOARD — TARJETAS PREMIUM CxC / CxP
+   DASHBOARD 鈥?TARJETAS PREMIUM CxC / CxP
    ========================================= */
 .dash-card-premium {
     background: #ffffff;
@@ -707,7 +707,7 @@ body {
     transition: width 0.5s ease;
 }
 
-/* Sub-ítems de desglose dentro de cada tarjeta */
+/* Sub-铆tems de desglose dentro de cada tarjeta */
 .dash-sub-item {
     display: flex;
     flex-direction: column;
@@ -754,7 +754,7 @@ body {
 }
 
 /* =========================================
-   DASHBOARD — 4 MICRO-KPIs
+   DASHBOARD 鈥?4 MICRO-KPIs
    ========================================= */
 .dash-kpi-card {
     border: 1px solid #e2e8f0 !important;
@@ -821,13 +821,13 @@ body {
 }
 
 /* =========================================
-   DASHBOARD — LAYOUT UNIFICADO (CSS GRID PURO)
+   DASHBOARD 鈥?LAYOUT UNIFICADO (CSS GRID PURO)
    ========================================= */
 .dash-layout {
     max-width: 1100px;
     margin: 0 auto;
     display: grid;
-    grid-template-columns: 1fr;  /* una columna — cada bloque ocupa el ancho exacto */
+    grid-template-columns: 1fr;  /* una columna 鈥?cada bloque ocupa el ancho exacto */
     gap: 1.25rem;
 }
 
@@ -854,7 +854,7 @@ body {
     gap: 1.25rem;
 }
 
-/* Tarjeta del gráfico de ventas */
+/* Tarjeta del gr谩fico de ventas */
 .dash-chart-card {
     border: 1px solid #e2e8f0;
     border-radius: 14px;
@@ -921,7 +921,7 @@ body {
     box-shadow: 0 10px 24px -6px rgba(0,0,0,0.06) !important;
 }
 
-/* 3. CAJAS DE ��CONOS */
+/* 3. CAJAS DE íCONOS */
 .dash-icon-box {
     width: 38px; height: 38px; border-radius: 10px;
     display: flex; align-items: center; justify-content: center;
@@ -932,7 +932,7 @@ body {
 .dash-icon-box.variant-yellow { background: #fefce8 !important; color: #ca8a04 !important; }
 .dash-icon-box.variant-cyan { background: #ecfeff !important; color: #0891b2 !important; }
 
-/* 4. TIPOGRAF��A */
+/* 4. TIPOGRAFíA */
 .dash-kpi-label { font-size: 0.75rem !important; font-weight: 600 !important; text-transform: uppercase !important; color: #64748b !important; letter-spacing: 0.04em !important; }
 .dash-kpi-value { font-size: clamp(1.25rem, 4vw, 1.5rem) !important; font-weight: 700 !important; color: #0f172a !important; line-height: 1.2 !important; }
 .dash-kpi-subtext { font-size: 0.75rem !important; color: #94a3b8 !important; }
@@ -952,12 +952,13 @@ body {
 }
 
 
-/* Grilla expl��cita para formulario de Operativos */
+/* Grilla explícita para formulario de Operativos */
 .form-grid-row-1 {
   display: grid !important;
   grid-template-columns: 1.5fr 2.5fr 1.5fr 2fr !important;
   gap: 1rem !important;
   margin-bottom: 1rem !important;
+  align-items: end !important;
 }
 
 .form-grid-row-2 {
@@ -965,6 +966,7 @@ body {
   grid-template-columns: 1fr 1fr 1fr !important;
   gap: 1rem !important;
   margin-bottom: 1rem !important;
+  align-items: end !important;
 }
 
 .form-grid-row-3 {
