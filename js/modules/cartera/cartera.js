@@ -63,7 +63,7 @@ export default {
         });
 
         const html = `
-            <div class="dash-layout">
+            <div class="dash-layout p-4">
                 
                 <!-- BREADCRUMB Y BOTONES SUPERIORES DE ACCIÓN -->
                 <div class="d-flex justify-content-between align-items-center mb-2">
@@ -79,11 +79,11 @@ export default {
                 <!-- TÍTULO Y BOTÓN GENERAR -->
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <div>
-                        <h2 class="h4 mb-1 text-dark fw-bold">Cuentas por cobrar</h2>
+                        <h2 class="h3 fw-bold mb-1 text-dark">Cuentas por cobrar</h2>
                         <p class="text-muted small mb-0">Conoce lo que te deben tus clientes y lleva un control del vencimiento de sus facturas.</p>
                     </div>
                     <div>
-                        <button id="btn-generar-reporte" class="btn btn-sm text-white px-3 py-2 fw-medium shadow-sm" style="background-color: #1877f2; border: 1px solid #1877f2; border-radius: 6px; font-size: 13px;">Generar Reporte</button>
+                        <button id="btn-generar-reporte" class="btn btn-primary-action">Generar Reporte</button>
                     </div>
                 </div>
 
@@ -155,44 +155,44 @@ export default {
                 </div>
 
                 <!-- KPI CARDS CARTERA -->
-                <div class="dash-grid-kpis mb-4" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem;">
-                    <div class="card dash-kpi-card border-0" style="border-radius: 14px; border: 1px solid #e2e8f0 !important; box-shadow: 0 4px 16px rgba(0,0,0,0.03); transition: all 0.25s ease;" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='translateY(0)'">
-                        <div class="card-body p-3 d-flex flex-column justify-content-between" style="min-height: 90px;">
+                <div class="row g-3 mb-4">
+                    <div class="col-12 col-sm-6 col-lg-4">
+                        <div class="dash-kpi-card d-flex flex-column justify-content-between" style="min-height: 90px;">
                             <div class="d-flex justify-content-between align-items-start">
-                                <span class="dash-kpi-label text-muted fw-semibold" style="font-size: 13px;">Total por Cobrar</span>
-                                <div class="dash-kpi-icon-box rounded p-2 d-flex align-items-center justify-content-center" style="background-color: rgba(24, 119, 242, 0.1); color: #1877f2; width: 32px; height: 32px;">
+                                <span class="dash-kpi-label">Total por Cobrar</span>
+                                <div class="dash-icon-box variant-blue">
                                     <i class="bi bi-wallet2"></i>
                                 </div>
                             </div>
-                            <div class="dash-kpi-value text-dark fw-bold fs-4 mt-2" id="lbl-total-por-cobrar">$ ${totalCartera.toLocaleString('es-CO', {minimumFractionDigits: 2})}</div>
+                            <div class="dash-kpi-value" id="lbl-total-por-cobrar">$ ${totalCartera.toLocaleString('es-CO', {minimumFractionDigits: 2})}</div>
                         </div>
                     </div>
-                    <div class="card dash-kpi-card border-0" style="border-radius: 14px; border: 1px solid #e2e8f0 !important; box-shadow: 0 4px 16px rgba(0,0,0,0.03); transition: all 0.25s ease;" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='translateY(0)'">
-                        <div class="card-body p-3 d-flex flex-column justify-content-between" style="min-height: 90px;">
+                    <div class="col-12 col-sm-6 col-lg-4">
+                        <div class="dash-kpi-card d-flex flex-column justify-content-between" style="min-height: 90px;">
                             <div class="d-flex justify-content-between align-items-start">
-                                <span class="dash-kpi-label text-muted fw-semibold" style="font-size: 13px;">Cartera Vigente</span>
-                                <div class="dash-kpi-icon-box rounded p-2 d-flex align-items-center justify-content-center" style="background-color: rgba(46, 204, 113, 0.1); color: #2ecc71; width: 32px; height: 32px;">
+                                <span class="dash-kpi-label">Cartera Vigente</span>
+                                <div class="dash-icon-box variant-green">
                                     <i class="bi bi-check-circle"></i>
                                 </div>
                             </div>
-                            <div class="dash-kpi-value text-dark fw-bold fs-4 mt-2" id="lbl-total-vigente">$ ${totalVigente.toLocaleString('es-CO', {minimumFractionDigits: 2})}</div>
+                            <div class="dash-kpi-value" id="lbl-total-vigente">$ ${totalVigente.toLocaleString('es-CO', {minimumFractionDigits: 2})}</div>
                         </div>
                     </div>
-                    <div class="card dash-kpi-card border-0" style="border-radius: 14px; border: 1px solid #e2e8f0 !important; box-shadow: 0 4px 16px rgba(0,0,0,0.03); transition: all 0.25s ease;" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='translateY(0)'">
-                        <div class="card-body p-3 d-flex flex-column justify-content-between" style="min-height: 90px;">
+                    <div class="col-12 col-sm-6 col-lg-4">
+                        <div class="dash-kpi-card d-flex flex-column justify-content-between" style="min-height: 90px;">
                             <div class="d-flex justify-content-between align-items-start">
-                                <span class="dash-kpi-label text-muted fw-semibold" style="font-size: 13px;">Cartera Vencida</span>
-                                <div class="dash-kpi-icon-box rounded p-2 d-flex align-items-center justify-content-center" style="background-color: rgba(220, 53, 69, 0.1); color: #dc3545; width: 32px; height: 32px;">
+                                <span class="dash-kpi-label">Cartera Vencida</span>
+                                <div class="dash-icon-box variant-red">
                                     <i class="bi bi-exclamation-triangle"></i>
                                 </div>
                             </div>
-                            <div class="dash-kpi-value text-dark fw-bold fs-4 mt-2" id="lbl-total-vencido">$ ${totalVencido.toLocaleString('es-CO', {minimumFractionDigits: 2})}</div>
+                            <div class="dash-kpi-value" id="lbl-total-vencido">$ ${totalVencido.toLocaleString('es-CO', {minimumFractionDigits: 2})}</div>
                         </div>
                     </div>
                 </div>
 
                 <!-- TABLA DE DETALLE DE CARTERA POR FACTURA -->
-                <div class="card border-0 shadow-sm bg-white" style="border-radius: 14px; overflow: hidden;">
+                <div class="dash-table-container">
                     <div class="p-3 d-flex justify-content-end border-bottom border-light-subtle">
                         <button id="btn-toggle-filtros" class="btn btn-sm btn-light border bg-white text-secondary" style="font-size: 12px; border-radius: 6px;">⚙️ Filtrar</button>
                     </div>

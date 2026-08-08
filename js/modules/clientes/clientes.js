@@ -27,11 +27,11 @@ export const ContactosModule = {
         
         // Renderizar contenedor principal de hoja completa
         element.innerHTML = `
-            <div class="dash-layout">
+            <div class="dash-layout p-4">
                 <!-- Header -->
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <div>
-                        <h2 class="h4 mb-1 text-dark fw-bold">Gestión de Contactos</h2>
+                        <h2 class="h3 fw-bold mb-1 text-dark">Gestión de Contactos</h2>
                         <p class="text-muted small mb-0">Crea tus clientes, proveedores y demás contactos para asociarlos en tus documentos</p>
                     </div>
                     <div class="d-flex gap-2">
@@ -47,50 +47,50 @@ export const ContactosModule = {
                         <button id="btn-refresh-list" class="btn btn-light bg-white border me-2" style="font-weight: var(--weight-medium); font-size: 14px; color: var(--text-body);">
                             <i class="bi bi-arrow-clockwise me-1"></i> Actualizar
                         </button>
-                        <button id="btn-nuevo-contacto" class="btn btn-primary d-flex align-items-center gap-2" style="background-color: #1877f2; border: none;">
-                            <i class="bi bi-plus-lg"></i> Nuevo contacto
+                        <button id="btn-nuevo-contacto" class="btn btn-primary-action">
+                            <i class="bi bi-plus-lg me-1"></i> Nuevo contacto
                         </button>
                     </div>
                 </div>
 
                 <!-- KPI CARDS CONTACTOS -->
-                <div class="dash-grid-kpis mb-4" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem;">
-                    <div class="card dash-kpi-card border-0" style="border-radius: 14px; border: 1px solid #e2e8f0 !important; box-shadow: 0 4px 16px rgba(0,0,0,0.03); transition: all 0.25s ease;" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='translateY(0)'">
-                        <div class="card-body p-3 d-flex flex-column justify-content-between" style="min-height: 90px;">
+                <div class="row g-3 mb-4">
+                    <div class="col-12 col-sm-6 col-lg-4">
+                        <div class="dash-kpi-card d-flex flex-column justify-content-between" style="min-height: 90px;">
                             <div class="d-flex justify-content-between align-items-start">
-                                <span class="dash-kpi-label text-muted fw-semibold" style="font-size: 13px;">Total Contactos</span>
-                                <div class="dash-kpi-icon-box rounded p-2 d-flex align-items-center justify-content-center" style="background-color: rgba(24, 119, 242, 0.1); color: #1877f2; width: 32px; height: 32px;">
+                                <span class="dash-kpi-label">Total Contactos</span>
+                                <div class="dash-icon-box variant-blue">
                                     <i class="bi bi-people"></i>
                                 </div>
                             </div>
-                            <div class="dash-kpi-value text-dark fw-bold fs-4 mt-2" id="kpi-total-contactos"><span class="spinner-border spinner-border-sm text-secondary"></span></div>
+                            <div class="dash-kpi-value" id="kpi-total-contactos"><span class="spinner-border spinner-border-sm text-secondary"></span></div>
                         </div>
                     </div>
-                    <div class="card dash-kpi-card border-0" style="border-radius: 14px; border: 1px solid #e2e8f0 !important; box-shadow: 0 4px 16px rgba(0,0,0,0.03); transition: all 0.25s ease;" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='translateY(0)'">
-                        <div class="card-body p-3 d-flex flex-column justify-content-between" style="min-height: 90px;">
+                    <div class="col-12 col-sm-6 col-lg-4">
+                        <div class="dash-kpi-card d-flex flex-column justify-content-between" style="min-height: 90px;">
                             <div class="d-flex justify-content-between align-items-start">
-                                <span class="dash-kpi-label text-muted fw-semibold" style="font-size: 13px;">Clientes Registrados</span>
-                                <div class="dash-kpi-icon-box rounded p-2 d-flex align-items-center justify-content-center" style="background-color: rgba(46, 204, 113, 0.1); color: #2ecc71; width: 32px; height: 32px;">
+                                <span class="dash-kpi-label">Clientes Registrados</span>
+                                <div class="dash-icon-box variant-green">
                                     <i class="bi bi-person-check"></i>
                                 </div>
                             </div>
-                            <div class="dash-kpi-value text-dark fw-bold fs-4 mt-2" id="kpi-clientes"><span class="spinner-border spinner-border-sm text-secondary"></span></div>
+                            <div class="dash-kpi-value" id="kpi-clientes"><span class="spinner-border spinner-border-sm text-secondary"></span></div>
                         </div>
                     </div>
-                    <div class="card dash-kpi-card border-0" style="border-radius: 14px; border: 1px solid #e2e8f0 !important; box-shadow: 0 4px 16px rgba(0,0,0,0.03); transition: all 0.25s ease;" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='translateY(0)'">
-                        <div class="card-body p-3 d-flex flex-column justify-content-between" style="min-height: 90px;">
+                    <div class="col-12 col-sm-6 col-lg-4">
+                        <div class="dash-kpi-card d-flex flex-column justify-content-between" style="min-height: 90px;">
                             <div class="d-flex justify-content-between align-items-start">
-                                <span class="dash-kpi-label text-muted fw-semibold" style="font-size: 13px;">Proveedores</span>
-                                <div class="dash-kpi-icon-box rounded p-2 d-flex align-items-center justify-content-center" style="background-color: rgba(142, 68, 173, 0.1); color: #8e44ad; width: 32px; height: 32px;">
+                                <span class="dash-kpi-label">Proveedores</span>
+                                <div class="dash-icon-box variant-yellow">
                                     <i class="bi bi-shop"></i>
                                 </div>
                             </div>
-                            <div class="dash-kpi-value text-dark fw-bold fs-4 mt-2" id="kpi-proveedores"><span class="spinner-border spinner-border-sm text-secondary"></span></div>
+                            <div class="dash-kpi-value" id="kpi-proveedores"><span class="spinner-border spinner-border-sm text-secondary"></span></div>
                         </div>
                     </div>
                 </div>
 
-                <div class="card border-0 shadow-sm" style="border-radius: 14px;">
+                <div class="dash-table-container">
                     <div class="card-body p-0">
                         <!-- Pestañas de Filtro (Tabs) -->
                         <ul class="nav nav-tabs border-bottom-0 gap-3 px-4 pt-3" id="contactos-tabs" style="border-bottom: 2px solid var(--border-color) !important;">
