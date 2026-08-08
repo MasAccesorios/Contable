@@ -588,39 +588,17 @@ export const ProductosModule = {
                         </div>
                     </div>
                 </div>
+                ${facturasAsociadas.length > 0 ? `
                 <div class="col-lg-12">
-                    <div class="card border-0 shadow-sm mb-4">
-                        <div class="card-body p-4">
-                            <h5 class="fw-bold mb-3">Facturas de Venta que incluyen este ítem</h5>
-                            <div class="table-responsive">
-                                <table class="table align-middle">
-                                    <thead class="table-light text-muted uppercase font-monospace" style="font-size: 0.85rem;">
-                                        <tr>
-                                            <th>Fecha</th>
-                                            <th>Factura #</th>
-                                            <th>Cliente</th>
-                                            <th class="text-end">Estado</th>
-                                            <th class="text-end">Saldo Pendiente</th>
-                                            <th class="text-end">Total Pagado</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="tbody-facturas-asoc">
-                                        ${facturasAsociadas.map(f => `
-                                            <tr>
-                                                <td>${f.fecha || ''}</td>
-                                                <td>${f.numero || f.id}</td>
-                                                <td>${contactosMap[f.clienteId] || ''}</td>
-                                                <td class="text-end">${f.estado}</td>
-                                                <td class="text-end">${f.saldoPendiente}</td>
-                                                <td class="text-end">${f.totalPagado}</td>
-                                            </tr>
-                                        `).join('') || '<tr><td colspan="6" class="text-center py-4 text-muted">No hay facturas asociadas.</td></tr>'}
-                                    </tbody>
-                                </table>
-                            </div>
+                    <div class="card border-0 mb-4 shadow-sm" style="border-radius: 8px;">
+                        <div class="card-header bg-white border-bottom p-3">
+                            <h5 class="fw-bold mb-0" style="color: var(--text-main); font-size: 15px;">
+                                <i class="bi bi-receipt me-2 text-muted"></i>Facturas de Venta que incluyen este ítem
+                            </h5>
                         </div>
+                        ${renderTablaFacturas(facturasAsociadas, contactosMap)}
                     </div>
-                </div>
+                </div>` : ''}
             </div>
         `;
 
