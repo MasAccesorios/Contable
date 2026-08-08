@@ -85,55 +85,47 @@ export const DashboardModule = {
                 <div class="dash-grid-kpis">
 
                     <!-- Utilidad -->
-                    <div class="card dash-kpi-card">
-                            <div class="card-body p-3 d-flex flex-column justify-content-between" style="min-height: 90px;">
-                                <div class="d-flex justify-content-between align-items-start">
-                                    <span class="dash-kpi-label">Utilidad del mes</span>
-                                    <div class="dash-kpi-icon-box dash-kpi-icon-box--success">
-                                        <i class="bi bi-graph-up-arrow"></i>
-                                    </div>
-                                </div>
-                                <div class="dash-kpi-value" id="kpi-utilidad-mes"><span class="spinner-border spinner-border-sm text-secondary"></span></div>
+                    <div class="dash-kpi-card d-flex flex-column justify-content-between" style="min-height: 90px;">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <span class="dash-kpi-label">Utilidad del mes</span>
+                            <div class="dash-icon-box variant-green">
+                                <i class="bi bi-graph-up-arrow"></i>
                             </div>
+                        </div>
+                        <div class="dash-kpi-value" id="kpi-utilidad-mes"><span class="spinner-border spinner-border-sm text-secondary"></span></div>
                     </div>
 
                     <!-- Productos vendidos -->
-                    <div class="card dash-kpi-card">
-                            <div class="card-body p-3 d-flex flex-column justify-content-between" style="min-height: 90px;">
-                                <div class="d-flex justify-content-between align-items-start">
-                                    <span class="dash-kpi-label">Productos vendidos</span>
-                                    <div class="dash-kpi-icon-box dash-kpi-icon-box--dark">
-                                        <i class="bi bi-box-seam"></i>
-                                    </div>
-                                </div>
-                                <div class="dash-kpi-value" id="kpi-productos"><span class="spinner-border spinner-border-sm text-secondary"></span></div>
+                    <div class="dash-kpi-card d-flex flex-column justify-content-between" style="min-height: 90px;">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <span class="dash-kpi-label">Productos vendidos</span>
+                            <div class="dash-icon-box variant-blue">
+                                <i class="bi bi-box-seam"></i>
                             </div>
+                        </div>
+                        <div class="dash-kpi-value" id="kpi-productos"><span class="spinner-border spinner-border-sm text-secondary"></span></div>
                     </div>
 
                     <!-- Inventario Valorizado -->
-                    <div class="card dash-kpi-card">
-                            <div class="card-body p-3 d-flex flex-column justify-content-between" style="min-height: 90px;">
-                                <div class="d-flex justify-content-between align-items-start">
-                                    <span class="dash-kpi-label">Inventario val.</span>
-                                    <div class="dash-kpi-icon-box dash-kpi-icon-box--primary">
-                                        <i class="bi bi-boxes"></i>
-                                    </div>
-                                </div>
-                                <div class="dash-kpi-value" id="kpi-inventario-valorizado"><span class="spinner-border spinner-border-sm text-secondary"></span></div>
+                    <div class="dash-kpi-card d-flex flex-column justify-content-between" style="min-height: 90px;">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <span class="dash-kpi-label">Inventario val.</span>
+                            <div class="dash-icon-box variant-blue">
+                                <i class="bi bi-boxes"></i>
                             </div>
+                        </div>
+                        <div class="dash-kpi-value" id="kpi-inventario-valorizado"><span class="spinner-border spinner-border-sm text-secondary"></span></div>
                     </div>
 
                     <!-- Saldo Bancos -->
-                    <div class="card dash-kpi-card">
-                            <div class="card-body p-3 d-flex flex-column justify-content-between" style="min-height: 90px;">
-                                <div class="d-flex justify-content-between align-items-start">
-                                    <span class="dash-kpi-label">Saldo bancos</span>
-                                    <div class="dash-kpi-icon-box dash-kpi-icon-box--info">
-                                        <i class="bi bi-bank"></i>
-                                    </div>
-                                </div>
-                                <div class="dash-kpi-value" id="kpi-saldo-bancos"><span class="spinner-border spinner-border-sm text-secondary"></span></div>
+                    <div class="dash-kpi-card d-flex flex-column justify-content-between" style="min-height: 90px;">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <span class="dash-kpi-label">Saldo bancos</span>
+                            <div class="dash-icon-box variant-cyan">
+                                <i class="bi bi-bank"></i>
                             </div>
+                        </div>
+                        <div class="dash-kpi-value" id="kpi-saldo-bancos"><span class="spinner-border spinner-border-sm text-secondary"></span></div>
                     </div>
 
                 </div>

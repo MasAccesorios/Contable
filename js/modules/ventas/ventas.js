@@ -140,10 +140,10 @@ export const FacturasModule = {
                                 <i class="bi bi-download me-1"></i> Exportar
                             </button>
                             <div class="btn-group">
-                                <button id="btn-nueva-factura" class="btn text-white" style="background-color: #2cbfb7; font-weight: var(--weight-medium); font-size: 14px;">
+                                <button id="btn-nueva-factura" class="btn btn-primary-action">
                                     <i class="bi bi-plus-lg me-1"></i> Nueva factura
                                 </button>
-                                <button class="btn text-white px-2 dropdown-toggle dropdown-toggle-split" style="background-color: #2cbfb7; border-left: 1px solid rgba(255,255,255,0.2);"></button>
+                                <button class="btn btn-primary-action px-2 dropdown-toggle dropdown-toggle-split" style="border-left: 1px solid rgba(255,255,255,0.2);"></button>
                             </div>
                         </div>
                     </div>
@@ -151,36 +151,42 @@ export const FacturasModule = {
                     <!-- KPI CARDS FACTURAS -->
                     <div class="row g-3 mb-4">
                         <div class="col-12 col-sm-6 col-lg-4">
-                            <div class="card dash-kpi-card">
-                                <div class="kpi-card-body">
-                                    <i class="bi bi-receipt kpi-icon"></i>
-                                    <h6 class="kpi-label">Total Facturado</h6>
-                                    <h5 class="kpi-value">$ ${formatMoney(kpiDataCxc.facturado).replace('$ ', '')}</h5>
+                            <div class="dash-kpi-card d-flex flex-column justify-content-between" style="min-height: 90px;">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <span class="dash-kpi-label">Total Facturado</span>
+                                    <div class="dash-icon-box variant-blue">
+                                        <i class="bi bi-receipt"></i>
+                                    </div>
                                 </div>
+                                <div class="dash-kpi-value">$ ${formatMoney(kpiDataCxc.facturado).replace('$ ', '')}</div>
                             </div>
                         </div>
                         <div class="col-12 col-sm-6 col-lg-4">
-                            <div class="card dash-kpi-card">
-                                <div class="kpi-card-body">
-                                    <i class="bi bi-check-circle kpi-icon"></i>
-                                    <h6 class="kpi-label">Total Cobrado</h6>
-                                    <h5 class="kpi-value">$ ${formatMoney(kpiDataCxc.cobrado).replace('$ ', '')}</h5>
+                            <div class="dash-kpi-card d-flex flex-column justify-content-between" style="min-height: 90px;">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <span class="dash-kpi-label">Total Cobrado</span>
+                                    <div class="dash-icon-box variant-green">
+                                        <i class="bi bi-check-circle"></i>
+                                    </div>
                                 </div>
+                                <div class="dash-kpi-value">$ ${formatMoney(kpiDataCxc.cobrado).replace('$ ', '')}</div>
                             </div>
                         </div>
                         <div class="col-12 col-sm-6 col-lg-4">
-                            <div class="card dash-kpi-card">
-                                <div class="kpi-card-body">
-                                    <i class="bi bi-clock-history kpi-icon"></i>
-                                    <h6 class="kpi-label">Total Pendiente</h6>
-                                    <h5 class="kpi-value">$ ${formatMoney(kpiDataCxc.pendiente).replace('$ ', '')}</h5>
+                            <div class="dash-kpi-card d-flex flex-column justify-content-between" style="min-height: 90px;">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <span class="dash-kpi-label">Total Pendiente</span>
+                                    <div class="dash-icon-box variant-yellow">
+                                        <i class="bi bi-clock-history"></i>
+                                    </div>
                                 </div>
+                                <div class="dash-kpi-value">$ ${formatMoney(kpiDataCxc.pendiente).replace('$ ', '')}</div>
                             </div>
                         </div>
                     </div>
 
                     <!-- DATA TABLE CARD -->
-                    <div class="card border-0" style="box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.03), 0px 1px 3px rgba(0, 0, 0, 0.05); border-radius: 8px;">
+                    <div class="dash-table-container mb-4">
                         <!-- FILTERS -->
                         <div class="card-header bg-white border-bottom p-3 d-flex gap-3 align-items-center" style="border-radius: 8px 8px 0 0;">
                             <div class="input-group input-group-sm" style="width: 250px;">
@@ -594,13 +600,13 @@ export const FacturasModule = {
                     </div>
                     <div class="d-flex align-items-center gap-2">
                         ${isViewOnly && id && factura.estado !== 'pagada' && factura.estado !== 'anulada' ? 
-                            `<button class="btn btn-primary fw-medium px-4 btn-abonar-detalle" data-id="${factura.id}" data-saldo="${factura.saldoPendiente}" style="background-color: #2cbfb7; border: none; border-radius: 8px;"><i class="bi bi-wallet2 me-2"></i>Registrar Pago</button>` 
+                            `<button class="btn btn-primary-action px-4 btn-abonar-detalle" data-id="${factura.id}" data-saldo="${factura.saldoPendiente}"><i class="bi bi-wallet2 me-2"></i>Registrar Pago</button>` 
                             : ''}
                         ${actionsHtml}
                     </div>
                 </div>
 
-                <div class="card border-0 mb-4" style="box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.03), 0px 1px 3px rgba(0, 0, 0, 0.05); border-radius: 8px;">
+                <div class="dash-table-container mb-4" style="overflow: visible;">
                     <div class="card-body p-3 p-md-5">
                         <!-- HEADER DOCUMENTO -->
                         <div class="row mb-4 align-items-center">

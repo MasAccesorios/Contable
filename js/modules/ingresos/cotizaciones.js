@@ -122,7 +122,7 @@ export const CotizacionesModule = {
                             <button id="btn-export-list" class="btn btn-light bg-white border" style="font-weight: var(--weight-medium); font-size: 14px; color: var(--text-body);">
                                 <i class="bi bi-download me-1"></i> Exportar
                             </button>
-                            <a href="#/ingresos/cotizaciones/nueva" class="btn text-white" style="background-color: #2cbfb7; font-weight: var(--weight-medium); font-size: 14px;">
+                            <a href="#/ingresos/cotizaciones/nueva" class="btn btn-primary-action">
                                 <i class="bi bi-plus-lg me-1"></i> Nueva cotización
                             </a>
                         </div>
@@ -131,36 +131,42 @@ export const CotizacionesModule = {
                     <!-- KPI CARDS COTIZACIONES -->
                     <div class="row g-3 mb-4">
                         <div class="col-12 col-sm-6 col-lg-4">
-                            <div class="card dash-kpi-card">
-                                <div class="kpi-card-body">
-                                    <i class="bi bi-file-earmark-text kpi-icon"></i>
-                                    <h6 class="kpi-label">Total Cotizado</h6>
-                                    <h5 class="kpi-value">$ ${formatMoney(totalCotizado).replace('$ ', '')}</h5>
+                            <div class="dash-kpi-card d-flex flex-column justify-content-between" style="min-height: 90px;">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <span class="dash-kpi-label">Total Cotizado</span>
+                                    <div class="dash-icon-box variant-blue">
+                                        <i class="bi bi-file-earmark-text"></i>
+                                    </div>
                                 </div>
+                                <div class="dash-kpi-value">$ ${formatMoney(totalCotizado).replace('$ ', '')}</div>
                             </div>
                         </div>
                         <div class="col-12 col-sm-6 col-lg-4">
-                            <div class="card dash-kpi-card">
-                                <div class="kpi-card-body">
-                                    <i class="bi bi-check-circle kpi-icon"></i>
-                                    <h6 class="kpi-label">Cotizaciones Aprobadas</h6>
-                                    <h5 class="kpi-value">$ ${formatMoney(totalAprobado).replace('$ ', '')}</h5>
+                            <div class="dash-kpi-card d-flex flex-column justify-content-between" style="min-height: 90px;">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <span class="dash-kpi-label">Cotizaciones Aprobadas</span>
+                                    <div class="dash-icon-box variant-green">
+                                        <i class="bi bi-check-circle"></i>
+                                    </div>
                                 </div>
+                                <div class="dash-kpi-value">$ ${formatMoney(totalAprobado).replace('$ ', '')}</div>
                             </div>
                         </div>
                         <div class="col-12 col-sm-6 col-lg-4">
-                            <div class="card dash-kpi-card">
-                                <div class="kpi-card-body">
-                                    <i class="bi bi-clock kpi-icon"></i>
-                                    <h6 class="kpi-label">Cotizaciones Pendientes</h6>
-                                    <h5 class="kpi-value">$ ${formatMoney(totalPendiente).replace('$ ', '')}</h5>
+                            <div class="dash-kpi-card d-flex flex-column justify-content-between" style="min-height: 90px;">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <span class="dash-kpi-label">Cotizaciones Pendientes</span>
+                                    <div class="dash-icon-box variant-yellow">
+                                        <i class="bi bi-clock"></i>
+                                    </div>
                                 </div>
+                                <div class="dash-kpi-value">$ ${formatMoney(totalPendiente).replace('$ ', '')}</div>
                             </div>
                         </div>
                     </div>
 
                     <!-- DATA TABLE CARD -->
-                    <div class="card border-0" style="box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.03), 0px 1px 3px rgba(0, 0, 0, 0.05); border-radius: 8px;">
+                    <div class="dash-table-container mb-4">
                         
                         <!-- FILTERS -->
                         <div class="card-header bg-white border-bottom p-3 d-flex gap-3 align-items-center" style="border-radius: 8px 8px 0 0;">
@@ -452,7 +458,7 @@ export const CotizacionesModule = {
                     ${actionsHtml}
                 </div>
 
-                <div class="card border-0 mb-4" style="box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.03), 0px 1px 3px rgba(0, 0, 0, 0.05); border-radius: 8px;">
+                <div class="dash-table-container mb-4" style="overflow: visible;">
                     <div class="card-body p-3 p-md-5">
                         <!-- HEADER DOCUMENTO -->
                         <div class="row mb-5 align-items-center">
