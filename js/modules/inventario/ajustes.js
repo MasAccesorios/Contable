@@ -176,10 +176,11 @@ export const AjustesInventarioModule = {
                                 <table class="table table-borderless align-middle mb-0" id="ajustes-table">
                                     <thead class="bg-light" style="border-bottom: 1px solid var(--border-color);">
                                         <tr style="color: var(--text-muted); font-size: 13px; font-weight: 500;">
-                                            <th class="ps-4 py-3" style="width: 35%;">Ítem</th>
-                                            <th class="py-3 text-center" style="width: 15%;">Stock Actual</th>
+                                            <th class="ps-4 py-3" style="width: 30%;">Ítem</th>
+                                            <th class="py-3 text-center" style="width: 10%;">Stock Actual</th>
+                                            <th class="py-3 text-center" style="width: 10%;">Saldo Resultante</th>
                                             <th class="py-3" style="width: 20%;">Tipo Ajuste</th>
-                                            <th class="py-3" style="width: 15%;">Cantidad</th>
+                                            <th class="py-3" style="width: 10%;">Cantidad</th>
                                             <th class="py-3" style="width: 15%;">Costo Uni.</th>
                                             ${!isViewOnly ? '<th class="pe-4 py-3 text-center" style="width: 5%;"></th>' : ''}
                                         </tr>
@@ -227,6 +228,9 @@ export const AjustesInventarioModule = {
                     </td>
                     <td class="py-3 text-center">
                         <span class="badge bg-secondary bg-opacity-10 text-secondary stock-actual-lbl" style="font-size: 13px;">--</span>
+                    </td>
+                    <td class="py-3 text-center">
+                        <span class="badge bg-info bg-opacity-10 text-info saldo-resultante-lbl" style="font-size: 13px;">--</span>
                     </td>
                     <td class="py-3">
                         <select class="form-select form-select-sm select-tipo-ajuste text-muted bg-light border-0" ${isViewOnly ? 'disabled' : ''}>
@@ -283,20 +287,37 @@ export const AjustesInventarioModule = {
                                 // 2. Consultar Stock Real
                                 stockLbl.innerHTML = `<span class="spinner-border spinner-border-sm" role="status"></span>`;
                                 try {
-                                    const { data } = await supabase.from('lotes_fifo').select('cantidad_actual').eq('producto_id', p.id);
-                                    const sum = data ? data.reduce((acc, l) => acc + l.cantidad_actual, 0) : 0;
-                                    stockLbl.textContent = sum;
+                                    const { data } = await supabase.from('lotes_fifo').select('cantidad_actual, costo_unitario').eq('producto_id', p.id);
+                                    let stockTotal = 0;
+                                    let costoLotes = 0;
+                                    let stockPositivo = 0;
+                                    if (data) {
+                                        data.forEach(l => {
+                                            stockTotal += l.cantidad_actual;
+                                            if (l.cantidad_actual > 0) {
+                                                stockPositivo += l.cantidad_actual;
+                                                costoLotes += (l.cantidad_actual * Number(l.costo_unitario || 0));
+                                            }
+                                        });
+                                    }
+                                    stockLbl.textContent = stockTotal;
+                                    const costoPromedio = stockPositivo > 0 ? (costoLotes / stockPositivo) : (p.costo_base || p.costoBase || p.precio_compra || p.precioCompra || 0);
+                                    tr.dataset.costoPromedio = costoPromedio;
                                 } catch(e) {
                                     stockLbl.textContent = '?';
                                 }
 
                                 // 3. Sugerir costo automáticamente si el tipo es Incremento
                                 if (tipoSelect.value === 'incremento') {
-                                    const precioSugerido = p.precio_compra || p.precioCompra;
+                                    const precioSugerido = tr.dataset.costoPromedio;
                                     if (precioSugerido && !costoInput.value) {
-                                        costoInput.value = `$ ${Number(precioSugerido).toLocaleString('es-CO')}`;
+                                        costoInput.value = `$ ${Number(precioSugerido).toLocaleString('es-CO', {maximumFractionDigits:2})}`;
                                     }
                                 }
+                                
+                                // Detonar actualización del saldo
+                                const inpCantidad = tr.querySelector('.input-cantidad');
+                                if (inpCantidad) inpCantidad.dispatchEvent(new Event('input'));
                             }
                         });
                     });
@@ -304,34 +325,72 @@ export const AjustesInventarioModule = {
                     // Carga inicial de stock si el producto ya venía seleccionado
                     if (inputProdId.value && inputProdId.value !== '') {
                         stockLbl.innerHTML = `<span class="spinner-border spinner-border-sm" role="status"></span>`;
-                        supabase.from('lotes_fifo').select('cantidad_actual').eq('producto_id', inputProdId.value).then(({data}) => {
-                            const sum = data ? data.reduce((acc, l) => acc + l.cantidad_actual, 0) : 0;
-                            stockLbl.textContent = sum;
+                        supabase.from('lotes_fifo').select('cantidad_actual, costo_unitario').eq('producto_id', inputProdId.value).then(({data}) => {
+                            let stockTotal = 0;
+                            let costoLotes = 0;
+                            let stockPositivo = 0;
+                            if (data) {
+                                data.forEach(l => {
+                                    stockTotal += l.cantidad_actual;
+                                    if (l.cantidad_actual > 0) {
+                                        stockPositivo += l.cantidad_actual;
+                                        costoLotes += (l.cantidad_actual * Number(l.costo_unitario || 0));
+                                    }
+                                });
+                            }
+                            stockLbl.textContent = stockTotal;
+                            const prod = productos.find(p => String(p.id) === String(inputProdId.value));
+                            const costoPromedio = stockPositivo > 0 ? (costoLotes / stockPositivo) : (prod ? (prod.costo_base || prod.costoBase || prod.precio_compra || prod.precioCompra || 0) : 0);
+                            tr.dataset.costoPromedio = costoPromedio;
+                            const inpCantidad = tr.querySelector('.input-cantidad');
+                            if (inpCantidad) inpCantidad.dispatchEvent(new Event('input'));
                         });
                     }
 
-                    
+                    // Calculadora de Saldo Resultante
+                    const calcSaldo = () => {
+                        const stockActual = parseFloat(stockLbl.textContent);
+                        const qty = parseFloat(tr.querySelector('.input-cantidad').value) || 0;
+                        const tipo = tipoSelect.value;
+                        const saldoLbl = tr.querySelector('.saldo-resultante-lbl');
+                        
+                        if (!saldoLbl) return;
+                        
+                        if (!tipo || isNaN(stockActual)) {
+                            saldoLbl.textContent = '--';
+                            saldoLbl.className = 'badge bg-info bg-opacity-10 text-info saldo-resultante-lbl';
+                            return;
+                        }
+                        
+                        let nuevoSaldo = stockActual;
+                        if (tipo === 'incremento') nuevoSaldo += qty;
+                        else if (tipo === 'disminucion') nuevoSaldo -= qty;
+                        
+                        saldoLbl.textContent = nuevoSaldo;
+                        if (nuevoSaldo < 0) {
+                            saldoLbl.className = 'badge bg-danger bg-opacity-10 text-danger saldo-resultante-lbl';
+                        } else {
+                            saldoLbl.className = 'badge bg-info bg-opacity-10 text-info saldo-resultante-lbl';
+                        }
+                    };
+
+                    const inpCantidad = tr.querySelector('.input-cantidad');
+                    if (inpCantidad) inpCantidad.addEventListener('input', calcSaldo);
 
                     tipoSelect.addEventListener('change', () => {
                         if (tipoSelect.value === 'incremento') {
                             costoInput.disabled = false;
                             costoInput.placeholder = "Costo Promedio";
                             // Try to suggest a cost
-                            const pId = inputProdId.value;
-                            if (pId) {
-                                const prod = productos.find(p => String(p.id) === String(pId));
-                                if (prod && (prod.precio_compra || prod.precioCompra)) {
-                                    if (!costoInput.value) costoInput.value = prod.precio_compra || prod.precioCompra;
-                                    // reformat
-                                    let val = String(costoInput.value).replace(/[^0-9.-]+/g,"");
-                                    if(val) costoInput.value = `$ ${Number(val).toLocaleString('es-CO')}`;
-                                }
+                            if (!costoInput.value && tr.dataset.costoPromedio) {
+                                costoInput.value = `$ ${Number(tr.dataset.costoPromedio).toLocaleString('es-CO', {maximumFractionDigits:2})}`;
                             }
                         } else {
                             costoInput.disabled = true;
                             costoInput.value = '';
                             costoInput.placeholder = "Cálculo FIFO";
                         }
+                        calcSaldo();
                     });
                     
                     // Formatting for Costo
