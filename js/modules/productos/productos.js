@@ -145,10 +145,27 @@ export const ProductosModule = {
         } else {
             await this.renderTabla(element);
         }
+        await this.actualizarKPIs(element);
+    },
+
+    async actualizarKPIs(element) {
+        const kpiTotal = element.querySelector('#inv-kpi-total');
+        const kpiActivos = element.querySelector('#inv-kpi-activos');
+        const kpiAgotados = element.querySelector('#inv-kpi-agotados');
+        if(!kpiTotal || !kpiActivos || !kpiAgotados) return;
+
+        try {
+            const allProducts = (await DB.getAll('productos')).filter(p => p.estado !== 'inactivo' && p.estado !== 'inactive');
+            kpiTotal.textContent = allProducts.length;
+            kpiActivos.textContent = allProducts.length;
+            kpiAgotados.textContent = allProducts.filter(p => (parseFloat(p.stock) || 0) <= 0).length;
+        } catch (e) {
+            console.error("Error al actualizar KPIs de inventario:", e);
+        }
     },
 
     async renderTabla(element) {
-        const gridCard = element.querySelector('.module-container > .card.border-0');
+        const gridCard = element.querySelector('.dash-table-container');
         if (gridCard) gridCard.classList.remove('d-none');
 
         const viewContainer = element.querySelector('#productos-view-container');
@@ -175,19 +192,7 @@ export const ProductosModule = {
             if (data) lotes = data.map(l => DB._mapToFrontend('lotes_fifo', l));
         }
 
-        // Render KPI values
-        const allProducts = (await DB.getAll('productos')).filter(p => p.estado !== 'inactivo' && p.estado !== 'inactive');
-        const kpiTotal = element.querySelector('#inv-kpi-total');
-        if(kpiTotal) kpiTotal.textContent = totalItems;
-        
-        const kpiActivos = element.querySelector('#inv-kpi-activos');
-        if(kpiActivos) kpiActivos.textContent = allProducts.length;
-
-        const kpiAgotados = element.querySelector('#inv-kpi-agotados');
-        if(kpiAgotados) {
-            // Un producto está agotado si stock + lotes es <= 0. Para el piloto lo simplificamos usando p.stock si no tenemos todos los lotes cacheados.
-            kpiAgotados.textContent = allProducts.filter(p => (parseFloat(p.stock) || 0) <= 0).length;
-        }
+        await this.actualizarKPIs(element);
 
         if (productos.length === 0) {
             container.innerHTML = `<tr><td colspan="6" class="text-center py-5 text-muted">No hay productos registrados en el inventario.</td></tr>`;
@@ -422,6 +427,9 @@ export const ProductosModule = {
     },
 
     async renderDetalle(element, id) {
+        const gridCard = element.querySelector('.dash-table-container');
+        if (gridCard) gridCard.classList.add('d-none');
+
         const container = element.querySelector('#productos-view-container');
         if (!container) return;
 
@@ -451,8 +459,6 @@ export const ProductosModule = {
             `;
         });
 
-        const gridCard = element.querySelector('.module-container > .card.border-0');
-        if (gridCard) gridCard.classList.add('d-none');
 
         let facturasAsociadas = [];
         let contactosMap = {};
