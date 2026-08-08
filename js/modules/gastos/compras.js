@@ -200,12 +200,9 @@ export const ComprasModule = {
                             <button id="btn-export-list" class="btn btn-light bg-white border" style="font-weight: var(--weight-medium); font-size: 14px; color: var(--text-body);">
                                 <i class="bi bi-download me-1"></i> Exportar
                             </button>
-                            <div class="btn-group">
-                                <button id="btn-nueva-factura" class="btn text-white" style="background-color: #2cbfb7; font-weight: var(--weight-medium); font-size: 14px;">
-                                    <i class="bi bi-plus-lg me-1"></i> Nueva factura
-                                </button>
-                                <button class="btn text-white px-2 dropdown-toggle dropdown-toggle-split" style="background-color: #2cbfb7; border-left: 1px solid rgba(255,255,255,0.2);"></button>
-                            </div>
+                            <button id="btn-nueva-factura" class="btn text-white" style="background-color: #2cbfb7; font-weight: var(--weight-medium); font-size: 14px;">
+                                <i class="bi bi-plus-lg me-1"></i> Nueva factura
+                            </button>
                         </div>
                     </div>
 

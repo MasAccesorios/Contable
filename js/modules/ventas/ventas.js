@@ -139,12 +139,9 @@ export const FacturasModule = {
                             <button id="btn-export-list" class="btn btn-light bg-white border" style="font-weight: var(--weight-medium); font-size: 14px; color: var(--text-body);">
                                 <i class="bi bi-download me-1"></i> Exportar
                             </button>
-                            <div class="btn-group">
-                                <button id="btn-nueva-factura" class="btn btn-primary-action">
-                                    <i class="bi bi-plus-lg me-1"></i> Nueva factura
-                                </button>
-                                <button class="btn btn-primary-action px-2 dropdown-toggle dropdown-toggle-split" style="border-left: 1px solid rgba(255,255,255,0.2);"></button>
-                            </div>
+                            <button id="btn-nueva-factura" class="btn btn-primary-action">
+                                <i class="bi bi-plus-lg me-1"></i> Nueva factura
+                            </button>
                         </div>
                     </div>
 
