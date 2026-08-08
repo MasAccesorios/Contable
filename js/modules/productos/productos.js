@@ -544,7 +544,7 @@ export const ProductosModule = {
                                 <i class="bi bi-receipt me-2 text-muted"></i>Facturas de Venta que incluyen este ítem
                             </h5>
                         </div>
-                        ${renderTablaFacturas(facturasAsociadas, contactosMap)}
+                        ${renderTablaFacturas(facturasAsociadas, contactosMap, 'fecha', 'desc', { hash: `#/inventario/items/ver/${id}`, label: `Volver al Producto (${producto.nombre})` })}
                     </div>
                 </div>` : ''}
             </div>

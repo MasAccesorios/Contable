@@ -1,4 +1,4 @@
-export function renderTablaFacturas(facturas, contactosMap, sortColumn = 'fecha', sortDirection = 'desc') {
+export function renderTablaFacturas(facturas, contactosMap, sortColumn = 'fecha', sortDirection = 'desc', returnInfo = null) {
     const formatMoney = (val) => '$ ' + parseFloat(val || 0).toLocaleString('es-CO', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 
     const tbodyHtml = facturas.length > 0 ? facturas.map(c => {
@@ -32,8 +32,12 @@ export function renderTablaFacturas(facturas, contactosMap, sortColumn = 'fecha'
         
         const rowOpacity = (estado === 'anulada' || estado === 'voided' || estado === 'void') ? '0.5' : '1';
         
+        const onclickAction = returnInfo 
+            ? `if(!event.target.closest('button')) { sessionStorage.setItem('origenVolver', JSON.stringify({hash: '${returnInfo.hash}', label: '${returnInfo.label}'})); window.location.hash = '#/ingresos/facturas/ver/${c.id}'; }`
+            : `if(!event.target.closest('button')) window.location.hash = '#/ingresos/facturas/ver/${c.id}'`;
+            
         return `
-            <tr style="cursor: pointer; border-bottom: 1px solid var(--border-color); font-size: 13px; color: var(--text-body); opacity: ${rowOpacity}; transition: opacity 0.2s;" onclick="if(!event.target.closest('button')) window.location.hash = '#/ingresos/facturas/ver/${c.id}'">
+            <tr style="cursor: pointer; border-bottom: 1px solid var(--border-color); font-size: 13px; color: var(--text-body); opacity: ${rowOpacity}; transition: opacity 0.2s;" onclick="${onclickAction}">
                 <td class=\"py-2\">${numDisplay}</td>
                 <td class=\"py-2\">${c.fecha || ''}</td>
                 <td class=\"py-2 ${isVencida && c.saldoPendiente > 0 ? 'text-danger fw-semibold' : ''}\">${c.vencimiento || ''}</td>
