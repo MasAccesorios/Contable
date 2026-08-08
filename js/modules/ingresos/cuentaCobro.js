@@ -344,7 +344,7 @@ export const CuentaCobroModule = {
         const tbody = element.querySelector('#cc-items-table tbody');
         
         const getProductsFn = async () => {
-            const { data } = await supabase.from('productos').select('*');
+            const { data } = await supabase.from('productos').select('*').limit(2000);
             return data.map(p => ({
                 ...p,
                 id: p.id,

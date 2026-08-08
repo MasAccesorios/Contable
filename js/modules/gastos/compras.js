@@ -545,8 +545,8 @@ export const ComprasModule = {
                     const id = e.currentTarget.dataset.id;
                     const doc = await DB.get('facturas', id);
                     if (doc) {
-                        const { data: cList } = await supabase.from('contactos').select('*');
-                        const { data: pList } = await supabase.from('productos').select('*');
+                        const { data: cList } = await supabase.from('contactos').select('*').limit(2000);
+                        const { data: pList } = await supabase.from('productos').select('*').limit(2000);
                         PrintManager.printDocument(doc, 'Factura de Compra', cList, pList);
                     }
                 });

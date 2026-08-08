@@ -4,6 +4,7 @@ import DB, { getLocalDate } from '../../core/db.js';
 import { supabase } from '../../core/supabase.js';
 import { renderTablaFacturas } from '../../shared/tablaFacturas.js';
 import { calcularEstadoFactura } from '../../shared/carteraUtils.js';
+import { escapeHtml } from '../../shared/formatters.js';
 
 export const ProductosModule = {
     currentPage: 1,
@@ -166,7 +167,7 @@ export const ProductosModule = {
             html += `
                 <tr data-id="${p.id}" style="cursor: pointer; border-bottom: 1px solid var(--border-color); font-size: 13px; color: var(--text-body);" onclick="if(!event.target.closest('button')) window.location.hash = '#/inventario/items/ver/${p.id}'">
                     <td class=\"py-2 ps-4 td-sku\" style="color: var(--text-main); font-weight: var(--weight-medium);">${p.sku}</td>
-                    <td class=\"py-2 text-truncate td-nombre\" style="max-width: 300px;">${p.nombre}</td>
+                    <td class=\"py-2 text-truncate td-nombre\" style="max-width: 300px;">${escapeHtml(p.nombre)}</td>
                     <td class=\"py-2 text-end\">$${(p.precioVenta || 0).toLocaleString('es-CO', {minimumFractionDigits: 2})}</td>
                     <td class=\"py-2 text-end\">
                         <span style="${isLowStock ? 'color: #ef4444; background-color: #fee2e2;' : 'color: #15803d; background-color: #dcfce7;'} padding: 4px 12px; border-radius: 12px; font-size: 11px; font-weight: var(--weight-medium);" ${isLowStock ? 'title="¡Alerta: Stock por debajo del mínimo!"' : ''}>
@@ -460,7 +461,7 @@ export const ProductosModule = {
                                         ${producto.sku}
                                     </span>
                                 </li>
-                                <li class="mb-2"><strong>Descripción:</strong> ${producto.nombre}</li>
+                                <li class="mb-2"><strong>Descripción:</strong> ${escapeHtml(producto.nombre)}</li>
                                 <li class="mb-2"><strong>Precio Venta:</strong> $${producto.precioVenta.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</li>
                                 <li class="mb-2"><strong>Ubicación:</strong> ${producto.ubicacion || 'No asignada'}</li>
                                 <li><strong>Costo Base Fijo:</strong> $${producto.costoBase.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</li>

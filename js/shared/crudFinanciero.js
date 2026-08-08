@@ -2,7 +2,7 @@ import DB, { getLocalDate } from '../core/db.js';
 import { UI } from './combobox.js';
 import { supabase } from '../core/supabase.js';
 import { anularTransaccion } from './transaccionesUtils.js';
-import { applyCurrencyFormatting, parseCurrencyValue } from './formatters.js';
+import { applyCurrencyFormatting, parseCurrencyValue, escapeHtml } from './formatters.js';
 
 export class CrudFinanciero {
     constructor(config) {
@@ -468,7 +468,7 @@ export class CrudFinanciero {
             <tr style="border-bottom: 1px solid #f1f5f9;">
                 <td class="py-1 text-muted" style="white-space: nowrap;">${g.fecha}</td>
                 <td class="py-1" style="white-space: nowrap;"><span class="badge bg-light text-dark border">${g.categoria}</span></td>
-                <td class="py-1" style="white-space: nowrap;">${g.descripcion}</td>
+                <td class="py-1" style="white-space: nowrap;">${escapeHtml(g.descripcion)}</td>
                 <td class="py-1 text-muted" style="white-space: nowrap;">${proveedorNombre}</td>
                 <td class="py-1 text-muted" style="white-space: nowrap;">${cuentaNombre}</td>
                 <td class="py-1 text-muted" style="white-space: nowrap;">${g.referencia || '-'}</td>

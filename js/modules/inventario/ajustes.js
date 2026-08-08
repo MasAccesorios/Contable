@@ -2,6 +2,7 @@ import DB, { getLocalDate } from '../../core/db.js';
 import { supabase } from '../../core/supabase.js';
 import { CoreActions, ItemEngine } from '../../shared/crud.js';
 import { InventarioUtils } from '../../shared/inventarioUtils.js';
+import { escapeHtml } from '../../shared/formatters.js';
 
 export const AjustesInventarioModule = {
     async init(element) {
@@ -161,7 +162,7 @@ export const AjustesInventarioModule = {
                                 </div>
                                 <div class="col-md-8">
                                     <label class="form-label text-muted" style="font-size: 13px; font-weight: 500;">Observaciones</label>
-                                    <textarea class="form-control" id="ajuste-observaciones" rows="1" placeholder="Ej. Inventario dañado por filtración de agua" ${isViewOnly ? 'disabled' : ''}>${ajuste.observaciones}</textarea>
+                                    <textarea class="form-control" id="ajuste-observaciones" rows="1" placeholder="Ej. Inventario dañado por filtración de agua" ${isViewOnly ? 'disabled' : ''}>${escapeHtml(ajuste.observaciones)}</textarea>
                                 </div>
                             </div>
                         </div>

@@ -7,6 +7,7 @@ import { AbonoModal } from '../../shared/abonoModal.js';
 import { calcularEstadoFactura } from '../../shared/carteraUtils.js';
 import { agruparTransaccionesPorPago } from '../../shared/transaccionesUtils.js';
 import { mostrarDetalleTransaccion } from '../../shared/transaccionModal.js';
+import { escapeHtml } from '../../shared/formatters.js';
 
 export const ContactosModule = {
     state: {
@@ -598,7 +599,7 @@ export const ContactosModule = {
                     </button>
                 </div>
                 <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
-                    <h3 class="h5 m-0 fw-bold">${contacto.nombre}</h3>
+                    <h3 class="h5 m-0 fw-bold">${escapeHtml(contacto.nombre)}</h3>
                     <button class="btn btn-sm btn-light btn-editar-contacto-detalle" data-id="${contacto.id}">
                         <i class="bi bi-pencil me-1"></i>Editar
                     </button>

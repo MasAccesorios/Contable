@@ -48,3 +48,19 @@ export function applyCurrencyFormatting(inputEl) {
         formatCurrencyInput({ target: inputEl });
     }
 }
+
+/**
+ * Escapa caracteres HTML especiales para prevenir XSS
+ * al insertar texto libre en innerHTML.
+ * @param {string|null|undefined} str
+ * @returns {string}
+ */
+export function escapeHtml(str) {
+    if (str == null) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
