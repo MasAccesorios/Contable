@@ -479,7 +479,7 @@ export const ItemEngine = {
                 <input type="text" class="form-control form-control-sm text-muted border-0 bg-light input-prod-search mb-1" 
                        placeholder="Escriba código o nombre..." autocomplete="off" value="${initialText}" ${isViewOnly ? 'disabled' : ''}>
                 <input type="text" class="form-control form-control-sm border-0 bg-light mt-1 input-prod-desc" 
-                       placeholder="Ej. iPhone 17 Pro Max" value="${detalle.descripcion_personalizada || ''}" ${isViewOnly ? 'disabled' : ''}>
+                       placeholder="" value="${detalle.descripcion_personalizada || ''}" ${isViewOnly ? 'disabled' : ''}>
                 <div class="search-results-dropdown position-absolute w-100 bg-white shadow-sm" 
                      style="display: none; z-index: 1050; max-height: 250px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 4px; top: 100%;">
                 </div>
