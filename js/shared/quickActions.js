@@ -38,11 +38,11 @@ export const QuickActions = {
             dropdown.innerHTML = `
                 <a href="#/ingresos/facturas/nueva" class="dropdown-item py-2 px-3 d-flex align-items-center gap-2 qa-link">
                     <i class="bi bi-receipt text-primary"></i>
-                    <span style="font-size: 14px; font-weight: 500;">Facturas</span>
+                    <span style="font-size: 14px; font-weight: 500;">Factura</span>
                 </a>
                 <a href="#/ingresos/cotizaciones/nueva" class="dropdown-item py-2 px-3 d-flex align-items-center gap-2 qa-link">
                     <i class="bi bi-file-earmark-text text-primary"></i>
-                    <span style="font-size: 14px; font-weight: 500;">Cotizaciones</span>
+                    <span style="font-size: 14px; font-weight: 500;">Cotización</span>
                 </a>
                 <a href="#/contactos/nueva" class="dropdown-item py-2 px-3 d-flex align-items-center gap-2 qa-link">
                     <i class="bi bi-person-plus text-primary"></i>
