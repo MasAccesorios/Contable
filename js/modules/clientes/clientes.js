@@ -55,7 +55,7 @@ export const ContactosModule = {
                 </div>
 
                 <!-- KPI CARDS CONTACTOS -->
-                <div class="row g-3 mb-4">
+                <div class="row g-3 mb-4" id="contactos-kpi-row">
                     <div class="col-12 col-sm-6 col-lg-4">
                         <div class="dash-kpi-card d-flex flex-column justify-content-between" style="min-height: 90px;">
                             <div class="d-flex justify-content-between align-items-start">
@@ -538,6 +538,8 @@ export const ContactosModule = {
 
         const tabs = this.element.querySelector('#contactos-tabs');
         if (tabs) tabs.style.display = 'none';
+        const kpiRow = this.element.querySelector('#contactos-kpi-row');
+        if (kpiRow) kpiRow.style.display = 'none';
 
         const contacto = await DB.get('contactos', id);
         if (!contacto) return;
