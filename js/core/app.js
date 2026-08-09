@@ -70,6 +70,14 @@ async function router() {
 
     GlobalSearch.clear();
 
+    const hayModalVisible = !!document.querySelector('.modal.show');
+    if (!hayModalVisible) {
+        document.querySelectorAll('.modal-backdrop').forEach(b => b.remove());
+        document.body.classList.remove('modal-open');
+        document.body.style.removeProperty('overflow');
+        document.body.style.removeProperty('padding-right');
+    }
+
     const hash = window.location.hash.substring(2) || 'inicio';
     const [routePath, queryString] = hash.split('?');
     const appEl = document.getElementById('view-viewport');

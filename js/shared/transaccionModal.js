@@ -188,8 +188,12 @@ export async function mostrarDetalleTransaccion(t, onSuccess) {
                 }
             }
 
+            document.activeElement?.blur();
+            const modalEl = document.getElementById('modalDetalleTransaccion');
+            modalEl.addEventListener('hidden.bs.modal', () => {
+                if (onSuccess) onSuccess();
+            }, { once: true });
             modalInstance.hide();
-            if (onSuccess) onSuccess();
         } catch (err) {
             alert('Error al guardar: ' + (err?.message || JSON.stringify(err)));
         }

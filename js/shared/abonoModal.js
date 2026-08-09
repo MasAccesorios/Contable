@@ -199,12 +199,15 @@ export const AbonoModal = {
                 
                 await DB.save('transacciones', transaccion);
                 
+                document.activeElement?.blur();
+                const modalEl = document.getElementById('modalAbonoShared');
+                modalEl.addEventListener('hidden.bs.modal', () => {
+                    CoreActions.showWarningModal("Abono registrado exitosamente.");
+                    if (this.onSuccessCallback) {
+                        this.onSuccessCallback();
+                    }
+                }, { once: true });
                 this.modalInstance.hide();
-                CoreActions.showWarningModal("Abono registrado exitosamente.");
-                
-                if (this.onSuccessCallback) {
-                    this.onSuccessCallback();
-                }
             }
         });
         
