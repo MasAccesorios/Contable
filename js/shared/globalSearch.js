@@ -50,7 +50,7 @@ export const GlobalSearch = {
                 .or(`nombre.ilike.%${query}%,identificacion.ilike.%${query}%`)
                 .limit(5)
                 .then(res => ({ type: 'contactos', data: res.data || [] }))
-                .catch(() => ({ type: 'contactos', data: [] }))
+                .catch(err => { console.error('[GlobalSearch] Error buscando contactos:', err); return { type: 'contactos', data: [] }; })
         );
 
         // 2. Productos (Parcial)
@@ -60,7 +60,7 @@ export const GlobalSearch = {
                 .or(`nombre.ilike.%${query}%,sku.ilike.%${query}%`)
                 .limit(5)
                 .then(res => ({ type: 'productos', data: res.data || [] }))
-                .catch(() => ({ type: 'productos', data: [] }))
+                .catch(err => { console.error('[GlobalSearch] Error buscando productos:', err); return { type: 'productos', data: [] }; })
         );
 
         // 3. Facturas (Exacta)
@@ -71,7 +71,7 @@ export const GlobalSearch = {
                     .eq('numero', parseInt(query, 10))
                     .limit(5)
                     .then(res => ({ type: 'facturas', data: res.data || [] }))
-                    .catch(() => ({ type: 'facturas', data: [] }))
+                    .catch(err => { console.error('[GlobalSearch] Error buscando facturas:', err); return { type: 'facturas', data: [] }; })
             );
             
             // 4. Cotizaciones (Exacta)
@@ -81,7 +81,7 @@ export const GlobalSearch = {
                     .eq('numero', parseInt(query, 10))
                     .limit(5)
                     .then(res => ({ type: 'cotizaciones', data: res.data || [] }))
-                    .catch(() => ({ type: 'cotizaciones', data: [] }))
+                    .catch(err => { console.error('[GlobalSearch] Error buscando cotizaciones:', err); return { type: 'cotizaciones', data: [] }; })
             );
         }
 
