@@ -182,7 +182,7 @@ export const GlobalSearch = {
                     case 'contactos':
                         title = 'Contactos';
                         itemsHtml = group.data.map(item => `
-                            <a href="#/contactos/ver/${item.id}" class="dropdown-item py-2 gs-result-link px-3 text-wrap" style="white-space: normal;">
+                            <a href="#/contactos/ver/${item.id}" class="dropdown-item py-2 gs-result-link px-3 text-wrap" style="white-space: normal;" data-registrar="${escapeHtml(item.nombre)}">
                                 <div class="fw-medium text-dark" style="font-size: 13px;">${item.nombre}</div>
                                 <div class="text-muted" style="font-size: 11px;">NIT: ${item.identificacion || 'N/A'}</div>
                             </a>
@@ -191,7 +191,7 @@ export const GlobalSearch = {
                     case 'productos':
                         title = 'Productos';
                         itemsHtml = group.data.map(item => `
-                            <a href="#/inventario/items/ver/${item.id}" class="dropdown-item py-2 gs-result-link px-3 text-wrap" style="white-space: normal;">
+                            <a href="#/inventario/items/ver/${item.id}" class="dropdown-item py-2 gs-result-link px-3 text-wrap" style="white-space: normal;" data-registrar="${escapeHtml(item.nombre)}">
                                 <div class="fw-medium text-dark" style="font-size: 13px;">${item.nombre}</div>
                                 <div class="text-muted" style="font-size: 11px;">SKU: ${item.sku || 'N/A'}</div>
                             </a>
@@ -203,9 +203,10 @@ export const GlobalSearch = {
                             const esCompra = item.tipo === 'compra';
                             const hash = esCompra ? `#/gastos/proveedores/ver/${item.id}` : `#/ingresos/facturas/ver/${item.id}`;
                             const badge = esCompra ? 'Compra' : 'Venta';
+                            const label = `Factura de ${badge} #${item.numero}`;
                             return `
-                                <a href="${hash}" class="dropdown-item py-2 gs-result-link px-3 text-wrap" style="white-space: normal;">
-                                    <div class="fw-medium text-dark" style="font-size: 13px;">Factura de ${badge} #${item.numero}</div>
+                                <a href="${hash}" class="dropdown-item py-2 gs-result-link px-3 text-wrap" style="white-space: normal;" data-registrar="${escapeHtml(label)}">
+                                    <div class="fw-medium text-dark" style="font-size: 13px;">${label}</div>
                                     <div class="text-muted" style="font-size: 11px;">${item.contactos?.nombre || 'Sin cliente'} - $${Number(item.total).toLocaleString()}</div>
                                 </a>
                             `;
@@ -213,12 +214,15 @@ export const GlobalSearch = {
                         break;
                     case 'cotizaciones':
                         title = 'Cotizaciones';
-                        itemsHtml = group.data.map(item => `
-                            <a href="#/ingresos/cotizaciones/ver/${item.id}" class="dropdown-item py-2 gs-result-link px-3 text-wrap" style="white-space: normal;">
-                                <div class="fw-medium text-dark" style="font-size: 13px;">Cotización #${item.numero}</div>
+                        itemsHtml = group.data.map(item => {
+                            const label = `Cotización #${item.numero}`;
+                            return `
+                            <a href="#/ingresos/cotizaciones/ver/${item.id}" class="dropdown-item py-2 gs-result-link px-3 text-wrap" style="white-space: normal;" data-registrar="${escapeHtml(label)}">
+                                <div class="fw-medium text-dark" style="font-size: 13px;">${label}</div>
                                 <div class="text-muted" style="font-size: 11px;">${item.contactos?.nombre || 'Sin cliente'} - $${Number(item.total).toLocaleString()}</div>
                             </a>
-                        `).join('');
+                        `;
+                        }).join('');
                         break;
                 }
 
@@ -241,7 +245,7 @@ export const GlobalSearch = {
         const links = document.querySelectorAll('.gs-result-link');
         links.forEach(l => {
             l.addEventListener('click', () => {
-                this.registrarBusquedaExitosa(input.value);
+                this.registrarBusquedaExitosa(l.dataset.registrar || input.value);
                 this.closeDropdown();
                 input.value = '';
             });
