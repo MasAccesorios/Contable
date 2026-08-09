@@ -80,6 +80,16 @@ export const GlobalSearch = {
         }
     },
 
+    eliminarFrecuente(query) {
+        const frecuentes = this.getFrecuentes();
+        delete frecuentes[query];
+        localStorage.setItem(FREQ_STORAGE_KEY, JSON.stringify(frecuentes));
+    },
+
+    limpiarFrecuentes() {
+        localStorage.removeItem(FREQ_STORAGE_KEY);
+    },
+
     renderFrecuentes(input) {
         const frecuentes = this.getFrecuentes();
         const top = Object.entries(frecuentes)
@@ -92,15 +102,21 @@ export const GlobalSearch = {
         }
 
         const itemsHtml = top.map(([query]) => `
-            <a href="javascript:void(0)" class="dropdown-item py-2 gs-frecuente-link px-3 d-flex align-items-center gap-2" data-query="${escapeHtml(query)}">
-                <i class="bi bi-clock-history text-muted" style="font-size: 12px;"></i>
-                <span style="font-size: 13px;">${escapeHtml(query)}</span>
-            </a>
+            <div class="dropdown-item py-2 gs-frecuente-item px-3 d-flex align-items-center justify-content-between gap-2">
+                <a href="javascript:void(0)" class="gs-frecuente-link flex-grow-1 d-flex align-items-center gap-2 text-decoration-none text-dark" data-query="${escapeHtml(query)}" style="min-width: 0;">
+                    <i class="bi bi-clock-history text-muted" style="font-size: 12px;"></i>
+                    <span style="font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(query)}</span>
+                </a>
+                <button type="button" class="btn btn-sm btn-link text-muted p-0 gs-frecuente-borrar" data-query="${escapeHtml(query)}" title="Quitar de frecuentes" style="line-height: 1;">
+                    <i class="bi bi-x-lg" style="font-size: 11px;"></i>
+                </button>
+            </div>
         `).join('');
 
         const html = `
-            <div class="px-3 py-1 bg-light border-bottom" style="margin-top: -1px;">
+            <div class="px-3 py-1 bg-light border-bottom d-flex justify-content-between align-items-center" style="margin-top: -1px;">
                 <small class="fw-bold text-muted" style="font-size: 10px; text-transform: uppercase;">Búsquedas frecuentes</small>
+                <a href="javascript:void(0)" class="gs-frecuente-limpiar-todo text-muted text-decoration-none" style="font-size: 10px;">Borrar historial</a>
             </div>
             ${itemsHtml}
         `;
@@ -114,6 +130,23 @@ export const GlobalSearch = {
                 this.performSearch(query, input);
             });
         });
+
+        document.querySelectorAll('.gs-frecuente-borrar').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.eliminarFrecuente(btn.getAttribute('data-query'));
+                this.renderFrecuentes(input);
+            });
+        });
+
+        const btnLimpiarTodo = document.querySelector('.gs-frecuente-limpiar-todo');
+        if (btnLimpiarTodo) {
+            btnLimpiarTodo.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.limpiarFrecuentes();
+                this.closeDropdown();
+            });
+        }
     },
 
     async performSearch(query, input) {
