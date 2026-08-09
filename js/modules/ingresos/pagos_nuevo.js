@@ -41,10 +41,12 @@ export default {
             });
             if (error) console.error("Error fetching cartera para pagos:", error);
             
-            this.facturasData = (facturasPendientesRPC || []).map(f => ({
-                ...f, 
-                totalAbonado: f.total_pagado 
-            }));
+            this.facturasData = (facturasPendientesRPC || [])
+                .map(f => ({
+                    ...f, 
+                    totalAbonado: f.total_pagado 
+                }))
+                .sort((a, b) => Number(a.numero) - Number(b.numero));
 
             if (this.facturasData.length === 0) {
                 element.innerHTML = `
