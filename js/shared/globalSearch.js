@@ -1,4 +1,9 @@
 import { supabase } from '../core/supabase.js';
+import { escapeHtml } from './formatters.js';
+
+const FREQ_STORAGE_KEY = 'gs_busquedas_frecuentes';
+const MAX_STORED = 30;
+const MAX_SHOWN = 6;
 
 export const GlobalSearch = {
     init() {
@@ -15,12 +20,22 @@ export const GlobalSearch = {
             wrapper.appendChild(input);
         }
 
+        input.addEventListener('focus', () => {
+            if (input.value.trim().length === 0) {
+                this.renderFrecuentes(input);
+            }
+        });
+
         input.addEventListener('input', (e) => {
             const query = e.target.value.trim();
             clearTimeout(debounceTimer);
 
             if (query.length < 2) {
-                this.closeDropdown();
+                if (query.length === 0) {
+                    this.renderFrecuentes(input);
+                } else {
+                    this.closeDropdown();
+                }
                 return;
             }
 
@@ -34,6 +49,70 @@ export const GlobalSearch = {
             if (!e.target.closest('.gs-container')) {
                 this.closeDropdown();
             }
+        });
+    },
+
+    // ─── Búsquedas frecuentes (guardadas en localStorage del navegador) ───────
+
+    getFrecuentes() {
+        try {
+            return JSON.parse(localStorage.getItem(FREQ_STORAGE_KEY)) || {};
+        } catch {
+            return {};
+        }
+    },
+
+    registrarBusquedaExitosa(query) {
+        const key = query.trim().toLowerCase();
+        if (!key) return;
+
+        const frecuentes = this.getFrecuentes();
+        frecuentes[key] = (frecuentes[key] || 0) + 1;
+
+        // Si crece demasiado, conservar solo las más frecuentes
+        const entries = Object.entries(frecuentes);
+        if (entries.length > MAX_STORED) {
+            entries.sort((a, b) => b[1] - a[1]);
+            const recortado = Object.fromEntries(entries.slice(0, MAX_STORED));
+            localStorage.setItem(FREQ_STORAGE_KEY, JSON.stringify(recortado));
+        } else {
+            localStorage.setItem(FREQ_STORAGE_KEY, JSON.stringify(frecuentes));
+        }
+    },
+
+    renderFrecuentes(input) {
+        const frecuentes = this.getFrecuentes();
+        const top = Object.entries(frecuentes)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, MAX_SHOWN);
+
+        if (top.length === 0) {
+            this.closeDropdown();
+            return;
+        }
+
+        const itemsHtml = top.map(([query]) => `
+            <a href="javascript:void(0)" class="dropdown-item py-2 gs-frecuente-link px-3 d-flex align-items-center gap-2" data-query="${escapeHtml(query)}">
+                <i class="bi bi-clock-history text-muted" style="font-size: 12px;"></i>
+                <span style="font-size: 13px;">${escapeHtml(query)}</span>
+            </a>
+        `).join('');
+
+        const html = `
+            <div class="px-3 py-1 bg-light border-bottom" style="margin-top: -1px;">
+                <small class="fw-bold text-muted" style="font-size: 10px; text-transform: uppercase;">Búsquedas frecuentes</small>
+            </div>
+            ${itemsHtml}
+        `;
+
+        this.renderDropdown(input, html);
+
+        document.querySelectorAll('.gs-frecuente-link').forEach(l => {
+            l.addEventListener('click', () => {
+                const query = l.getAttribute('data-query');
+                input.value = query;
+                this.performSearch(query, input);
+            });
         });
     },
 
@@ -162,6 +241,7 @@ export const GlobalSearch = {
         const links = document.querySelectorAll('.gs-result-link');
         links.forEach(l => {
             l.addEventListener('click', () => {
+                this.registrarBusquedaExitosa(input.value);
                 this.closeDropdown();
                 input.value = '';
             });
