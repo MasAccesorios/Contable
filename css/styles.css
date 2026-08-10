@@ -1300,3 +1300,14 @@ html[data-theme^="dark"] .input-group-text {
     color: var(--text-muted) !important;
     border-color: var(--border-color) !important;
 }
+
+/* 7. Texto en fondo oscuro (Fix bg-light + text-dark) */
+html[data-theme^="dark"] .text-dark {
+    color: var(--text-main) !important;
+}
+
+/* 8. Excepciones de documentos imprimibles */
+html[data-theme^="dark"] .print-document-template .text-dark,
+html[data-theme^="dark"] .preview-document-template .text-dark {
+    color: #212529 !important;
+}
