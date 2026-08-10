@@ -1038,6 +1038,13 @@ html[data-theme="dark-blue"] .btn.bg-white {
     border-color: var(--border-color) !important;
 }
 
+html[data-theme="dark-green"] .btn-light,
+html[data-theme="dark-blue"] .btn-light {
+    background-color: var(--surface) !important;
+    color: var(--text-main) !important;
+    border-color: var(--border-color) !important;
+}
+
 /* Botón "Guardar" (Bootstrap .btn-primary genérico, usado en Ventas/Compras/Clientes/Cotizaciones) — solo en temas oscuros */
 html[data-theme="dark-green"] .btn-primary:not(.btn-primary-action),
 html[data-theme="dark-blue"] .btn-primary:not(.btn-primary-action) {
