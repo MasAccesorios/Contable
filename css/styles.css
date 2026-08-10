@@ -1038,6 +1038,13 @@ html[data-theme="dark-blue"] .btn.bg-white {
     border-color: var(--border-color) !important;
 }
 
+/* Botón "Guardar" (Bootstrap .btn-primary genérico, usado en Ventas/Compras/Clientes/Cotizaciones) — solo en temas oscuros */
+html[data-theme="dark-green"] .btn-primary:not(.btn-primary-action),
+html[data-theme="dark-blue"] .btn-primary:not(.btn-primary-action) {
+    background-color: var(--primary) !important;
+    border-color: var(--primary) !important;
+}
+
 
 /* Grilla explícita para formulario de Operativos */
 .form-grid-row-1 {
