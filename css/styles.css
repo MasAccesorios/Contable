@@ -1334,3 +1334,21 @@ html[data-theme^="dark"] .dropdown-content a:hover {
 html[data-theme^="dark"] .dropdown-content a.active {
     color: var(--primary) !important;
 }
+
+/* 10. Buscador general del header y bot¨®n "+" de accesos r¨¢pidos */
+html[data-theme^="dark"] #global-search {
+    background-color: var(--surface) !important;
+    color: var(--text-main) !important;
+    border-color: var(--border-color) !important;
+}
+html[data-theme^="dark"] #global-search::placeholder {
+    color: var(--text-muted) !important;
+}
+html[data-theme^="dark"] .btn-add {
+    background-color: var(--primary) !important;
+    border-color: var(--primary) !important;
+    color: #ffffff !important;
+}
+html[data-theme^="dark"] .btn-add:hover {
+    opacity: 0.85;
+}
