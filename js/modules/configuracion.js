@@ -18,6 +18,53 @@ export const ConfiguracionModule = {
                 
                 <div class="dash-table-container mb-4">
                     <div class="card-header bg-white border-bottom py-3">
+                        <h5 class="mb-0 fw-bold" style="color: #2cbfb7;">Apariencia</h5>
+                    </div>
+                    <div class="card-body p-4">
+                        <p class="text-muted mb-3" style="font-size: 14px;">Elige el tema visual de la aplicación. El cambio se guarda en este navegador.</p>
+                        <div class="row g-3" id="theme-options">
+                            <div class="col-md-4">
+                                <div class="p-3 border rounded theme-option-card" data-theme-value="" style="cursor: pointer;">
+                                    <div class="d-flex gap-1 mb-2">
+                                        <span style="width: 18px; height: 18px; border-radius: 4px; background: #f8fafc; border: 1px solid #e2e8f0;"></span>
+                                        <span style="width: 18px; height: 18px; border-radius: 4px; background: #2dbda8;"></span>
+                                        <span style="width: 18px; height: 18px; border-radius: 4px; background: #ffffff; border: 1px solid #e2e8f0;"></span>
+                                    </div>
+                                    <div class="fw-semibold" style="font-size: 14px; color: var(--text-main);">Actual</div>
+                                    <div class="text-muted" style="font-size: 12px;">Claro, verde turquesa</div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="p-3 border rounded theme-option-card" data-theme-value="dark-green" style="cursor: pointer;">
+                                    <div class="d-flex gap-1 mb-2">
+                                        <span style="width: 18px; height: 18px; border-radius: 4px; background: #141414;"></span>
+                                        <span style="width: 18px; height: 18px; border-radius: 4px; background: #44d949;"></span>
+                                        <span style="width: 18px; height: 18px; border-radius: 4px; background: #1a1a1a;"></span>
+                                    </div>
+                                    <div class="fw-semibold" style="font-size: 14px; color: var(--text-main);">Emerald Dark Ledger</div>
+                                    <div class="text-muted" style="font-size: 12px;">Oscuro, verde neón</div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="p-3 border rounded theme-option-card" data-theme-value="dark-blue" style="cursor: pointer;">
+                                    <div class="d-flex gap-1 mb-2">
+                                        <span style="width: 18px; height: 18px; border-radius: 4px; background: #141414;"></span>
+                                        <span style="width: 18px; height: 18px; border-radius: 4px; background: #0094d9;"></span>
+                                        <span style="width: 18px; height: 18px; border-radius: 4px; background: #1a1a1a;"></span>
+                                    </div>
+                                    <div class="fw-semibold" style="font-size: 14px; color: var(--text-main);">Mezcla Azul Corporativo</div>
+                                    <div class="text-muted" style="font-size: 12px;">Oscuro, azul MAS Accesorios</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-text mt-3">
+                            Nota: este es el primer paso de un cambio de diseño más grande — por ahora solo se verán afectados el menú lateral, la barra superior y algunos fondos. El resto de la app se irá migrando poco a poco.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dash-table-container mb-4">
+                    <div class="card-header bg-white border-bottom py-3">
                         <h5 class="mb-0 fw-bold" style="color: #2cbfb7;">Numeración de documentos</h5>
                     </div>
                     <div class="card-body p-4 text-center" id="config-loader">
@@ -77,7 +124,35 @@ export const ConfiguracionModule = {
         this.btnSaveCotizacion = element.querySelector('#btn-save-cotizacion');
 
         this.bindEvents();
+        this.bindThemeSelector(element);
         await this.loadData();
+    },
+
+    bindThemeSelector(element) {
+        const cards = element.querySelectorAll('.theme-option-card');
+
+        const marcarActivo = () => {
+            cards.forEach(c => {
+                const esActivo = c.dataset.themeValue === (localStorage.getItem('app-theme') || '');
+                c.style.borderColor = esActivo ? 'var(--primary)' : 'var(--border-color)';
+                c.style.boxShadow = esActivo ? '0 0 0 2px var(--primary-light)' : 'none';
+            });
+        };
+        marcarActivo();
+
+        cards.forEach(card => {
+            card.addEventListener('click', () => {
+                const valor = card.dataset.themeValue;
+                if (valor) {
+                    localStorage.setItem('app-theme', valor);
+                    document.documentElement.setAttribute('data-theme', valor);
+                } else {
+                    localStorage.removeItem('app-theme');
+                    document.documentElement.removeAttribute('data-theme');
+                }
+                marcarActivo();
+            });
+        });
     },
 
     bindEvents() {

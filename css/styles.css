@@ -1,10 +1,11 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
 :root {
     --primary: #2dbda8;
     --primary-light: #e6f6f4;
     --dark: #1e293b;
     --bg-main: #f8fafc;
+    --surface: #ffffff;
     --border-color: #e2e8f0;
     --sidebar-width: 250px;
     --navbar-height: 60px;
@@ -12,17 +13,58 @@
     /* Box Shadows (Alegra Style) */
     --shadow-soft: 0px 4px 12px rgba(0, 0, 0, 0.03), 0px 1px 3px rgba(0, 0, 0, 0.05);
 
-    /* Paleta Crom谩tica Suave de Textos (Cero Negro Puro) */
+    /* Paleta cromática suave de textos (cero negro puro) */
     --text-main: #0c1a30;
     --text-body: #4a5568;
     --text-muted: #718096;
     --text-link: #0070f3;
+
+    /* Tipografía */
+    --font-mono: 'JetBrains Mono', monospace;
     
     /* Variables de Grosor Estricto */
     --weight-regular: 400;
     --weight-medium: 500;
     --weight-semibold: 600;
     --weight-bold: 700;
+}
+
+/* ============================================================
+   TEMA: Emerald Dark Ledger (verde neón sobre negro suave)
+   ============================================================ */
+html[data-theme="dark-green"] {
+    --primary: #44d949;
+    --primary-light: rgba(68, 217, 73, 0.14);
+    --dark: #ffffff;
+    --bg-main: #141414;
+    --surface: #1a1a1a;
+    --border-color: #2a2a2a;
+    --shadow-soft: 0px 4px 14px rgba(0, 0, 0, 0.45);
+    --text-main: #ffffff;
+    --text-body: #c9c9c9;
+    --text-muted: #8a8a8a;
+    --text-link: #44d949;
+}
+
+/* ============================================================
+   TEMA: Mezcla Azul Corporativo (mismo estilo, verde -> azul MAS)
+   ============================================================ */
+html[data-theme="dark-blue"] {
+    --primary: #0094d9;
+    --primary-light: rgba(0, 148, 217, 0.14);
+    --dark: #ffffff;
+    --bg-main: #141414;
+    --surface: #1a1a1a;
+    --border-color: #2a2a2a;
+    --shadow-soft: 0px 4px 14px rgba(0, 0, 0, 0.45);
+    --text-main: #ffffff;
+    --text-body: #c9c9c9;
+    --text-muted: #8a8a8a;
+    --text-link: #0094d9;
+}
+
+html, body {
+    transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 * {
@@ -77,7 +119,7 @@ body {
 /* SIDEBAR */
 #sidebar {
     width: var(--sidebar-width);
-    background-color: #fff;
+    background-color: var(--surface);
     border-right: 1px solid var(--border-color);
     display: flex;
     flex-direction: column;
@@ -197,7 +239,7 @@ body {
 /* NAVBAR */
 #navbar {
     height: var(--navbar-height);
-    background-color: #fff;
+    background-color: var(--surface);
     border-bottom: 1px solid var(--border-color);
     display: flex;
     align-items: center;
@@ -232,7 +274,7 @@ body {
 }
 
 .btn-add {
-    background-color: #fff;
+    background-color: var(--surface);
     border: 1px solid var(--border-color);
     border-radius: 6px;
     width: 34px;
@@ -260,7 +302,7 @@ body {
     height: 36px;
     border-radius: 50%;
     border: 1px solid #e2e8f0;
-    background-color: #fff;
+    background-color: var(--surface);
     color: #ef4444;
     font-size: 18px;
     display: flex;
@@ -296,7 +338,7 @@ body {
 }
 
 .placeholder-container {
-    background-color: #fff;
+    background-color: var(--surface);
     padding: 40px 24px;
     border-radius: 8px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.05);
