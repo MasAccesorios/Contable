@@ -1352,3 +1352,25 @@ html[data-theme^="dark"] .btn-add {
 html[data-theme^="dark"] .btn-add:hover {
     opacity: 0.85;
 }
+
+/* 11. Alertas de Bootstrap (.alert-info/warning/success/danger) */
+html[data-theme^="dark"] .alert-info {
+    background-color: var(--surface) !important;
+    color: var(--text-main) !important;
+    border-left-color: var(--primary) !important;
+}
+html[data-theme^="dark"] .alert-warning {
+    background-color: var(--surface) !important;
+    color: #ffc107 !important;
+    border-left-color: #ffc107 !important;
+}
+html[data-theme^="dark"] .alert-success {
+    background-color: var(--surface) !important;
+    color: #44d949 !important;
+    border-left-color: #44d949 !important;
+}
+html[data-theme^="dark"] .alert-danger {
+    background-color: var(--surface) !important;
+    color: #ff6b6b !important;
+    border-left-color: #ff6b6b !important;
+}
