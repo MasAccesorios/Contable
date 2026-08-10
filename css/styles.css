@@ -1023,6 +1023,21 @@ body {
     border-radius: 8px !important; font-weight: 600 !important; color: white !important;
 }
 
+/* En los temas oscuros nuevos, el botón principal sigue el color de marca del tema */
+html[data-theme="dark-green"] .btn-primary-action,
+html[data-theme="dark-blue"] .btn-primary-action {
+    background: var(--primary) !important;
+    border-color: var(--primary) !important;
+}
+
+/* Botones secundarios (Actualizar/Exportar) con fondo blanco fijo — solo en temas oscuros */
+html[data-theme="dark-green"] .btn.bg-white,
+html[data-theme="dark-blue"] .btn.bg-white {
+    background-color: var(--surface) !important;
+    color: var(--text-main) !important;
+    border-color: var(--border-color) !important;
+}
+
 
 /* Grilla explícita para formulario de Operativos */
 .form-grid-row-1 {
