@@ -1,5 +1,6 @@
 // js/shared/abonoModal.js
 import DB, { getLocalDate } from './../core/db.js';
+import { supabase } from './../core/supabase.js';
 import { applyCurrencyFormatting, parseCurrencyValue } from './formatters.js';
 import { CoreActions } from './crud.js';
 import { calcularEstadoFactura } from './carteraUtils.js';
@@ -29,7 +30,23 @@ export const AbonoModal = {
             if (precalculatedSaldo !== null && precalculatedSaldo !== undefined) {
                 this.currentSaldo = precalculatedSaldo;
             } else {
-                const transacciones = await DB.getAll('transacciones') || [];
+                // Antes se traía TODA la tabla pagos_ingresos (DB.getAll('transacciones')) solo para
+                // calcular el saldo de UNA factura — con miles de filas eso causaba la demora reportada.
+                // Ahora se filtra por factura_id directamente en la consulta (rápido, indexado).
+                const { data: pagosRaw, error: errPagos } = await supabase
+                    .from('pagos_ingresos')
+                    .select('*')
+                    .eq('factura_id', facturaId);
+                if (errPagos) {
+                    console.error('[AbonoModal] Error obteniendo pagos de la factura:', errPagos);
+                }
+                const transacciones = (pagosRaw || []).map(item => ({
+                    ...item,
+                    tipo: item.tipo === 'in' ? 'ingreso' : 'egreso',
+                    monto: Number(item.monto),
+                    referenciaId: item.factura_id ? String(item.factura_id) : null,
+                    cuentaId: item.cuenta_id ? String(item.cuenta_id) : null
+                }));
                 const estadoDinamico = calcularEstadoFactura(facturaData, transacciones);
                 this.currentSaldo = estadoDinamico.saldo;
             }
