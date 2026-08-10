@@ -1311,3 +1311,26 @@ html[data-theme^="dark"] .print-document-template .text-dark,
 html[data-theme^="dark"] .preview-document-template .text-dark {
     color: #212529 !important;
 }
+
+/* 9. Men¨² lateral (sidebar) ¡ª texto y submen¨²s desplegables */
+html[data-theme^="dark"] .menu-item,
+html[data-theme^="dark"] .dropdown-trigger {
+    color: var(--text-body) !important;
+}
+html[data-theme^="dark"] .menu-item:hover,
+html[data-theme^="dark"] .dropdown-trigger:hover {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+    color: var(--primary) !important;
+}
+html[data-theme^="dark"] .menu-dropdown .dropdown-content {
+    background-color: var(--bg-main) !important;
+}
+html[data-theme^="dark"] .dropdown-content a {
+    color: var(--text-muted) !important;
+}
+html[data-theme^="dark"] .dropdown-content a:hover {
+    color: var(--primary) !important;
+}
+html[data-theme^="dark"] .dropdown-content a.active {
+    color: var(--primary) !important;
+}
