@@ -1052,6 +1052,36 @@ html[data-theme="dark-blue"] .btn-primary:not(.btn-primary-action) {
     border-color: var(--primary) !important;
 }
 
+/* Inputs de formulario (Bootstrap .form-control/.form-select) — que se vean nativos del tema, no blancos impuestos */
+html[data-theme="dark-green"] .form-control,
+html[data-theme="dark-green"] .form-select,
+html[data-theme="dark-blue"] .form-control,
+html[data-theme="dark-blue"] .form-select {
+    background-color: #242424 !important;
+    color: var(--text-main) !important;
+    border-color: var(--border-color) !important;
+}
+
+html[data-theme="dark-green"] .form-control::placeholder,
+html[data-theme="dark-blue"] .form-control::placeholder {
+    color: var(--text-muted) !important;
+    opacity: 1;
+}
+
+html[data-theme="dark-green"] .form-control:disabled,
+html[data-theme="dark-green"] .form-select:disabled,
+html[data-theme="dark-blue"] .form-control:disabled,
+html[data-theme="dark-blue"] .form-select:disabled {
+    background-color: var(--surface) !important;
+    opacity: 0.6;
+}
+
+/* Iconos nativos de calendario en inputs de fecha (se ven invisibles en fondo oscuro sin esto) */
+html[data-theme="dark-green"] input[type="date"],
+html[data-theme="dark-blue"] input[type="date"] {
+    color-scheme: dark;
+}
+
 
 /* Grilla explícita para formulario de Operativos */
 .form-grid-row-1 {
