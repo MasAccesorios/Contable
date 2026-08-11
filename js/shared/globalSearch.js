@@ -124,10 +124,11 @@ export const GlobalSearch = {
         this.renderDropdown(input, html);
 
         document.querySelectorAll('.gs-frecuente-link').forEach(l => {
-            l.addEventListener('click', () => {
+            l.addEventListener('click', (e) => {
+                e.preventDefault();
                 const query = l.getAttribute('data-query');
                 input.value = query;
-                this.performSearch(query, input);
+                this.performSearch(query, input, true);
             });
         });
 
@@ -149,7 +150,7 @@ export const GlobalSearch = {
         }
     },
 
-    async performSearch(query, input) {
+    async performSearch(query, input, autoNavigate = false) {
         this.renderDropdown(input, '<div class="p-3 text-center text-muted small"><div class="spinner-border spinner-border-sm me-2" role="status"></div> Buscando...</div>');
 
         const promises = [];
@@ -198,6 +199,49 @@ export const GlobalSearch = {
         }
 
         const results = await Promise.all(promises);
+        
+        if (autoNavigate) {
+            let totalCount = 0;
+            let singleResult = null;
+            let singleResultType = null;
+
+            results.forEach(group => {
+                if (group.data && group.data.length > 0) {
+                    totalCount += group.data.length;
+                    if (totalCount === 1) {
+                        singleResult = group.data[0];
+                        singleResultType = group.type;
+                    }
+                }
+            });
+
+            if (totalCount === 1 && singleResult) {
+                let hash = '';
+                switch (singleResultType) {
+                    case 'contactos':
+                        hash = `#/contactos/ver/${singleResult.id}`;
+                        break;
+                    case 'productos':
+                        hash = `#/inventario/items/ver/${singleResult.id}`;
+                        break;
+                    case 'facturas':
+                        hash = singleResult.tipo === 'compra' ? `#/gastos/proveedores/ver/${singleResult.id}` : `#/ingresos/facturas/ver/${singleResult.id}`;
+                        break;
+                    case 'cotizaciones':
+                        hash = `#/ingresos/cotizaciones/ver/${singleResult.id}`;
+                        break;
+                }
+
+                if (hash) {
+                    this.registrarBusquedaExitosa(query);
+                    this.closeDropdown();
+                    input.value = '';
+                    window.location.hash = hash.substring(1);
+                    return;
+                }
+            }
+        }
+
         this.displayResults(input, results);
     },
 
