@@ -59,7 +59,8 @@ CREATE TABLE factura_detalles (
     cantidad INTEGER NOT NULL DEFAULT 1,
     precio_unitario NUMERIC(15, 2) NOT NULL DEFAULT 0,
     descuento_porcentaje NUMERIC(5, 2) DEFAULT 0,
-    subtotal NUMERIC(15, 2) NOT NULL DEFAULT 0
+    subtotal NUMERIC(15, 2) NOT NULL DEFAULT 0,
+    descripcion_personalizada TEXT
 );
 
 CREATE TABLE cotizaciones (
@@ -81,7 +82,8 @@ CREATE TABLE cotizacion_detalles (
     cantidad INTEGER NOT NULL DEFAULT 1,
     precio_unitario NUMERIC(15, 2) NOT NULL DEFAULT 0,
     descuento_porcentaje NUMERIC(5, 2) DEFAULT 0,
-    subtotal NUMERIC(15, 2) NOT NULL DEFAULT 0
+    subtotal NUMERIC(15, 2) NOT NULL DEFAULT 0,
+    descripcion_personalizada TEXT
 );
 
 CREATE TABLE pagos_ingresos (

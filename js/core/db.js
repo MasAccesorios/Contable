@@ -88,7 +88,8 @@ const DB = {
                 precio: detail.precio_unitario,
                 descuento: detail.descuento_porcentaje,
                 subtotal: detail.subtotal,
-                impuesto: 0 // Si a futuro hay impuestos a nivel de línea
+                impuesto: 0, // Si a futuro hay impuestos a nivel de línea
+                descripcion_personalizada: detail.descripcion_personalizada || ''
             }));
             delete adapted.items; // Borramos la respuesta cruda de Postgres
         }
