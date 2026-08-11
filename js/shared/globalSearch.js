@@ -277,10 +277,20 @@ export const GlobalSearch = {
         // Bind clicks to clear input and close dropdown
         const links = document.querySelectorAll('.gs-result-link');
         links.forEach(l => {
-            l.addEventListener('click', () => {
+            l.addEventListener('click', (e) => {
+                e.preventDefault();
                 this.registrarBusquedaExitosa(l.dataset.registrar || input.value);
                 this.closeDropdown();
                 input.value = '';
+                
+                const targetHref = l.getAttribute('href');
+                if (targetHref) {
+                    if (targetHref.startsWith('#')) {
+                        window.location.hash = targetHref.substring(1);
+                    } else {
+                        window.location.href = targetHref;
+                    }
+                }
             });
         });
     },
