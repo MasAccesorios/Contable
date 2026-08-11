@@ -43,7 +43,8 @@ async function runAudit() {
         { id: 4, title: 'Pagos/Ingresos huérfanos (factura no existe)', fn: check4 },
         { id: 5, title: 'Facturas huérfanas de contacto', fn: check5 },
         { id: 6, title: 'Cartera de clientes vs sumatoria manual de facturas y pagos', fn: check6 },
-        { id: 7, title: 'Productos con suma de lotes negativa (sobreventa)', fn: check7 }
+        { id: 7, title: 'Productos con suma de lotes negativa (sobreventa)', fn: check7 },
+        { id: 8, title: 'Seguridad de infraestructura: tablas sin RLS o sin políticas', fn: check8 }
     ];
 
     for (const check of checks) {
@@ -217,6 +218,13 @@ async function check6() {
 // 7. Productos con SUM(lotes_fifo.cantidad_actual) negativo (sobreventa)
 async function check7() {
     const { data, error } = await supabase.rpc('run_audit_check_7');
+    if (error) throw error;
+    return data;
+}
+
+// 8. Seguridad de infraestructura: tablas sin RLS o sin políticas
+async function check8() {
+    const { data, error } = await supabase.rpc('run_audit_check_8');
     if (error) throw error;
     return data;
 }
