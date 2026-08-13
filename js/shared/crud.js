@@ -1128,8 +1128,8 @@ export const PrintManager = {
             const subtotal = (det.cantidad || 0) * (det.precio || 0);
             return `
                 <tr style="border-bottom: 1px solid #dee2e6; font-size: 11px; color: #495057;">
-                    <td style="padding: 5px 4px;">${prod.sku || 'N/A'}</td>
-                    <td style="padding: 5px 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                    <td style="padding: 5px 4px; word-break: break-word; overflow-wrap: break-word;">${prod.sku || 'N/A'}</td>
+                    <td style="padding: 5px 4px; word-break: break-word; overflow-wrap: break-word;">
                         <div style="font-weight: 400; color: #212529;">${prod.nombre || 'Ítem sin nombre'}</div>
                         ${det.descripcion_personalizada ? `<div style="font-size: 10.5px; color: #6c757d; margin-top: 3px;">${det.descripcion_personalizada}</div>` : ''}
                     </td>
@@ -1181,8 +1181,8 @@ export const PrintManager = {
             <table style="width: 100%; border-collapse: collapse; margin-bottom: 10px; table-layout: fixed;">
                 <thead style="display: table-header-group;">
                     <tr style="border-bottom: 2px solid #dee2e6; color: #495057; font-size: 13px;">
-                        <th style="text-align: left; padding: 5px 4px; width: 8%;">Referencia</th>
-                        <th style="text-align: left; padding: 5px 4px; width: 40%;">Ítem</th>
+                        <th style="text-align: left; padding: 5px 4px; width: 12%; word-break: break-word; overflow-wrap: break-word;">Referencia</th>
+                        <th style="text-align: left; padding: 5px 4px; width: 36%; word-break: break-word; overflow-wrap: break-word;">Ítem</th>
                         <th style="text-align: right; padding: 5px 4px; width: 14%;">Precio</th>
                         <th style="text-align: center; padding: 5px 4px; width: 8%;">Cantidad</th>
                         <th style="text-align: right; padding: 5px 4px; width: 10%;">Descuento</th>
