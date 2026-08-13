@@ -1185,7 +1185,7 @@ export const PrintManager = {
                         <th style="text-align: left; padding: 5px 4px; width: 36%; word-break: break-word; overflow-wrap: break-word;">Ítem</th>
                         <th style="text-align: right; padding: 5px 4px; width: 14%;">Precio</th>
                         <th style="text-align: center; padding: 5px 4px; width: 8%;">Cantidad</th>
-                        <th style="text-align: right; padding: 5px 4px; width: 6%;">Descuento</th>
+                        <th style="text-align: right; padding: 5px 4px; width: 6%;">Dto.</th>
                         <th style="text-align: right; padding: 5px 4px; width: 20%;">Total</th>
                     </tr>
                 </thead>
