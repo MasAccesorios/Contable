@@ -67,13 +67,6 @@ export class CrudFinanciero {
                                     </select>
                                 </div>
                                 <div>
-                                    <label class="form-label text-muted small fw-semibold mb-1">Tipo *</label>
-                                    <select class="form-select" id="transaccion-tipo" required>
-                                        <option value="ingreso" ${this.config.tipoTransaccion === 'ingreso' ? 'selected' : ''}>Entrada</option>
-                                        <option value="egreso" ${this.config.tipoTransaccion === 'egreso' ? 'selected' : ''}>Salida</option>
-                                    </select>
-                                </div>
-                                <div>
                                     <label class="form-label text-muted small fw-semibold mb-1">Monto ($) *</label>
                                     <input type="text" class="form-control" id="transaccion-monto" required>
                                 </div>
@@ -243,13 +236,7 @@ export class CrudFinanciero {
         const fechaHoy = getLocalDate();
         element.querySelector('#transaccion-fecha').value = fechaHoy;
         
-        // Auto-seleccionar tipo de flujo según la categoría
-        element.querySelector('#transaccion-categoria').addEventListener('change', (e) => {
-            const cat = this.categorias.find(c => c.nombre === e.target.value);
-            if (cat && cat.tipo_flujo) {
-                element.querySelector('#transaccion-tipo').value = cat.tipo_flujo === 'in' ? 'ingreso' : 'egreso';
-            }
-        });
+
         
         const hace3Meses = new Date();
         hace3Meses.setMonth(hace3Meses.getMonth() - 3);
@@ -304,7 +291,6 @@ export class CrudFinanciero {
                 id: this.editingId,
                 fecha: element.querySelector('#transaccion-fecha').value,
                 categoria: element.querySelector('#transaccion-categoria').value,
-                tipoManual: element.querySelector('#transaccion-tipo').value,
                 monto: parseCurrencyValue(element.querySelector('#transaccion-monto').value),
                 cuentaId: parseInt(cuentaIdRaw, 10),
                 proveedorId: element.querySelector('#select-proveedor-id').value || null,
@@ -340,7 +326,7 @@ export class CrudFinanciero {
             let transaccion = {
                 cuenta_id: parseInt(datosPrevios.cuentaId, 10),
                 fecha: datosPrevios.fecha,
-                tipo: datosPrevios.tipoManual || this.config.tipoTransaccion, 
+                tipo: this.config.tipoTransaccion, 
                 monto: datosPrevios.monto,
                 categoria: datosPrevios.categoria, 
                 referencia: datosPrevios.referencia || null, 
