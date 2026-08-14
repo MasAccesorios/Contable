@@ -323,11 +323,18 @@ export const DashboardModule = {
             prevEndDate.setDate(prevEndDate.getDate() - 1);
         }
 
-        const startDateStr = `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, '0')}-${String(startDate.getDate()).padStart(2, '0')}`;
-        const endDateStr = `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}`;
+        const formatDate = (d) => {
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return year + '-' + month + '-' + day;
+        };
+
+        const startDateStr = formatDate(startDate);
+        const endDateStr = formatDate(endDate);
         
-        const prevStartDateStr = `${prevStartDate.getFullYear()}-${String(prevStartDate.getMonth() + 1).padStart(2, '0')}-${String(prevStartDate.getDate()).padStart(2, '0')}`;
-        const prevEndDateStr = `${prevEndDate.getFullYear()}-${String(prevEndDate.getMonth() + 1).padStart(2, '0')}-${String(prevEndDate.getDate()).padStart(2, '0')}`;
+        const prevStartDateStr = formatDate(prevStartDate);
+        const prevEndDateStr = formatDate(prevEndDate);
         
         // Prepare chart data grouped by day for current month
         const dailySales = {};
