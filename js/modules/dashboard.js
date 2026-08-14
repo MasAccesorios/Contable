@@ -428,11 +428,18 @@ export const DashboardModule = {
         safeSetText('#kpi-ticket-promedio', formatMoney(ticketProm));
         safeSetText('#kpi-promedio-diario', formatMoney(promDiario));
 
-        // Growth Badge Update
         const growthBadge = element.querySelector('#kpi-ventas-growth-badge');
         const growthIcon = element.querySelector('#kpi-ventas-growth-icon');
         const growthText = element.querySelector('#kpi-ventas-growth-text');
         
+        console.log('DEBUG DASHBOARD VENTAS PREVIAS:', {
+            rango,
+            prevStartDateStr,
+            prevEndDateStr,
+            ventasPrev,
+            facturasLength: facturas.length
+        });
+
         if (growthBadge) {
             if (ventasPrev === 0) {
                 growthBadge.style.display = 'none';
