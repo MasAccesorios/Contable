@@ -150,11 +150,11 @@ export const DashboardModule = {
                             <div class="text-end">
                                 <div class="d-flex align-items-center justify-content-end gap-2 mb-1">
                                     <h3 class="text-metric mb-0 text-dark fw-bold" id="kpi-total-ventas"><span class="spinner-border spinner-border-sm text-secondary"></span></h3>
-                                    <span class="badge bg-success bg-opacity-10 text-success fw-bold px-2 py-1" style="font-size: 12px; border-radius: 6px;">
-                                        <i class="bi bi-arrow-up-right-circle-fill me-1"></i> +12%
+                                    <span id="kpi-ventas-growth-badge" class="badge px-2 py-1" style="font-size: 12px; border-radius: 6px; display: none;">
+                                        <i id="kpi-ventas-growth-icon" class="bi me-1"></i> <span id="kpi-ventas-growth-text">...</span>
                                     </span>
                                 </div>
-                                <small class="text-muted fw-medium" style="font-size: 11px;">vs mes anterior</small>
+                                <small id="kpi-ventas-growth-label" class="text-muted fw-medium" style="font-size: 11px;">vs periodo anterior</small>
                             </div>
                         </div>
                         
@@ -291,21 +291,41 @@ export const DashboardModule = {
 
         let startDate = new Date(hoy);
         let endDate = new Date(hoy);
+        
+        let prevStartDate = new Date(startDate);
+        let prevEndDate = new Date(hoy);
 
         if (rango === 'Mes actual' || rango === 'Este Mes') {
             startDate.setDate(1);
             endDate = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0); // Last day of month
+            
+            prevStartDate.setMonth(prevStartDate.getMonth() - 1);
+            prevEndDate.setMonth(prevEndDate.getMonth() - 1);
         } else if (rango === '7 Días') {
             startDate.setDate(hoy.getDate() - 6);
+            
+            prevStartDate.setDate(prevStartDate.getDate() - 7);
+            prevEndDate = new Date(startDate);
+            prevEndDate.setDate(prevEndDate.getDate() - 1);
         } else if (rango === 'Este Año') {
             startDate.setMonth(0, 1);
+            
+            prevStartDate.setFullYear(prevStartDate.getFullYear() - 1);
+            prevEndDate.setFullYear(prevEndDate.getFullYear() - 1);
         } else {
             const months = parseInt(rango.split(' ')[0]) || 1;
             startDate.setMonth(startDate.getMonth() - months);
+            
+            prevStartDate.setMonth(prevStartDate.getMonth() - (months * 2));
+            prevEndDate = new Date(startDate);
+            prevEndDate.setDate(prevEndDate.getDate() - 1);
         }
 
         const startDateStr = `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, '0')}-${String(startDate.getDate()).padStart(2, '0')}`;
         const endDateStr = `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}`;
+        
+        const prevStartDateStr = `${prevStartDate.getFullYear()}-${String(prevStartDate.getMonth() + 1).padStart(2, '0')}-${String(prevStartDate.getDate()).padStart(2, '0')}`;
+        const prevEndDateStr = `${prevEndDate.getFullYear()}-${String(prevEndDate.getMonth() + 1).padStart(2, '0')}-${String(prevEndDate.getDate()).padStart(2, '0')}`;
         
         // Prepare chart data grouped by day for current month
         const dailySales = {};
@@ -323,6 +343,7 @@ export const DashboardModule = {
         }
 
         const facturasMesIds = [];
+        let ventasPrev = 0;
         console.time('calc-ventas-utilidad-productos');
         facturas.forEach(f => {
             // Ignorar facturas anuladas para no inflar las ventas ni los productos
@@ -331,7 +352,6 @@ export const DashboardModule = {
             // Blindaje Fase 1: Ignorar compras en el dashboard de ingresos
             if (f.tipo === 'compra') return;
 
-            // Se asume que toda factura es de venta (para el cálculo de ingresos del mes)
             if (f.fecha && f.fecha >= startDateStr && f.fecha <= endDateStr) {
                 ventasMes += (f.total || 0);
                 utilidadMes += (f.total || 0) - (f.total_costo || 0);
@@ -340,6 +360,10 @@ export const DashboardModule = {
                 if (dailySales[f.fecha] !== undefined) {
                     dailySales[f.fecha] += (f.total || 0);
                 }
+            }
+            
+            if (f.fecha && f.fecha >= prevStartDateStr && f.fecha <= prevEndDateStr) {
+                ventasPrev += (f.total || 0);
             }
         });
         console.timeEnd('calc-ventas-utilidad-productos');
@@ -403,6 +427,35 @@ export const DashboardModule = {
         const promDiario = elapsedDays > 0 ? (ventasMes / elapsedDays) : 0;
         safeSetText('#kpi-ticket-promedio', formatMoney(ticketProm));
         safeSetText('#kpi-promedio-diario', formatMoney(promDiario));
+
+        // Growth Badge Update
+        const growthBadge = element.querySelector('#kpi-ventas-growth-badge');
+        const growthIcon = element.querySelector('#kpi-ventas-growth-icon');
+        const growthText = element.querySelector('#kpi-ventas-growth-text');
+        
+        if (growthBadge) {
+            if (ventasPrev === 0) {
+                growthBadge.style.display = 'none';
+            } else {
+                growthBadge.style.display = 'inline-block';
+                const growth = ((ventasMes - ventasPrev) / ventasPrev) * 100;
+                const growthAbs = Math.abs(growth).toFixed(1);
+
+                if (growth > 0) {
+                    growthBadge.className = 'badge bg-success bg-opacity-10 text-success fw-bold px-2 py-1';
+                    growthIcon.className = 'bi bi-arrow-up-right-circle-fill me-1';
+                    growthText.textContent = `+${growthAbs}%`;
+                } else if (growth < 0) {
+                    growthBadge.className = 'badge bg-danger bg-opacity-10 text-danger fw-bold px-2 py-1';
+                    growthIcon.className = 'bi bi-arrow-down-right-circle-fill me-1';
+                    growthText.textContent = `-${growthAbs}%`;
+                } else {
+                    growthBadge.className = 'badge bg-secondary bg-opacity-10 text-secondary fw-bold px-2 py-1';
+                    growthIcon.className = 'bi bi-dash-circle-fill me-1';
+                    growthText.textContent = `0%`;
+                }
+            }
+        }
 
         // CXC Update
         safeSetText('#kpi-cxc-total', formatMoney(cxcTotal));
