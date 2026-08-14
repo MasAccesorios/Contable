@@ -294,31 +294,39 @@ export const DashboardModule = {
         let startDate = new Date(hoy);
         let endDate = new Date(hoy);
         
-        let prevStartDate = new Date(startDate);
+        let prevStartDate = new Date(hoy);
         let prevEndDate = new Date(hoy);
 
         if (rango === 'Mes actual' || rango === 'Este Mes') {
             startDate.setDate(1);
             endDate = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0); // Last day of month
             
+            prevStartDate.setDate(1);
             prevStartDate.setMonth(prevStartDate.getMonth() - 1);
+            
             prevEndDate.setMonth(prevEndDate.getMonth() - 1);
         } else if (rango === '7 Días') {
             startDate.setDate(hoy.getDate() - 6);
             
+            prevStartDate = new Date(startDate);
             prevStartDate.setDate(prevStartDate.getDate() - 7);
+            
             prevEndDate = new Date(startDate);
             prevEndDate.setDate(prevEndDate.getDate() - 1);
         } else if (rango === 'Este Año') {
             startDate.setMonth(0, 1);
             
             prevStartDate.setFullYear(prevStartDate.getFullYear() - 1);
+            prevStartDate.setMonth(0, 1);
+            
             prevEndDate.setFullYear(prevEndDate.getFullYear() - 1);
         } else {
             const months = parseInt(rango.split(' ')[0]) || 1;
             startDate.setMonth(startDate.getMonth() - months);
             
-            prevStartDate.setMonth(prevStartDate.getMonth() - (months * 2));
+            prevStartDate = new Date(startDate);
+            prevStartDate.setMonth(prevStartDate.getMonth() - months);
+            
             prevEndDate = new Date(startDate);
             prevEndDate.setDate(prevEndDate.getDate() - 1);
         }
