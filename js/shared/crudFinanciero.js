@@ -60,11 +60,11 @@ export class CrudFinanciero {
                                     <input type="date" class="form-control" id="transaccion-fecha" required>
                                 </div>
                                 <div>
-                                    <label class="form-label text-muted small fw-semibold mb-1">Categoría *</label>
-                                    <select class="form-select" id="transaccion-categoria" required>
-                                        <option value="">Seleccione...</option>
-                                        ${this.categorias.map(c => `<option value="${c.nombre}">${c.nombre}</option>`).join('')}
-                                    </select>
+                                    <label class="form-label text-muted small fw-semibold mb-1">Proveedor (Opcional)</label>
+                                    <div class="custom-combobox" id="combo-proveedor-container">
+                                        <input type="text" class="form-control" id="search-proveedor" placeholder="Buscar proveedor..." autocomplete="off">
+                                        <input type="hidden" id="select-proveedor-id">
+                                    </div>
                                 </div>
                                 <div>
                                     <label class="form-label text-muted small fw-semibold mb-1">Monto ($) *</label>
@@ -75,11 +75,11 @@ export class CrudFinanciero {
                             <!-- Fila 2 -->
                             <div class="form-fintech-row-2">
                                 <div>
-                                    <label class="form-label text-muted small fw-semibold mb-1">Proveedor (Opcional)</label>
-                                    <div class="custom-combobox" id="combo-proveedor-container">
-                                        <input type="text" class="form-control" id="search-proveedor" placeholder="Buscar proveedor..." autocomplete="off">
-                                        <input type="hidden" id="select-proveedor-id">
-                                    </div>
+                                    <label class="form-label text-muted small fw-semibold mb-1">Categoría *</label>
+                                    <select class="form-select" id="transaccion-categoria" required>
+                                        <option value="">Seleccione...</option>
+                                        ${this.categorias.map(c => `<option value="${c.nombre}">${c.nombre}</option>`).join('')}
+                                    </select>
                                 </div>
                                 <div>
                                     <label class="form-label text-muted small fw-semibold mb-1">Cuenta Bancaria *</label>
