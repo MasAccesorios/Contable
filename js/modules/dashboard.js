@@ -233,6 +233,8 @@ export const DashboardModule = {
 
     async renderDynamicContent(element, rango) {
         console.time('render-dynamic-content');
+        
+        console.log('RANGO REAL:', JSON.stringify(rango));
 
         const facturas = this.facturas || [];
         const lotes = this.lotes || [];
