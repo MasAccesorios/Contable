@@ -132,10 +132,35 @@ export const CoreActions = {
                 notas: cotizacion.notas || '',
                 terminosCondiciones: cotizacion.terminosCondiciones || 'Favor realizar los pagos a nuestra cuenta bancaria.',
                 cotizacion_origen_id: parseInt(cotizacion.id, 10) || cotizacion.id,
-                numero: undefined
+                // Trazabilidad: la factura hereda el mismo número que la cotización de origen.
+                // El RPC detecta este valor explícito y NO consume nextval(); en cambio,
+                // avanza documentos_numero_seq hasta >= este número para evitar colisiones futuras.
+                numero: cotizacion.numero
             };
 
-            const facturaGuardada = await DB.saveWithNextNumero('facturas', nuevaFactura);
+            // Reintento automático ante duplicate key en numero (código Postgres 23505).
+            // Con secuencias nativas esto no debería ocurrir, pero se mantiene como
+            // red de seguridad ante reinicios de secuencia o migraciones parciales.
+            const MAX_REINTENTOS = 3;
+            let facturaGuardada = null;
+            for (let intento = 1; intento <= MAX_REINTENTOS; intento++) {
+                try {
+                    facturaGuardada = await DB.saveWithNextNumero('facturas', nuevaFactura);
+                    break; // Éxito — salir del loop
+                } catch (err) {
+                    const esDuplicado = err?.code === '23505' ||
+                        (err?.message || '').toLowerCase().includes('duplicate key');
+                    if (esDuplicado && intento < MAX_REINTENTOS) {
+                        console.warn(`[convertir] Duplicate key en numero (intento ${intento}/${MAX_REINTENTOS}), reintentando...`);
+                        continue;
+                    }
+                    // Si no es duplicate key, o se agotaron los reintentos, relanzar con mensaje amigable
+                    if (esDuplicado) {
+                        throw new Error('No se pudo asignar el número de factura. Por favor, intenta de nuevo.');
+                    }
+                    throw err;
+                }
+            }
             const idReal = facturaGuardada.id;
 
             // Modificar estado original
