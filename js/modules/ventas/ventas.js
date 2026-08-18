@@ -423,22 +423,25 @@ export const FacturasModule = {
                             if (confirm('¿Estás seguro de eliminar esta factura de forma permanente? Se devolverá el inventario asociado.')) {
                                 menu.remove();
                                 try {
-                                    const factura = await DB.get('facturas', id);
-                                    if (!factura) throw new Error("Factura no encontrada");
+                                    // El RPC realiza la validación de pagos, la reversión atómica de inventario 
+                                    // y el borrado de la factura. Todo en una sola transacción segura.
+                                    const { data: result, error } = await supabase.rpc('eliminar_factura_venta', { 
+                                        p_factura_id: parseInt(id, 10) 
+                                    });
 
-                                    if (factura.detalles && factura.detalles.length > 0) {
-                                        const revResult = await InventarioUtils.revertirSalidaInventario(factura.detalles);
-                                        if (!revResult.success) {
-                                            CoreActions.showWarningModal(revResult.error);
-                                            return;
-                                        }
+                                    if (error) {
+                                        throw new Error(error.message || "Error devuelto por la base de datos.");
                                     }
 
-                                    await DB.delete('facturas', id);
+                                    // Forzar limpieza de caché
+                                    DB.invalidateCache('facturas');
+                                    DB.invalidateCache('lotes_fifo');
+                                    
                                     await renderGrid();
+                                    CoreActions.showSuccessModal('Factura eliminada y stock devuelto exitosamente.');
                                 } catch (error) {
                                     console.error("Error al eliminar:", error);
-                                    CoreActions.showWarningModal("Error al eliminar: " + error.message);
+                                    CoreActions.showWarningModal("No se pudo eliminar: " + error.message);
                                 }
                             }
                         });
