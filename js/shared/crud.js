@@ -858,7 +858,14 @@ export const PrintManager = {
 
             const doc = iframe.contentDocument || iframe.contentWindow.document;
             doc.open();
-            doc.write(`<!DOCTYPE html><html><head><title>${title}</title></head><body>${innerHtmlContent}</body></html>`);
+            doc.write(`<!DOCTYPE html><html><head>
+                <title>${title}</title>
+                <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+                <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+                <style>
+                    body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; background-color: white; }
+                </style>
+            </head><body>${innerHtmlContent}</body></html>`);
             doc.close();
 
             if (window._crudPrintTimeout2) clearTimeout(window._crudPrintTimeout2);
@@ -871,7 +878,7 @@ export const PrintManager = {
                         iframe.remove();
                     }
                 }, 1000);
-            }, 150);
+            }, 500);
             return;
         }
 
