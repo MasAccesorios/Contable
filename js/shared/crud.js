@@ -842,12 +842,44 @@ export const PrintManager = {
     _renderPreviewShell(innerHtmlContent, options) {
         const { mode, fileName, title = 'Documento', printClass = 'hoja-dinamica', shareText = 'Adjunto el documento solicitado.' } = options;
 
+        if (mode === 'print') {
+            const oldIframe = document.getElementById('print-iframe-aislado');
+            if (oldIframe) oldIframe.remove();
+
+            const iframe = document.createElement('iframe');
+            iframe.id = 'print-iframe-aislado';
+            iframe.style.position = 'fixed';
+            iframe.style.width = '0';
+            iframe.style.height = '0';
+            iframe.style.border = '0';
+            iframe.style.visibility = 'hidden';
+            document.body.appendChild(iframe);
+
+            const doc = iframe.contentDocument || iframe.contentWindow.document;
+            doc.open();
+            doc.write(`<!DOCTYPE html><html><head><title>${title}</title></head><body>${innerHtmlContent}</body></html>`);
+            doc.close();
+
+            if (window._crudPrintTimeout2) clearTimeout(window._crudPrintTimeout2);
+            window._crudPrintTimeout2 = setTimeout(() => {
+                iframe.contentWindow.focus();
+                iframe.contentWindow.print();
+                if (window._crudPrintCleanTimeout) clearTimeout(window._crudPrintCleanTimeout);
+                window._crudPrintCleanTimeout = setTimeout(() => {
+                    if (document.body.contains(iframe)) {
+                        iframe.remove();
+                    }
+                }, 1000);
+            }, 150);
+            return;
+        }
+
         const oldContainer = document.querySelector('.print-document-template');
         if (oldContainer) oldContainer.remove();
 
         const container = document.createElement('div');
         container.id = 'print-view-container';
-        container.className = mode === 'preview' ? 'preview-document-template' : `print-document-template ${printClass}`;
+        container.className = 'preview-document-template';
         container.innerHTML = innerHtmlContent;
 
         document.body.appendChild(container);
@@ -980,17 +1012,6 @@ export const PrintManager = {
                 paperContent.appendChild(container.childNodes[1]);
             }
             container.appendChild(paperContent);
-        } else {
-            if (window._crudPrintTimeout2) clearTimeout(window._crudPrintTimeout2);
-            window._crudPrintTimeout2 = setTimeout(() => {
-                window.print();
-                if (window._crudPrintCleanTimeout) clearTimeout(window._crudPrintCleanTimeout);
-                window._crudPrintCleanTimeout = setTimeout(() => {
-                    if (document.body.contains(container)) {
-                        container.remove();
-                    }
-                }, 1000);
-            }, 150);
         }
     },
 
