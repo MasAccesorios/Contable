@@ -101,7 +101,9 @@ export const PagosRealizadosModule = {
             <style>
                 @media print {
                     @page { size: 215.9mm 139.7mm; margin: 10mm; } /* Formato Media Carta (Half-Letter) */
-                    body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+                    body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; margin: 0; padding: 0; }
+                    .mas-receipt-container { padding: 0 !important; margin: 0 !important; }
+                    .mas-receipt-card { page-break-inside: avoid; border: none; box-shadow: none; border-radius: 0; margin: 0 !important; }
                 }
                 .mas-receipt-container {
                     font-family: 'Inter', system-ui, -apple-system, sans-serif;
@@ -121,56 +123,56 @@ export const PagosRealizadosModule = {
                 .mas-receipt-header {
                     background: ${isPrintMode ? 'transparent' : 'linear-gradient(to right, #f8fafc, #ffffff)'};
                     border-bottom: 2px dashed #cbd5e1;
-                    padding: 30px;
+                    padding: 16px 20px;
                 }
                 .mas-receipt-body {
-                    padding: 30px;
+                    padding: 16px 20px;
                 }
                 .mas-receipt-footer {
                     background: #f8fafc;
-                    padding: 30px;
+                    padding: 16px 20px;
                     border-top: 1px solid #e2e8f0;
                     border-bottom-left-radius: ${isPrintMode ? '0' : '16px'};
                     border-bottom-right-radius: ${isPrintMode ? '0' : '16px'};
                 }
                 .mas-receipt-status-badge {
                     display: inline-block;
-                    padding: 6px 12px;
+                    padding: 4px 10px;
                     background-color: #fef2f2;
                     color: #dc2626;
                     border: 1px solid #fecaca;
                     border-radius: 999px;
-                    font-size: 12px;
+                    font-size: 11px;
                     font-weight: 600;
                     letter-spacing: 0.5px;
                     text-transform: uppercase;
                 }
                 .mas-receipt-info-label {
-                    font-size: 11px;
+                    font-size: 10px;
                     text-transform: uppercase;
                     letter-spacing: 0.5px;
                     color: #64748b;
                     font-weight: 600;
-                    margin-bottom: 4px;
+                    margin-bottom: 2px;
                 }
                 .mas-receipt-info-value {
-                    font-size: 14px;
+                    font-size: 13px;
                     font-weight: 500;
                     color: #0f172a;
                 }
                 .mas-receipt-table th {
-                    font-size: 12px;
+                    font-size: 11px;
                     text-transform: uppercase;
                     letter-spacing: 0.5px;
                     color: #64748b;
                     border-bottom: 1px solid #cbd5e1 !important;
-                    padding-bottom: 12px;
+                    padding-bottom: 8px;
                     font-weight: 600;
                 }
                 .mas-receipt-table td {
-                    padding: 16px 0;
+                    padding: 10px 0;
                     vertical-align: top;
-                    font-size: 14px;
+                    font-size: 13px;
                     color: #334155;
                     border-bottom: 1px solid #f1f5f9 !important;
                 }
@@ -178,21 +180,21 @@ export const PagosRealizadosModule = {
                     background-color: #0f172a;
                     color: #ffffff;
                     border-radius: 12px;
-                    padding: 20px;
+                    padding: 16px;
                     text-align: right;
                     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
                     -webkit-print-color-adjust: exact !important;
                     print-color-adjust: exact !important;
                 }
                 .mas-receipt-total-label {
-                    font-size: 13px;
+                    font-size: 11px;
                     color: #94a3b8;
-                    margin-bottom: 4px;
+                    margin-bottom: 2px;
                     text-transform: uppercase;
                     letter-spacing: 0.5px;
                 }
                 .mas-receipt-total-amount {
-                    font-size: 28px;
+                    font-size: 24px;
                     font-weight: 700;
                     letter-spacing: -0.5px;
                     line-height: 1;
@@ -203,7 +205,7 @@ export const PagosRealizadosModule = {
                     top: 50%;
                     left: 50%;
                     transform: translate(-50%, -50%) rotate(-15deg);
-                    font-size: 80px;
+                    font-size: 50px;
                     font-weight: 900;
                     color: rgba(220, 38, 38, 0.04);
                     text-transform: uppercase;
@@ -219,27 +221,27 @@ export const PagosRealizadosModule = {
                     
                     <div class="mas-receipt-header d-flex justify-content-between align-items-center position-relative" style="z-index: 1;">
                         <div>
-                            <img src="LogoMas.png" alt="MAS Accesorios" style="max-height: 55px; object-fit: contain;">
+                            <img src="LogoMas.png" alt="MAS Accesorios" style="max-height: 40px; object-fit: contain;">
                         </div>
                         <div class="text-end">
-                            <h2 style="font-size: 24px; font-weight: 800; color: #0f172a; margin: 0 0 8px 0; letter-spacing: -0.5px;">COMPROBANTE DE EGRESO</h2>
+                            <h2 style="font-size: 20px; font-weight: 800; color: #0f172a; margin: 0 0 6px 0; letter-spacing: -0.5px;">COMPROBANTE DE EGRESO</h2>
                             <div class="d-flex align-items-center justify-content-end gap-3">
-                                <span style="font-size: 14px; color: #64748b; font-weight: 500;">Nº <span style="color: #0f172a; font-weight: 700;">${t.numero || t.id}</span></span>
+                                <span style="font-size: 13px; color: #64748b; font-weight: 500;">Nº <span style="color: #0f172a; font-weight: 700;">${t.numero || t.id}</span></span>
                                 <span class="mas-receipt-status-badge">Pagado</span>
                             </div>
                         </div>
                     </div>
 
                     <div class="mas-receipt-body position-relative" style="z-index: 1;">
-                        <div class="row mb-5">
-                            <div class="col-sm-6 mb-3 mb-sm-0">
+                        <div class="row mb-3">
+                            <div class="col-sm-6 mb-2 mb-sm-0">
                                 <div class="mas-receipt-info-label">Pagado a</div>
-                                <div class="mas-receipt-info-value" style="font-size: 16px; font-weight: 700;">${t.contactos?.nombre || 'Proveedor / Tercero'}</div>
-                                ${t.contactos?.identificacion ? `<div style="font-size: 13px; color: #64748b; margin-top: 4px;">NIT/CC: ${t.contactos.identificacion}</div>` : ''}
+                                <div class="mas-receipt-info-value" title="${t.contactos?.nombre || 'Proveedor / Tercero'}" style="font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${t.contactos?.nombre || 'Proveedor / Tercero'}</div>
+                                ${t.contactos?.identificacion ? `<div style="font-size: 12px; color: #64748b; margin-top: 2px;">NIT/CC: ${t.contactos.identificacion}</div>` : ''}
                             </div>
                             <div class="col-sm-6 text-sm-end">
                                 <div class="row">
-                                    <div class="col-6 col-sm-12 mb-3">
+                                    <div class="col-6 col-sm-12 mb-2">
                                         <div class="mas-receipt-info-label">Fecha de pago</div>
                                         <div class="mas-receipt-info-value">${t.fecha}</div>
                                     </div>
@@ -269,8 +271,8 @@ export const PagosRealizadosModule = {
                                     </td>
                                     <td class="text-center">
                                         ${t.factura_id ? 
-                                            `<span style="background: #f1f5f9; padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; color: #475569;"># ${t.facturas?.numero || t.factura_id}</span>` 
-                                            : '<span style="color: #94a3b8; font-size: 13px;">N/A</span>'}
+                                            `<span style="background: #f1f5f9; padding: 2px 6px; border-radius: 6px; font-size: 11px; font-weight: 600; color: #475569;"># ${t.facturas?.numero || t.factura_id}</span>` 
+                                            : '<span style="color: #94a3b8; font-size: 12px;">N/A</span>'}
                                     </td>
                                     <td class="text-end" style="font-weight: 600; color: #0f172a;">
                                         $${Number(t.monto).toLocaleString('es-CO')}
@@ -282,9 +284,9 @@ export const PagosRealizadosModule = {
 
                     <div class="mas-receipt-footer position-relative" style="z-index: 1;">
                         <div class="row align-items-center">
-                            <div class="col-sm-7 mb-4 mb-sm-0">
+                            <div class="col-sm-7 mb-3 mb-sm-0">
                                 <div class="mas-receipt-info-label" style="color: #475569;">Observaciones</div>
-                                <p style="font-size: 13px; color: #64748b; line-height: 1.5; margin: 0; padding-right: 20px;">
+                                <p style="font-size: 12px; color: #64748b; line-height: 1.4; margin: 0; padding-right: 15px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
                                     ${t.observaciones ? t.observaciones : 'Sin notas adicionales.'}
                                 </p>
                             </div>
@@ -297,14 +299,14 @@ export const PagosRealizadosModule = {
                         </div>
                         
                         <!-- Sección de firmas para impresión -->
-                        <div class="mt-5 pt-4 border-top" style="display: ${isPrintMode ? 'flex' : 'none'}; justify-content: space-between; border-color: #cbd5e1 !important;">
+                        <div class="mt-2 pt-2 border-top" style="display: ${isPrintMode ? 'flex' : 'none'}; justify-content: space-between; border-color: #cbd5e1 !important;">
                             <div style="width: 45%; text-align: center;">
-                                <div style="border-bottom: 1px solid #94a3b8; height: 40px; margin-bottom: 8px;"></div>
-                                <div style="font-size: 12px; color: #64748b; font-weight: 500; text-transform: uppercase;">Firma y Sello de la Empresa</div>
+                                <div style="border-bottom: 1px solid #94a3b8; height: 20px; margin-bottom: 4px;"></div>
+                                <div style="font-size: 10px; color: #64748b; font-weight: 500; text-transform: uppercase;">Firma y Sello de la Empresa</div>
                             </div>
                             <div style="width: 45%; text-align: center;">
-                                <div style="border-bottom: 1px solid #94a3b8; height: 40px; margin-bottom: 8px;"></div>
-                                <div style="font-size: 12px; color: #64748b; font-weight: 500; text-transform: uppercase;">Firma de quien recibe</div>
+                                <div style="border-bottom: 1px solid #94a3b8; height: 20px; margin-bottom: 4px;"></div>
+                                <div style="font-size: 10px; color: #64748b; font-weight: 500; text-transform: uppercase;">Firma de quien recibe</div>
                             </div>
                         </div>
                     </div>
