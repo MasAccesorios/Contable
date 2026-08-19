@@ -843,42 +843,25 @@ export const PrintManager = {
         const { mode, fileName, title = 'Documento', printClass = 'hoja-dinamica', shareText = 'Adjunto el documento solicitado.' } = options;
 
         if (mode === 'print') {
-            const oldIframe = document.getElementById('print-iframe-aislado');
-            if (oldIframe) oldIframe.remove();
+            const oldPrintContainer = document.getElementById('print-document-render');
+            if (oldPrintContainer) oldPrintContainer.remove();
 
-            const iframe = document.createElement('iframe');
-            iframe.id = 'print-iframe-aislado';
-            iframe.style.position = 'fixed';
-            iframe.style.width = '800px';
-            iframe.style.height = '600px';
-            iframe.style.left = '-9999px';
-            iframe.style.top = '0';
-            iframe.style.border = '0';
-            document.body.appendChild(iframe);
+            const printContainer = document.createElement('div');
+            printContainer.id = 'print-document-render';
+            printContainer.className = `print-document-template ${printClass}`;
+            printContainer.innerHTML = innerHtmlContent;
+            document.body.appendChild(printContainer);
 
-            const doc = iframe.contentDocument || iframe.contentWindow.document;
-            doc.open();
-            doc.write(`<!DOCTYPE html><html><head>
-                <title>${title}</title>
-                <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-                <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-                <style>
-                    body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; background-color: white; }
-                </style>
-            </head><body>${innerHtmlContent}</body></html>`);
-            doc.close();
+            const cleanupPrint = () => {
+                if (document.body.contains(printContainer)) printContainer.remove();
+                window.removeEventListener('afterprint', cleanupPrint);
+            };
+            window.addEventListener('afterprint', cleanupPrint);
 
-            if (window._crudPrintTimeout2) clearTimeout(window._crudPrintTimeout2);
-            window._crudPrintTimeout2 = setTimeout(() => {
-                iframe.contentWindow.focus();
-                iframe.contentWindow.print();
-                if (window._crudPrintCleanTimeout) clearTimeout(window._crudPrintCleanTimeout);
-                window._crudPrintCleanTimeout = setTimeout(() => {
-                    if (document.body.contains(iframe)) {
-                        iframe.remove();
-                    }
-                }, 1000);
-            }, 500);
+            if (window._crudPrintCleanupFallback) clearTimeout(window._crudPrintCleanupFallback);
+            window._crudPrintCleanupFallback = setTimeout(cleanupPrint, 15000);
+
+            window.print();
             return;
         }
 

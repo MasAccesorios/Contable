@@ -1,4 +1,6 @@
-﻿Fix: nombre de cliente/proveedor faltante en recibos cuando el pago no tiene contacto_id directo
+﻿Fix: motor de impresion mostraba texto sin estilos (azul/subrayado) en facturas, cotizaciones y recibos
 
-Resuelve el nombre y NIT/CC via facturas.contacto_id cuando pagos_ingresos.contacto_id es null.
-Afecta: pagosRecibidos.js, pagosRealizados.js
+- _renderPreviewShell ('print' mode) ya no usa iframe aislado con CDN externo (race condition de 500ms causaba perdida de estilos)
+- Ahora reutiliza los estilos ya cargados de la pagina principal via el motor .print-document-template existente
+- Reactivados los margenes de @page (estaban deshabilitados desde un diagnostico anterior sin terminar)
+- Corregido: no reutilizar la misma clase para el contenedor de Vista Previa (rompia su visibilidad por una regla @media screen)

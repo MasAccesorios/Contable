@@ -371,7 +371,10 @@ body {
 }
 
 @media print {
-    /* DESACTIVADO TEMPORAL para diagnóstico - aislar bug de Recibo de Caja\n    @page {\n        size: letter;\n        margin: 0.5in;\n    }\n    */
+    @page {
+        size: letter;
+        margin: 0.5in;
+    }
 
     #app-container {
         position: absolute !important;
