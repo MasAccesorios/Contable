@@ -541,16 +541,35 @@ export const ContactosModule = {
         const kpiRow = this.element.querySelector('#contactos-kpi-row');
         if (kpiRow) kpiRow.style.display = 'none';
 
-        const contacto = await DB.get('contactos', id);
+        const [contacto, facturasResp, cotizacionesResp, transaccionesResp] = await Promise.all([
+            DB.get('contactos', id),
+            supabase
+                .from('facturas')
+                .select('id, numero, fecha, vencimiento, total, saldo_original, estado, tipo')
+                .eq('contacto_id', id)
+                .eq('tipo', 'venta')
+                .order('fecha', { ascending: false })
+                .limit(50),
+            supabase
+                .from('cotizaciones')
+                .select('id, numero, fecha, total, estado')
+                .eq('contacto_id', id)
+                .order('fecha', { ascending: false })
+                .limit(50),
+            supabase
+                .from('pagos_ingresos')
+                .select('id, tipo, monto, fecha, categoria, observaciones, grupo_pago_id, cuenta_id')
+                .eq('contacto_id', id)
+                .neq('estado', 'void')
+                .order('fecha', { ascending: false })
+                .limit(50)
+        ]);
+
         if (!contacto) return;
 
-        const { data: facturasCliente } = await supabase
-            .from('facturas')
-            .select('id, numero, fecha, vencimiento, total, saldo_original, estado, tipo')
-            .eq('contacto_id', id)
-            .eq('tipo', 'venta')
-            .order('fecha', { ascending: false })
-            .limit(50);
+        const facturasCliente = facturasResp.data;
+        const cotizacionesCliente = cotizacionesResp.data;
+        const transaccionesCliente = transaccionesResp.data;
 
         const facturaIdsCliente = (facturasCliente || []).map(f => f.id);
         const { data: rawTransacciones } = facturaIdsCliente.length > 0
@@ -563,21 +582,6 @@ export const ContactosModule = {
             ...t,
             tipo: t.tipo === 'in' ? 'ingreso' : 'egreso'
         }));
-
-        const { data: cotizacionesCliente } = await supabase
-            .from('cotizaciones')
-            .select('id, numero, fecha, total, estado')
-            .eq('contacto_id', id)
-            .order('fecha', { ascending: false })
-            .limit(50);
-
-        const { data: transaccionesCliente } = await supabase
-            .from('pagos_ingresos')
-            .select('id, tipo, monto, fecha, categoria, observaciones, grupo_pago_id, cuenta_id')
-            .eq('contacto_id', id)
-            .neq('estado', 'void')
-            .order('fecha', { ascending: false })
-            .limit(50);
 
         const transaccionesAgrupadas = agruparTransaccionesPorPago(transaccionesCliente);
 

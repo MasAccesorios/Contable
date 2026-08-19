@@ -70,20 +70,23 @@ export const DetalleBancoModule = {
                 const facturaIds = [...new Set(pagos.map(p => p.factura_id).filter(Boolean))];
                 
                 let contactosMap = {};
-                if (contactoIds.length > 0) {
-                    const { data: contactos } = await supabase.from('contactos').select('id, nombre, identificacion').in('id', contactoIds);
-                    if (contactos) {
-                        contactos.forEach(c => contactosMap[c.id] = c);
-                    }
-                }
-                
                 let facturasMap = {};
-                if (facturaIds.length > 0) {
+
+                const [contactosResult, facturasResult] = await Promise.all([
+                    contactoIds.length > 0
+                        ? supabase.from('contactos').select('id, nombre, identificacion').in('id', contactoIds)
+                        : Promise.resolve({ data: [] }),
                     // Cambio A: añadir contacto_id para poder resolver el tercero desde la factura
-                    const { data: facturas } = await supabase.from('facturas').select('id, numero, contacto_id').in('id', facturaIds);
-                    if (facturas) {
-                        facturas.forEach(f => facturasMap[f.id] = f);
-                    }
+                    facturaIds.length > 0
+                        ? supabase.from('facturas').select('id, numero, contacto_id').in('id', facturaIds)
+                        : Promise.resolve({ data: [] })
+                ]);
+
+                if (contactosResult.data) {
+                    contactosResult.data.forEach(c => contactosMap[c.id] = c);
+                }
+                if (facturasResult.data) {
+                    facturasResult.data.forEach(f => facturasMap[f.id] = f);
                 }
 
                 // Ampliar el lookup de contactos con los contacto_id que vienen

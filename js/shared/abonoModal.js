@@ -122,7 +122,7 @@ export const AbonoModal = {
                             
                             <div class="d-flex justify-content-between align-items-center mt-2 pt-3 border-top">
                                 <a href="#" id="btn-abono-avanzado" class="text-decoration-none text-dark" style="font-size: 14px; font-weight: 500;"><i class="bi bi-arrow-up-right"></i> Ir al formulario avanzado</a>
-                                <button type="submit" class="btn text-white px-4 py-2" style="background-color: #38bdf8; border: none; border-radius: 8px; font-weight: 500;">Agregar pago</button>
+                                <button type="submit" id="btn-guardar-abono" class="btn text-white px-4 py-2" style="background-color: #38bdf8; border: none; border-radius: 8px; font-weight: 500;">Agregar pago</button>
                             </div>
                         </form>
                     </div>
@@ -199,8 +199,17 @@ export const AbonoModal = {
                 return;
             }
 
-            const factura = await DB.get('facturas', this.facturaId);
-            if (factura) {
+            const btnSubmit = document.getElementById('btn-guardar-abono');
+            if (btnSubmit && btnSubmit.disabled) return;
+            if (btnSubmit) {
+                btnSubmit.disabled = true;
+                btnSubmit.dataset.originalText = btnSubmit.innerHTML;
+                btnSubmit.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Guardando...';
+            }
+
+            try {
+                const factura = await DB.get('facturas', this.facturaId);
+                if (factura) {
                 // Inferir tipo de pago automáticamente desde el tipo de factura
                 // venta → ingreso (entrada de dinero), compra/gasto → egreso (salida de dinero)
                 const tipoPago = (factura.tipo === 'compra' || factura.tipo === 'gasto') ? 'egreso' : 'ingreso';
@@ -225,6 +234,12 @@ export const AbonoModal = {
                     }
                 }, { once: true });
                 this.modalInstance.hide();
+            }
+            } finally {
+                if (btnSubmit) {
+                    btnSubmit.disabled = false;
+                    btnSubmit.innerHTML = btnSubmit.dataset.originalText;
+                }
             }
         });
         

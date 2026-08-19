@@ -97,7 +97,7 @@ export async function mostrarDetalleTransaccion(t, onSuccess) {
                         </div>
                         ${facturasAsociadasHtml}
                         <div class="d-grid mt-4" id="wrap-btn-guardar" style="display:none;">
-                            <button type="submit" class="btn text-white" style="background-color: #2cbfb7;">Guardar cambios</button>
+                            <button type="submit" id="btn-guardar-trans-edit" class="btn text-white" style="background-color: #2cbfb7;">Guardar cambios</button>
                         </div>
                     </form>
                 </div>
@@ -131,6 +131,15 @@ export async function mostrarDetalleTransaccion(t, onSuccess) {
 
     document.getElementById('form-editar-trans').addEventListener('submit', async (ev) => {
         ev.preventDefault();
+        
+        const btnSubmit = document.getElementById('btn-guardar-trans-edit');
+        if (btnSubmit && btnSubmit.disabled) return;
+        if (btnSubmit) {
+            btnSubmit.disabled = true;
+            btnSubmit.dataset.originalText = btnSubmit.innerHTML;
+            btnSubmit.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Guardando...';
+        }
+
         try {
             const updatePayload = {
                 fecha: document.getElementById('edit-trans-fecha').value,
@@ -160,13 +169,7 @@ export async function mostrarDetalleTransaccion(t, onSuccess) {
                 }
             }
             
-            const query = supabase.from('pagos_ingresos').update(updatePayload);
-            const { error } = isGroup
-                ? await query.eq('grupo_pago_id', t.grupo_pago_id)
-                : await query.eq('id', t.id);
-                
-            if (error) throw error;
-            
+            let estadosFacturas = [];
             // Recalcular facturas si hubo cambios en monto o reasignacion
             if (!isGroup && (oldFacturaId !== newFacturaId || oldMonto !== newMonto)) {
                 const facturaIdsAfectadas = [...new Set([oldFacturaId, newFacturaId].filter(Boolean))];
@@ -182,11 +185,20 @@ export async function mostrarDetalleTransaccion(t, onSuccess) {
                                 ...tx, tipo: tx.tipo === 'in' ? 'ingreso' : 'egreso'
                             }));
                             const metricas = calcularEstadoFactura(f, txM);
-                            await supabase.from('facturas').update({ estado: metricas.estado }).eq('id', f.id);
+                            estadosFacturas.push({ id: f.id, estado: metricas.estado });
                         }
                     }
                 }
             }
+
+            const { error } = await supabase.rpc('editar_transaccion_y_actualizar_facturas', {
+                p_es_grupo: isGroup,
+                p_pago_id: t.id,
+                p_grupo_pago_id: t.grupo_pago_id || null,
+                p_update_payload: updatePayload,
+                p_estados_facturas: estadosFacturas
+            });
+            if (error) throw error;
 
             document.activeElement?.blur();
             const modalEl = document.getElementById('modalDetalleTransaccion');
@@ -196,6 +208,11 @@ export async function mostrarDetalleTransaccion(t, onSuccess) {
             modalInstance.hide();
         } catch (err) {
             alert('Error al guardar: ' + (err?.message || JSON.stringify(err)));
+        } finally {
+            if (btnSubmit) {
+                btnSubmit.disabled = false;
+                btnSubmit.innerHTML = btnSubmit.dataset.originalText;
+            }
         }
     });
 }

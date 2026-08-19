@@ -41,7 +41,6 @@ const routes = {
     'inventario/items': () => import('../modules/productos/productos.js'),
     'inventario/valor': () => import('../modules/inventario/valorizacion.js'),
     'inventario/ajustes': () => import('../modules/inventario/ajustes.js'),
-    'importador': () => import('../modules/integracion-alegra/importador.js'),
     'ingresos/cotizaciones': () => import('../modules/ingresos/cotizaciones.js'),
     'ingresos/cuenta-cobro': () => import('../modules/ingresos/cuentaCobro.js'),
     'ingresos/operativos': () => import('../modules/gastos/ingresos_operativos.js'),

@@ -16,8 +16,8 @@ export function agruparTransaccionesPorPago(transacciones) {
 }
 
 export async function anularTransaccion(idOGrupo, esGrupo = false) {
-    // 1. Obtener los factura_id afectados antes de anular
-    let querySelect = supabase.from('pagos_ingresos').select('factura_id');
+    // 1. Obtener las filas afectadas (id, factura_id, grupo_pago_id) antes de anular
+    let querySelect = supabase.from('pagos_ingresos').select('id, factura_id, grupo_pago_id');
     if (esGrupo) {
         querySelect = querySelect.eq('grupo_pago_id', idOGrupo);
     } else {
@@ -25,24 +25,18 @@ export async function anularTransaccion(idOGrupo, esGrupo = false) {
     }
     const { data: filasAfectadas } = await querySelect;
     const facturaIds = [...new Set((filasAfectadas || []).map(f => f.factura_id).filter(Boolean))];
+    const idsAnulados = new Set((filasAfectadas || []).map(f => String(f.id)));
 
-    // 2. Anular la transacción
-    let queryUpdate = supabase.from('pagos_ingresos').update({ estado: 'anulado' });
-    if (esGrupo) {
-        queryUpdate = queryUpdate.eq('grupo_pago_id', idOGrupo);
-    } else {
-        queryUpdate = queryUpdate.eq('id', parseInt(idOGrupo, 10));
-    }
-    const { error } = await queryUpdate;
-    if (error) throw error;
-    
-    // 3. Recalcular y actualizar estado de las facturas afectadas
+    let estadosFacturas = [];
+
+    // 2. Recalcular estado de las facturas afectadas, tratando las filas que se van a anular
+    //    como ya anuladas en el cálculo local (sin depender de que la escritura ya haya ocurrido)
     if (facturaIds.length > 0) {
         const { data: transaccionesRelevantes } = await supabase
             .from('pagos_ingresos')
             .select('*')
             .in('factura_id', facturaIds);
-            
+
         const { data: facturas } = await supabase
             .from('facturas')
             .select('*')
@@ -53,19 +47,27 @@ export async function anularTransaccion(idOGrupo, esGrupo = false) {
             for (let f of facturas) {
                 const estadoOriginal = f.estado;
                 f.estado = 'pendiente'; // Temporal para forzar recálculo dinámico sin short-circuit
-                
+
                 const txMapeadas = transaccionesRelevantes.map(t => ({
                     ...t,
-                    tipo: t.tipo === 'in' ? 'ingreso' : 'egreso'
+                    tipo: t.tipo === 'in' ? 'ingreso' : 'egreso',
+                    estado: idsAnulados.has(String(t.id)) ? 'anulado' : t.estado
                 }));
-                
+
                 const metricas = calcularEstadoFactura(f, txMapeadas);
-                
-                // Actualizamos BD siempre para asegurar que deje de decir 'pagada'/'closed' si ya no lo está
-                await supabase.from('facturas').update({ estado: metricas.estado }).eq('id', f.id);
+                estadosFacturas.push({ id: f.id, estado: metricas.estado });
             }
         }
     }
+
+    // 3. Anular la(s) transaccion(es) y actualizar las facturas en una sola transaccion atomica
+    const { error } = await supabase.rpc('anular_transaccion_y_actualizar_facturas', {
+        p_es_grupo: esGrupo,
+        p_pago_id: esGrupo ? null : parseInt(idOGrupo, 10),
+        p_grupo_pago_id: esGrupo ? idOGrupo : null,
+        p_estados_facturas: estadosFacturas
+    });
+    if (error) throw error;
 
     if (DB.invalidateCache) {
         DB.invalidateCache('transacciones');
