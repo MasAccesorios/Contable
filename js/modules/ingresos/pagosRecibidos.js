@@ -176,31 +176,26 @@ export const PagosRecibidosModule = {
                     color: #334155;
                     border-bottom: 1px solid #f1f5f9 !important;
                 }
-                .mas-receipt-total-box {
-                    background-color: #f8fafc;
-                    border: 1px solid #e2e8f0;
-                    border-left: 4px solid #0f172a;
-                    border-radius: 8px;
-                    padding: 14px 18px;
-                    text-align: right;
-                    box-shadow: none;
-                    -webkit-print-color-adjust: exact !important;
-                    print-color-adjust: exact !important;
+                .mas-receipt-total-row {
+                    display: flex;
+                    justify-content: flex-end;
+                    align-items: baseline;
+                    gap: 10px;
+                    padding-top: 14px;
+                    border-top: 2px solid #059669;
                 }
                 .mas-receipt-total-label {
-                    font-size: 11px;
+                    font-size: 12px;
                     color: #64748b;
-                    margin-bottom: 2px;
                     text-transform: uppercase;
-                    letter-spacing: 0.5px;
+                    letter-spacing: 0.6px;
                     font-weight: 600;
                 }
                 .mas-receipt-total-amount {
-                    font-size: 22px;
+                    font-size: 26px;
                     font-weight: 800;
-                    letter-spacing: -0.5px;
-                    line-height: 1;
                     color: #0f172a;
+                    letter-spacing: -0.6px;
                 }
                 .mas-receipt-stamp {
                     position: absolute;
@@ -285,19 +280,13 @@ export const PagosRecibidosModule = {
                     </div>
 
                     <div class="mas-receipt-footer position-relative" style="z-index: 1;">
-                        <div class="row align-items-center">
-                            <div class="col-sm-7 mb-3 mb-sm-0">
-                                <div class="mas-receipt-info-label" style="color: #475569;">Observaciones</div>
-                                <p style="font-size: 12px; color: #64748b; line-height: 1.4; margin: 0; padding-right: 15px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
-                                    ${t.observaciones ? t.observaciones : 'Sin notas adicionales.'}
-                                </p>
-                            </div>
-                            <div class="col-sm-5">
-                                <div class="mas-receipt-total-box">
-                                    <div class="mas-receipt-total-label">Total Recibido</div>
-                                    <div class="mas-receipt-total-amount">$${Number(t.monto).toLocaleString('es-CO')}</div>
-                                </div>
-                            </div>
+                        <div class="mas-receipt-info-label" style="color: #475569;">Observaciones</div>
+                        <p style="font-size: 12px; color: #64748b; line-height: 1.4; margin: 0 0 16px 0; padding-right: 15px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                            ${t.observaciones ? t.observaciones : 'Sin notas adicionales.'}
+                        </p>
+                        <div class="mas-receipt-total-row">
+                            <span class="mas-receipt-total-label">Total Recibido</span>
+                            <span class="mas-receipt-total-amount">$${Number(t.monto).toLocaleString('es-CO')}</span>
                         </div>
                         
                         <!-- Sección de firmas para impresión -->
