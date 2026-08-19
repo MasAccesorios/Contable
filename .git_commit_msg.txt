@@ -1,7 +1,4 @@
-﻿Auditoria de integridad: RPCs atomicas para pagos/facturas, proteccion anti-doble-clic, limpieza de archivos obsoletos, retiro del modulo de importacion Alegra
+﻿Fix: nombre de cliente/proveedor faltante en recibos cuando el pago no tiene contacto_id directo
 
-- Nuevas RPCs en Supabase: editar_transaccion_y_actualizar_facturas, anular_transaccion_y_actualizar_facturas (evitan descuadre banco/factura ante fallo de red)
-- Bloqueo de boton + spinner en transaccionModal.js y abonoModal.js (previene registros duplicados por doble clic)
-- Paralelizadas consultas secuenciales en clientes.js y bancos/detalle.js
-- Eliminados: old_db.js, datos_alegra.bak.json, datos_alegra.json, log_fusion_contactos_SIMULACION_2026-07-23.json, test.json, test2.json, fix.py
-- Retirado el modulo de importacion Alegra (importador.js, ruta y entrada de menu) por no usarse mas
+Resuelve el nombre y NIT/CC via facturas.contacto_id cuando pagos_ingresos.contacto_id es null.
+Afecta: pagosRecibidos.js, pagosRealizados.js

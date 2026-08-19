@@ -36,7 +36,7 @@ export const PagosRealizadosModule = {
     
     async mostrarDetalle(id, mode = 'preview') {
         if (mode === 'print') {
-            const { data: t } = await supabase.from('pagos_ingresos').select('*, contactos(*), cuentas_bancarias(*), facturas(*)').eq('id', id).single();
+            const { data: t } = await supabase.from('pagos_ingresos').select('*, contactos(*), cuentas_bancarias(*), facturas(*, contactos(*))').eq('id', id).single();
             if (t) {
                 const { PrintManager } = await import('../../shared/crud.js');
                 PrintManager._renderPreviewShell(this.getComprobanteHTML(t, true), { mode: 'print', title: 'Comprobante de Egreso', fileName: `comprobante_egreso_${t.numero || t.id}.png` });
@@ -47,7 +47,7 @@ export const PagosRealizadosModule = {
         this.state.isLoading = true;
         this.render();
         try {
-            const { data: t } = await supabase.from('pagos_ingresos').select('*, contactos(*), cuentas_bancarias(*), facturas(*)').eq('id', id).single();
+            const { data: t } = await supabase.from('pagos_ingresos').select('*, contactos(*), cuentas_bancarias(*), facturas(*, contactos(*))').eq('id', id).single();
             if (t) {
                 this.state.currentComprobanteData = t;
                 this.state.view = 'detalle';
@@ -238,8 +238,8 @@ export const PagosRealizadosModule = {
                         <div class="row mb-3 align-items-start">
                             <div class="col-sm-6 mb-2 mb-sm-0">
                                 <div class="mas-receipt-info-label">Pagado a</div>
-                                <div class="mas-receipt-info-value" title="${t.contactos?.nombre || 'Proveedor / Tercero'}" style="font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${t.contactos?.nombre || 'Proveedor / Tercero'}</div>
-                                ${t.contactos?.identificacion ? `<div style="font-size: 12px; color: #64748b; margin-top: 2px;">NIT/CC: ${t.contactos.identificacion}</div>` : ''}
+                                <div class="mas-receipt-info-value" title="${t.contactos?.nombre || t.facturas?.contactos?.nombre || 'Proveedor / Tercero'}" style="font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${t.contactos?.nombre || t.facturas?.contactos?.nombre || 'Proveedor / Tercero'}</div>
+                                ${(t.contactos?.identificacion || t.facturas?.contactos?.identificacion) ? `<div style="font-size: 12px; color: #64748b; margin-top: 2px;">NIT/CC: ${t.contactos?.identificacion || t.facturas?.contactos?.identificacion}</div>` : ''}
                             </div>
                             <div class="col-sm-6 text-sm-end">
                                 <div class="row">
