@@ -107,7 +107,7 @@ export const PagosRecibidosModule = {
                         -webkit-print-color-adjust: exact !important;
                         print-color-adjust: exact !important;
                     }
-                    .mas-receipt-container { padding: 0 !important; margin: 0 auto !important; padding-top: 12mm !important; }
+                    .mas-receipt-container { padding: 0 !important; margin: 0 auto !important; padding-top: 4mm !important; }
                     .mas-receipt-card { page-break-inside: avoid; }
                 }
                 .mas-receipt-container {
