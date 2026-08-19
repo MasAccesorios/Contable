@@ -123,10 +123,10 @@ export const PagosRecibidosModule = {
                 .mas-receipt-header {
                     background: ${isPrintMode ? 'transparent' : 'linear-gradient(to right, #f8fafc, #ffffff)'};
                     border-bottom: 2px dashed #cbd5e1;
-                    padding: 10px 20px 8px 20px;
+                    padding: 14px 20px;
                 }
                 .mas-receipt-body {
-                    padding: 8px 20px;
+                    padding: 14px 20px;
                 }
                 .mas-receipt-footer {
                     background: #f8fafc;
@@ -177,28 +177,30 @@ export const PagosRecibidosModule = {
                     border-bottom: 1px solid #f1f5f9 !important;
                 }
                 .mas-receipt-total-box {
-                    background-color: #0f172a;
-                    color: #ffffff;
-                    border-radius: 12px;
-                    padding: 16px;
+                    background-color: #f8fafc;
+                    border: 1px solid #e2e8f0;
+                    border-left: 4px solid #0f172a;
+                    border-radius: 8px;
+                    padding: 14px 18px;
                     text-align: right;
-                    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+                    box-shadow: none;
                     -webkit-print-color-adjust: exact !important;
                     print-color-adjust: exact !important;
                 }
                 .mas-receipt-total-label {
                     font-size: 11px;
-                    color: #94a3b8;
+                    color: #64748b;
                     margin-bottom: 2px;
                     text-transform: uppercase;
                     letter-spacing: 0.5px;
+                    font-weight: 600;
                 }
                 .mas-receipt-total-amount {
-                    font-size: 24px;
-                    font-weight: 700;
+                    font-size: 22px;
+                    font-weight: 800;
                     letter-spacing: -0.5px;
                     line-height: 1;
-                    color: #ffffff;
+                    color: #0f172a;
                 }
                 .mas-receipt-stamp {
                     position: absolute;
@@ -233,7 +235,7 @@ export const PagosRecibidosModule = {
                     </div>
 
                     <div class="mas-receipt-body position-relative" style="z-index: 1;">
-                        <div class="row mb-2 align-items-start">
+                        <div class="row mb-3 align-items-start">
                             <div class="col-sm-6 mb-2 mb-sm-0">
                                 <div class="mas-receipt-info-label">Recibido de</div>
                                 <div class="mas-receipt-info-value" title="${t.contactos?.nombre || 'Cliente Contado'}" style="font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${t.contactos?.nombre || 'Cliente Contado'}</div>
@@ -299,7 +301,7 @@ export const PagosRecibidosModule = {
                         </div>
                         
                         <!-- Sección de firmas para impresión -->
-                        <div class="mt-1 pt-1 border-top" style="display: ${isPrintMode ? 'flex' : 'none'}; justify-content: space-between; border-color: #cbd5e1 !important;">
+                        <div class="mt-2 pt-2 border-top" style="display: ${isPrintMode ? 'flex' : 'none'}; justify-content: space-between; border-color: #cbd5e1 !important;">
                             <div style="width: 45%; text-align: center;">
                                 <div style="border-bottom: 1px solid #94a3b8; height: 20px; margin-bottom: 4px;"></div>
                                 <div style="font-size: 10px; color: #64748b; font-weight: 500; text-transform: uppercase;">Firma y Sello de la Empresa</div>
