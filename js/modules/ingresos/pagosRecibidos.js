@@ -101,9 +101,18 @@ export const PagosRecibidosModule = {
             <style>
                 @page { size: 215.9mm 139.7mm; margin: 8mm; } /* Formato Media Carta (Half-Letter) */
                 @media print {
-                    body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; margin: 0; padding: 0; }
-                    .mas-receipt-container { padding: 0 !important; margin: 0 !important; }
-                    .mas-receipt-card { page-break-inside: avoid; border: none; box-shadow: none; border-radius: 0; margin: 0 !important; }
+                    html, body {
+                        height: 100%;
+                        margin: 0;
+                        padding: 0;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        -webkit-print-color-adjust: exact !important;
+                        print-color-adjust: exact !important;
+                    }
+                    .mas-receipt-container { padding: 0 !important; margin: 0 !important; width: 100%; }
+                    .mas-receipt-card { page-break-inside: avoid; margin: 0 auto !important; }
                 }
                 .mas-receipt-container {
                     font-family: 'Inter', system-ui, -apple-system, sans-serif;
