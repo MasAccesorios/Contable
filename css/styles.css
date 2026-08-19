@@ -371,10 +371,7 @@ body {
 }
 
 @media print {
-    @page {
-        size: letter;
-        margin: 0.5in;
-    }
+    /* DESACTIVADO TEMPORAL para diagnÃ³stico - aislar bug de Recibo de Caja\n    @page {\n        size: letter;\n        margin: 0.5in;\n    }\n    */
 
     #app-container {
         position: absolute !important;
@@ -1204,7 +1201,7 @@ html[data-theme="dark-blue"] input[type="date"] {
 
 
 /* --------------------------------------------------------------------------
-   AUDITOR¨ªA DE COMPONENTES BOOTSTRAP PARA TEMAS OSCUROS
+   AUDITORï¿½ï¿½A DE COMPONENTES BOOTSTRAP PARA TEMAS OSCUROS
    -------------------------------------------------------------------------- */
 
 /* 1. Modales */
@@ -1218,7 +1215,7 @@ html[data-theme^="dark"] .modal-footer {
     border-color: var(--border-color) !important;
 }
 
-/* 2. Dropdowns y Men¨²s Contextuales */
+/* 2. Dropdowns y Menï¿½ï¿½s Contextuales */
 html[data-theme^="dark"] .dropdown-menu {
     background-color: var(--surface) !important;
     border-color: var(--border-color) !important;
@@ -1232,7 +1229,7 @@ html[data-theme^="dark"] .dropdown-item:focus {
     color: var(--text-main) !important;
 }
 
-/* 3. Cards gen¨¦ricas y Footers */
+/* 3. Cards genï¿½ï¿½ricas y Footers */
 html[data-theme^="dark"] .card,
 html[data-theme^="dark"] .card-header,
 html[data-theme^="dark"] .card-footer {
@@ -1312,7 +1309,7 @@ html[data-theme^="dark"] .preview-document-template .text-dark {
     color: #212529 !important;
 }
 
-/* 9. Men¨² lateral (sidebar) ¡ª texto y submen¨²s desplegables */
+/* 9. Menï¿½ï¿½ lateral (sidebar) ï¿½ï¿½ texto y submenï¿½ï¿½s desplegables */
 html[data-theme^="dark"] .menu-item,
 html[data-theme^="dark"] .dropdown-trigger {
     color: var(--text-body) !important;
@@ -1335,7 +1332,7 @@ html[data-theme^="dark"] .dropdown-content a.active {
     color: var(--primary) !important;
 }
 
-/* 10. Buscador general del header y bot¨®n "+" de accesos r¨¢pidos */
+/* 10. Buscador general del header y botï¿½ï¿½n "+" de accesos rï¿½ï¿½pidos */
 html[data-theme^="dark"] #global-search {
     background-color: var(--surface) !important;
     color: var(--text-main) !important;

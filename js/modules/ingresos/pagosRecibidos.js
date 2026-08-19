@@ -100,7 +100,7 @@ export const PagosRecibidosModule = {
         return `
             <style>
                 @media print {
-                    @page { size: 215.9mm 139.7mm !important; margin: 8mm !important; } /* Formato Media Carta (Half-Letter) */
+                    @page { size: 215.9mm 139.7mm; margin: 8mm; } /* Formato Media Carta (Half-Letter) */
                     body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; margin: 0; padding: 0; }
                     .mas-receipt-container { padding: 0 !important; margin: 0 !important; }
                     .mas-receipt-card { page-break-inside: avoid; border: none; box-shadow: none; border-radius: 0; margin: 0 !important; }

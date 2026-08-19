@@ -382,10 +382,12 @@ export const CoreActions = {
                     #print-sandbox, #print-sandbox * { visibility: visible; }
                     
                     /* Configuración del tamaño de la hoja física en el navegador */
+                    /* DESACTIVADO TEMPORAL para diagnóstico - aislar bug de Recibo de Caja
                     @page {
                         size: letter portrait; /* O "A5 portrait" si usas papel media hoja nativo */
                         margin: 0;
                     }
+                    */
                     
                     #print-sandbox {
                         position: absolute;
