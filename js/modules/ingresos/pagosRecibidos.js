@@ -114,14 +114,14 @@ export const PagosRecibidosModule = {
                 }
                 .mas-receipt-card {
                     background: #ffffff;
-                    border: ${isPrintMode ? 'none' : '1px solid #e2e8f0'};
-                    border-radius: ${isPrintMode ? '0' : '16px'};
-                    box-shadow: ${isPrintMode ? 'none' : '0 10px 25px rgba(0,0,0,0.05)'};
+                    border: 1px solid #e2e8f0;
+                    border-radius: 16px;
+                    box-shadow: 0 10px 25px rgba(0,0,0,0.05);
                     overflow: hidden;
                     position: relative;
                 }
                 .mas-receipt-header {
-                    background: ${isPrintMode ? 'transparent' : 'linear-gradient(to right, #f8fafc, #ffffff)'};
+                    background: linear-gradient(to right, #f8fafc, #ffffff);
                     border-bottom: 2px dashed #cbd5e1;
                     padding: 14px 20px;
                 }
@@ -130,10 +130,10 @@ export const PagosRecibidosModule = {
                 }
                 .mas-receipt-footer {
                     background: #f8fafc;
-                    padding: 16px 20px;
+                    padding: 14px 20px;
                     border-top: 1px solid #e2e8f0;
-                    border-bottom-left-radius: ${isPrintMode ? '0' : '16px'};
-                    border-bottom-right-radius: ${isPrintMode ? '0' : '16px'};
+                    border-bottom-left-radius: 16px;
+                    border-bottom-right-radius: 16px;
                 }
                 .mas-receipt-status-badge {
                     display: inline-block;
@@ -211,7 +211,7 @@ export const PagosRecibidosModule = {
                     z-index: 0;
                 }
             </style>
-            <div class="mas-receipt-container" style="padding: ${isPrintMode ? '0' : '20px'};">
+            <div class="mas-receipt-container" style="padding: 20px;">
                 <div class="mas-receipt-card">
                     <!-- Marca de agua opcional -->
                     <div class="mas-receipt-stamp">PAGO RECIBIDO</div>
