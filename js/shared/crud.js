@@ -849,10 +849,11 @@ export const PrintManager = {
             const iframe = document.createElement('iframe');
             iframe.id = 'print-iframe-aislado';
             iframe.style.position = 'fixed';
-            iframe.style.width = '0';
-            iframe.style.height = '0';
+            iframe.style.width = '800px';
+            iframe.style.height = '600px';
+            iframe.style.left = '-9999px';
+            iframe.style.top = '0';
             iframe.style.border = '0';
-            iframe.style.visibility = 'hidden';
             document.body.appendChild(iframe);
 
             const doc = iframe.contentDocument || iframe.contentWindow.document;
