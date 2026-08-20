@@ -36,11 +36,11 @@ export const PagosRecibidosModule = {
     },
     
     async mostrarDetalle(id, mode = 'preview') {
-        if (mode === 'print') {
+        if (mode === 'print' || mode === 'vista-previa') {
             const { data: t } = await supabase.from('pagos_ingresos').select('*, contactos(*), cuentas_bancarias(*), facturas(*, contactos(*))').eq('id', id).single();
             if (t) {
                 const { PrintManager } = await import('../../shared/crud.js');
-                PrintManager._renderPreviewShell(this.getComprobanteHTML(t, true), { mode: 'print', title: 'Comprobante de Ingreso', fileName: `comprobante_ingreso_${t.numero || t.id}.png` });
+                PrintManager._renderPreviewShell(this.getComprobanteHTML(t, true), { mode: mode === 'vista-previa' ? 'preview' : 'print', title: 'Comprobante de Ingreso', fileName: `comprobante_ingreso_${t.numero || t.id}.png` });
             }
             return;
         }
@@ -332,6 +332,9 @@ export const PagosRecibidosModule = {
                         <i class="bi bi-arrow-left"></i> Volver a Pagos Recibidos
                     </button>
                     <div class="d-flex gap-2">
+                        <button class="btn btn-outline-secondary text-secondary border-secondary bg-secondary bg-opacity-10 fw-medium px-4" id="btn-vista-previa-comprobante" data-id="${t.id}">
+                            <i class="bi bi-file-earmark-image me-2"></i> Vista Previa
+                        </button>
                         <button class="btn btn-outline-info text-info border-info bg-info bg-opacity-10 fw-medium px-4" id="btn-imprimir-comprobante" data-id="${t.id}">
                             <i class="bi bi-printer me-2"></i> Imprimir
                         </button>
@@ -533,6 +536,14 @@ export const PagosRecibidosModule = {
                 this.state.view = 'lista';
                 this.state.currentComprobanteData = null;
                 this.render();
+            });
+        }
+        
+        const btnVistaPrevia = container.querySelector('#btn-vista-previa-comprobante');
+        if (btnVistaPrevia) {
+            btnVistaPrevia.addEventListener('click', (e) => {
+                const id = e.currentTarget.dataset.id;
+                this.mostrarDetalle(id, 'vista-previa');
             });
         }
         
