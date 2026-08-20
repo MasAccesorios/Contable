@@ -188,7 +188,7 @@ export const FacturasModule = {
                         <div class="card-header bg-white border-bottom p-3 d-flex gap-3 align-items-center" style="border-radius: 8px 8px 0 0;">
                             <div class="input-group input-group-sm" style="width: 250px;">
                                 <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
-                                <input type="text" class="form-control border-start-0 ps-0 text-muted" id="search-input" placeholder="Buscar..." value="${searchQuery}" style="font-size: 13px; box-shadow: none;">
+                                <input type="text" class="form-control border-start-0 ps-0 text-muted" id="searchFacturas" placeholder="Buscar por fecha, cliente, número..." value="${searchQuery}" style="font-size: 13px; box-shadow: none;">
                             </div>
                             <div class="dropdown">
                                 <button class="btn btn-link text-decoration-none text-muted p-0 dropdown-toggle" data-bs-toggle="dropdown" style="font-size: 14px;">
@@ -241,20 +241,22 @@ export const FacturasModule = {
         };
 
         const bindGridEvents = () => {
-            // Búsqueda en vivo (Debounced simple)
-            const searchInput = element.querySelector('#search-input');
+            // Re-aplicar focus si venimos de un re-render
+            const searchInput = element.querySelector('#searchFacturas');
             if (searchInput) {
                 searchInput.focus();
-                // Cursor al final
                 const val = searchInput.value;
                 searchInput.value = '';
                 searchInput.value = val;
+            }
 
+            // Buscador del servidor con debounce
+            if (searchInput) {
                 let debounceTimer;
                 searchInput.addEventListener('input', (e) => {
                     clearTimeout(debounceTimer);
                     debounceTimer = setTimeout(() => {
-                        searchQuery = e.target.value.toLowerCase().trim();
+                        searchQuery = e.target.value.trim();
                         currentPage = 1;
                         renderGrid();
                     }, 400);
