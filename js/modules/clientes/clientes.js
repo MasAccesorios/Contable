@@ -106,7 +106,7 @@ export const ContactosModule = {
                             </li>
                         </ul>
 
-                        <div id="contactos-view-container" class="view-container p-4">
+                        <div id="contactos-list-view" class="view-container p-4">
                             <!-- Buscador y Tabla Principal -->
                             <div id="tabla-contactos-wrapper">
                                 <!-- Buscador -->
@@ -164,6 +164,7 @@ export const ContactosModule = {
                                 </div>
                             </div>
                         </div>
+                        <div id="contactos-action-view" class="view-container p-4" style="display: none;"></div>
                     </div>
                 </div>
             </div>
@@ -436,11 +437,17 @@ export const ContactosModule = {
     },
 
     async renderForm(id = null) {
-        const container = this.element.querySelector('#contactos-view-container');
-        if (!container) return;
+        const listView = this.element.querySelector('#contactos-list-view');
+        const actionView = this.element.querySelector('#contactos-action-view');
+        if (!listView || !actionView) return;
+
+        listView.style.display = 'none';
+        actionView.style.display = 'block';
 
         const tabs = this.element.querySelector('#contactos-tabs');
         if (tabs) tabs.style.display = 'none';
+        const kpiRow = this.element.querySelector('#contactos-kpi-row');
+        if (kpiRow) kpiRow.style.display = 'none';
 
         let contacto = { nombre: '', nit: '', tipo: 'cliente', telefono: '', email: '', ciudad: '', direccion: '', regimen: 'Regimen Simplificado', cupoCredito: 0, plazosPago: 0 };
         
@@ -448,7 +455,7 @@ export const ContactosModule = {
             contacto = await DB.get('contactos', id) || contacto;
         }
 
-        container.innerHTML = `
+        actionView.innerHTML = `
             <div class="form-hoja-completa bg-white rounded">
                 <div class="d-flex align-items-center mb-3">
                     <button id="btn-cancelar-contacto"
@@ -561,8 +568,12 @@ export const ContactosModule = {
     },
 
     async renderDetalle(id) {
-        const container = this.element.querySelector('#contactos-view-container');
-        if (!container) return;
+        const listView = this.element.querySelector('#contactos-list-view');
+        const actionView = this.element.querySelector('#contactos-action-view');
+        if (!listView || !actionView) return;
+
+        listView.style.display = 'none';
+        actionView.style.display = 'block';
 
         const tabs = this.element.querySelector('#contactos-tabs');
         if (tabs) tabs.style.display = 'none';
@@ -623,7 +634,7 @@ export const ContactosModule = {
 
         const colorSaldo = saldoPorCobrarTotal > 0 ? '#e74c3c' : '#2cbfb7';
 
-        container.innerHTML = `
+        actionView.innerHTML = `
             <div class="perfil-hoja-completa bg-white rounded">
                 <div class="d-flex align-items-center mb-3">
                     <button id="btn-volver-perfil"
@@ -877,68 +888,20 @@ export const ContactosModule = {
     },
 
     async restaurarVistaTabla() {
+        const actionView = this.element.querySelector('#contactos-action-view');
+        const listView = this.element.querySelector('#contactos-list-view');
         const tabs = this.element.querySelector('#contactos-tabs');
-        if (tabs) tabs.style.display = 'flex';
-        
-        const container = this.element.querySelector('#contactos-view-container');
-        if (container) {
-            container.innerHTML = `
-                <div id="tabla-contactos-wrapper">
-                    <div class="d-flex justify-content-between mb-3">
-                        <div class="input-group" style="max-width: 300px;">
-                            <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
-                            <input type="text" id="search-contacto" class="form-control border-start-0 ps-0" placeholder="Buscar..." style="box-shadow: none;" autocomplete="off">
-                            <button class="btn btn-outline-secondary border-start-0 bg-white" type="button" id="clearSearchBtnContactos" style="display: none;">
-                                <i class="bi bi-x"></i>
-                            </button>
-                        </div>
-                        <button id="btn-filtrar" class="btn btn-light border text-muted"><i class="bi bi-funnel"></i> Filtrar</button>
-                    </div>
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle">
-                            <thead class="table-light text-muted small text-uppercase">
-                                <tr>
-                                    <th class="py-2" style="width: 40px;"><input type="checkbox" class="form-check-input" id="check-all"></th>
-                                    <th class="py-2">Nombre <i class="bi bi-arrow-up-short"></i></th>
-                                    <th class="py-2">Identificación</th>
-                                    <th class="py-2">Teléfono</th>
-                                    <th class="py-2">Tipo</th>
-                                    <th class="py-2 text-end">Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody id="tbody-contactos"></tbody>
-                        </table>
-                    </div>
-                    <div class="d-flex justify-content-between align-items-center mt-3 text-muted small">
-                        <div class="d-flex align-items-center gap-3">
-                            <span>Página <span id="current-page">1</span> de <span id="total-pages">1</span></span>
-                            <div class="btn-group">
-                                <button class="btn btn-sm btn-light border text-muted" id="btn-prev-page"><i class="bi bi-chevron-left"></i></button>
-                                <button class="btn btn-sm btn-light border text-muted" id="btn-next-page"><i class="bi bi-chevron-right"></i></button>
-                            </div>
-                        </div>
-                        <div class="d-flex align-items-center gap-3">
-                            <span class="d-flex align-items-center gap-2">
-                                Contactos por página:
-                                <select id="items-per-page" class="form-select form-select-sm border-0 bg-transparent text-muted fw-bold" style="width: 60px; box-shadow: none; cursor: pointer;">
-                                    <option value="10" ${this.state.itemsPerPage === 10 ? 'selected' : ''}>10</option>
-                                    <option value="25" ${this.state.itemsPerPage === 25 ? 'selected' : ''}>25</option>
-                                    <option value="50" ${this.state.itemsPerPage === 50 ? 'selected' : ''}>50</option>
-                                </select>
-                            </span>
-                            <span id="showing-count">...</span>
-                            <button id="btn-refresh" class="btn btn-sm btn-light border text-muted rounded-circle" style="width: 30px; height: 30px; padding: 0;"><i class="bi bi-arrow-clockwise"></i></button>
-                        </div>
-                    </div>
-                </div>
-            `;
-            if (this.state.searchQuery) {
-                const search = this.element.querySelector('#search-contacto');
-                if (search) search.value = this.state.searchQuery;
-            }
-            this.bindEvents();
-            await this.cargarPagina();
+        const kpiRow = this.element.querySelector('#contactos-kpi-row');
+
+        if (actionView) {
+            actionView.innerHTML = '';
+            actionView.style.display = 'none';
         }
+        if (listView) listView.style.display = 'block';
+        if (tabs) tabs.style.display = 'flex';
+        if (kpiRow) kpiRow.style.display = 'flex';
+
+        await this.cargarPagina();
     },
 
     renderQuickModal(query, onSuccessCallback) {
