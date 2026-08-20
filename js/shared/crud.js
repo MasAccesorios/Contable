@@ -1422,14 +1422,26 @@ export const ExportManager = {
                 
                 // Mapear objetos a filas planas
                 const rows = dataArray.map(item => {
-                    const clienteNombre = getClienteNameFunc ? getClienteNameFunc(item.clienteId) : (item.clienteId || 'N/A');
+                    if (tipoModulo === 'Productos') {
+                        return {
+                            'SKU': item.sku || '',
+                            'Nombre': item.nombre || '',
+                            'Costo Base': formatMoney(item.costoBase || item.costo_base),
+                            'Precio Venta': formatMoney(item.precioVenta || item.precio_venta),
+                            'Stock Base': item.stock || 0,
+                            'Stock Mínimo': item.stockMinimo || item.stock_minimo || 0,
+                            'Estado': item.estado || 'Activo'
+                        };
+                    }
+
+                    const clienteNombre = getClienteNameFunc ? getClienteNameFunc(item.clienteId || item.cliente_id) : (item.clienteId || item.cliente_id || 'N/A');
                     const numDoc = item.numero || parseInt(String(item.id).replace(/\D/g, ''), 10) || item.id;
-                    const estado = item.convertidoAFactura ? 'Facturada' : 'Borrador';
+                    const estado = item.convertidoAFactura || item.convertido_a_factura ? 'Facturada' : 'Borrador';
 
                     return {
                         'Número de Documento': numDoc,
                         'Nombre del Cliente': clienteNombre,
-                        'Fecha de Creación': item.fecha || '',
+                        'Fecha de Creación': item.fecha || item.created_at || '',
                         'Valor Total': formatMoney(item.total),
                         'Estado Actual': estado
                     };

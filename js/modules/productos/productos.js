@@ -5,6 +5,7 @@ import { supabase } from '../../core/supabase.js';
 import { renderTablaFacturas } from '../../shared/tablaFacturas.js';
 import { calcularEstadoFactura } from '../../shared/carteraUtils.js';
 import { escapeHtml } from '../../shared/formatters.js';
+import { ExportManager } from '../../shared/crud.js';
 
 export const ProductosModule = {
     currentPage: 1,
@@ -147,6 +148,54 @@ export const ProductosModule = {
             
             btn.innerHTML = originalHtml;
             btn.disabled = false;
+        });
+
+        element.querySelector('#btn-export-list')?.addEventListener('click', async (e) => {
+            const btn = e.currentTarget;
+            const originalHtml = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = `<span class="spinner-border spinner-border-sm" aria-hidden="true"></span>`;
+            
+            try {
+                let allProducts = [];
+                let currentPage = 1;
+                const limit = 500;
+                let hasMore = true;
+                
+                while (hasMore) {
+                    const { data: pageResult, error } = await supabase.rpc('get_productos_page', {
+                        p_page: currentPage,
+                        p_limit: limit,
+                        p_sort_column: this.sortColumn,
+                        p_sort_direction: this.sortDirection,
+                        p_search_query: this.searchQuery,
+                        p_filter_criteria: this.filterCriteria
+                    });
+                    
+                    if (error) throw error;
+                    
+                    const productos = pageResult?.[0]?.data || [];
+                    const totalCount = parseInt(pageResult?.[0]?.total_count) || 0;
+                    
+                    if (productos.length > 0) {
+                        allProducts = allProducts.concat(productos);
+                    }
+                    
+                    if (allProducts.length >= totalCount || productos.length === 0) {
+                        hasMore = false;
+                    } else {
+                        currentPage++;
+                    }
+                }
+                
+                btn.innerHTML = originalHtml;
+                ExportManager.exportDataToExcel(allProducts, 'Productos', null, btn);
+            } catch (err) {
+                console.error("Error al recolectar productos para exportar:", err);
+                alert("Error al exportar los productos.");
+                btn.innerHTML = originalHtml;
+                btn.disabled = false;
+            }
         });
     },
 
