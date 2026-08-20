@@ -983,6 +983,7 @@ export const ComprasModule = {
                         const { data } = await supabase.from('contactos')
                             .select('id, nombre, identificacion, plazos_pago')
                             .eq('es_proveedor', true)
+                            .neq('estado', 'inactive')
                             .or(`nombre.ilike.%${query}%,identificacion.ilike.%${query}%`)
                             .limit(20);
                         return data ? data.map(d => ({ ...d, nit: d.identificacion, plazosPago: d.plazos_pago })) : [];
