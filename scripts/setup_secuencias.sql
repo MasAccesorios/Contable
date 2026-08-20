@@ -112,24 +112,26 @@ BEGIN
 
     -- Inserción de Detalles en Cascada dentro de la misma Transacción
     IF p_table = 'facturas' THEN
-        INSERT INTO factura_detalles (factura_id, producto_id, cantidad, precio_unitario, descuento_porcentaje, subtotal)
+        INSERT INTO factura_detalles (factura_id, producto_id, cantidad, precio_unitario, descuento_porcentaje, subtotal, descripcion_personalizada)
         SELECT 
             v_id,
             (detail->>'producto_id')::bigint,
             (detail->>'cantidad')::numeric,
             (detail->>'precio_unitario')::numeric,
             (detail->>'descuento_porcentaje')::numeric,
-            (detail->>'subtotal')::numeric
+            (detail->>'subtotal')::numeric,
+            detail->>'descripcion_personalizada'
         FROM jsonb_array_elements(p_details) AS detail;
     ELSIF p_table = 'cotizaciones' THEN
-        INSERT INTO cotizacion_detalles (cotizacion_id, producto_id, cantidad, precio_unitario, descuento_porcentaje, subtotal)
+        INSERT INTO cotizacion_detalles (cotizacion_id, producto_id, cantidad, precio_unitario, descuento_porcentaje, subtotal, descripcion_personalizada)
         SELECT 
             v_id,
             (detail->>'producto_id')::bigint,
             (detail->>'cantidad')::numeric,
             (detail->>'precio_unitario')::numeric,
             (detail->>'descuento_porcentaje')::numeric,
-            (detail->>'subtotal')::numeric
+            (detail->>'subtotal')::numeric,
+            detail->>'descripcion_personalizada'
         FROM jsonb_array_elements(p_details) AS detail;
     END IF;
 
