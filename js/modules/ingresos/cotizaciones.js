@@ -22,13 +22,6 @@ export const CotizacionesModule = {
     },
 
     async renderList(element) {
-        element.innerHTML = `
-            <div class="d-flex justify-content-center align-items-center" style="min-height: 400px;">
-                <div class="spinner-border" role="status" style="width: 3rem; height: 3rem; color: #2cbfb7;">
-                    <span class="visually-hidden">Cargando...</span>
-                </div>
-            </div>
-        `;
         // Estado de Paginación, Ordenamiento y Filtro
         let sortColumn = 'numero';
         let sortDirection = 'desc';
@@ -37,10 +30,139 @@ export const CotizacionesModule = {
         let searchQuery = '';
         let filterCriteria = 'todos'; // todos, numero, cliente, fecha, estado
         let filteredData = []; // Mantenido para exportación rápida de la página actual
+        let kpiDataCotizaciones = null;
 
         const formatMoney = (val) => '$ ' + parseFloat(val || 0).toLocaleString('es-CO', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 
+        // 1. INYECTAR HTML ESTÁTICO (Top Bar, KPIs vacíos, Filtros, Thead)
+        element.innerHTML = `
+            <div class="dash-layout p-4" style="max-width: 1100px; margin: 0 auto;">
+                
+                <!-- TOP BAR -->
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h2 class="h3 fw-bold mb-1" style="color: var(--text-main);">Cotizaciones</h2>
+                        <p class="text-muted mb-0" style="font-size: 14px;">
+                            Crea y gestiona cotizaciones personalizadas para tus clientes potenciales. 
+                            <a href="#" style="color: #2cbfb7; text-decoration: none;">Saber más</a>
+                        </p>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button id="btn-refresh-list" class="btn btn-light bg-white border me-2" style="font-weight: var(--weight-medium); font-size: 14px; color: var(--text-body);">
+                            <i class="bi bi-arrow-clockwise me-1"></i> Actualizar
+                        </button>
+                        <button id="btn-export-list" class="btn btn-light bg-white border" style="font-weight: var(--weight-medium); font-size: 14px; color: var(--text-body);">
+                            <i class="bi bi-download me-1"></i> Exportar
+                        </button>
+                        <a href="#/ingresos/cotizaciones/nueva" class="btn btn-primary-action">
+                            <i class="bi bi-plus-lg me-1"></i> Nueva cotización
+                        </a>
+                    </div>
+                </div>
+
+                <!-- KPI CARDS COTIZACIONES -->
+                <div class="row g-3 mb-4">
+                    <div class="col-12 col-sm-6 col-lg-4">
+                        <div class="dash-kpi-card d-flex flex-column justify-content-between" style="min-height: 90px;">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <span class="dash-kpi-label">Total Cotizado</span>
+                                <div class="dash-icon-box variant-blue">
+                                    <i class="bi bi-file-earmark-text"></i>
+                                </div>
+                            </div>
+                            <div class="dash-kpi-value" id="kpi-cotizado">...</div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-sm-6 col-lg-4">
+                        <div class="dash-kpi-card d-flex flex-column justify-content-between" style="min-height: 90px;">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <span class="dash-kpi-label">Cotizaciones Aprobadas</span>
+                                <div class="dash-icon-box variant-green">
+                                    <i class="bi bi-check-circle"></i>
+                                </div>
+                            </div>
+                            <div class="dash-kpi-value" id="kpi-aprobado">...</div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-sm-6 col-lg-4">
+                        <div class="dash-kpi-card d-flex flex-column justify-content-between" style="min-height: 90px;">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <span class="dash-kpi-label">Cotizaciones Pendientes</span>
+                                <div class="dash-icon-box variant-yellow">
+                                    <i class="bi bi-clock"></i>
+                                </div>
+                            </div>
+                            <div class="dash-kpi-value" id="kpi-pendiente">...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- DATA TABLE CARD -->
+                <div class="dash-table-container mb-4">
+                    
+                    <!-- FILTERS -->
+                    <div class="card-header bg-white border-bottom p-3 d-flex gap-3 align-items-center" style="border-radius: 8px 8px 0 0;">
+                        <div class="input-group input-group-sm" style="width: 250px;">
+                            <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
+                            <input type="text" class="form-control border-start-0 border-end-0 ps-0 text-muted" id="searchCotizaciones" placeholder="Buscar cliente, número, monto..." value="" style="font-size: 13px; box-shadow: none;">
+                            <span class="input-group-text bg-white border-start-0 text-muted" id="clearSearchBtnCotizaciones" style="cursor: pointer; display: none;"><i class="bi bi-x-circle-fill" style="opacity: 0.5;"></i></span>
+                        </div>
+                        <div class="dropdown">
+                            <button class="btn btn-link text-decoration-none text-muted p-0 dropdown-toggle" data-bs-toggle="dropdown" style="font-size: 14px;">
+                                <i class="bi bi-funnel me-1"></i> Filtrar <span id="lbl-filtro-actual" style="font-size: 12px; font-weight: 500; color: #2cbfb7;"></span>
+                            </button>
+                            <ul class="dropdown-menu shadow border-0" style="font-size: 13px;">
+                                <li><a class="dropdown-item filter-opt" href="#" data-criteria="todos">Todos los campos</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item filter-opt" href="#" data-criteria="numero">Por Número</a></li>
+                                <li><a class="dropdown-item filter-opt" href="#" data-criteria="cliente">Por Cliente</a></li>
+                                <li><a class="dropdown-item filter-opt" href="#" data-criteria="fecha">Por Fecha de creación</a></li>
+                                <li><a class="dropdown-item filter-opt" href="#" data-criteria="estado">Por Estado</a></li>
+                                <li><a class="dropdown-item filter-opt" href="#" data-criteria="monto">Por Monto</a></li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- GRID -->
+                    <div class="table-responsive">
+                        <table class="table table-borderless align-middle mb-0">
+                            <thead style="border-bottom: 1px solid var(--border-color);" id="grid-thead">
+                                <!-- Llenado dinámicamente -->
+                            </thead>
+                            <tbody id="grid-tbody">
+                                <!-- Llenado dinámicamente -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- PAGINATION FOOTER -->
+                    <div class="card-footer bg-white border-top p-3 d-flex justify-content-between align-items-center" style="border-radius: 0 0 8px 8px;" id="grid-pagination">
+                        <!-- Llenado dinámicamente -->
+                    </div>
+                </div>
+            </div>
+        `;
+
         const renderGrid = async () => {
+            const tbodyEl = element.querySelector('#grid-tbody');
+            if (tbodyEl) {
+                tbodyEl.innerHTML = `<tr><td colspan="6" class="text-center py-5"><div class="spinner-border spinner-border-sm text-primary"></div> Cargando...</td></tr>`;
+            }
+
+            // KPIs vía RPC (Cacheado)
+            if (!kpiDataCotizaciones) {
+                const { data: kpis, error: errKpi } = await supabase.rpc('get_cotizaciones_kpis');
+                if (!errKpi && kpis) {
+                    kpiDataCotizaciones = {
+                        totalCotizado: parseFloat(kpis.totalCotizado) || 0,
+                        totalAprobado: parseFloat(kpis.totalAprobado) || 0,
+                        totalPendiente: parseFloat(kpis.totalPendiente) || 0
+                    };
+                } else {
+                    kpiDataCotizaciones = { totalCotizado: 0, totalAprobado: 0, totalPendiente: 0 };
+                }
+            }
+
             // Paginación Real vía RPC
             const { data: response, error } = await supabase.rpc('get_cotizaciones_page', {
                 p_page: currentPage,
@@ -53,7 +175,7 @@ export const CotizacionesModule = {
 
             if (error) {
                 console.error("Error cargando cotizaciones:", error);
-                element.innerHTML = `<div class="p-4 text-center text-danger">Error al cargar cotizaciones: ${error.message}</div>`;
+                if (tbodyEl) tbodyEl.innerHTML = `<tr><td colspan="6" class="text-center py-5 text-danger">Error al cargar cotizaciones: ${error.message}</td></tr>`;
                 return;
             }
 
@@ -62,19 +184,41 @@ export const CotizacionesModule = {
             filteredData = currentItems; // Para exportar solo la página
 
             const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
-            if (currentPage > totalPages) currentPage = totalPages;
+            if (currentPage > totalPages && totalPages > 0) currentPage = totalPages;
             if (currentPage < 1) currentPage = 1;
             const startIndex = (currentPage - 1) * itemsPerPage;
 
-            // KPIs vía RPC
-            const { data: kpis, error: errKpi } = await supabase.rpc('get_cotizaciones_kpis');
-            let totalCotizado = 0, totalAprobado = 0, totalPendiente = 0;
-            if (!errKpi && kpis) {
-                totalCotizado = parseFloat(kpis.totalCotizado) || 0;
-                totalAprobado = parseFloat(kpis.totalAprobado) || 0;
-                totalPendiente = parseFloat(kpis.totalPendiente) || 0;
+            // Actualizar KPIs Visuales
+            if (kpiDataCotizaciones) {
+                const kpiCot = element.querySelector('#kpi-cotizado');
+                if(kpiCot) kpiCot.innerHTML = '$ ' + formatMoney(kpiDataCotizaciones.totalCotizado).replace('$ ', '');
+                
+                const kpiApr = element.querySelector('#kpi-aprobado');
+                if(kpiApr) kpiApr.innerHTML = '$ ' + formatMoney(kpiDataCotizaciones.totalAprobado).replace('$ ', '');
+                
+                const kpiPen = element.querySelector('#kpi-pendiente');
+                if(kpiPen) kpiPen.innerHTML = '$ ' + formatMoney(kpiDataCotizaciones.totalPendiente).replace('$ ', '');
             }
 
+            // Generar Thead (Para flechas de ordenamiento)
+            const theadHtml = `
+                <tr style="color: var(--text-muted); font-size: 13px; font-weight: var(--weight-medium);">
+                    <th class="py-2 fw-normal sortable-header" data-column="numero" style="cursor: pointer; user-select: none;">
+                        Número ${sortColumn === 'numero' ? (sortDirection === 'asc' ? ' ▲' : ' ▼') : ''}
+                    </th>
+                    <th class="py-2 fw-normal sortable-header" data-column="cliente" style="cursor: pointer; user-select: none;">
+                        Cliente ${sortColumn === 'cliente' ? (sortDirection === 'asc' ? ' ▲' : ' ▼') : ''}
+                    </th>
+                    <th class="py-2 fw-normal sortable-header" data-column="fecha" style="cursor: pointer; user-select: none;">
+                        Creación ${sortColumn === 'fecha' ? (sortDirection === 'asc' ? ' ▲' : ' ▼') : ''}
+                    </th>
+                    <th class="py-2 fw-normal text-end">Total</th>
+                    <th class="py-2 fw-normal text-center">Estado</th>
+                    <th class="py-2 fw-normal text-end" style="width: 80px;"></th>
+                </tr>
+            `;
+
+            // Generar Tbody
             const tbodyHtml = currentItems.length > 0 ? currentItems.map(c => {
                 const isFacturada = c.convertido_a_factura;
                 const badgeClass = isFacturada ? 'bg-success text-success bg-opacity-10 border border-success-subtle' : 'bg-warning text-warning-emphasis bg-opacity-10 border border-warning-subtle';
@@ -84,14 +228,14 @@ export const CotizacionesModule = {
                 
                 return `
                     <tr style="cursor: pointer; border-bottom: 1px solid var(--border-color); font-size: 13px; color: var(--text-body);" onclick="if(!event.target.closest('button')) window.location.hash = '#/ingresos/cotizaciones/ver/${c.id}'">
-                        <td class=\"py-2\">${numDisplay}</td>
-                        <td class=\"py-2\" style="color: var(--text-main); font-weight: var(--weight-medium);">${clientNameDisplay}</td>
-                        <td class=\"py-2\">${c.fecha}</td>
-                        <td class=\"py-2 text-end\">${formatMoney(c.total)}</td>
-                        <td class=\"py-2 text-center\">
+                        <td class="py-2">${numDisplay}</td>
+                        <td class="py-2" style="color: var(--text-main); font-weight: var(--weight-medium);">${clientNameDisplay}</td>
+                        <td class="py-2">${c.fecha}</td>
+                        <td class="py-2 text-end">${formatMoney(c.total)}</td>
+                        <td class="py-2 text-center">
                             <span class="badge ${badgeClass} rounded-pill fw-medium" style="font-size: 11px; padding: 5px 10px;">${labelEstado}</span>
                         </td>
-                        <td class=\"py-2 text-end\" style="position: relative;">
+                        <td class="py-2 text-end" style="position: relative;">
                             <button class="btn btn-link text-muted p-0 me-2 btn-imprimir-row" data-id="${c.id}">
                                 <i class="bi bi-printer"></i>
                             </button>
@@ -103,163 +247,46 @@ export const CotizacionesModule = {
                 `;
             }).join('') : `<tr><td colspan="6" class="text-center py-5 text-muted">No se encontraron cotizaciones</td></tr>`;
 
-            element.innerHTML = `
-                <div class=\"dash-layout p-4\" style=\"max-width: 1100px; margin: 0 auto;\">
-                    
-                    <!-- TOP BAR -->
-                    <div class="d-flex justify-content-between align-items-center mb-4">
-                        <div>
-                            <h2 class="h3 fw-bold mb-1" style="color: var(--text-main);">Cotizaciones</h2>
-                            <p class="text-muted mb-0" style="font-size: 14px;">
-                                Crea y gestiona cotizaciones personalizadas para tus clientes potenciales. 
-                                <a href="#" style="color: #2cbfb7; text-decoration: none;">Saber más</a>
-                            </p>
-                        </div>
-                        <div class="d-flex gap-2">
-                            <button id="btn-refresh-list" class="btn btn-light bg-white border me-2" style="font-weight: var(--weight-medium); font-size: 14px; color: var(--text-body);">
-                                <i class="bi bi-arrow-clockwise me-1"></i> Actualizar
-                            </button>
-                            <button id="btn-export-list" class="btn btn-light bg-white border" style="font-weight: var(--weight-medium); font-size: 14px; color: var(--text-body);">
-                                <i class="bi bi-download me-1"></i> Exportar
-                            </button>
-                            <a href="#/ingresos/cotizaciones/nueva" class="btn btn-primary-action">
-                                <i class="bi bi-plus-lg me-1"></i> Nueva cotización
-                            </a>
-                        </div>
+            // Generar Paginador
+            const paginationHtml = `
+                <div class="d-flex align-items-center gap-3" style="font-size: 13px; color: var(--text-body);">
+                    <div class="d-flex align-items-center gap-2">
+                        <span>Resultados por página:</span>
+                        <select class="form-select form-select-sm text-muted" id="select-per-page" style="width: 70px;">
+                            <option value="10" ${itemsPerPage===10?'selected':''}>10</option>
+                            <option value="20" ${itemsPerPage===20?'selected':''}>20</option>
+                            <option value="50" ${itemsPerPage===50?'selected':''}>50</option>
+                            <option value="100" ${itemsPerPage===100?'selected':''}>100</option>
+                        </select>
                     </div>
+                    <span class="text-muted border-start ps-3">${totalItems > 0 ? startIndex + 1 : 0}-${Math.min(startIndex + itemsPerPage, totalItems)} de ${totalItems}</span>
+                </div>
 
-                    <!-- KPI CARDS COTIZACIONES -->
-                    <div class="row g-3 mb-4">
-                        <div class="col-12 col-sm-6 col-lg-4">
-                            <div class="dash-kpi-card d-flex flex-column justify-content-between" style="min-height: 90px;">
-                                <div class="d-flex justify-content-between align-items-start">
-                                    <span class="dash-kpi-label">Total Cotizado</span>
-                                    <div class="dash-icon-box variant-blue">
-                                        <i class="bi bi-file-earmark-text"></i>
-                                    </div>
-                                </div>
-                                <div class="dash-kpi-value">$ ${formatMoney(totalCotizado).replace('$ ', '')}</div>
-                            </div>
-                        </div>
-                        <div class="col-12 col-sm-6 col-lg-4">
-                            <div class="dash-kpi-card d-flex flex-column justify-content-between" style="min-height: 90px;">
-                                <div class="d-flex justify-content-between align-items-start">
-                                    <span class="dash-kpi-label">Cotizaciones Aprobadas</span>
-                                    <div class="dash-icon-box variant-green">
-                                        <i class="bi bi-check-circle"></i>
-                                    </div>
-                                </div>
-                                <div class="dash-kpi-value">$ ${formatMoney(totalAprobado).replace('$ ', '')}</div>
-                            </div>
-                        </div>
-                        <div class="col-12 col-sm-6 col-lg-4">
-                            <div class="dash-kpi-card d-flex flex-column justify-content-between" style="min-height: 90px;">
-                                <div class="d-flex justify-content-between align-items-start">
-                                    <span class="dash-kpi-label">Cotizaciones Pendientes</span>
-                                    <div class="dash-icon-box variant-yellow">
-                                        <i class="bi bi-clock"></i>
-                                    </div>
-                                </div>
-                                <div class="dash-kpi-value">$ ${formatMoney(totalPendiente).replace('$ ', '')}</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- DATA TABLE CARD -->
-                    <div class="dash-table-container mb-4">
-                        
-                        <!-- FILTERS -->
-                        <div class="card-header bg-white border-bottom p-3 d-flex gap-3 align-items-center" style="border-radius: 8px 8px 0 0;">
-                            <div class="input-group input-group-sm" style="width: 250px;">
-                                <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
-                                <input type="text" class="form-control border-start-0 border-end-0 ps-0 text-muted" id="searchCotizaciones" placeholder="Buscar cliente, número, monto..." value="${searchQuery}" style="font-size: 13px; box-shadow: none;">
-                                <span class="input-group-text bg-white border-start-0 text-muted" id="clearSearchBtnCotizaciones" style="cursor: pointer; ${searchQuery ? '' : 'display: none;'}"><i class="bi bi-x-circle-fill" style="opacity: 0.5;"></i></span>
-                            </div>
-                            <div class="dropdown">
-                                <button class="btn btn-link text-decoration-none text-muted p-0 dropdown-toggle" data-bs-toggle="dropdown" style="font-size: 14px;">
-                                    <i class="bi bi-funnel me-1"></i> Filtrar <span id="lbl-filtro-actual" style="font-size: 12px; font-weight: 500; color: #2cbfb7;"></span>
-                                </button>
-                                <ul class="dropdown-menu shadow border-0" style="font-size: 13px;">
-                                    <li><a class="dropdown-item filter-opt" href="#" data-criteria="todos">Todos los campos</a></li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item filter-opt" href="#" data-criteria="numero">Por Número</a></li>
-                                    <li><a class="dropdown-item filter-opt" href="#" data-criteria="cliente">Por Cliente</a></li>
-                                    <li><a class="dropdown-item filter-opt" href="#" data-criteria="fecha">Por Fecha de creación</a></li>
-                                    <li><a class="dropdown-item filter-opt" href="#" data-criteria="estado">Por Estado</a></li>
-                                    <li><a class="dropdown-item filter-opt" href="#" data-criteria="monto">Por Monto</a></li>
-                                </ul>
-                            </div>
-                        </div>
-
-                        <!-- GRID -->
-                        <div class="table-responsive">
-                            <table class="table table-borderless align-middle mb-0">
-                                <thead style="border-bottom: 1px solid var(--border-color);">
-                                    <tr style="color: var(--text-muted); font-size: 13px; font-weight: var(--weight-medium);">
-                                        <th class=\"py-2 fw-normal sortable-header\" data-column="numero" style="cursor: pointer; user-select: none;">
-                                            Número ${sortColumn === 'numero' ? (sortDirection === 'asc' ? ' ▲' : ' ▼') : ''}
-                                        </th>
-                                        <th class=\"py-2 fw-normal sortable-header\" data-column="cliente" style="cursor: pointer; user-select: none;">
-                                            Cliente ${sortColumn === 'cliente' ? (sortDirection === 'asc' ? ' ▲' : ' ▼') : ''}
-                                        </th>
-                                        <th class=\"py-2 fw-normal sortable-header\" data-column="fecha" style="cursor: pointer; user-select: none;">
-                                            Creación ${sortColumn === 'fecha' ? (sortDirection === 'asc' ? ' ▲' : ' ▼') : ''}
-                                        </th>
-                                        <th class=\"py-2 fw-normal text-end\">Total</th>
-                                        <th class=\"py-2 fw-normal text-center\">Estado</th>
-                                        <th class=\"py-2 fw-normal text-end\" style="width: 80px;"></th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    ${tbodyHtml}
-                                </tbody>
-                            </table>
-                        </div>
-
-                        <!-- PAGINATION FOOTER -->
-                        <div class="card-footer bg-white border-top p-3 d-flex justify-content-between align-items-center" style="border-radius: 0 0 8px 8px;">
-                            <div class="d-flex align-items-center gap-3" style="font-size: 13px; color: var(--text-body);">
-                                <div class="d-flex align-items-center gap-2">
-                                    <span>Resultados por página:</span>
-                                    <select class="form-select form-select-sm text-muted" id="select-per-page" style="width: 70px;">
-                                        <option value="10" ${itemsPerPage===10?'selected':''}>10</option>
-                                        <option value="20" ${itemsPerPage===20?'selected':''}>20</option>
-                                        <option value="50" ${itemsPerPage===50?'selected':''}>50</option>
-                                        <option value="100" ${itemsPerPage===100?'selected':''}>100</option>
-                                    </select>
-                                </div>
-                                <span class="text-muted border-start ps-3">${totalItems > 0 ? startIndex + 1 : 0}-${Math.min(startIndex + itemsPerPage, totalItems)} de ${totalItems}</span>
-                            </div>
-
-                            <div class="d-flex align-items-center gap-2" style="font-size: 13px; color: var(--text-body);">
-                                <span>Página</span>
-                                <input type="number" id="input-page" class="form-control form-control-sm text-center text-muted" value="${currentPage}" min="1" max="${totalPages}" style="width: 50px;">
-                                <span>de ${totalPages}</span>
-                                <div class="ms-2">
-                                    <button class="btn btn-link text-muted p-0 me-1" id="btn-prev-page" ${currentPage === 1 ? 'disabled' : ''}><i class="bi bi-chevron-left"></i></button>
-                                    <button class="btn btn-link text-muted p-0" id="btn-next-page" ${currentPage === totalPages ? 'disabled' : ''}><i class="bi bi-chevron-right"></i></button>
-                                </div>
-                            </div>
-                        </div>
+                <div class="d-flex align-items-center gap-2" style="font-size: 13px; color: var(--text-body);">
+                    <span>Página</span>
+                    <input type="number" id="input-page" class="form-control form-control-sm text-center text-muted" value="${currentPage}" min="1" max="${totalPages}" style="width: 50px;">
+                    <span>de ${totalPages}</span>
+                    <div class="ms-2">
+                        <button class="btn btn-link text-muted p-0 me-1" id="btn-prev-page" ${currentPage === 1 ? 'disabled' : ''}><i class="bi bi-chevron-left"></i></button>
+                        <button class="btn btn-link text-muted p-0" id="btn-next-page" ${currentPage === totalPages ? 'disabled' : ''}><i class="bi bi-chevron-right"></i></button>
                     </div>
                 </div>
             `;
 
-            bindGridEvents();
+            // Inyectar HTML Dinámico
+            if (element.querySelector('#grid-thead')) element.querySelector('#grid-thead').innerHTML = theadHtml;
+            if (element.querySelector('#grid-tbody')) element.querySelector('#grid-tbody').innerHTML = tbodyHtml;
+            if (element.querySelector('#grid-pagination')) element.querySelector('#grid-pagination').innerHTML = paginationHtml;
+
+            bindDynamicEvents();
         };
 
-        const bindGridEvents = () => {
-            // Búsqueda en vivo (Debounced)
+        const bindStaticEvents = () => {
+            // Búsqueda en vivo (Debounced) - El input ya no se destruye
             const searchInput = element.querySelector('#searchCotizaciones');
+            const clearSearchBtn = element.querySelector('#clearSearchBtnCotizaciones');
+
             if (searchInput) {
-                searchInput.focus();
-                // Cursor al final
-                const val = searchInput.value;
-                searchInput.value = '';
-                searchInput.value = val;
-
-                const clearSearchBtn = element.querySelector('#clearSearchBtnCotizaciones');
-
                 let debounceTimer;
                 searchInput.addEventListener('input', (e) => {
                     const val = e.target.value;
@@ -285,20 +312,6 @@ export const CotizacionesModule = {
                 }
             }
 
-            // Ordenamiento por Columnas
-            element.querySelectorAll('.sortable-header').forEach(header => {
-                header.addEventListener('click', (e) => {
-                    const col = e.currentTarget.dataset.column;
-                    if (sortColumn === col) {
-                        sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
-                    } else {
-                        sortColumn = col;
-                        sortDirection = 'desc';
-                    }
-                    renderGrid();
-                });
-            });
-
             // Cambiar Criterio de Filtro
             element.querySelectorAll('.filter-opt').forEach(opt => {
                 opt.addEventListener('click', (e) => {
@@ -309,11 +322,6 @@ export const CotizacionesModule = {
                     currentPage = 1;
                     renderGrid();
                 });
-            });
-
-            // Crear Cotización
-            element.querySelector('#btn-nueva-cotizacion')?.addEventListener('click', () => {
-                window.location.hash = '#/ingresos/cotizaciones/nueva';
             });
 
             // Exportar Lista a CSV
@@ -328,13 +336,31 @@ export const CotizacionesModule = {
                 btn.disabled = true;
                 btn.innerHTML = `<span class="spinner-border spinner-border-sm" aria-hidden="true"></span>`;
                 
+                // Forzamos actualización de KPIs también
+                kpiDataCotizaciones = null;
                 await renderGrid();
                 
                 btn.innerHTML = originalHtml;
                 btn.disabled = false;
             });
+        };
 
-            // Paginación
+        const bindDynamicEvents = () => {
+            // Ordenamiento por Columnas (Thead es dinámico)
+            element.querySelectorAll('.sortable-header').forEach(header => {
+                header.addEventListener('click', (e) => {
+                    const col = e.currentTarget.dataset.column;
+                    if (sortColumn === col) {
+                        sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+                    } else {
+                        sortColumn = col;
+                        sortDirection = 'desc';
+                    }
+                    renderGrid();
+                });
+            });
+
+            // Paginación (Footer es dinámico)
             element.querySelector('#select-per-page')?.addEventListener('change', (e) => {
                 itemsPerPage = parseInt(e.target.value);
                 currentPage = 1;
@@ -382,12 +408,8 @@ export const CotizacionesModule = {
                     menu.querySelector('.btn-delete-row').addEventListener('click', async (ev) => {
                         ev.preventDefault();
                         if (confirm('¿Estás seguro de eliminar esta cotización de forma permanente?')) {
-                            // NOTA IMPORTANTE: Las cotizaciones NO descuentan inventario.
-                            // Por lo tanto, NO deben llamar a InventarioUtils.revertirSalidaInventario.
-                            // El inventario solo se descuenta cuando se convierten a facturas.
                             await DB.delete('cotizaciones', id);
                             menu.remove();
-                            // Recargar DB vía RPC
                             renderGrid();
                         }
                     });
@@ -409,9 +431,10 @@ export const CotizacionesModule = {
             });
         };
 
+        // Flujo inicial de montaje
+        bindStaticEvents();
         renderGrid();
     },
-
     async renderForm(element, id = null, isViewOnly = false) {
         // Carga de DB
         // Forzar refresh de contactos en modo edición para incluir contactos recién creados
