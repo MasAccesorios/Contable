@@ -20,6 +20,7 @@ export const PagosRealizadosModule = {
         if (!element) return;
         this.element = element;
         await this.calcularKPIs();
+        this.renderList();
         await this.cargarPagos();
     },
     
@@ -45,7 +46,7 @@ export const PagosRealizadosModule = {
         }
 
         this.state.isLoading = true;
-        this.render();
+        this.renderGrid();
         try {
             const { data: t } = await supabase.from('pagos_ingresos').select('*, contactos(*), cuentas_bancarias(*), facturas(*, contactos(*))').eq('id', id).single();
             if (t) {
@@ -58,13 +59,12 @@ export const PagosRealizadosModule = {
         } finally {
             this.state.isLoading = false;
             this.render();
-            this.bindEvents();
         }
     },
 
     async cargarPagos() {
         this.state.isLoading = true;
-        this.render();
+        this.renderGrid();
 
         try {
             const { data, error } = await supabase.rpc('get_pagos_lista', {
@@ -83,16 +83,29 @@ export const PagosRealizadosModule = {
             CoreActions.showWarningModal('Error al cargar la lista de pagos: ' + (error.message || error));
         } finally {
             this.state.isLoading = false;
-            this.render();
-            this.bindEvents();
+            this.renderGrid();
         }
     },
 
     render() {
+        const listContainer = this.element.querySelector('#pagos-list-container');
+        const detailContainer = this.element.querySelector('#pagos-detail-container');
+        
         if (this.state.view === 'detalle' && this.state.currentComprobanteData) {
-            this.renderComprobanteWrapper();
+            if (listContainer) listContainer.style.display = 'none';
+            if (detailContainer) {
+                detailContainer.style.display = 'block';
+                detailContainer.innerHTML = this.getComprobanteHTML(this.state.currentComprobanteData);
+                this.bindDetailEvents(detailContainer);
+            }
         } else {
-            this.renderListaHTML();
+            if (detailContainer) {
+                detailContainer.style.display = 'none';
+                detailContainer.innerHTML = '';
+            }
+            if (listContainer) {
+                listContainer.style.display = 'block';
+            }
         }
     },
     
@@ -336,21 +349,10 @@ export const PagosRealizadosModule = {
         `;
     },
 
-    renderListaHTML() {
+    renderList() {
         const formatMoney = val => '$ ' + parseFloat(val || 0).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        const formatFecha = dateStr => {
-            if (!dateStr) return '---';
-            const partes = dateStr.split('-');
-            return partes.length === 3 ? `${partes[2]}/${partes[1]}/${partes[0]}` : dateStr;
-        };
-
-        const totalPages = Math.ceil(this.state.totalItems / this.state.itemsPerPage) || 1;
-        const startItem = (this.state.currentPage - 1) * this.state.itemsPerPage + 1;
-        const endItem = Math.min(this.state.currentPage * this.state.itemsPerPage, this.state.totalItems);
-
         this.element.innerHTML = `
-            <div class="dash-layout p-4">
-                
+            <div class="dash-layout p-4" id="pagos-list-container">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <div>
                         <h2 class="h3 fw-bold mb-1 text-dark">Pagos Realizados</h2>
@@ -368,125 +370,173 @@ export const PagosRealizadosModule = {
                                     <i class="bi bi-cash-stack"></i>
                                 </div>
                             </div>
-                            <div class="dash-kpi-value">$ ${formatMoney(this.state.kpis?.total || 0).replace('$ ', '')}</div>
+                            <div id="kpi-total" class="dash-kpi-value">$ ${formatMoney(this.state.kpis?.total || 0).replace('$ ', '')}</div>
                         </div>
                     </div>
                 </div>
-
 
                 <div class="dash-table-container">
                     <div class="card-body p-0">
                         <div class="d-flex justify-content-between mb-3 px-4 pt-4">
                             <div class="input-group" style="max-width: 300px;">
                                 <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
-                                <input type="text" class="form-control border-start-0 ps-0" id="search-pagos" placeholder="Buscar por número o proveedor..." value="${this.state.searchQuery}" style="box-shadow: none;">
+                                <input type="text" class="form-control border-start-0 border-end-0 ps-0 text-muted" id="search-pagos" autocomplete="off" placeholder="Buscar por número, proveedor..." value="${this.state.searchQuery}" style="box-shadow: none;">
+                                <span class="input-group-text bg-white border-start-0 text-muted" id="clearSearchBtn" style="cursor: pointer; ${this.state.searchQuery ? '' : 'display: none;'}"><i class="bi bi-x-circle-fill" style="opacity: 0.5;"></i></span>
                             </div>
                         </div>
 
-                        <div class="view-container p-4 pt-0">
-                        ${this.state.isLoading ? `
-                            <div class="position-absolute top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center bg-white bg-opacity-75" style="z-index: 10;">
-                                <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Cargando...</span></div>
-                            </div>
-                        ` : ''}
-                        <table class="table align-middle table-hover m-0 text-nowrap">
-                            <thead class="table-light text-muted small text-uppercase border-bottom">
-                                <tr>
-                                    <th class="ps-4 py-2">Número</th>
-                                    <th class="py-2">Proveedor</th>
-                                    <th class="py-2">Detalles</th>
-                                    <th class="py-2">Creación</th>
-                                    <th class="py-2">Cuenta bancaria</th>
-                                    <th class="py-2">Estado</th>
-                                    <th class="py-2 text-end pe-4">Monto</th>
-                                    <th class="py-2" style="width: 50px;"></th>
-                                </tr>
-                            </thead>
-                            <tbody style="font-size: 13px; color: #2c3e50;">
-                                ${this.state.pagos.length > 0 ? this.state.pagos.map(pago => {
-                                    
-                                    let detallesHtml = pago.categoria || 'Sin detalle';
-                                    if (pago.factura_id) {
-                                        detallesHtml = `<a href="#/gastos/compras/ver/${pago.factura_id}" class="text-decoration-none text-primary" onclick="event.stopPropagation()">Compra #${pago.factura_numero || pago.factura_id}</a>`;
-                                    }
-
-                                    return `
-                                        <tr style="cursor: pointer;" class="row-pago" data-id="${pago.id}">
-                                            <td class="ps-4 py-1 fw-bold text-dark">${pago.numero}</td>
-                                            <td class="py-1 text-dark text-truncate" style="max-width: 200px;">${pago.cliente}</td>
-                                            <td class="py-1 text-truncate" style="max-width: 200px;">${detallesHtml}</td>
-                                            <td class="py-1 text-muted">${formatFecha(pago.fecha)}</td>
-                                            <td class="py-1 text-dark text-truncate" style="max-width: 150px;">${pago.cuenta_bancaria}</td>
-                                            <td class="py-1">
-                                                ${pago.estado_transaccion === 'anulado' 
-                                                    ? `<span class="badge bg-secondary text-secondary bg-opacity-10 border border-secondary-subtle rounded-pill fw-medium" style="font-size: 10px; padding: 3px 8px;">Anulado</span>`
-                                                    : pago.estado_conciliacion
-                                                        ? `<span class="badge bg-success text-success bg-opacity-10 border border-success-subtle rounded-pill fw-medium" style="font-size: 10px; padding: 3px 8px;">Conciliado</span>`
-                                                        : `<span class="badge bg-warning text-warning-emphasis bg-opacity-10 border border-warning-subtle rounded-pill fw-medium" style="font-size: 10px; padding: 3px 8px;">No conciliado</span>`
-                                                }
-                                            </td>
-                                            <td class="py-1 text-end fw-bold pe-4 ${pago.estado_transaccion === 'anulado' ? 'text-muted text-decoration-line-through opacity-50' : 'text-danger'}">
-                                                ${formatMoney(pago.monto)}
-                                            </td>
-                                            <td class="py-1 pe-3 position-relative">
-                                                <button class="btn btn-sm btn-link text-secondary p-0 border-0 btn-menu-row" data-id="${pago.id}" data-conciliado="${pago.estado_conciliacion}" data-factura="${pago.factura_id || ''}" data-anulado="${pago.estado_transaccion === 'anulado'}" style="text-decoration: none; font-size: 16px;">⋮</button>
-                                            </td>
-                                        </tr>
-                                    `;
-                                }).join('') : `
-                                    <tr>
-                                        <td colspan="8" class="text-center text-muted py-5">
-                                            <div class="mb-3"><i class="bi bi-inbox fs-1 text-secondary opacity-50"></i></div>
-                                            <p class="mb-0">No se encontraron pagos realizados.</p>
-                                        </td>
-                                    </tr>
-                                `}
-                            </tbody>
-                        </table>
-                        </div>
-
-                        <!-- PAGINADOR SERVER-SIDE -->
-                        <div class="d-flex justify-content-between align-items-center mt-3 text-muted small">
-                            <div class="d-flex align-items-center gap-3">
-                                <span>Página <span id="current-page">${this.state.currentPage}</span> de <span id="total-pages">${totalPages}</span></span>
-                                <div class="btn-group">
-                                    <button class="btn btn-sm btn-light border text-muted" id="btn-prev" ${this.state.currentPage <= 1 ? 'disabled' : ''}><i class="bi bi-chevron-left"></i></button>
-                                    <button class="btn btn-sm btn-light border text-muted" id="btn-next" ${this.state.currentPage >= totalPages ? 'disabled' : ''}><i class="bi bi-chevron-right"></i></button>
-                                </div>
-                            </div>
-                            <div class="d-flex align-items-center gap-3">
-                                <span class="d-flex align-items-center gap-2">
-                                    Pagos por página:
-                                    <select id="select-limit" class="form-select form-select-sm border-0 bg-transparent text-muted fw-bold" style="width: 60px; box-shadow: none; cursor: pointer;">
-                                        <option value="10" ${this.state.itemsPerPage === 10 ? 'selected' : ''}>10</option>
-                                        <option value="20" ${this.state.itemsPerPage === 20 ? 'selected' : ''}>20</option>
-                                        <option value="50" ${this.state.itemsPerPage === 50 ? 'selected' : ''}>50</option>
-                                    </select>
-                                </span>
-                                <span id="showing-count">${this.state.totalItems > 0 ? `${startItem}-${endItem} de ${this.state.totalItems}` : '0-0 de 0'}</span>
-                                <button id="btn-refresh" class="btn btn-sm btn-light border text-muted rounded-circle" style="width: 30px; height: 30px; padding: 0;"><i class="bi bi-arrow-clockwise"></i></button>
-                            </div>
-                        </div>
-
+                        <div class="view-container p-4 pt-0" id="grid-container" style="position: relative; min-height: 200px;">
+                            <!-- La grilla se inyecta aquí -->
                         </div>
                     </div>
                 </div>
             </div>
+            <div id="pagos-detail-container" style="display: none;"></div>
         `;
+        
+        this.bindStaticEvents();
     },
 
-    bindEvents() {
-        const btnVolver = this.element.querySelector('#btn-volver-pagos');
+    renderGrid() {
+        const gridContainer = this.element.querySelector('#grid-container');
+        if (!gridContainer) return;
+        
+        const formatMoney = val => '$ ' + parseFloat(val || 0).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const formatFecha = dateStr => {
+            if (!dateStr) return '---';
+            const partes = dateStr.split('-');
+            return partes.length === 3 ? `${partes[2]}/${partes[1]}/${partes[0]}` : dateStr;
+        };
+
+        const totalPages = Math.ceil(this.state.totalItems / this.state.itemsPerPage) || 1;
+        const startItem = (this.state.currentPage - 1) * this.state.itemsPerPage + 1;
+        const endItem = Math.min(this.state.currentPage * this.state.itemsPerPage, this.state.totalItems);
+
+        let tableHtml = `
+            ${this.state.isLoading ? `
+                <div class="position-absolute top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center bg-white bg-opacity-75" style="z-index: 10;">
+                    <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Cargando...</span></div>
+                </div>
+            ` : ''}
+            <table class="table align-middle table-hover m-0 text-nowrap">
+                <thead class="table-light text-muted small text-uppercase border-bottom">
+                    <tr>
+                        <th class="ps-4 py-2">Número</th>
+                        <th class="py-2">Proveedor</th>
+                        <th class="py-2">Detalles</th>
+                        <th class="py-2">Creación</th>
+                        <th class="py-2">Cuenta bancaria</th>
+                        <th class="py-2">Estado</th>
+                        <th class="py-2 text-end pe-4">Monto</th>
+                        <th class="py-2" style="width: 50px;"></th>
+                    </tr>
+                </thead>
+                <tbody style="font-size: 13px; color: #2c3e50;">
+                    ${this.state.pagos.length > 0 ? this.state.pagos.map(pago => {
+                        let detallesHtml = pago.categoria || 'Sin detalle';
+                        if (pago.factura_id) {
+                            detallesHtml = `<a href="#/gastos/compras/ver/${pago.factura_id}" class="text-decoration-none text-primary" onclick="event.stopPropagation()">Compra #${pago.factura_numero || pago.factura_id}</a>`;
+                        }
+                        return `
+                            <tr style="cursor: pointer;" class="row-pago" data-id="${pago.id}">
+                                <td class="ps-4 py-1 fw-bold text-dark">${pago.numero}</td>
+                                <td class="py-1 text-dark text-truncate" style="max-width: 200px;">${pago.cliente}</td>
+                                <td class="py-1 text-truncate" style="max-width: 200px;">${detallesHtml}</td>
+                                <td class="py-1 text-muted">${formatFecha(pago.fecha)}</td>
+                                <td class="py-1 text-dark text-truncate" style="max-width: 150px;">${pago.cuenta_bancaria}</td>
+                                <td class="py-1">
+                                    ${pago.estado_transaccion === 'anulado' 
+                                        ? `<span class="badge bg-secondary text-secondary bg-opacity-10 border border-secondary-subtle rounded-pill fw-medium" style="font-size: 10px; padding: 3px 8px;">Anulado</span>`
+                                        : pago.estado_conciliacion
+                                            ? `<span class="badge bg-success text-success bg-opacity-10 border border-success-subtle rounded-pill fw-medium" style="font-size: 10px; padding: 3px 8px;">Conciliado</span>`
+                                            : `<span class="badge bg-warning text-warning-emphasis bg-opacity-10 border border-warning-subtle rounded-pill fw-medium" style="font-size: 10px; padding: 3px 8px;">No conciliado</span>`
+                                    }
+                                </td>
+                                <td class="py-1 text-end fw-bold pe-4 ${pago.estado_transaccion === 'anulado' ? 'text-muted text-decoration-line-through opacity-50' : 'text-danger'}">
+                                    ${formatMoney(pago.monto)}
+                                </td>
+                                <td class="py-1 pe-3 position-relative">
+                                    <button class="btn btn-sm btn-link text-secondary p-0 border-0 btn-menu-row" data-id="${pago.id}" data-conciliado="${pago.estado_conciliacion}" data-factura="${pago.factura_id || ''}" data-anulado="${pago.estado_transaccion === 'anulado'}" style="text-decoration: none; font-size: 16px;">⋮</button>
+                                </td>
+                            </tr>
+                        `;
+                    }).join('') : `
+                        <tr>
+                            <td colspan="8" class="text-center text-muted py-5">
+                                <div class="mb-3"><i class="bi bi-inbox fs-1 text-secondary opacity-50"></i></div>
+                                <p class="mb-0">No se encontraron pagos realizados.</p>
+                            </td>
+                        </tr>
+                    `}
+                </tbody>
+            </table>
+            
+            <!-- PAGINADOR SERVER-SIDE -->
+            <div class="d-flex justify-content-between align-items-center mt-3 text-muted small">
+                <div class="d-flex align-items-center gap-3">
+                    <span>Página <span id="current-page">${this.state.currentPage}</span> de <span id="total-pages">${totalPages}</span></span>
+                    <div class="btn-group">
+                        <button class="btn btn-sm btn-light border text-muted" id="btn-prev" ${this.state.currentPage <= 1 ? 'disabled' : ''}><i class="bi bi-chevron-left"></i></button>
+                        <button class="btn btn-sm btn-light border text-muted" id="btn-next" ${this.state.currentPage >= totalPages ? 'disabled' : ''}><i class="bi bi-chevron-right"></i></button>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center gap-3">
+                    <span class="d-flex align-items-center gap-2">
+                        Pagos por página:
+                        <select id="select-limit" class="form-select form-select-sm border-0 bg-transparent text-muted fw-bold" style="width: 60px; box-shadow: none; cursor: pointer;">
+                            <option value="10" ${this.state.itemsPerPage === 10 ? 'selected' : ''}>10</option>
+                            <option value="20" ${this.state.itemsPerPage === 20 ? 'selected' : ''}>20</option>
+                            <option value="50" ${this.state.itemsPerPage === 50 ? 'selected' : ''}>50</option>
+                        </select>
+                    </span>
+                    <span id="showing-count">${this.state.totalItems > 0 ? `${startItem}-${endItem} de ${this.state.totalItems}` : '0-0 de 0'}</span>
+                    <button id="btn-refresh" class="btn btn-sm btn-light border text-muted rounded-circle" style="width: 30px; height: 30px; padding: 0;"><i class="bi bi-arrow-clockwise"></i></button>
+                </div>
+            </div>
+        `;
+        
+        gridContainer.innerHTML = tableHtml;
+        this.bindDynamicEvents(gridContainer);
+    },
+
+    bindStaticEvents() {
+        const inputSearch = this.element.querySelector('#search-pagos');
+        const clearBtn = this.element.querySelector('#clearSearchBtn');
+        let searchTimeout;
+        if (inputSearch) {
+            inputSearch.addEventListener('input', (e) => {
+                const val = e.target.value;
+                if (clearBtn) clearBtn.style.display = val ? '' : 'none';
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    this.state.searchQuery = val.trim();
+                    this.state.currentPage = 1;
+                    this.cargarPagos();
+                }, 400);
+            });
+        }
+        if (clearBtn) {
+            clearBtn.addEventListener('click', () => {
+                if (inputSearch) inputSearch.value = '';
+                clearBtn.style.display = 'none';
+                this.state.searchQuery = '';
+                this.state.currentPage = 1;
+                this.cargarPagos();
+            });
+        }
+    },
+
+    bindDetailEvents(container) {
+        const btnVolver = container.querySelector('#btn-volver-pagos');
         if (btnVolver) {
             btnVolver.addEventListener('click', () => {
                 this.state.view = 'lista';
                 this.state.currentComprobanteData = null;
                 this.render();
-                this.bindEvents();
             });
         }
         
-        const btnImprimirComprobante = this.element.querySelector('#btn-imprimir-comprobante');
+        const btnImprimirComprobante = container.querySelector('#btn-imprimir-comprobante');
         if (btnImprimirComprobante) {
             btnImprimirComprobante.addEventListener('click', (e) => {
                 const id = e.currentTarget.dataset.id;
@@ -494,14 +544,17 @@ export const PagosRealizadosModule = {
             });
         }
         
-        const btnEditarComprobante = this.element.querySelector('#btn-editar-comprobante');
+        const btnEditarComprobante = container.querySelector('#btn-editar-comprobante');
         if (btnEditarComprobante) {
             btnEditarComprobante.addEventListener('click', (e) => {
                 const id = e.currentTarget.dataset.id;
                 import('../../shared/transaccionModal.js').then(async m => {
                     const { data } = await supabase.from('pagos_ingresos').select('*').eq('id', id).single();
                     if (data) {
-                        m.mostrarDetalleTransaccion(data, () => this.cargarPagos());
+                        m.mostrarDetalleTransaccion(data, () => {
+                            this.state.view = 'lista';
+                            this.cargarPagos();
+                        });
                         setTimeout(() => {
                             const btnEdit = document.getElementById('btn-activar-edicion');
                             if (btnEdit) btnEdit.click();
@@ -510,29 +563,10 @@ export const PagosRealizadosModule = {
                 });
             });
         }
-        
-        this.element.querySelectorAll('.row-pago').forEach(row => {
-            row.addEventListener('click', (e) => {
-                if (e.target.closest('.btn-menu-row') || e.target.closest('.dropdown-menu') || e.target.closest('a')) return;
-                const id = row.getAttribute('data-id');
-                this.mostrarDetalle(id, 'preview');
-            });
-        });
+    },
 
-        const inputSearch = this.element.querySelector('#search-pagos');
-        let searchTimeout;
-        if (inputSearch) {
-            inputSearch.addEventListener('input', (e) => {
-                clearTimeout(searchTimeout);
-                searchTimeout = setTimeout(() => {
-                    this.state.searchQuery = e.target.value.trim();
-                    this.state.currentPage = 1;
-                    this.cargarPagos();
-                }, 500);
-            });
-        }
-
-        const selectLimit = this.element.querySelector('#select-limit');
+    bindDynamicEvents(gridContainer) {
+        const selectLimit = gridContainer.querySelector('#select-limit');
         if (selectLimit) {
             selectLimit.addEventListener('change', (e) => {
                 this.state.itemsPerPage = parseInt(e.target.value, 10);
@@ -541,7 +575,7 @@ export const PagosRealizadosModule = {
             });
         }
 
-        const inputPage = this.element.querySelector('#input-page');
+        const inputPage = gridContainer.querySelector('#input-page');
         if (inputPage) {
             inputPage.addEventListener('change', (e) => {
                 let p = parseInt(e.target.value, 10);
@@ -553,7 +587,7 @@ export const PagosRealizadosModule = {
             });
         }
 
-        const btnPrev = this.element.querySelector('#btn-prev');
+        const btnPrev = gridContainer.querySelector('#btn-prev');
         if (btnPrev) {
             btnPrev.addEventListener('click', () => {
                 if (this.state.currentPage > 1) {
@@ -563,7 +597,7 @@ export const PagosRealizadosModule = {
             });
         }
 
-        const btnNext = this.element.querySelector('#btn-next');
+        const btnNext = gridContainer.querySelector('#btn-next');
         if (btnNext) {
             btnNext.addEventListener('click', () => {
                 const max = Math.ceil(this.state.totalItems / this.state.itemsPerPage) || 1;
@@ -574,7 +608,22 @@ export const PagosRealizadosModule = {
             });
         }
 
-        this.element.querySelectorAll('.btn-menu-row').forEach(btn => {
+        const btnRefresh = gridContainer.querySelector('#btn-refresh');
+        if (btnRefresh) {
+            btnRefresh.addEventListener('click', () => {
+                this.cargarPagos();
+            });
+        }
+
+        gridContainer.querySelectorAll('.row-pago').forEach(row => {
+            row.addEventListener('click', (e) => {
+                if (e.target.closest('.btn-menu-row') || e.target.closest('.dropdown-menu') || e.target.closest('a')) return;
+                const id = row.getAttribute('data-id');
+                this.mostrarDetalle(id, 'preview');
+            });
+        });
+
+        gridContainer.querySelectorAll('.btn-menu-row').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 if (typeof window.cleanupFloatingElements === 'function') {
