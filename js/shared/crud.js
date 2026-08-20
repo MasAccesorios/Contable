@@ -165,8 +165,13 @@ export const CoreActions = {
                     facturaGuardada = await DB.saveWithNextNumero('facturas', nuevaFactura);
                     break; // Éxito — salir del loop
                 } catch (err) {
-                    const esDuplicado = err?.code === '23505' ||
-                        (err?.message || '').toLowerCase().includes('duplicate key');
+                    const errorStr = (err?.message || JSON.stringify(err) || '').toLowerCase();
+                    
+                    if (errorStr.includes('facturas_cotizacion_origen_id_key')) {
+                        throw new Error("Esta cotización ya fue convertida a factura por otra sesión/clic simultáneo.");
+                    }
+
+                    const esDuplicado = err?.code === '23505' || errorStr.includes('duplicate key');
                     if (esDuplicado && intento < MAX_REINTENTOS) {
                         console.warn(`[convertir] Duplicate key en numero (intento ${intento}/${MAX_REINTENTOS}), reintentando...`);
                         continue;
