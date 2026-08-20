@@ -1,3 +1,4 @@
+
 import { supabase } from '../../core/supabase.js';
 import { CoreActions } from '../../shared/crud.js';
 import { AbonoModal } from '../../shared/abonoModal.js';
@@ -23,7 +24,7 @@ export const PagosRealizadosModule = {
         this.renderList();
         await this.cargarPagos();
     },
-    
+
     async calcularKPIs() {
         try {
             const { data, error } = await supabase.rpc('get_pagos_kpis', { p_tipo: 'out' });
@@ -34,7 +35,7 @@ export const PagosRealizadosModule = {
             console.error('Error calculando KPIs:', e);
         }
     },
-    
+
     async mostrarDetalle(id, mode = 'preview') {
         if (mode === 'print' || mode === 'vista-previa') {
             const { data: t } = await supabase.from('pagos_ingresos').select('*, contactos(*), cuentas_bancarias(*), facturas(*, contactos(*))').eq('id', id).single();
@@ -90,7 +91,7 @@ export const PagosRealizadosModule = {
     render() {
         const listContainer = this.element.querySelector('#pagos-list-container');
         const detailContainer = this.element.querySelector('#pagos-detail-container');
-        
+
         if (this.state.view === 'detalle' && this.state.currentComprobanteData) {
             if (listContainer) listContainer.style.display = 'none';
             if (detailContainer) {
@@ -107,7 +108,7 @@ export const PagosRealizadosModule = {
             }
         }
     },
-    
+
     getComprobanteHTML(t, isPrintMode = false) {
         return `
             <style>
@@ -284,9 +285,9 @@ export const PagosRealizadosModule = {
                                         <div style="font-weight: 600; color: #0f172a;">${t.categoria || 'Abono / Pago de factura'}</div>
                                     </td>
                                     <td class="text-center">
-                                        ${t.factura_id ? 
-                                            `<span style="background: #f1f5f9; padding: 2px 6px; border-radius: 6px; font-size: 11px; font-weight: 600; color: #475569;"># ${t.facturas?.numero || t.factura_id}</span>` 
-                                            : '<span style="color: #94a3b8; font-size: 12px;">N/A</span>'}
+                                        ${t.factura_id ?
+                `<span style="background: #f1f5f9; padding: 2px 6px; border-radius: 6px; font-size: 11px; font-weight: 600; color: #475569;"># ${t.facturas?.numero || t.factura_id}</span>`
+                : '<span style="color: #94a3b8; font-size: 12px;">N/A</span>'}
                                     </td>
                                     <td class="text-end" style="font-weight: 600; color: #0f172a;">
                                         $${Number(t.monto).toLocaleString('es-CO')}
@@ -421,14 +422,14 @@ export const PagosRealizadosModule = {
             </div>
             <div id="pagos-detail-container" style="display: none;"></div>
         `;
-        
+
         this.bindStaticEvents();
     },
 
     renderGrid() {
         const gridContainer = this.element.querySelector('#grid-container');
         if (!gridContainer) return;
-        
+
         const formatMoney = val => '$ ' + parseFloat(val || 0).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         const formatFecha = dateStr => {
             if (!dateStr) return '---';
@@ -461,11 +462,11 @@ export const PagosRealizadosModule = {
                 </thead>
                 <tbody style="font-size: 13px; color: #2c3e50;">
                     ${this.state.pagos.length > 0 ? this.state.pagos.map(pago => {
-                        let detallesHtml = pago.categoria || 'Sin detalle';
-                        if (pago.factura_id) {
-                            detallesHtml = `<a href="#/gastos/compras/ver/${pago.factura_id}" class="text-decoration-none text-primary" onclick="event.stopPropagation()">Compra #${pago.factura_numero || pago.factura_id}</a>`;
-                        }
-                        return `
+            let detallesHtml = pago.categoria || 'Sin detalle';
+            if (pago.factura_id) {
+                detallesHtml = `<a href="#/gastos/compras/ver/${pago.factura_id}" class="text-decoration-none text-primary" onclick="event.stopPropagation()">Compra #${pago.factura_numero || pago.factura_id}</a>`;
+            }
+            return `
                             <tr style="cursor: pointer;" class="row-pago" data-id="${pago.id}">
                                 <td class="ps-4 py-1 fw-bold text-dark">${pago.numero}</td>
                                 <td class="py-1 text-dark text-truncate" style="max-width: 200px;">${pago.cliente}</td>
@@ -473,12 +474,12 @@ export const PagosRealizadosModule = {
                                 <td class="py-1 text-muted">${formatFecha(pago.fecha)}</td>
                                 <td class="py-1 text-dark text-truncate" style="max-width: 150px;">${pago.cuenta_bancaria}</td>
                                 <td class="py-1">
-                                    ${pago.estado_transaccion === 'anulado' 
-                                        ? `<span class="badge bg-secondary text-secondary bg-opacity-10 border border-secondary-subtle rounded-pill fw-medium" style="font-size: 10px; padding: 3px 8px;">Anulado</span>`
-                                        : pago.estado_conciliacion
-                                            ? `<span class="badge bg-success text-success bg-opacity-10 border border-success-subtle rounded-pill fw-medium" style="font-size: 10px; padding: 3px 8px;">Conciliado</span>`
-                                            : `<span class="badge bg-warning text-warning-emphasis bg-opacity-10 border border-warning-subtle rounded-pill fw-medium" style="font-size: 10px; padding: 3px 8px;">No conciliado</span>`
-                                    }
+                                    ${pago.estado_transaccion === 'anulado'
+                    ? `<span class="badge bg-secondary text-secondary bg-opacity-10 border border-secondary-subtle rounded-pill fw-medium" style="font-size: 10px; padding: 3px 8px;">Anulado</span>`
+                    : pago.estado_conciliacion
+                        ? `<span class="badge bg-success text-success bg-opacity-10 border border-success-subtle rounded-pill fw-medium" style="font-size: 10px; padding: 3px 8px;">Conciliado</span>`
+                        : `<span class="badge bg-warning text-warning-emphasis bg-opacity-10 border border-warning-subtle rounded-pill fw-medium" style="font-size: 10px; padding: 3px 8px;">No conciliado</span>`
+                }
                                 </td>
                                 <td class="py-1 text-end fw-bold pe-4 ${pago.estado_transaccion === 'anulado' ? 'text-muted text-decoration-line-through opacity-50' : 'text-danger'}">
                                     ${formatMoney(pago.monto)}
@@ -488,7 +489,7 @@ export const PagosRealizadosModule = {
                                 </td>
                             </tr>
                         `;
-                    }).join('') : `
+        }).join('') : `
                         <tr>
                             <td colspan="8" class="text-center text-muted py-5">
                                 <div class="mb-3"><i class="bi bi-inbox fs-1 text-secondary opacity-50"></i></div>
@@ -522,7 +523,7 @@ export const PagosRealizadosModule = {
                 </div>
             </div>
         `;
-        
+
         gridContainer.innerHTML = tableHtml;
         this.bindDynamicEvents(gridContainer);
     },
@@ -563,7 +564,7 @@ export const PagosRealizadosModule = {
                 this.render();
             });
         }
-        
+
         const btnVistaPrevia = container.querySelector('#btn-vista-previa-comprobante');
         if (btnVistaPrevia) {
             btnVistaPrevia.addEventListener('click', (e) => {
@@ -571,7 +572,7 @@ export const PagosRealizadosModule = {
                 this.mostrarDetalle(id, 'vista-previa');
             });
         }
-        
+
         const btnImprimirComprobante = container.querySelector('#btn-imprimir-comprobante');
         if (btnImprimirComprobante) {
             btnImprimirComprobante.addEventListener('click', (e) => {
@@ -579,7 +580,7 @@ export const PagosRealizadosModule = {
                 this.mostrarDetalle(id, 'print');
             });
         }
-        
+
         const btnEditarComprobante = container.querySelector('#btn-editar-comprobante');
         if (btnEditarComprobante) {
             btnEditarComprobante.addEventListener('click', (e) => {
@@ -671,7 +672,7 @@ export const PagosRealizadosModule = {
                 const anulado = btn.getAttribute('data-anulado') === 'true';
                 const facturaId = btn.getAttribute('data-factura');
                 const rect = btn.getBoundingClientRect();
-                
+
                 const menu = document.createElement('div');
                 menu.className = 'dropdown-menu row-action-menu show shadow-sm border border-light-subtle';
                 menu.style.position = 'fixed';
@@ -681,7 +682,7 @@ export const PagosRealizadosModule = {
                 menu.style.minWidth = '140px';
                 menu.style.fontSize = '13px';
                 menu.style.borderRadius = '6px';
-                
+
                 menu.innerHTML = `
                     <a class="dropdown-item py-2 d-flex align-items-center gap-2 text-dark" href="#" id="action-ver-${id}">
                         <i class="bi bi-eye text-secondary"></i> Ver detalle
@@ -714,7 +715,7 @@ export const PagosRealizadosModule = {
                         this.mostrarDetalle(id, 'preview');
                     });
                 }
-                
+
                 const actionImprimir = document.getElementById(`action-imprimir-${id}`);
                 if (actionImprimir) {
                     actionImprimir.addEventListener('click', async (ev) => {
@@ -724,7 +725,7 @@ export const PagosRealizadosModule = {
                         this.mostrarDetalle(id, 'print');
                     });
                 }
-                
+
                 const actionEditar = document.getElementById(`action-editar-${id}`);
                 if (actionEditar) {
                     actionEditar.addEventListener('click', (ev) => {
@@ -732,7 +733,7 @@ export const PagosRealizadosModule = {
                         ev.stopPropagation();
                         window.cleanupFloatingElements();
                         import('../../shared/transaccionModal.js').then(m => {
-                            supabase.from('pagos_ingresos').select('*').eq('id', id).single().then(({data}) => {
+                            supabase.from('pagos_ingresos').select('*').eq('id', id).single().then(({ data }) => {
                                 if (data) {
                                     m.mostrarDetalleTransaccion(data, () => this.cargarPagos());
                                     setTimeout(() => {
@@ -751,9 +752,9 @@ export const PagosRealizadosModule = {
                         ev.preventDefault();
                         ev.stopPropagation();
                         window.cleanupFloatingElements();
-                        
+
                         if (confirm('¿Estás seguro de anular este pago? Esta acción no se puede deshacer.')) {
-                            const {data: t} = await supabase.from('pagos_ingresos').select('*').eq('id', id).single();
+                            const { data: t } = await supabase.from('pagos_ingresos').select('*').eq('id', id).single();
                             if (t) {
                                 try {
                                     await anularTransaccion(t);
@@ -766,15 +767,15 @@ export const PagosRealizadosModule = {
                         }
                     });
                 }
-                
+
                 const actionEliminar = document.getElementById(`action-eliminar-${id}`);
                 if (actionEliminar) {
                     actionEliminar.addEventListener('click', async (ev) => {
                         ev.preventDefault();
                         ev.stopPropagation();
                         window.cleanupFloatingElements();
-                        
-                        const {data: t} = await supabase.from('pagos_ingresos').select('*').eq('id', id).single();
+
+                        const { data: t } = await supabase.from('pagos_ingresos').select('*').eq('id', id).single();
                         if (t.factura_id) {
                             CoreActions.showWarningModal('No se puede eliminar un pago asociado a una factura. Por favor, usa la opción "Anular" en su lugar para mantener la consistencia del saldo.');
                             return;
@@ -783,7 +784,7 @@ export const PagosRealizadosModule = {
                             CoreActions.showWarningModal('No se puede eliminar un pago que ya ha sido conciliado. Usa la opción "Anular" en su lugar.');
                             return;
                         }
-                        
+
                         if (confirm('¿Estás seguro de ELIMINAR permanentemente este pago? Esta acción no se puede deshacer.')) {
                             try {
                                 await supabase.from('pagos_ingresos').delete().eq('id', id);
