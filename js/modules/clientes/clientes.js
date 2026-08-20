@@ -261,11 +261,22 @@ export const ContactosModule = {
             let html = '';
             rows.forEach(c => {
                 const inicial    = c.nombre ? c.nombre.charAt(0).toUpperCase() : '?';
-                const isCliente  = (c.tipo || '').toLowerCase() === 'cliente';
-                const isProveedor = (c.tipo || '').toLowerCase() === 'proveedor';
-                let tipoBadge = `<span class="badge bg-light text-dark border rounded-pill fw-medium" style="font-size: 11px; padding: 5px 10px;">${c.tipo || '-'}</span>`;
-                if (isCliente)   tipoBadge = `<span class="badge bg-success text-success bg-opacity-10 border border-success-subtle rounded-pill fw-medium" style="font-size: 11px; padding: 5px 10px;">Cliente</span>`;
-                else if (isProveedor) tipoBadge = `<span class="badge bg-primary text-primary bg-opacity-10 border border-primary-subtle rounded-pill fw-medium" style="font-size: 11px; padding: 5px 10px;">Proveedor</span>`;
+                let badges = [];
+                if (c.es_cliente) {
+                    badges.push(`<span class="badge bg-success text-success bg-opacity-10 border border-success-subtle rounded-pill fw-medium" style="font-size: 11px; padding: 5px 10px;">Cliente</span>`);
+                }
+                if (c.es_proveedor) {
+                    badges.push(`<span class="badge bg-primary text-primary bg-opacity-10 border border-primary-subtle rounded-pill fw-medium" style="font-size: 11px; padding: 5px 10px;">Proveedor</span>`);
+                }
+                if (badges.length === 0) {
+                    // Fallback
+                    const isCliente = (c.tipo || '').toLowerCase() === 'cliente';
+                    const isProveedor = (c.tipo || '').toLowerCase() === 'proveedor';
+                    if (isCliente) badges.push(`<span class="badge bg-success text-success bg-opacity-10 border border-success-subtle rounded-pill fw-medium" style="font-size: 11px; padding: 5px 10px;">Cliente</span>`);
+                    else if (isProveedor) badges.push(`<span class="badge bg-primary text-primary bg-opacity-10 border border-primary-subtle rounded-pill fw-medium" style="font-size: 11px; padding: 5px 10px;">Proveedor</span>`);
+                    else badges.push(`<span class="badge bg-light text-dark border rounded-pill fw-medium" style="font-size: 11px; padding: 5px 10px;">${c.tipo || '-'}</span>`);
+                }
+                const tipoBadge = badges.join('&nbsp;');
 
                 html += `
                     <tr data-id="${c.id}" style="cursor: pointer; border-bottom: 1px solid var(--border-color); font-size: 13px; color: var(--text-body);" onclick="if(!event.target.closest('button') && !event.target.closest('input')) window.location.hash = '#/contactos/ver/${c.id}'">
