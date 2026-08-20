@@ -188,7 +188,8 @@ export const FacturasModule = {
                         <div class="card-header bg-white border-bottom p-3 d-flex gap-3 align-items-center" style="border-radius: 8px 8px 0 0;">
                             <div class="input-group input-group-sm" style="width: 250px;">
                                 <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
-                                <input type="text" class="form-control border-start-0 ps-0 text-muted" id="searchFacturas" placeholder="Buscar por fecha, cliente, número..." value="${searchQuery}" style="font-size: 13px; box-shadow: none;">
+                                <input type="text" class="form-control border-start-0 border-end-0 ps-0 text-muted" id="searchFacturas" placeholder="Buscar por fecha, cliente, número, monto..." value="${searchQuery}" style="font-size: 13px; box-shadow: none;">
+                                <span class="input-group-text bg-white border-start-0 text-muted" id="clearSearchBtn" style="cursor: pointer; ${searchQuery ? '' : 'display: none;'}"><i class="bi bi-x-circle-fill" style="opacity: 0.5;"></i></span>
                             </div>
                             <div class="dropdown">
                                 <button class="btn btn-link text-decoration-none text-muted p-0 dropdown-toggle" data-bs-toggle="dropdown" style="font-size: 14px;">
@@ -201,6 +202,7 @@ export const FacturasModule = {
                                     <li><a class="dropdown-item filter-opt" href="#" data-criteria="cliente">Por Cliente</a></li>
                                     <li><a class="dropdown-item filter-opt" href="#" data-criteria="fecha">Por Fecha de creación</a></li>
                                     <li><a class="dropdown-item filter-opt" href="#" data-criteria="estado">Por Estado</a></li>
+                                    <li><a class="dropdown-item filter-opt" href="#" data-criteria="monto">Por Monto</a></li>
                                 </ul>
                             </div>
                         </div>
@@ -252,15 +254,31 @@ export const FacturasModule = {
 
             // Buscador del servidor con debounce
             if (searchInput) {
+                const clearSearchBtn = element.querySelector('#clearSearchBtn');
+                
                 let debounceTimer;
                 searchInput.addEventListener('input', (e) => {
+                    const val = e.target.value;
+                    if (clearSearchBtn) {
+                        clearSearchBtn.style.display = val.length > 0 ? '' : 'none';
+                    }
                     clearTimeout(debounceTimer);
                     debounceTimer = setTimeout(() => {
-                        searchQuery = e.target.value.trim();
+                        searchQuery = val.trim();
                         currentPage = 1;
                         renderGrid();
                     }, 400);
                 });
+
+                if (clearSearchBtn) {
+                    clearSearchBtn.addEventListener('click', () => {
+                        searchInput.value = '';
+                        clearSearchBtn.style.display = 'none';
+                        searchQuery = '';
+                        currentPage = 1;
+                        renderGrid();
+                    });
+                }
             }
 
             // Ordenamiento por Columnas
