@@ -150,7 +150,7 @@ const DB = {
                 delete payload.plazosPago;
             }
             // Eliminar campos que no existen en el esquema (residuos o calculados)
-            const CONTACTO_BASURA = ['estado', 'created_at'];
+            const CONTACTO_BASURA = ['created_at'];
             CONTACTO_BASURA.forEach(c => delete payload[c]);
         }
 

@@ -192,10 +192,15 @@ export const ContactosModule = {
         try {
             const { data } = await supabase
                 .from('contactos')
-                .select('tipo');
-            const total      = data?.length ?? 0;
-            const clientes   = data?.filter(c => (c.tipo || '').toLowerCase() === 'cliente').length ?? 0;
-            const proveedores = data?.filter(c => (c.tipo || '').toLowerCase() === 'proveedor').length ?? 0;
+                .select('es_cliente, es_proveedor, estado');
+            
+            // Filtramos inactivos igual que el RPC
+            const activos = data?.filter(c => c.estado !== 'inactive') || [];
+            
+            const total      = activos.length;
+            const clientes   = activos.filter(c => c.es_cliente).length;
+            const proveedores = activos.filter(c => c.es_proveedor).length;
+            
             return { total, clientes, proveedores };
         } catch { return { total: 0, clientes: 0, proveedores: 0 }; }
     },
@@ -521,6 +526,7 @@ export const ContactosModule = {
                         </div>
                     </div>
                     <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+                        <button type="button" class="btn btn-light" id="btn-cancelar-form">Cancelar</button>
                         <button type="submit" class="btn btn-primary" style="background-color: var(--primary); border: none;">Guardar Contacto</button>
                     </div>
                 </form>
@@ -528,6 +534,11 @@ export const ContactosModule = {
         `;
 
         this.element.querySelector('#btn-cancelar-contacto')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            this.restaurarVistaTabla();
+        });
+
+        this.element.querySelector('#btn-cancelar-form')?.addEventListener('click', (e) => {
             e.preventDefault();
             this.restaurarVistaTabla();
         });
