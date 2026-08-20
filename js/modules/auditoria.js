@@ -44,7 +44,8 @@ async function runAudit() {
         { id: 5, title: 'Facturas huérfanas de contacto', fn: check5 },
         { id: 6, title: 'Cartera de clientes vs sumatoria manual de facturas y pagos', fn: check6 },
         { id: 7, title: 'Productos con suma de lotes negativa (sobreventa)', fn: check7 },
-        { id: 8, title: 'Seguridad de infraestructura: tablas sin RLS o sin políticas', fn: check8 }
+        { id: 8, title: 'Seguridad de infraestructura: tablas sin RLS o sin políticas', fn: check8 },
+        { id: 9, title: 'Reconciliación de Movimientos de Inventario', fn: check9 }
     ];
 
     for (const check of checks) {
@@ -76,7 +77,9 @@ async function runAudit() {
             const statusText = document.getElementById(`audit-status-${check.id}`);
             const detailsDiv = document.getElementById(`audit-details-${check.id}`);
             
-            if (result.success) {
+            if (result.customUi) {
+                result.customUi(iconDiv, statusText, detailsDiv);
+            } else if (result.success) {
                 iconDiv.innerHTML = `<span style="font-size: 1.5rem;">✅</span>`;
                 statusText.innerText = 'Sin problemas detectados';
                 statusText.classList.add('text-success');
@@ -227,4 +230,115 @@ async function check8() {
     const { data, error } = await supabase.rpc('run_audit_check_8');
     if (error) throw error;
     return data;
+}
+
+// 9. Reconciliación de Movimientos de Inventario
+async function check9() {
+    const { data, error } = await supabase.rpc('get_reconciliacion_inventario');
+    if (error) throw error;
+    
+    return {
+        customUi: (iconDiv, statusText, detailsDiv) => {
+            const conDiscrepancia = data.filter(d => d.tiene_checkpoint && Math.abs(d.discrepancia) > 0.01);
+            const sinDiscrepancia = data.filter(d => d.tiene_checkpoint && Math.abs(d.discrepancia) <= 0.01);
+            const sinCheckpoint = data.filter(d => !d.tiene_checkpoint);
+            
+            // Icono principal (Rojo si hay discrepancias, si no Verde)
+            if (conDiscrepancia.length > 0) {
+                iconDiv.innerHTML = `<span style="font-size: 1.5rem;">❌</span>`;
+                statusText.classList.add('text-danger');
+            } else {
+                iconDiv.innerHTML = `<span style="font-size: 1.5rem;">✅</span>`;
+                statusText.classList.add('text-success');
+            }
+            
+            statusText.innerText = `${conDiscrepancia.length} productos con discrepancia detectada · ${sinDiscrepancia.length} verificados sin problema · ${sinCheckpoint.length} sin checkpoint verificable`;
+            
+            let html = '';
+            
+            // SECCIÓN A (Alerta Roja)
+            if (conDiscrepancia.length > 0) {
+                html += `
+                    <div class="alert alert-danger mt-2 mb-3">
+                        <h6 class="alert-heading fw-bold"><i class="bi bi-exclamation-triangle-fill"></i> ${conDiscrepancia.length} Discrepancias Urgentes Detectadas</h6>
+                        <p class="mb-2" style="font-size: 0.85rem;">Estos productos tienen un inventario actual que NO coincide con su historial matemático desde el último ajuste (checkpoint).</p>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered mb-0 bg-white" style="font-size: 0.85rem;">
+                                <thead>
+                                    <tr>
+                                        <th>SKU</th>
+                                        <th>Nombre</th>
+                                        <th>Checkpoint</th>
+                                        <th>Fecha Checkpoint</th>
+                                        <th>Vendido Después</th>
+                                        <th>Esperado</th>
+                                        <th>Actual</th>
+                                        <th class="text-danger">Discrepancia</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${conDiscrepancia.map(d => `
+                                        <tr>
+                                            <td>${d.sku}</td>
+                                            <td>${d.nombre}</td>
+                                            <td>${d.checkpoint}</td>
+                                            <td>${new Date(d.fecha_checkpoint).toLocaleDateString()}</td>
+                                            <td>${d.vendido_despues}</td>
+                                            <td>${d.esperado}</td>
+                                            <td>${d.actual}</td>
+                                            <td class="text-danger fw-bold">${d.discrepancia}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // SECCIÓN B (Confirmación Verde)
+            if (sinDiscrepancia.length > 0) {
+                html += `
+                    <div class="border rounded p-2 mb-3" style="background-color: #f8fff9; border-color: #c3e6cb !important;">
+                        <div class="d-flex justify-content-between align-items-center cursor-pointer" onclick="document.getElementById('sec-b-det').classList.toggle('d-none')">
+                            <span class="text-success fw-bold" style="font-size: 0.9rem;"><i class="bi bi-check-circle-fill"></i> ${sinDiscrepancia.length} productos verificados exitosamente</span>
+                            <span class="text-muted" style="font-size: 0.8rem;">Ver detalle ▼</span>
+                        </div>
+                        <div id="sec-b-det" class="d-none mt-2 table-responsive">
+                            <table class="table table-sm table-bordered mb-0 bg-white" style="font-size: 0.8rem;">
+                                <thead><tr><th>SKU</th><th>Nombre</th><th>Checkpoint</th><th>Actual</th></tr></thead>
+                                <tbody>
+                                    ${sinDiscrepancia.map(d => `<tr><td>${d.sku}</td><td>${d.nombre}</td><td>${d.checkpoint}</td><td>${d.actual}</td></tr>`).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // SECCIÓN C (Informativo Gris)
+            if (sinCheckpoint.length > 0) {
+                html += `
+                    <div class="border rounded p-2 bg-light">
+                        <div class="d-flex justify-content-between align-items-center cursor-pointer" onclick="document.getElementById('sec-c-det').classList.toggle('d-none')">
+                            <span class="text-secondary fw-bold" style="font-size: 0.9rem;"><i class="bi bi-info-circle-fill"></i> ${sinCheckpoint.length} productos sin checkpoint conocido</span>
+                            <span class="text-muted" style="font-size: 0.8rem;">Ver detalle ▼</span>
+                        </div>
+                        <p class="mb-2 mt-1 text-muted" style="font-size: 0.8rem;">Estos productos nunca han pasado por una auditoría de cantidad, por lo que no se pueden verificar con este método. Considera hacer un conteo físico y registrar un ajuste para habilitar la verificación automática.</p>
+                        <div id="sec-c-det" class="d-none mt-2 table-responsive">
+                            <table class="table table-sm table-bordered mb-0 bg-white" style="font-size: 0.8rem;">
+                                <thead><tr><th>SKU</th><th>Nombre</th><th>Actual</th></tr></thead>
+                                <tbody>
+                                    ${sinCheckpoint.map(d => `<tr><td>${d.sku}</td><td>${d.nombre}</td><td>${d.actual}</td></tr>`).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+            }
+
+            detailsDiv.innerHTML = html;
+            detailsDiv.style.display = 'block';
+        }
+    };
 }
