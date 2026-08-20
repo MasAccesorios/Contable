@@ -110,10 +110,21 @@ export const CoreActions = {
                 return;
             }
 
-            // Regla de Negocio: Validar y Descontar FIFO antes de convertir
-            const invResult = await InventarioUtils.procesarSalidaInventario(cotizacion.detalles || []);
-            if (!invResult.success) {
-                this.showWarningModal("Acción interceptada: " + invResult.error);
+            // Regla de Negocio Adicional: Bloqueo de Reprocesamiento Fuerte en DB
+            const { data: existe } = await supabase
+                .from('facturas')
+                .select('id, numero')
+                .eq('cotizacion_origen_id', cotizacion.id || idCotizacion);
+
+            if (existe && existe.length > 0) {
+                this.showWarningModal(`Esta cotización ya fue convertida a la factura [No. ${existe[0].numero || existe[0].id}].`);
+                return;
+            }
+
+            // Regla de Negocio: Validar y Simular FIFO antes de convertir (FASE 1 - Read Only)
+            const planInventario = await InventarioUtils.calcularSalidaInventario(cotizacion.detalles || []);
+            if (!planInventario.success) {
+                this.showWarningModal("Acción interceptada: " + planInventario.error);
                 return; // ABORTA LA CONVERSIÓN
             }
 
@@ -122,7 +133,7 @@ export const CoreActions = {
             
             // Aseguramos el mapeo explícito de campos, extrayendo la descripcion_personalizada 
             // directamente de la cotización original (cotizacion.detalles[i])
-            const detallesConvertidos = invResult.detallesActualizados.map((det, i) => ({
+            const detallesConvertidos = planInventario.detallesActualizados.map((det, i) => ({
                 ...det,
                 descripcion_personalizada: cotizacion.detalles[i]?.descripcion_personalizada || ''
             }));
@@ -136,7 +147,7 @@ export const CoreActions = {
                 estado: 'por_pagar',
                 tipo: 'venta',
                 detalles: detallesConvertidos,
-                total_costo: invResult.costoTotalVenta,
+                total_costo: planInventario.costoTotalVenta,
                 notas: cotizacion.notas || '',
                 terminosCondiciones: cotizacion.terminosCondiciones || 'Favor realizar los pagos a nuestra cuenta bancaria.',
                 cotizacion_origen_id: parseInt(cotizacion.id, 10) || cotizacion.id,
@@ -147,8 +158,6 @@ export const CoreActions = {
             };
 
             // Reintento automático ante duplicate key en numero (código Postgres 23505).
-            // Con secuencias nativas esto no debería ocurrir, pero se mantiene como
-            // red de seguridad ante reinicios de secuencia o migraciones parciales.
             const MAX_REINTENTOS = 3;
             let facturaGuardada = null;
             for (let intento = 1; intento <= MAX_REINTENTOS; intento++) {
@@ -162,14 +171,24 @@ export const CoreActions = {
                         console.warn(`[convertir] Duplicate key en numero (intento ${intento}/${MAX_REINTENTOS}), reintentando...`);
                         continue;
                     }
-                    // Si no es duplicate key, o se agotaron los reintentos, relanzar con mensaje amigable
                     if (esDuplicado) {
                         throw new Error('No se pudo asignar el número de factura. Por favor, intenta de nuevo.');
                     }
-                    throw err;
+                    throw err; // Aborta aquí. Como NO se ha descontado inventario aún, no hay fugas.
                 }
             }
             const idReal = facturaGuardada.id;
+
+            // FASE 2: Descuento físico de inventario (Escritura Real)
+            try {
+                await InventarioUtils.ejecutarPlanInventario(planInventario.operacionesDB);
+            } catch (errInventario) {
+                // FALLO CRÍTICO: Se guardó la factura, pero falló el inventario.
+                console.error("Fallo crítico descontando inventario post-factura. Revirtiendo...", errInventario);
+                // Rollback compensatorio de la factura huérfana
+                await DB.delete('facturas', idReal);
+                throw new Error("La factura se generó internamente pero falló el descuento de inventario. Por seguridad se ha anulado la operación. Intente nuevamente.");
+            }
 
             // Modificar estado original
             cotizacion.convertidoAFactura = true;
