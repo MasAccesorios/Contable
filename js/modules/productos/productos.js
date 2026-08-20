@@ -284,7 +284,7 @@ export const ProductosModule = {
             
             const stockBase = parseFloat(p.stock) || 0;
             const stockLotes = lotesProd.reduce((sum, l) => sum + l.cantidadActual, 0);
-            const stockTotal = stockBase + stockLotes;
+            const stockTotal = lotesProd.length > 0 ? stockLotes : stockBase;
 
             const costoLotes = lotesProd.reduce((sum, l) => sum + (l.cantidadActual * (l.costoUnitario || 0)), 0);
             const costoPromedio = stockTotal > 0 ? 
@@ -546,9 +546,11 @@ export const ProductosModule = {
         lotesProd.sort((a, b) => new Date(a.fechaIngreso) - new Date(b.fechaIngreso));
 
         let lotesHtml = '';
-        let stockTotalDisponible = 0;
+        let stockTotalDisponible = lotesProd.length > 0 
+            ? lotesProd.reduce((sum, l) => sum + (parseFloat(l.cantidadActual) || 0), 0)
+            : (parseFloat(producto.stock) || 0);
+
         lotesProd.forEach(l => {
-            stockTotalDisponible += parseFloat(l.cantidadActual) || 0;
             lotesHtml += `
                 <tr class="${l.cantidadActual === 0 ? 'table-light opacity-50' : ''}">
                     <td>${l.fechaIngreso}</td>
