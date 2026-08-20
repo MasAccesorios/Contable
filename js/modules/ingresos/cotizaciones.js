@@ -489,7 +489,10 @@ export const CotizacionesModule = {
         const actionsHtml = CoreActions.renderActionButtons(cotizacion, 'cotizacion', isViewOnly, !id);
 
         // Add legacy fallback for contacts not yet synced to IndexedDB
-        const clientes = contactos.filter(c => c.es_cliente !== undefined ? c.es_cliente : c.tipo !== 'proveedor');
+        const clientes = contactos.filter(c => 
+            (c.es_cliente !== undefined ? c.es_cliente : c.tipo !== 'proveedor') 
+            && c.estado !== 'inactive'
+        );
         const clienteActual = clientes.find(c => c.id === cotizacion.clienteId);
         const clienteNombreActual = clienteActual ? clienteActual.nombre : '';
 
