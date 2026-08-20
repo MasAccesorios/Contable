@@ -315,7 +315,7 @@ export const FacturasModule = {
                 const btn = e.currentTarget;
                 const originalHtml = btn.innerHTML;
                 btn.disabled = true;
-                btn.innerHTML = `<span class="spinner-border spinner-border-sm" aria-hidden="true"></span>`;
+                btn.innerHTML = `<span class="spinner-border spinner-border-sm" aria-hidden="true"></span> Generando...`;
                 
                 try {
                     const { data: allFiltered, error } = await supabase.rpc('get_facturas_con_saldos', {
@@ -341,11 +341,15 @@ export const FacturasModule = {
                     }
                     const getExportName = (id) => exportMap[id] || 'Sin Cliente';
 
+                    btn.innerHTML = originalHtml;
+                    btn.disabled = false;
+
                     ExportManager.exportDataToExcel(allDecorated, 'Facturas', getExportName, btn);
-                } catch(err) { console.error(err); }
-                
-                btn.innerHTML = originalHtml;
-                btn.disabled = false;
+                } catch(err) { 
+                    console.error(err); 
+                    btn.innerHTML = originalHtml;
+                    btn.disabled = false;
+                }
             });
 
             // Actualizar Caché

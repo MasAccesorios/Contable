@@ -1457,6 +1457,25 @@ export const ExportManager = {
                             'Estado': item.estado || 'Activo'
                         };
                     }
+                    
+                    if (tipoModulo === 'Facturas' || tipoModulo === 'Facturas_Compras') {
+                        const contactoId = item.contacto_id || item.proveedorId || item.clienteId || item.cliente_id;
+                        const clienteNombre = getClienteNameFunc ? getClienteNameFunc(contactoId) : (contactoId || 'Sin Contacto');
+                        
+                        let estadoReal = item.estado || item.estado_dinamico || 'Pendiente';
+                        if (estadoReal === 'por_pagar') estadoReal = 'Pendiente';
+                        
+                        return {
+                            'Número de Documento': item.numero || item.id,
+                            'Cliente/Proveedor': clienteNombre,
+                            'Fecha de Creación': item.fecha || '',
+                            'Fecha de Vencimiento': item.vencimiento || '',
+                            'Valor Total': formatMoney(item.total),
+                            'Total Pagado': formatMoney(item.totalPagado || item.total_pagado),
+                            'Saldo Pendiente': formatMoney(item.saldoPendiente || item.saldo_pendiente),
+                            'Estado Actual': estadoReal
+                        };
+                    }
 
                     const clienteNombre = getClienteNameFunc ? getClienteNameFunc(item.clienteId || item.cliente_id) : (item.clienteId || item.cliente_id || 'N/A');
                     const numDoc = item.numero || parseInt(String(item.id).replace(/\D/g, ''), 10) || item.id;
