@@ -10,10 +10,16 @@ export const ProductosModule = {
     currentPage: 1,
     itemsPerPage: 10,
     searchQuery: '',
+    filterCriteria: 'todos',
+    sortColumn: 'nombre',
+    sortDirection: 'asc',
 
     async init(element) {
         if (!element) return;
-        
+        this.renderList(element);
+    },
+
+    async renderList(element) {
         element.innerHTML = `
             <div class="dash-layout p-4">
                 <!-- TOP BAR -->
@@ -35,8 +41,6 @@ export const ProductosModule = {
                     </div>
                 </div>
 
-
-
                 <!-- DATA TABLE CARD -->
                 <div class="dash-table-container">
                     
@@ -44,31 +48,36 @@ export const ProductosModule = {
                     <div class="card-header bg-white border-bottom p-3 d-flex gap-3 align-items-center" style="border-radius: 8px 8px 0 0;">
                         <div class="input-group input-group-sm" style="width: 250px;">
                             <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
-                            <input type="text" id="search-producto" class="form-control border-start-0 ps-0 text-muted" placeholder="Buscar por nombre o SKU..." style="font-size: 13px; box-shadow: none;">
+                            <input type="text" id="searchProductos" autocomplete="off" class="form-control border-start-0 border-end-0 ps-0 text-muted" placeholder="Buscar por nombre, SKU..." value="${this.searchQuery}" style="font-size: 13px; box-shadow: none;">
+                            <span class="input-group-text bg-white border-start-0 text-muted" id="clearSearchBtnProductos" style="cursor: pointer; ${this.searchQuery ? '' : 'display: none;'}"><i class="bi bi-x-circle-fill" style="opacity: 0.5;"></i></span>
+                        </div>
+                        <div class="dropdown">
+                            <button class="btn btn-link text-decoration-none text-muted p-0 dropdown-toggle" data-bs-toggle="dropdown" style="font-size: 14px;">
+                                <i class="bi bi-funnel me-1"></i> Filtrar <span id="lbl-filtro-actual" style="font-size: 12px; font-weight: 500; color: #2cbfb7;"></span>
+                            </button>
+                            <ul class="dropdown-menu shadow border-0" style="font-size: 13px;">
+                                <li><a class="dropdown-item filter-opt" href="#" data-criteria="todos">Todos los campos</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item filter-opt" href="#" data-criteria="nombre">Por Nombre</a></li>
+                                <li><a class="dropdown-item filter-opt" href="#" data-criteria="sku">Por SKU</a></li>
+                            </ul>
                         </div>
                     </div>
 
                     <!-- GRID -->
                     <div class="table-responsive">
                         <table class="table table-borderless align-middle mb-0">
-                            <thead style="border-bottom: 1px solid var(--border-color);">
-                                <tr style="color: var(--text-muted); font-size: 13px; font-weight: var(--weight-medium);">
-                                    <th class=\"py-2 fw-normal ps-4\">SKU</th>
-                                    <th class=\"py-2 fw-normal\">Nombre / Descripción</th>
-                                    <th class=\"py-2 fw-normal text-end\">Precio Venta</th>
-                                    <th class=\"py-2 fw-normal text-end\">Stock Total</th>
-                                    <th class=\"py-2 fw-normal text-end\">Costo Promedio Real</th>
-                                    <th class=\"py-2 fw-normal text-end pe-4\" style="width: 80px;"></th>
-                                </tr>
+                            <thead style="border-bottom: 1px solid var(--border-color);" id="grid-thead">
+                                <!-- Llenado dinámicamente -->
                             </thead>
-                            <tbody id="tbody-productos">
-                                <!-- Filas inyectadas por renderTabla -->
+                            <tbody id="grid-tbody">
+                                <!-- Llenado dinámicamente -->
                             </tbody>
                         </table>
                     </div>
 
                     <!-- PAGINATION FOOTER -->
-                    <div class="card-footer bg-white border-top p-3 d-flex justify-content-between align-items-center" style="border-radius: 0 0 8px 8px;">
+                    <div class="card-footer bg-white border-top p-3 d-flex justify-content-between align-items-center" style="border-radius: 0 0 8px 8px;" id="grid-pagination">
                     </div>
                 </div>
                 
@@ -76,64 +85,141 @@ export const ProductosModule = {
             </div>
         `;
 
+        this.bindStaticEvents(element);
+
+        const hashParts = window.location.hash.split('/');
+        const action = hashParts[3];
+        const routeId = hashParts[4];
+
+        if (action === 'ver' && routeId) {
+            await this.renderDetalle(element, routeId);
+        } else {
+            await this.renderGrid(element);
+        }
+    },
+
+    bindStaticEvents(element) {
         element.querySelector('#btn-nuevo-producto')?.addEventListener('click', () => this.renderForm(element));
         
         let debounceTimer;
-        element.querySelector('#search-producto')?.addEventListener('input', (e) => {
+        const searchInput = element.querySelector('#searchProductos');
+        const clearBtn = element.querySelector('#clearSearchBtnProductos');
+
+        searchInput?.addEventListener('input', (e) => {
             clearTimeout(debounceTimer);
+            if (clearBtn) clearBtn.style.display = e.target.value.trim() ? '' : 'none';
             debounceTimer = setTimeout(() => {
                 this.searchQuery = e.target.value.trim();
                 this.currentPage = 1;
-                this.renderTabla(element);
+                this.renderGrid(element);
             }, 400);
         });
-        
+
+        clearBtn?.addEventListener('click', () => {
+            if (searchInput) searchInput.value = '';
+            clearBtn.style.display = 'none';
+            this.searchQuery = '';
+            this.currentPage = 1;
+            this.renderGrid(element);
+        });
+
+        element.querySelectorAll('.filter-opt').forEach(opt => {
+            opt.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.filterCriteria = e.target.dataset.criteria;
+                const lbl = element.querySelector('#lbl-filtro-actual');
+                if (lbl) {
+                    lbl.textContent = this.filterCriteria === 'todos' ? '' : `(${e.target.textContent})`;
+                }
+                this.currentPage = 1;
+                this.renderGrid(element);
+            });
+        });
+
         element.querySelector('#btn-refresh-list')?.addEventListener('click', async (e) => {
             const btn = e.currentTarget;
             const originalHtml = btn.innerHTML;
             btn.disabled = true;
             btn.innerHTML = `<span class="spinner-border spinner-border-sm" aria-hidden="true"></span>`;
             
-            await DB.refreshCache('productos');
             await DB.refreshCache('lotes_fifo');
-            await this.renderTabla(element);
+            await this.renderGrid(element);
             
             btn.innerHTML = originalHtml;
             btn.disabled = false;
         });
-
-        const hashParts = window.location.hash.split('/');
-        const action = hashParts[3]; // #/inventario/items/ver/id (parts[0]=#, [1]=inventario, [2]=items, [3]=ver)
-        const routeId = hashParts[4];
-
-        if (action === 'ver' && routeId) {
-            await this.renderDetalle(element, routeId);
-        } else {
-            await this.renderTabla(element);
-        }
     },
 
-
-
-    async renderTabla(element) {
+    async renderGrid(element) {
         const gridCard = element.querySelector('.dash-table-container');
         if (gridCard) gridCard.classList.remove('d-none');
-
+        
         const viewContainer = element.querySelector('#productos-view-container');
         if (viewContainer) viewContainer.innerHTML = '';
 
-        const container = element.querySelector('#tbody-productos');
-        if (!container) return;
+        const thead = element.querySelector('#grid-thead');
+        const tbody = element.querySelector('#grid-tbody');
+        const pagination = element.querySelector('#grid-pagination');
+        if (!tbody) return;
 
-        const pageResult = await DB.getPage('productos', this.currentPage, this.itemsPerPage, 'nombre', 'asc', this.searchQuery, 'todos');
-        const productos = pageResult.data.filter(p => p.estado !== 'inactivo' && p.estado !== 'inactive');
-        
-        const totalItems = pageResult.count || 0;
+        if (thead) {
+            thead.innerHTML = `
+                <tr style="color: var(--text-muted); font-size: 13px; font-weight: var(--weight-medium);">
+                    <th class="py-2 fw-normal ps-4 cursor-pointer sort-col" data-col="sku">
+                        SKU ${this.sortColumn === 'sku' ? (this.sortDirection === 'asc' ? '<i class="bi bi-arrow-up-short"></i>' : '<i class="bi bi-arrow-down-short"></i>') : ''}
+                    </th>
+                    <th class="py-2 fw-normal cursor-pointer sort-col" data-col="nombre">
+                        Nombre / Descripción ${this.sortColumn === 'nombre' ? (this.sortDirection === 'asc' ? '<i class="bi bi-arrow-up-short"></i>' : '<i class="bi bi-arrow-down-short"></i>') : ''}
+                    </th>
+                    <th class="py-2 fw-normal text-end">Precio Venta</th>
+                    <th class="py-2 fw-normal text-end">Stock Total</th>
+                    <th class="py-2 fw-normal text-end">Costo Promedio Real</th>
+                    <th class="py-2 fw-normal text-end pe-4" style="width: 80px;"></th>
+                </tr>
+            `;
+            
+            thead.querySelectorAll('.sort-col').forEach(th => {
+                th.addEventListener('click', () => {
+                    const col = th.dataset.col;
+                    if (this.sortColumn === col) {
+                        this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
+                    } else {
+                        this.sortColumn = col;
+                        this.sortDirection = 'asc';
+                    }
+                    this.renderGrid(element);
+                });
+            });
+        }
+
+        const { data: pageResult, error } = await supabase.rpc('get_productos_page', {
+            p_page: this.currentPage,
+            p_limit: this.itemsPerPage,
+            p_sort_column: this.sortColumn,
+            p_sort_direction: this.sortDirection,
+            p_search_query: this.searchQuery,
+            p_filter_criteria: this.filterCriteria
+        });
+
+        if (error) {
+            console.error("Error al cargar productos:", error);
+            tbody.innerHTML = `<tr><td colspan="6" class="text-center py-5 text-danger">Error al cargar productos</td></tr>`;
+            return;
+        }
+
+        const productos = pageResult?.[0]?.data || [];
+        const totalItems = parseInt(pageResult?.[0]?.total_count) || 0;
         const totalPages = Math.ceil(totalItems / this.itemsPerPage) || 1;
 
         if (this.currentPage > totalPages && totalPages > 0) {
             this.currentPage = totalPages;
-            return this.renderTabla(element);
+            return this.renderGrid(element);
+        }
+
+        if (productos.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="6" class="text-center py-5 text-muted">No se encontraron productos.</td></tr>`;
+            if (pagination) pagination.innerHTML = '';
+            return;
         }
 
         const productIds = productos.map(p => p.id);
@@ -143,15 +229,9 @@ export const ProductosModule = {
             if (data) lotes = data.map(l => DB._mapToFrontend('lotes_fifo', l));
         }
 
-        if (productos.length === 0) {
-            container.innerHTML = `<tr><td colspan="6" class="text-center py-5 text-muted">No hay productos registrados en el inventario.</td></tr>`;
-            return;
-        }
-
         let html = '';
-
         productos.forEach(p => {
-            const lotesProd = lotes.filter(l => l.productoId === p.id && l.cantidadActual > 0);
+            const lotesProd = lotes.filter(l => String(l.productoId) === String(p.id) && l.cantidadActual > 0);
             
             const stockBase = parseFloat(p.stock) || 0;
             const stockLotes = lotesProd.reduce((sum, l) => sum + l.cantidadActual, 0);
@@ -165,17 +245,17 @@ export const ProductosModule = {
             const isLowStock = stockTotal <= (p.stockMinimo || 0);
             
             html += `
-                <tr data-id="${p.id}" style="cursor: pointer; border-bottom: 1px solid var(--border-color); font-size: 13px; color: var(--text-body);" onclick="if(!event.target.closest('button')) window.location.hash = '#/inventario/items/ver/${p.id}'">
-                    <td class=\"py-2 ps-4 td-sku\" style="color: var(--text-main); font-weight: var(--weight-medium);">${p.sku}</td>
-                    <td class=\"py-2 text-truncate td-nombre\" style="max-width: 300px;">${escapeHtml(p.nombre)}</td>
-                    <td class=\"py-2 text-end\">$${(p.precioVenta || 0).toLocaleString('es-CO', {minimumFractionDigits: 2})}</td>
-                    <td class=\"py-2 text-end\">
+                <tr data-id="${p.id}" style="cursor: pointer; border-bottom: 1px solid var(--border-color); font-size: 13px; color: var(--text-body);" class="row-clickable">
+                    <td class="py-2 ps-4 td-sku" style="color: var(--text-main); font-weight: var(--weight-medium);">${p.sku || ''}</td>
+                    <td class="py-2 text-truncate td-nombre" style="max-width: 300px;">${escapeHtml(p.nombre || '')}</td>
+                    <td class="py-2 text-end">$${(p.precioVenta || 0).toLocaleString('es-CO', {minimumFractionDigits: 2})}</td>
+                    <td class="py-2 text-end">
                         <span style="${isLowStock ? 'color: #ef4444; background-color: #fee2e2;' : 'color: #15803d; background-color: #dcfce7;'} padding: 4px 12px; border-radius: 12px; font-size: 11px; font-weight: var(--weight-medium);" ${isLowStock ? 'title="¡Alerta: Stock por debajo del mínimo!"' : ''}>
                             ${isLowStock ? '<i class="bi bi-exclamation-triangle-fill me-1"></i>' : ''}${stockTotal} und
                         </span>
                     </td>
-                    <td class=\"py-2 text-end text-muted\">$${(costoPromedio || 0).toLocaleString('es-CO', {minimumFractionDigits: 2})}</td>
-                    <td class=\"py-2 text-end pe-4\">
+                    <td class="py-2 text-end text-muted">$${(costoPromedio || 0).toLocaleString('es-CO', {minimumFractionDigits: 2})}</td>
+                    <td class="py-2 text-end pe-4">
                         <button class="btn btn-link text-muted p-0 btn-menu-row btn-editar" data-id="${p.id}">
                             <i class="bi bi-pencil"></i>
                         </button>
@@ -184,12 +264,11 @@ export const ProductosModule = {
             `;
         });
 
-        container.innerHTML = html;
+        tbody.innerHTML = html;
 
-        const footerContainer = element.querySelector('.card-footer');
-        if (footerContainer) {
+        if (pagination) {
             const from = (this.currentPage - 1) * this.itemsPerPage;
-            footerContainer.innerHTML = `
+            pagination.innerHTML = `
                 <div class="d-flex align-items-center gap-3" style="font-size: 13px; color: var(--text-body);">
                     <span>Resultados por página:</span>
                     <select class="form-select form-select-sm text-muted select-per-page" style="width: 70px;">
@@ -209,31 +288,49 @@ export const ProductosModule = {
                     </div>
                 </div>
             `;
+        }
 
-            footerContainer.querySelector('.select-per-page')?.addEventListener('change', (e) => {
-                this.itemsPerPage = parseInt(e.target.value);
-                this.currentPage = 1;
-                this.renderTabla(element);
+        this.bindDynamicEvents(element, totalPages);
+    },
+
+    bindDynamicEvents(element, totalPages) {
+        const tbody = element.querySelector('#grid-tbody');
+        if (tbody) {
+            tbody.querySelectorAll('.row-clickable').forEach(row => {
+                row.addEventListener('click', (e) => {
+                    if (!e.target.closest('button')) {
+                        window.location.hash = `#/inventario/items/ver/${row.dataset.id}`;
+                    }
+                });
             });
-            footerContainer.querySelector('.input-page')?.addEventListener('change', (e) => {
-                let val = parseInt(e.target.value) || 1;
-                this.currentPage = val;
-                this.renderTabla(element);
-            });
-            footerContainer.querySelector('.btn-prev-page')?.addEventListener('click', () => {
-                if (this.currentPage > 1) { this.currentPage--; this.renderTabla(element); }
-            });
-            footerContainer.querySelector('.btn-next-page')?.addEventListener('click', () => {
-                if (this.currentPage < totalPages) { this.currentPage++; this.renderTabla(element); }
+
+            tbody.querySelectorAll('.btn-editar').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.renderForm(element, e.currentTarget.dataset.id);
+                });
             });
         }
 
-        container.querySelectorAll('.btn-editar').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                this.renderForm(element, e.currentTarget.dataset.id);
+        const pagination = element.querySelector('#grid-pagination');
+        if (pagination) {
+            pagination.querySelector('.select-per-page')?.addEventListener('change', (e) => {
+                this.itemsPerPage = parseInt(e.target.value);
+                this.currentPage = 1;
+                this.renderGrid(element);
             });
-        });
+            pagination.querySelector('.input-page')?.addEventListener('change', (e) => {
+                let val = parseInt(e.target.value) || 1;
+                this.currentPage = val;
+                this.renderGrid(element);
+            });
+            pagination.querySelector('.btn-prev-page')?.addEventListener('click', () => {
+                if (this.currentPage > 1) { this.currentPage--; this.renderGrid(element); }
+            });
+            pagination.querySelector('.btn-next-page')?.addEventListener('click', () => {
+                if (this.currentPage < totalPages) { this.currentPage++; this.renderGrid(element); }
+            });
+        }
     },
 
     async renderForm(element, id = null) {
