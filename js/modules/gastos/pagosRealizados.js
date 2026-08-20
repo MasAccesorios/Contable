@@ -95,8 +95,7 @@ export const PagosRealizadosModule = {
             if (listContainer) listContainer.style.display = 'none';
             if (detailContainer) {
                 detailContainer.style.display = 'block';
-                detailContainer.innerHTML = this.getComprobanteHTML(this.state.currentComprobanteData);
-                this.bindDetailEvents(detailContainer);
+                this.renderComprobanteWrapper(detailContainer);
             }
         } else {
             if (detailContainer) {
@@ -347,6 +346,32 @@ export const PagosRealizadosModule = {
                 ${this.getComprobanteHTML(t)}
             </div>
         `;
+    },
+
+    renderComprobanteWrapper(container) {
+        const t = this.state.currentComprobanteData;
+        container.innerHTML = `
+            <div class="py-4 px-4" style="font-family: 'Inter', sans-serif; background-color: #f8f9fa; min-height: 100vh;">
+                <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom" style="max-width: 750px; margin: 0 auto;">
+                    <button class="btn btn-link text-decoration-none text-muted p-0 d-flex align-items-center gap-2 fw-medium" id="btn-volver-pagos">
+                        <i class="bi bi-arrow-left"></i> Volver a Pagos Realizados
+                    </button>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-outline-info text-info border-info bg-info bg-opacity-10 fw-medium px-4" id="btn-imprimir-comprobante" data-id="${t.id}">
+                            <i class="bi bi-printer me-2"></i> Imprimir
+                        </button>
+                        <button class="btn fw-medium px-4 text-white" style="background-color: #1877f2; border-color: #1877f2;" id="btn-editar-comprobante" data-id="${t.id}">
+                            <i class="bi bi-pencil me-2"></i> Editar
+                        </button>
+                    </div>
+                </div>
+                <div class="mb-4" style="max-width: 750px; margin: 0 auto;">
+                    <h2 class="h3 fw-bold m-0" style="color: #0f172a;">Pago Realizado</h2>
+                </div>
+                ${this.getComprobanteHTML(t)}
+            </div>
+        `;
+        this.bindDetailEvents(container);
     },
 
     renderList() {
