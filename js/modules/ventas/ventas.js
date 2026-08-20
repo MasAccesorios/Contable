@@ -1173,17 +1173,33 @@ export const FacturasModule = {
 
                     // Descargo FIFO de inventario si es nueva
                     let costoTotalVenta = 0;
+                    let planInventario = null;
                     if (isNew) {
-                        const invResult = await InventarioUtils.procesarSalidaInventario(arrDetalles, null, null);
-                        if (!invResult.success) {
-                            CoreActions.showWarningModal(invResult.error);
+                        // Bloqueo de Reprocesamiento si viene de una cotización
+                        if (factura.cotizacion_origen_id) {
+                            const { data: existe } = await supabase
+                                .from('facturas')
+                                .select('id, numero')
+                                .eq('cotizacion_origen_id', factura.cotizacion_origen_id);
+                            
+                            if (existe && existe.length > 0) {
+                                CoreActions.showWarningModal(`La cotización origen ya fue convertida a la factura [No. ${existe[0].numero || existe[0].id}]. No se puede duplicar.`);
+                                btnGuardar.disabled = false;
+                                btnGuardar.innerHTML = originalText;
+                                return;
+                            }
+                        }
+
+                        planInventario = await InventarioUtils.calcularSalidaInventario(arrDetalles, null, null);
+                        if (!planInventario.success) {
+                            CoreActions.showWarningModal(planInventario.error);
                             btnGuardar.disabled = false;
                             btnGuardar.innerHTML = originalText;
                             return; // ABORTA LA VENTA
                         }
-                        costoTotalVenta = invResult.costoTotalVenta;
+                        costoTotalVenta = planInventario.costoTotalVenta;
                         arrDetalles.length = 0;
-                        arrDetalles.push(...invResult.detallesActualizados);
+                        arrDetalles.push(...planInventario.detallesActualizados);
                     } else {
                         costoTotalVenta = factura.total_costo || 0;
                     }
@@ -1204,12 +1220,15 @@ export const FacturasModule = {
                     const rawTotal = parseFloat(element.querySelector('#tot-total').dataset.rawTotal);
                     factura.total = rawTotal;
 
+                    let facturaGuardadaId = null;
                     if (!factura.numero) {
                         factura = await DB.saveWithNextNumero('facturas', factura);
                     } else {
                         await DB.save('facturas', factura);
                     }
+                    if (isNew) facturaGuardadaId = factura.id;
 
+                    let transaccionGuardadaId = null;
                     // Condicional Contado vs Crédito
                     if (tipoVenta === 'contado') {
                         if (isNew) {
@@ -1225,7 +1244,26 @@ export const FacturasModule = {
                                 cuenta: factura.cuentaId,
                                 cuentaId: factura.cuentaId
                             };
-                            await DB.save('transacciones', transaccion);
+                            
+                            try {
+                                await DB.save('transacciones', transaccion);
+                                transaccionGuardadaId = transaccion.id;
+                            } catch (errTrx) {
+                                if (facturaGuardadaId) await DB.delete('facturas', facturaGuardadaId);
+                                throw new Error("Fallo al registrar el pago al contado. Factura revertida para evitar inconsistencias.");
+                            }
+                        }
+                    }
+                    
+                    // FASE 2: Descuento físico de inventario (Escritura Real)
+                    if (isNew && planInventario) {
+                        try {
+                            await InventarioUtils.ejecutarPlanInventario(planInventario.operacionesDB);
+                        } catch (errInventario) {
+                            console.error("Fallo crítico descontando inventario...", errInventario);
+                            if (transaccionGuardadaId) await DB.delete('transacciones', transaccionGuardadaId);
+                            if (facturaGuardadaId) await DB.delete('facturas', facturaGuardadaId);
+                            throw new Error("Se creó la factura internamente pero falló el descuento de inventario. Operación anulada por seguridad. Intente nuevamente.");
                         }
                     }
                     

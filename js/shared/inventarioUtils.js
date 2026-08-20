@@ -9,18 +9,33 @@ export const InventarioUtils = {
      * @param {Array} [productosCache] - Opcional. Productos precargados en memoria.
      * @returns {Object} { success, error, costoTotalVenta, detallesActualizados }
      */
+    /**
+     * Versión "wrapper" para mantener compatibilidad con el resto del sistema.
+     * Calcula y ejecuta inmediatamente el descuento físico.
+     */
     async procesarSalidaInventario(detallesOriginales, lotesCache = null, productosCache = null) {
-        // Carga condicional (Ahorro de Cuota Firestore)
-        const lotesGlobales = lotesCache || await DB.getAll('lotes_fifo');
+        const plan = await this.calcularSalidaInventario(detallesOriginales, lotesCache, productosCache);
+        if (!plan.success) return plan;
+        
+        await this.ejecutarPlanInventario(plan.operacionesDB);
+        
+        return plan;
+    },
+
+    /**
+     * FASE 1 (Read-Only): Simula el descuento FIFO, calcula costos, y genera un plan de operaciones DB.
+     * Retorna: { success, error, costoTotalVenta, detallesActualizados, operacionesDB }
+     */
+    async calcularSalidaInventario(detallesOriginales, lotesCache = null, productosCache = null) {
+        // Hacemos deep copy de lotesCache para no mutar el cache original si se provee
+        const lotesGlobales = lotesCache ? JSON.parse(JSON.stringify(lotesCache)) : await DB.getAll('lotes_fifo');
         const productos = productosCache || await DB.getAll('productos');
         
-        let stockError = '';
         let costoTotalVenta = 0;
-        
-        // Prevención de Mutaciones Indeseadas (Punto Crítico 2)
         const detalles = JSON.parse(JSON.stringify(detallesOriginales));
+        const operacionesDB = [];
 
-        // Fase 1: Validación Asíncrona de Sobreventa (Requiere confirmación)
+        // Validación Asíncrona de Sobreventa
         let qtyPedidaPorProducto = {};
         for (const det of detalles) {
             qtyPedidaPorProducto[det.productoId] = (qtyPedidaPorProducto[det.productoId] || 0) + parseFloat(det.cantidad);
@@ -56,15 +71,15 @@ export const InventarioUtils = {
             }
         }
 
-        // Fase 2: Descuento FIFO Real
+        // Simulación Descuento FIFO
         for (const det of detalles) {
             let qtyRestante = det.cantidad;
             let costoLinea = 0;
             const lotesProd = lotesGlobales.filter(l => String(l.productoId) === String(det.productoId) && l.cantidadActual > 0);
-            lotesProd.sort((a, b) => new Date(a.fechaIngreso) - new Date(b.fechaIngreso)); // FIFO
+            lotesProd.sort((a, b) => new Date(a.fechaIngreso) - new Date(b.fechaIngreso));
             
             if (lotesProd.length === 0) {
-                // Si no hay lotes de este producto, creamos un lote negativo inicial con el costo de compra del producto
+                // Si no hay lotes, simulamos creación de uno negativo
                 const prod = productos.find(p => String(p.id) === String(det.productoId));
                 const costoUnitario = prod ? (prod.precio_compra || prod.precioCompra || 0) : 0;
                 const nuevoLote = {
@@ -79,7 +94,7 @@ export const InventarioUtils = {
                 qtyRestante = 0;
                 
                 lotesGlobales.push(nuevoLote);
-                await DB.save('lotes_fifo', nuevoLote);
+                operacionesDB.push({ action: 'insert', data: nuevoLote });
             } else {
                 for (let i = 0; i < lotesProd.length; i++) {
                     const lote = lotesProd[i];
@@ -89,7 +104,6 @@ export const InventarioUtils = {
                     let aDescontar = 0;
                     
                     if (isLastLote) {
-                        // Si es el último lote disponible, absorbe todo el remanente (pudiendo quedar negativo)
                         aDescontar = qtyRestante;
                     } else {
                         aDescontar = Math.min(Math.max(0, lote.cantidadActual), qtyRestante);
@@ -99,18 +113,25 @@ export const InventarioUtils = {
                     qtyRestante -= aDescontar;
                     costoLinea += (aDescontar * lote.costoUnitario);
                     
-                    const loteEnCache = lotesGlobales.find(l => l.id === lote.id);
-                    if (loteEnCache) loteEnCache.cantidadActual = lote.cantidadActual;
-
-                    await DB.save('lotes_fifo', lote); 
+                    operacionesDB.push({ action: 'update', data: { ...lote } });
                 }
             }
-            // Agregamos costoTotalCalculado a nuestra copia clonada
             det.costoTotalCalculado = costoLinea;
             costoTotalVenta += costoLinea;
         }
 
-        return { success: true, costoTotalVenta, detallesActualizados: detalles };
+        return { success: true, costoTotalVenta, detallesActualizados: detalles, operacionesDB };
+    },
+
+    /**
+     * FASE 2 (Write): Toma el plan de operaciones y ejecuta los guardados físicos en base de datos.
+     */
+    async ejecutarPlanInventario(operacionesDB) {
+        if (!operacionesDB || operacionesDB.length === 0) return;
+        
+        for (const op of operacionesDB) {
+            await DB.save('lotes_fifo', op.data);
+        }
     },
 
     /**
