@@ -377,11 +377,7 @@ body {
     }
 
     #app-container {
-        position: absolute !important;
-        height: 0 !important;
-        overflow: hidden !important;
-        opacity: 0 !important;
-        pointer-events: none !important;
+        display: none !important;
     }
     
     .sidebar, .navbar, .topbar, .global-actions-bar, input, button, select, textarea {
