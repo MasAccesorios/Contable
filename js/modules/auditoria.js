@@ -234,8 +234,24 @@ async function check8() {
 
 // 9. Reconciliación de Movimientos de Inventario
 async function check9() {
-    const { data, error } = await supabase.rpc('get_reconciliacion_inventario');
-    if (error) throw error;
+    let data = [];
+    let from = 0;
+    const PAGE_SIZE = 1000;
+    
+    while (true) {
+        const to = from + PAGE_SIZE - 1;
+        const { data: pageData, error } = await supabase.rpc('get_reconciliacion_inventario').range(from, to);
+        if (error) throw error;
+        
+        if (pageData && pageData.length > 0) {
+            data = data.concat(pageData);
+        }
+        
+        if (!pageData || pageData.length < PAGE_SIZE) {
+            break;
+        }
+        from += PAGE_SIZE;
+    }
     
     return {
         customUi: (iconDiv, statusText, detailsDiv) => {
