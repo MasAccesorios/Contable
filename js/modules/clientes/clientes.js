@@ -113,7 +113,10 @@ export const ContactosModule = {
                                 <div class="d-flex justify-content-between mb-3">
                                     <div class="input-group" style="max-width: 300px;">
                                         <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
-                                        <input type="text" id="search-contacto" class="form-control border-start-0 ps-0" placeholder="Buscar..." style="box-shadow: none;">
+                                        <input type="text" id="search-contacto" class="form-control border-start-0 ps-0" placeholder="Buscar..." style="box-shadow: none;" autocomplete="off">
+                                        <button class="btn btn-outline-secondary border-start-0 bg-white" type="button" id="clearSearchBtnContactos" style="display: none;">
+                                            <i class="bi bi-x"></i>
+                                        </button>
                                     </div>
                                     <button id="btn-filtrar" class="btn btn-light border text-muted"><i class="bi bi-funnel"></i> Filtrar</button>
                                 </div>
@@ -207,28 +210,33 @@ export const ContactosModule = {
 
     async cargarPagina() {
         const { currentPage, itemsPerPage, currentFilter, searchQuery } = this.state;
-        const from = (currentPage - 1) * itemsPerPage;
-        const to   = from + itemsPerPage - 1;
+        
+        try {
+            const [rpcResponse, kpis] = await Promise.all([
+                supabase.rpc('get_contactos_page', {
+                    p_page: currentPage,
+                    p_limit: itemsPerPage,
+                    p_sort_column: 'nombre',
+                    p_sort_direction: 'asc',
+                    p_search_query: searchQuery,
+                    p_filter_criteria: currentFilter
+                }),
+                this.fetchKpis()
+            ]);
 
-        let q = supabase
-            .from('contactos')
-            .select('id, nombre, nit:identificacion, telefono, tipo', { count: 'exact' })
-            .order('nombre', { ascending: true })
-            .range(from, to);
+            if (rpcResponse.error) throw rpcResponse.error;
 
-        if (currentFilter !== 'todos') q = q.eq('tipo', currentFilter);
-        if (searchQuery) {
-            const s = searchQuery.replace(/'/g, "''");
-            q = q.or(`nombre.ilike.%${s}%,identificacion.ilike.%${s}%,telefono.ilike.%${s}%`);
+            const { data, total_count } = rpcResponse.data;
+            this.state.totalCount = total_count || 0;
+            this.renderGrid(data || [], this.state.totalCount);
+            this.renderKpis(kpis);
+        } catch (err) {
+            console.error('Error cargando contactos:', err);
+            this.renderGrid([], 0);
         }
-
-        const [{ data: rows, count }, kpis] = await Promise.all([q, this.fetchKpis()]);
-        this.state.totalCount = count ?? 0;
-        this.renderTabla(rows || [], this.state.totalCount);
-        this.renderKpis(kpis);
     },
 
-    renderTabla(rows, totalCount) {
+    renderGrid(rows, totalCount) {
         const wrapper = this.element.querySelector('#tabla-contactos-wrapper');
         if (wrapper) wrapper.style.display = 'block';
 
@@ -319,14 +327,33 @@ export const ContactosModule = {
         });
 
         // Buscador con debounce 350ms
-        el.querySelector('#search-contacto')?.addEventListener('input', (e) => {
-            clearTimeout(_searchTimer);
-            _searchTimer = setTimeout(() => {
-                this.state.searchQuery = e.target.value.toLowerCase().trim();
+        const searchInput = el.querySelector('#search-contacto');
+        const clearBtn = el.querySelector('#clearSearchBtnContactos');
+        
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => {
+                if (clearBtn) clearBtn.style.display = e.target.value ? 'block' : 'none';
+                clearTimeout(_searchTimer);
+                _searchTimer = setTimeout(() => {
+                    this.state.searchQuery = e.target.value.toLowerCase().trim();
+                    this.state.currentPage = 1;
+                    this.cargarPagina();
+                }, 350);
+            });
+        }
+        
+        if (clearBtn) {
+            clearBtn.addEventListener('click', () => {
+                if (searchInput) {
+                    searchInput.value = '';
+                    searchInput.focus();
+                }
+                clearBtn.style.display = 'none';
+                this.state.searchQuery = '';
                 this.state.currentPage = 1;
                 this.cargarPagina();
-            }, 350);
-        });
+            });
+        }
 
         el.querySelectorAll('.nav-link[data-filter]').forEach(tab => {
             tab.addEventListener('click', (e) => {
@@ -399,9 +426,10 @@ export const ContactosModule = {
         container.querySelectorAll('.btn-eliminar').forEach(btn => {
             btn.addEventListener('click', async (e) => {
                 e.preventDefault();
-                if (confirm('¿Está seguro de eliminar este contacto?')) {
-                    await DB.delete('contactos', e.currentTarget.dataset.id);
-                    await this.cargarPagina();
+                e.stopPropagation();
+                if (confirm('¿Está seguro de desactivar este contacto? Ya no aparecerá en los listados activos, pero se conservará su historial de facturación.')) {
+                    await DB.save('contactos', { id: e.currentTarget.dataset.id, estado: 'inactive' });
+                    this.cargarPagina();
                 }
             });
         });
@@ -859,7 +887,10 @@ export const ContactosModule = {
                     <div class="d-flex justify-content-between mb-3">
                         <div class="input-group" style="max-width: 300px;">
                             <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
-                            <input type="text" id="search-contacto" class="form-control border-start-0 ps-0" placeholder="Buscar..." style="box-shadow: none;">
+                            <input type="text" id="search-contacto" class="form-control border-start-0 ps-0" placeholder="Buscar..." style="box-shadow: none;" autocomplete="off">
+                            <button class="btn btn-outline-secondary border-start-0 bg-white" type="button" id="clearSearchBtnContactos" style="display: none;">
+                                <i class="bi bi-x"></i>
+                            </button>
                         </div>
                         <button id="btn-filtrar" class="btn btn-light border text-muted"><i class="bi bi-funnel"></i> Filtrar</button>
                     </div>
