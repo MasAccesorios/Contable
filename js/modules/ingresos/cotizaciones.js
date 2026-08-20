@@ -104,7 +104,7 @@ export const CotizacionesModule = {
                     <div class="card-header bg-white border-bottom p-3 d-flex gap-3 align-items-center" style="border-radius: 8px 8px 0 0;">
                         <div class="input-group input-group-sm" style="width: 250px;">
                             <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
-                            <input type="text" class="form-control border-start-0 border-end-0 ps-0 text-muted" id="searchCotizaciones" placeholder="Buscar cliente, número, monto..." value="" style="font-size: 13px; box-shadow: none;">
+                            <input type="text" class="form-control border-start-0 border-end-0 ps-0 text-muted" id="searchCotizaciones" autocomplete="off" placeholder="Buscar cliente, número, monto..." value="" style="font-size: 13px; box-shadow: none;">
                             <span class="input-group-text bg-white border-start-0 text-muted" id="clearSearchBtnCotizaciones" style="cursor: pointer; display: none;"><i class="bi bi-x-circle-fill" style="opacity: 0.5;"></i></span>
                         </div>
                         <div class="dropdown">
