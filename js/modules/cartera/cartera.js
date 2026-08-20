@@ -423,7 +423,7 @@ export default {
                 return;
             }
             
-            const cabeceras = ["Número", "Tipo documento", "Cliente", "Creación", "Vencimiento", "Total", "Pagado", "Por cobrar"];
+            const cabeceras = ["Número", "Tipo documento", "Cliente", "Creación", "Vencimiento", "Estado", "Total", "Pagado", "Por cobrar"];
             
             const parseMoney = (str) => {
                 const parsed = parseFloat(str.replace(/\$/g, '').replace(/\./g, '').replace(/,/g, '.').trim());
@@ -434,7 +434,7 @@ export default {
             
             visibles.forEach(tr => {
                 const tds = tr.querySelectorAll('td');
-                if (tds.length < 9) return;
+                if (tds.length < 10) return;
                 
                 dataToExport.push({
                     "Número": tds[1].innerText.trim(),
@@ -442,9 +442,10 @@ export default {
                     "Cliente": tds[3].innerText.trim(),
                     "Creación": tds[4].innerText.trim(),
                     "Vencimiento": tds[5].innerText.trim(),
-                    "Total": parseMoney(tds[6].innerText),
-                    "Pagado": parseMoney(tds[7].innerText),
-                    "Por cobrar": parseMoney(tds[8].innerText)
+                    "Estado": tds[6].innerText.trim(),
+                    "Total": parseMoney(tds[7].innerText),
+                    "Pagado": parseMoney(tds[8].innerText),
+                    "Por cobrar": parseMoney(tds[9].innerText)
                 });
             });
             
@@ -453,8 +454,8 @@ export default {
             // Formatear las columnas de moneda como $#,##0.00 en Excel
             const range = XLSX.utils.decode_range(ws['!ref']);
             for (let R = range.s.r + 1; R <= range.e.r; ++R) {
-                // Columnas F, G, H (Total, Pagado, Por cobrar) son indices 5, 6, 7
-                for (let C = 5; C <= 7; ++C) {
+                // Columnas G, H, I (Total, Pagado, Por cobrar) son indices 6, 7, 8
+                for (let C = 6; C <= 8; ++C) {
                     const cellRef = XLSX.utils.encode_cell({c: C, r: R});
                     if (ws[cellRef]) {
                         ws[cellRef].z = '"$"#,##0.00';
