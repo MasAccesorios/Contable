@@ -404,7 +404,7 @@ export const ComprasModule = {
                     const btn = e.currentTarget;
                     const originalHtml = btn.innerHTML;
                     btn.disabled = true;
-                    btn.innerHTML = `<span class="spinner-border spinner-border-sm" aria-hidden="true"></span>`;
+                    btn.innerHTML = `<span class="spinner-border spinner-border-sm" aria-hidden="true"></span> Generando...`;
                     
                     try {
                         const { data: allFiltered, error } = await supabase.rpc('get_facturas_con_saldos', {
@@ -419,7 +419,13 @@ export const ComprasModule = {
                         if (error) throw error;
                         
                         const allDecorated = allFiltered.map(f => {
-                            return { ...f, estado: f.estado_dinamico, saldoPendiente: f.saldo_pendiente, totalPagado: f.total_pagado };
+                            return { 
+                                ...f, 
+                                estado: f.estado_dinamico, 
+                                saldoPendiente: f.saldo_pendiente, 
+                                totalPagado: f.total_pagado,
+                                cliente_id: f.contacto_id || f.proveedorId || f.contactoId
+                            };
                         });
                         
                         const exportIds = allFiltered.map(c => c.proveedorId || c.contacto_id || c.contactoId).filter(Boolean);
@@ -430,11 +436,15 @@ export const ComprasModule = {
                         }
                         const getExportName = (id) => exportMap[id] || 'Sin Proveedor';
 
+                        btn.innerHTML = originalHtml;
+                        btn.disabled = false;
+
                         ExportManager.exportDataToExcel(allDecorated, 'Facturas_Compras', getExportName, btn);
-                    } catch(err) { console.error(err); }
-                    
-                    btn.innerHTML = originalHtml;
-                    btn.disabled = false;
+                    } catch(err) { 
+                        console.error(err); 
+                        btn.innerHTML = originalHtml;
+                        btn.disabled = false;
+                    }
                 });
             }
 
@@ -725,11 +735,11 @@ export const ComprasModule = {
                             </div>
                             <div class="col-6 col-md-3">
                                 <label class="form-label" style="font-size: 12px; font-weight: var(--weight-medium); color: var(--text-body);">Fecha de creación</label>
-                                <input type="date" id="input-fecha" class="form-control form-control-sm text-muted" value="${factura.fecha}" ${isViewOnly ? 'disabled' : ''}>
+                                <input type="date" id="input-fecha" class="form-control form-control-sm text-muted" value="${factura.fecha || ''}" ${isViewOnly ? 'disabled' : ''}>
                             </div>
                             <div class="col-6 col-md-3">
                                 <label class="form-label" style="font-size: 12px; font-weight: var(--weight-medium); color: var(--text-body);">Fecha de vencimiento</label>
-                                <input type="date" id="input-vencimiento" class="form-control form-control-sm text-muted" value="${factura.vencimiento}" ${isViewOnly ? 'disabled' : ''}>
+                                <input type="date" id="input-vencimiento" class="form-control form-control-sm text-muted" value="${factura.vencimiento || ''}" ${isViewOnly ? 'disabled' : ''}>
                             </div>
                         </div>
 
