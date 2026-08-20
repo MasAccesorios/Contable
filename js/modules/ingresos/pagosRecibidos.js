@@ -40,7 +40,7 @@ export const PagosRecibidosModule = {
             const { data: t } = await supabase.from('pagos_ingresos').select('*, contactos(*), cuentas_bancarias(*), facturas(*, contactos(*))').eq('id', id).single();
             if (t) {
                 const { PrintManager } = await import('../../shared/crud.js');
-                PrintManager._renderPreviewShell(this.getComprobanteHTML(t, true), { mode: mode === 'vista-previa' ? 'preview' : 'print', title: 'Comprobante de Ingreso', fileName: `comprobante_ingreso_${t.numero || t.id}.png` });
+                PrintManager._renderPreviewShell(this.getComprobanteHTML(t, true), { mode: mode === 'vista-previa' ? 'preview' : 'print', title: 'Comprobante de Ingreso', fileName: `comprobante_ingreso_${t.numero || t.id}.png`, printClass: 'formato-media-carta' });
             }
             return;
         }
@@ -111,7 +111,7 @@ export const PagosRecibidosModule = {
     getComprobanteHTML(t, isPrintMode = false) {
         return `
             <style>
-                @page { size: 215.9mm 139.7mm; margin: 8mm; } /* Formato Media Carta (Half-Letter) */
+                @page { size: 215.9mm 139.7mm; margin: 5mm; } /* Formato Media Carta (Half-Letter) */
                 @media print {
                     body {
                         margin: 0;
@@ -140,14 +140,14 @@ export const PagosRecibidosModule = {
                 .mas-receipt-header {
                     background: linear-gradient(to right, #f8fafc, #ffffff);
                     border-bottom: 2px dashed #cbd5e1;
-                    padding: 14px 20px;
+                    padding: 10px 20px;
                 }
                 .mas-receipt-body {
-                    padding: 14px 20px;
+                    padding: 10px 20px;
                 }
                 .mas-receipt-footer {
                     background: #f8fafc;
-                    padding: 14px 20px;
+                    padding: 10px 20px;
                     border-top: 1px solid #e2e8f0;
                     border-bottom-left-radius: 16px;
                     border-bottom-right-radius: 16px;

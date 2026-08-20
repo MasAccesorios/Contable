@@ -397,8 +397,12 @@ body {
         font-family: 'Inter', sans-serif;
         color: #212529;
     }
+    
+    .print-document-template.formato-media-carta {
+        padding: 15px !important;
+    }
 
-    /* Regla de tama帽o din谩mico seg煤n cantidad de 铆tems */
+    /* Regla de tamaño dinámico según cantidad de ítems */
     .print-document-template.media-hoja { 
         min-height: 148mm; 
         max-height: none; 
