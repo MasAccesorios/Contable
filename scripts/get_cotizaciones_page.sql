@@ -30,13 +30,13 @@ BEGIN
                 (p_filter_criteria = 'todos' AND (
                     cnt.nombre ILIKE v_search OR
                     c.numero::text ILIKE v_search OR
-                    (CASE WHEN EXISTS(SELECT 1 FROM facturas f WHERE f.cotizacion_origen_id = c.id) THEN 'facturada' ELSE 'borrador' END) ILIKE v_search OR
+                    (CASE WHEN EXISTS(SELECT 1 FROM facturas f WHERE f.cotizacion_origen_id = c.id) THEN 'aprobada' ELSE 'pendiente' END) ILIKE v_search OR
                     c.fecha::text ILIKE v_search OR
                     c.total::text ILIKE v_search
                 )) OR
                 (p_filter_criteria = 'numero' AND c.numero::text = regexp_replace(p_search_query, '\D', '', 'g')) OR
                 (p_filter_criteria = 'cliente' AND cnt.nombre ILIKE v_search) OR
-                (p_filter_criteria = 'estado' AND (CASE WHEN EXISTS(SELECT 1 FROM facturas f WHERE f.cotizacion_origen_id = c.id) THEN 'facturada' ELSE 'borrador' END) ILIKE v_search) OR
+                (p_filter_criteria = 'estado' AND (CASE WHEN EXISTS(SELECT 1 FROM facturas f WHERE f.cotizacion_origen_id = c.id) THEN 'aprobada' ELSE 'pendiente' END) ILIKE v_search) OR
                 (p_filter_criteria = 'fecha' AND c.fecha::text ILIKE v_search) OR
                 (p_filter_criteria = 'monto' AND c.total::text ILIKE v_search)
             )
