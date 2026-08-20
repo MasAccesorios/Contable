@@ -256,8 +256,11 @@ export const ProductosModule = {
                     </td>
                     <td class="py-2 text-end text-muted">$${(costoPromedio || 0).toLocaleString('es-CO', {minimumFractionDigits: 2})}</td>
                     <td class="py-2 text-end pe-4">
-                        <button class="btn btn-link text-muted p-0 btn-menu-row btn-editar" data-id="${p.id}">
+                        <button class="btn btn-link text-muted p-0 me-2 btn-menu-row btn-editar" data-id="${p.id}">
                             <i class="bi bi-pencil"></i>
+                        </button>
+                        <button class="btn btn-link text-muted p-0 btn-menu-row btn-eliminar" data-id="${p.id}">
+                            <i class="bi bi-trash"></i>
                         </button>
                     </td>
                 </tr>
@@ -308,6 +311,16 @@ export const ProductosModule = {
                 btn.addEventListener('click', (e) => {
                     e.stopPropagation();
                     this.renderForm(element, e.currentTarget.dataset.id);
+                });
+            });
+
+            tbody.querySelectorAll('.btn-eliminar').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    if (confirm('¿Estás seguro de desactivar este producto? Ya no aparecerá en el listado ni podrá venderse.')) {
+                        await DB.save('productos', { id: e.currentTarget.dataset.id, estado: 'inactivo' });
+                        this.renderGrid(element);
+                    }
                 });
             });
         }
