@@ -337,7 +337,7 @@ export const ProductosModule = {
         const container = element.querySelector('#productos-view-container');
         if (!container) return;
 
-        let producto = { sku: '', nombre: '', precioVenta: 0, costoBase: 0, stockMinimo: 5, ubicacion: '' };
+        let producto = { sku: '', nombre: '', precioVenta: 0, costoBase: 0, stockMinimo: 5 };
         
         if (id) {
             producto = await DB.get('productos', id) || producto;
@@ -387,10 +387,6 @@ export const ProductosModule = {
                                 <label class="form-label fw-semibold text-muted small">Stock Mínimo</label>
                                 <input type="text" id="form-minimo" class="form-control" value="${producto.stockMinimo ? Number(producto.stockMinimo).toLocaleString('es-CO', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '5,00'}">
                             </div>
-                        </div>
-                        <div class="mb-4">
-                            <label class="form-label fw-semibold text-muted small">Ubicación Almacén</label>
-                            <input type="text" id="form-ubicacion" class="form-control" value="${producto.ubicacion || ''}">
                         </div>
                         <div class="d-flex justify-content-end gap-2">
                             <button type="button" id="btn-cancelar-producto" class="btn btn-light px-4">Cancelar</button>
@@ -448,8 +444,7 @@ export const ProductosModule = {
                 precioVenta: pVenta,
                 costoBase: cBase,
                 impuesto: imp,
-                stockMinimo: sMin,
-                ubicacion: element.querySelector('#form-ubicacion').value
+                stockMinimo: sMin
             };
 
             await DB.save('productos', nuevoProducto);
@@ -560,7 +555,6 @@ export const ProductosModule = {
                                 </li>
                                 <li class="mb-2"><strong>Descripción:</strong> ${escapeHtml(producto.nombre)}</li>
                                 <li class="mb-2"><strong>Precio Venta:</strong> $${producto.precioVenta.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</li>
-                                <li class="mb-2"><strong>Ubicación:</strong> ${producto.ubicacion || 'No asignada'}</li>
                                 <li><strong>Costo Base Fijo:</strong> $${producto.costoBase.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</li>
                             </ul>
                         </div>
