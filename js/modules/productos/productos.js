@@ -420,7 +420,7 @@ export const ProductosModule = {
             calcTotal(); // Cálculo inicial
         });
 
-        element.querySelector('#btn-cancelar-producto')?.addEventListener('click', () => this.renderTabla(element));
+        element.querySelector('#btn-cancelar-producto')?.addEventListener('click', () => this.renderGrid(element));
         element.querySelector('#form-producto-data')?.addEventListener('submit', async (e) => {
             e.preventDefault();
             
@@ -468,7 +468,7 @@ export const ProductosModule = {
                 await DB.save('lotes_fifo', loteInicial);
             }
 
-            this.renderTabla(element);
+            this.renderGrid(element);
         });
     },
 
@@ -652,7 +652,7 @@ export const ProductosModule = {
             fmt.applyCurrencyFormatting(element.querySelector('#lote-costo'));
         });
 
-        element.querySelector('#btn-volver-prod')?.addEventListener('click', () => this.renderTabla(element));
+        element.querySelector('#btn-volver-prod')?.addEventListener('click', () => this.renderGrid(element));
         
         // Manejador del submit de nuevo lote
         element.querySelector('#form-nuevo-lote')?.addEventListener('submit', async (e) => {
