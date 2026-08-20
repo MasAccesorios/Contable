@@ -119,6 +119,14 @@ export const CoreActions = {
 
             // Regla de Negocio: Condición Permitida (Primera vez) - Clonación de la data
             const idFactura = 'fac_' + Date.now();
+            
+            // Aseguramos el mapeo explícito de campos, extrayendo la descripcion_personalizada 
+            // directamente de la cotización original (cotizacion.detalles[i])
+            const detallesConvertidos = invResult.detallesActualizados.map((det, i) => ({
+                ...det,
+                descripcion_personalizada: cotizacion.detalles[i]?.descripcion_personalizada || ''
+            }));
+
             const nuevaFactura = {
                 id: idFactura,
                 clienteId: cotizacion.clienteId,
@@ -127,7 +135,7 @@ export const CoreActions = {
                 total: cotizacion.total || 0,
                 estado: 'por_pagar',
                 tipo: 'venta',
-                detalles: invResult.detallesActualizados,
+                detalles: detallesConvertidos,
                 total_costo: invResult.costoTotalVenta,
                 notas: cotizacion.notas || '',
                 terminosCondiciones: cotizacion.terminosCondiciones || 'Favor realizar los pagos a nuestra cuenta bancaria.',
