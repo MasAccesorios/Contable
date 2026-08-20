@@ -479,35 +479,23 @@ export const AjustesInventarioModule = {
                         const itemsIncremento = itemsAjuste.filter(i => i.tipo === 'incremento');
                         const itemsDisminucion = itemsAjuste.filter(i => i.tipo === 'disminucion');
 
-                        // DISMINUCIONES (Vía FIFO)
+                        let planDisminucion = null;
+
+                        // FASE 1: Simulación de salida (READ ONLY)
                         if (itemsDisminucion.length > 0) {
-                            const result = await InventarioUtils.procesarSalidaInventario(itemsDisminucion);
-                            if (!result.success) throw new Error("Error en Disminución: " + result.error);
+                            planDisminucion = await InventarioUtils.calcularSalidaInventario(itemsDisminucion);
+                            if (!planDisminucion.success) throw new Error("Error en Disminución: " + planDisminucion.error);
                             
                             // Re-asignamos costos calculados por FIFO a nuestro historial
                             itemsDisminucion.forEach((item, idx) => {
-                                const actualizado = result.detallesActualizados.find(d => String(d.productoId) === String(item.productoId) && d.cantidad === item.cantidad);
+                                const actualizado = planDisminucion.detallesActualizados.find(d => String(d.productoId) === String(item.productoId) && d.cantidad === item.cantidad);
                                 if (actualizado) {
                                     item.costo_unitario = (actualizado.costoTotalCalculado / item.cantidad) || 0;
                                 }
                             });
                         }
 
-                        // INCREMENTOS (Insert Directo)
-                        if (itemsIncremento.length > 0) {
-                            const lotesInsert = itemsIncremento.map(item => ({
-                                producto_id: item.productoId,
-                                cantidad_inicial: item.cantidad,
-                                cantidad_actual: item.cantidad,
-                                costo_unitario: item.costo_unitario,
-                                fecha_ingreso: fecha,
-                                referencia: `Ajuste de Inventario #${nextNumero}`
-                            }));
-                            const { error: insErr } = await supabase.from('lotes_fifo').insert(lotesInsert);
-                            if (insErr) throw insErr;
-                        }
-
-                        // 3. Guardar Cabecera de Ajuste
+                        // FASE 2: Guardar documento principal (Ajuste)
                         const payload = {
                             numero: nextNumero,
                             fecha: fecha,
@@ -515,8 +503,52 @@ export const AjustesInventarioModule = {
                             detalles: itemsAjuste
                         };
 
-                        const { error: hdrErr } = await supabase.from('ajustes_inventario').insert([payload]);
-                        if (hdrErr) throw hdrErr;
+                        // Se usa .select().single() para obtener el ID en caso de necesitar rollback
+                        const { data: hdrData, error: hdrErr } = await supabase.from('ajustes_inventario').insert([payload]).select().single();
+                        if (hdrErr) throw new Error("Fallo al guardar el ajuste de inventario: " + hdrErr.message);
+                        const ajusteId = hdrData.id;
+
+                        // FASE 3: Modificar Inventario Físico con Rollback de seguridad
+                        let idsLotesIncrementoInsertados = [];
+
+                        try {
+                            // 3.1 PRIMERO: Inserts de Incrementos (Riesgo bajo, reversión fácil)
+                            if (itemsIncremento.length > 0) {
+                                const lotesInsert = itemsIncremento.map(item => ({
+                                    producto_id: item.productoId,
+                                    cantidad_inicial: item.cantidad,
+                                    cantidad_actual: item.cantidad,
+                                    costo_unitario: item.costo_unitario,
+                                    fecha_ingreso: fecha,
+                                    referencia: `Ajuste de Inventario #${nextNumero}`
+                                }));
+                                
+                                // Usamos select() para obtener los IDs reales en caso de necesitar rollback
+                                const { data: lotesGuardados, error: insErr } = await supabase.from('lotes_fifo').insert(lotesInsert).select();
+                                if (insErr) throw new Error("Fallo al insertar lote de incremento: " + insErr.message);
+                                
+                                idsLotesIncrementoInsertados = lotesGuardados.map(l => l.id);
+                            }
+
+                            // 3.2 SEGUNDO: Disminuciones FIFO (Riesgo alto, toca lotes existentes)
+                            if (itemsDisminucion.length > 0 && planDisminucion) {
+                                await InventarioUtils.ejecutarPlanInventario(planDisminucion.operacionesDB);
+                            }
+
+                        } catch (invErr) {
+                            // ROLLBACK COMPENSATORIO TOTAL
+                            console.error("Fallo crítico ajustando inventario físico post-registro. Revirtiendo...", invErr);
+                            
+                            // A. Revertir los incrementos (si llegaron a insertarse)
+                            if (idsLotesIncrementoInsertados.length > 0) {
+                                await supabase.from('lotes_fifo').delete().in('id', idsLotesIncrementoInsertados);
+                            }
+
+                            // B. Revertir la cabecera del ajuste
+                            await supabase.from('ajustes_inventario').delete().eq('id', ajusteId);
+                            
+                            throw new Error("El ajuste falló al mover el inventario físico. Se ha revertido por completo por seguridad. Intente de nuevo.");
+                        }
 
                         CoreActions.showSuccessModal("Ajuste de inventario guardado correctamente.");
                         window.location.hash = '#/inventario/ajustes';
