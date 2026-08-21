@@ -367,25 +367,19 @@ export const PagosRecibidosModule = {
                 <!-- KPI CARDS PAGOS RECIBIDOS -->
                 <div class="row g-3 mb-4">
                     <div class="col-12 col-sm-6 col-lg-4">
-                        <div class="dash-kpi-card d-flex flex-column justify-content-between" style="min-height: 90px;">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <span class="dash-kpi-label">Total Recibido (este mes)</span>
-                                <div class="dash-icon-box variant-blue">
-                                    <i class="bi bi-cash-stack"></i>
-                                </div>
-                            </div>
-                            <div class="dash-kpi-value">$ ${formatMoney(this.state.kpis?.total || 0).replace('$ ', '')}</div>
+                        <div class="ds-kpi-card">
+                            <span class="ds-kpi-label">Total Recibido (este mes)</span>
+                            <div class="ds-kpi-value">$ ${formatMoney(this.state.kpis?.total || 0).replace('$ ', '')}</div>
                         </div>
                     </div>
                 </div>
 
-                <div class="dash-table-container">
+                <div class="ds-table-container">
                     <div class="card-body p-0">
-                        <div class="d-flex justify-content-between mb-3 px-4 pt-4">
-                            <div class="input-group" style="max-width: 300px;">
-                                <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
-                                <input type="text" class="form-control border-start-0 border-end-0 ps-0 text-muted" id="search-pagos" autocomplete="off" placeholder="Buscar por número o cliente..." value="${this.state.searchQuery}" style="box-shadow: none;">
-                                <span class="input-group-text bg-white border-start-0 text-muted" id="clearSearchBtn" style="cursor: pointer; ${this.state.searchQuery ? '' : 'display: none;'}"><i class="bi bi-x-circle-fill" style="opacity: 0.5;"></i></span>
+                        <div class="card-header bg-white border-bottom p-3 d-flex gap-3 align-items-center mb-3">
+                            <div class="ds-search-container" style="width: 250px;">
+                                <i class="bi bi-search ds-search-icon"></i>
+                                <input type="text" class="ds-search-input" id="search-pagos" autocomplete="off" placeholder="Buscar por número o cliente..." value="${this.state.searchQuery}">
                             </div>
                         </div>
 
@@ -422,16 +416,16 @@ export const PagosRecibidosModule = {
                     <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Cargando...</span></div>
                 </div>
             ` : ''}
-            <table class="table align-middle table-hover m-0 text-nowrap">
-                <thead class="table-light text-muted small text-uppercase border-bottom">
+            <table class="table table-borderless align-middle mb-0">
+                <thead class="ds-table-header">
                     <tr>
-                        <th class="ps-4 py-2">Número</th>
-                        <th class="py-2">Cliente</th>
-                        <th class="py-2">Detalles</th>
-                        <th class="py-2">Creación</th>
-                        <th class="py-2">Cuenta bancaria</th>
-                        <th class="py-2">Estado</th>
-                        <th class="py-2 text-end pe-4">Monto</th>
+                        <th class="ps-4 py-2" style="white-space: nowrap;">Número</th>
+                        <th class="py-2" style="white-space: nowrap;">Cliente</th>
+                        <th class="py-2" style="white-space: nowrap;">Detalles</th>
+                        <th class="py-2" style="white-space: nowrap;">Creación</th>
+                        <th class="py-2" style="white-space: nowrap;">Cuenta bancaria</th>
+                        <th class="py-2" style="white-space: nowrap;">Estado</th>
+                        <th class="py-2 text-end pe-4" style="white-space: nowrap;">Monto</th>
                         <th class="py-2" style="width: 50px;"></th>
                     </tr>
                 </thead>

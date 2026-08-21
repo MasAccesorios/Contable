@@ -43,14 +43,13 @@ export const ProductosModule = {
                 </div>
 
                 <!-- DATA TABLE CARD -->
-                <div class="dash-table-container">
+                <div class="ds-table-container">
                     
                     <!-- FILTERS -->
-                    <div class="card-header bg-white border-bottom p-3 d-flex gap-3 align-items-center" style="border-radius: 8px 8px 0 0;">
-                        <div class="input-group input-group-sm" style="width: 250px;">
-                            <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
-                            <input type="text" id="searchProductos" autocomplete="off" class="form-control border-start-0 border-end-0 ps-0 text-muted" placeholder="Buscar por nombre, SKU..." value="${this.searchQuery}" style="font-size: 13px; box-shadow: none;">
-                            <span class="input-group-text bg-white border-start-0 text-muted" id="clearSearchBtnProductos" style="cursor: pointer; ${this.searchQuery ? '' : 'display: none;'}"><i class="bi bi-x-circle-fill" style="opacity: 0.5;"></i></span>
+                    <div class="card-header bg-white border-bottom p-3 d-flex gap-3 align-items-center">
+                        <div class="ds-search-container" style="width: 250px;">
+                            <i class="bi bi-search ds-search-icon"></i>
+                            <input type="text" id="searchProductos" class="ds-search-input" placeholder="Buscar por nombre, SKU..." value="${this.searchQuery}" autocomplete="off">
                         </div>
                         <div class="dropdown">
                             <button class="btn btn-link text-decoration-none text-muted p-0 dropdown-toggle" data-bs-toggle="dropdown" style="font-size: 14px;">
@@ -213,17 +212,17 @@ export const ProductosModule = {
 
         if (thead) {
             thead.innerHTML = `
-                <tr style="color: var(--text-muted); font-size: 13px; font-weight: var(--weight-medium);">
-                    <th class="py-2 fw-normal ps-4 cursor-pointer sort-col" data-col="sku">
+                <tr class="ds-table-header">
+                    <th class="py-2 fw-normal ps-4 cursor-pointer sort-col" data-col="sku" style="white-space: nowrap;">
                         SKU ${this.sortColumn === 'sku' ? (this.sortDirection === 'asc' ? '<i class="bi bi-arrow-up-short"></i>' : '<i class="bi bi-arrow-down-short"></i>') : ''}
                     </th>
-                    <th class="py-2 fw-normal cursor-pointer sort-col" data-col="nombre">
+                    <th class="py-2 fw-normal cursor-pointer sort-col" data-col="nombre" style="min-width: 200px;">
                         Nombre / Descripción ${this.sortColumn === 'nombre' ? (this.sortDirection === 'asc' ? '<i class="bi bi-arrow-up-short"></i>' : '<i class="bi bi-arrow-down-short"></i>') : ''}
                     </th>
-                    <th class="py-2 fw-normal text-end">Precio Venta</th>
-                    <th class="py-2 fw-normal text-end">Stock Total</th>
-                    <th class="py-2 fw-normal text-end">Costo Promedio Real</th>
-                    <th class="py-2 fw-normal text-end pe-4" style="width: 80px;"></th>
+                    <th class="py-2 fw-normal text-end" style="white-space: nowrap; min-width: 120px;">Precio Venta</th>
+                    <th class="py-2 fw-normal text-end" style="white-space: nowrap; min-width: 100px;">Stock Total</th>
+                    <th class="py-2 fw-normal text-end" style="white-space: nowrap; min-width: 150px;">Costo Promedio Real</th>
+                    <th class="py-2 fw-normal text-end pe-4" style="width: 80px; white-space: nowrap;"></th>
                 </tr>
             `;
             

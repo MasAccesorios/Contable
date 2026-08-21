@@ -57,41 +57,26 @@ export const ContactosModule = {
                 <!-- KPI CARDS CONTACTOS -->
                 <div class="row g-3 mb-4" id="contactos-kpi-row">
                     <div class="col-12 col-sm-6 col-lg-4">
-                        <div class="dash-kpi-card d-flex flex-column justify-content-between" style="min-height: 90px;">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <span class="dash-kpi-label">Total Contactos</span>
-                                <div class="dash-icon-box variant-blue">
-                                    <i class="bi bi-people"></i>
-                                </div>
-                            </div>
-                            <div class="dash-kpi-value" id="kpi-total-contactos"><span class="spinner-border spinner-border-sm text-secondary"></span></div>
+                        <div class="ds-kpi-card">
+                            <span class="ds-kpi-label">Total Contactos</span>
+                            <div class="ds-kpi-value" id="kpi-total-contactos"><span class="spinner-border spinner-border-sm text-secondary"></span></div>
                         </div>
                     </div>
                     <div class="col-12 col-sm-6 col-lg-4">
-                        <div class="dash-kpi-card d-flex flex-column justify-content-between" style="min-height: 90px;">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <span class="dash-kpi-label">Clientes Registrados</span>
-                                <div class="dash-icon-box variant-green">
-                                    <i class="bi bi-person-check"></i>
-                                </div>
-                            </div>
-                            <div class="dash-kpi-value" id="kpi-clientes"><span class="spinner-border spinner-border-sm text-secondary"></span></div>
+                        <div class="ds-kpi-card">
+                            <span class="ds-kpi-label">Clientes Registrados</span>
+                            <div class="ds-kpi-value" id="kpi-clientes"><span class="spinner-border spinner-border-sm text-secondary"></span></div>
                         </div>
                     </div>
                     <div class="col-12 col-sm-6 col-lg-4">
-                        <div class="dash-kpi-card d-flex flex-column justify-content-between" style="min-height: 90px;">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <span class="dash-kpi-label">Proveedores</span>
-                                <div class="dash-icon-box variant-yellow">
-                                    <i class="bi bi-shop"></i>
-                                </div>
-                            </div>
-                            <div class="dash-kpi-value" id="kpi-proveedores"><span class="spinner-border spinner-border-sm text-secondary"></span></div>
+                        <div class="ds-kpi-card">
+                            <span class="ds-kpi-label">Proveedores</span>
+                            <div class="ds-kpi-value" id="kpi-proveedores"><span class="spinner-border spinner-border-sm text-secondary"></span></div>
                         </div>
                     </div>
                 </div>
 
-                <div class="dash-table-container">
+                <div class="ds-table-container">
                     <div class="card-body p-0">
                         <!-- Pestañas de Filtro (Tabs) -->
                         <ul class="nav nav-tabs border-bottom-0 gap-3 px-4 pt-3" id="contactos-tabs" style="border-bottom: 2px solid var(--border-color) !important;">
@@ -110,28 +95,25 @@ export const ContactosModule = {
                             <!-- Buscador y Tabla Principal -->
                             <div id="tabla-contactos-wrapper">
                                 <!-- Buscador -->
-                                <div class="d-flex justify-content-between mb-3">
-                                    <div class="input-group" style="max-width: 300px;">
-                                        <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
-                                        <input type="text" id="search-contacto" class="form-control border-start-0 ps-0" placeholder="Buscar..." style="box-shadow: none;" autocomplete="off">
-                                        <button class="btn btn-outline-secondary border-start-0 bg-white" type="button" id="clearSearchBtnContactos" style="display: none;">
-                                            <i class="bi bi-x"></i>
-                                        </button>
+                                <div class="card-header bg-white border-bottom p-3 d-flex gap-3 align-items-center mb-3">
+                                    <div class="ds-search-container" style="width: 250px;">
+                                        <i class="bi bi-search ds-search-icon"></i>
+                                        <input type="text" id="search-contacto" class="ds-search-input" placeholder="Buscar..." autocomplete="off">
                                     </div>
-                                    <button id="btn-filtrar" class="btn btn-light border text-muted"><i class="bi bi-funnel"></i> Filtrar</button>
+                                    <button id="btn-filtrar" class="btn btn-link text-decoration-none text-muted p-0"><i class="bi bi-funnel"></i> Filtrar</button>
                                 </div>
 
                                 <!-- Tabla -->
                                 <div class="table-responsive">
-                                    <table class="table table-hover align-middle">
-                                        <thead class="table-light text-muted small text-uppercase">
+                                    <table class="table table-borderless align-middle mb-0">
+                                        <thead class="ds-table-header">
                                             <tr>
                                                 <th class="py-2" style="width: 40px;"><input type="checkbox" class="form-check-input" id="check-all"></th>
-                                                <th class="py-2">Nombre <i class="bi bi-arrow-up-short"></i></th>
-                                                <th class="py-2">Identificación</th>
-                                                <th class="py-2">Teléfono</th>
-                                                <th class="py-2">Tipo</th>
-                                                <th class="py-2 text-end">Acciones</th>
+                                                <th class="py-2" style="white-space: nowrap;">Nombre <i class="bi bi-arrow-up-short"></i></th>
+                                                <th class="py-2" style="white-space: nowrap;">Identificación</th>
+                                                <th class="py-2" style="white-space: nowrap;">Teléfono</th>
+                                                <th class="py-2" style="white-space: nowrap;">Tipo</th>
+                                                <th class="py-2 text-end" style="white-space: nowrap;">Acciones</th>
                                             </tr>
                                         </thead>
                                         <tbody id="tbody-contactos">

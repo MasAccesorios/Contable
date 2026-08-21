@@ -108,44 +108,32 @@ export const ComprasModule = {
                     <!-- KPI CARDS COMPRAS -->
                     <div class="row g-3 mb-4">
                         <div class="col-12 col-sm-6 col-lg-4">
-                            <div class="card kpi-card kpi-primary">
-                                <div class="kpi-card-body">
-                                    <i class="bi bi-wallet2 kpi-icon"></i>
-                                    <h6 class="kpi-label">Total por Pagar</h6>
-                                    <h5 class="kpi-value">$ ${formatMoney(kpiDataCxp.total).replace('$ ', '')}</h5>
-                                </div>
+                            <div class="ds-kpi-card">
+                                <span class="ds-kpi-label">Total por Pagar</span>
+                                <div class="ds-kpi-value">$ ${formatMoney(kpiDataCxp.total).replace('$ ', '')}</div>
                             </div>
                         </div>
                         <div class="col-12 col-sm-6 col-lg-4">
-                            <div class="card kpi-card kpi-success">
-                                <div class="kpi-card-body">
-                                    <i class="bi bi-check-circle kpi-icon"></i>
-                                    <h6 class="kpi-label">Cuentas Vigentes</h6>
-                                    <h5 class="kpi-value">$ ${formatMoney(kpiDataCxp.vigente).replace('$ ', '')}</h5>
-                                </div>
+                            <div class="ds-kpi-card">
+                                <span class="ds-kpi-label">Cuentas Vigentes</span>
+                                <div class="ds-kpi-value" style="color: #10b981;">$ ${formatMoney(kpiDataCxp.vigente).replace('$ ', '')}</div>
                             </div>
                         </div>
                         <div class="col-12 col-sm-6 col-lg-4">
-                            <div class="card kpi-card kpi-danger">
-                                <div class="kpi-card-body">
-                                    <i class="bi bi-exclamation-triangle kpi-icon"></i>
-                                    <h6 class="kpi-label">Cuentas Vencidas</h6>
-                                    <h5 class="kpi-value">$ ${formatMoney(kpiDataCxp.vencido).replace('$ ', '')}</h5>
-                                </div>
+                            <div class="ds-kpi-card">
+                                <span class="ds-kpi-label">Cuentas Vencidas</span>
+                                <div class="ds-kpi-value" style="color: #ef4444;">$ ${formatMoney(kpiDataCxp.vencido).replace('$ ', '')}</div>
                             </div>
                         </div>
                     </div>
 
                     <!-- DATA TABLE CARD -->
-                    <div class="card border-0" style="box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.03), 0px 1px 3px rgba(0, 0, 0, 0.05); border-radius: 8px;">
+                    <div class="ds-table-container">
                         <!-- FILTERS -->
-                        <div class="card-header bg-white border-bottom p-3 d-flex gap-3 align-items-center" style="border-radius: 8px 8px 0 0;">
-                            <div class="input-group input-group-sm position-relative" style="width: 250px;">
-                                <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
-                                <input type="text" class="form-control border-start-0 ps-0 text-muted" id="searchCompras" placeholder="Buscar compras..." autocomplete="off" style="font-size: 13px; box-shadow: none;">
-                                <button class="btn btn-link position-absolute end-0 top-50 translate-middle-y text-muted text-decoration-none d-none" id="clearSearchBtnCompras" style="z-index: 5; padding-right: 10px; font-size: 12px;">
-                                    <i class="bi bi-x-circle-fill"></i>
-                                </button>
+                        <div class="card-header bg-white border-bottom p-3 d-flex gap-3 align-items-center">
+                            <div class="ds-search-container" style="width: 250px;">
+                                <i class="bi bi-search ds-search-icon"></i>
+                                <input type="text" class="ds-search-input" id="searchCompras" placeholder="Buscar compras..." autocomplete="off">
                             </div>
                             <div class="dropdown">
                                 <button class="btn btn-link text-decoration-none text-muted p-0 dropdown-toggle" data-bs-toggle="dropdown" style="font-size: 14px;">
@@ -164,9 +152,9 @@ export const ComprasModule = {
 
                         <!-- GRID -->
                         <div class="table-responsive">
-                            <table class="table table-borderless align-middle mb-0">
-                                <thead style="border-bottom: 1px solid var(--border-color);" id="compras-thead">
-                                    <tr style="color: var(--text-muted); font-size: 13px; font-weight: var(--weight-medium);">
+                            <table class="table table-borderless align-middle mb-0 text-nowrap">
+                                <thead class="ds-table-header" id="compras-thead">
+                                    <tr>
                                         <th class="py-3 fw-normal sortable-header" data-column="numero" style="cursor: pointer; user-select: none;">Número</th>
                                         <th class="py-3 fw-normal sortable-header" data-column="fecha" style="cursor: pointer; user-select: none;">Creación</th>
                                         <th class="py-3 fw-normal">Vencimiento</th>
