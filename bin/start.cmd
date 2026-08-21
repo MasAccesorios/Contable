@@ -1,5 +1,0 @@
-@echo off
-title Servidor MAS Accesorios
-cd /d D:\Contable
-powershell -WindowStyle Hidden -Command "$l = New-Object System.Net.HttpListener; $l.Prefixes.Add('http://localhost:8080/'); $l.Start(); while ($l.IsListening) { $c = $l.GetContext(); $req = $c.Request; $res = $c.Response; $p = Join-Path 'D:\Contable' $req.Url.LocalPath.Replace('/', '\'); if (Test-Path $p -PathType Leaf) { if ($p.EndsWith('.js')) { $res.ContentType = 'text/javascript' } elseif ($p.EndsWith('.css')) { $res.ContentType = 'text/css' } elseif ($p.EndsWith('.html')) { $res.ContentType = 'text/html' } elseif ($p.EndsWith('.json')) { $res.ContentType = 'application/json; charset=utf-8' }; $b = [System.IO.File]::ReadAllBytes($p); $res.OutputStream.Write($b, 0, $b.Length) } else { if ([System.IO.Path]::HasExtension($p)) { $res.StatusCode = 404; $res.StatusDescription = 'Not Found'; $b = [System.Text.Encoding]::UTF8.GetBytes('404 Not Found'); $res.OutputStream.Write($b, 0, $b.Length) } else { $res.ContentType = 'text/html'; $b = [System.IO.File]::ReadAllBytes('D:\Contable\index.html'); $res.OutputStream.Write($b, 0, $b.Length) } }; $res.Close() }"
-start "" "brave" "http://localhost:8080/#/"
