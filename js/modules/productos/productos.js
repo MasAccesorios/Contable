@@ -520,7 +520,8 @@ export const ProductosModule = {
                     cantidadActual: cInicial,
                     costoUnitario: nuevoProducto.costoBase,
                     fechaIngreso: getLocalDate(),
-                    referencia: 'Inventario Inicial'
+                    referencia: 'Inventario Inicial',
+                    origen_movimiento: 'producto_nuevo:' + prodGuardado.sku
                 };
                 await DB.save('lotes_fifo', loteInicial);
             }
