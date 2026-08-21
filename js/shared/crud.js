@@ -609,7 +609,7 @@ export const ItemEngine = {
                 onCreate: (query) => {
                     if (options.onCrearProducto) options.onCrearProducto(query, tr);
                 },
-                onSelect: (p) => {
+                onSelect: async (p) => {
                     let precioReal = 0;
                     
                     if (options.isCompra) {
@@ -643,7 +643,35 @@ export const ItemEngine = {
                         </span>
                     `;
                     const stockVal = p.stockActual || p.inventory || p.cantidad || 0;
-                    if (metaQty) metaQty.innerHTML = `<span style="color: var(--text-muted); font-size: 11px; display: inline-block; margin-top: 4px;">Disp: ${stockVal}</span>`;
+                    if (metaQty) {
+                        metaQty.innerHTML = `<span style="color: var(--text-muted); font-size: 11px; display: inline-block; margin-top: 4px;">Disp: ${stockVal}</span>`;
+                        
+                        // Lógica de precio sugerido para Mercado Libre
+                        if (!options.isCompra) {
+                            const container = tr.closest('.dash-layout') || tr.closest('form') || document;
+                            const clienteInput = container.querySelector('#select-cliente');
+                            if (clienteInput && String(clienteInput.value) === "698") {
+                                try {
+                                    const { supabase } = await import('../core/supabase.js');
+                                    const { data, error } = await supabase.rpc('get_precio_promedio_ml', { p_producto_id: p.id });
+                                    
+                                    if (!error && data) {
+                                        const mlInfo = Array.isArray(data) ? data[0] : data;
+                                        if (mlInfo && mlInfo.veces_vendido > 0) {
+                                            const prom = '$' + Number(mlInfo.precio_promedio).toLocaleString('es-CO');
+                                            const min = '$' + Number(mlInfo.precio_minimo).toLocaleString('es-CO');
+                                            const max = '$' + Number(mlInfo.precio_maximo).toLocaleString('es-CO');
+                                            metaQty.innerHTML += `<div style="color: #0284c7; font-size: 11px; margin-top: 2px; font-weight: 500;">Prec. ML (últimas 5): ${prom} — rango ${min} a ${max}</div>`;
+                                        } else {
+                                            metaQty.innerHTML += `<div style="color: #64748b; font-size: 11px; margin-top: 2px;">Sin historial con Mercado Libre</div>`;
+                                        }
+                                    }
+                                } catch (err) {
+                                    console.error("Error cargando precio ML:", err);
+                                }
+                            }
+                        }
+                    }
                     
                     // Disparo Manual Forzado de Eventos (Math Engine Trigger)
                     if (inpPrice) inpPrice.dispatchEvent(new Event('input', { bubbles: true }));
