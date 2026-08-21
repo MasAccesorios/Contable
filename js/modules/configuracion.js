@@ -12,16 +12,16 @@ export const ConfiguracionModule = {
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <div>
                         <h2 class="h3 fw-bold mb-1" style="color: var(--text-main);">Configuración</h2>
-                        <p class="text-muted mb-0" style="font-size: 14px;">Administra los parámetros generales del sistema.</p>
+                        <p class="text-muted mb-0" style="font-size: var(--fs-md);">Administra los parámetros generales del sistema.</p>
                     </div>
                 </div>
                 
                 <div class="dash-table-container mb-4">
                     <div class="card-header bg-white border-bottom py-3">
-                        <h5 class="mb-0 fw-bold" style="color: #2cbfb7;">Apariencia</h5>
+                        <h5 class="mb-0 fw-bold" style="color: var(--primary);">Apariencia</h5>
                     </div>
                     <div class="card-body p-4">
-                        <p class="text-muted mb-3" style="font-size: 14px;">Elige el tema visual de la aplicación. El cambio se guarda en este navegador.</p>
+                        <p class="text-muted mb-3" style="font-size: var(--fs-md);">Elige el tema visual de la aplicación. El cambio se guarda en este navegador.</p>
                         <div class="row g-3" id="theme-options">
                             <div class="col-md-4">
                                 <div class="p-3 border rounded theme-option-card" data-theme-value="" style="cursor: pointer;">
@@ -30,8 +30,8 @@ export const ConfiguracionModule = {
                                         <span style="width: 18px; height: 18px; border-radius: 4px; background: #2dbda8;"></span>
                                         <span style="width: 18px; height: 18px; border-radius: 4px; background: #ffffff; border: 1px solid #e2e8f0;"></span>
                                     </div>
-                                    <div class="fw-semibold" style="font-size: 14px; color: var(--text-main);">Actual</div>
-                                    <div class="text-muted" style="font-size: 12px;">Claro, verde turquesa</div>
+                                    <div class="fw-semibold" style="font-size: var(--fs-md); color: var(--text-main);">Actual</div>
+                                    <div class="text-muted" style="font-size: var(--fs-sm);">Claro, verde turquesa</div>
                                 </div>
                             </div>
                             <div class="col-md-4">
@@ -41,8 +41,8 @@ export const ConfiguracionModule = {
                                         <span style="width: 18px; height: 18px; border-radius: 4px; background: #44d949;"></span>
                                         <span style="width: 18px; height: 18px; border-radius: 4px; background: #1a1a1a;"></span>
                                     </div>
-                                    <div class="fw-semibold" style="font-size: 14px; color: var(--text-main);">Emerald Dark Ledger</div>
-                                    <div class="text-muted" style="font-size: 12px;">Oscuro, verde neón</div>
+                                    <div class="fw-semibold" style="font-size: var(--fs-md); color: var(--text-main);">Emerald Dark Ledger</div>
+                                    <div class="text-muted" style="font-size: var(--fs-sm);">Oscuro, verde neón</div>
                                 </div>
                             </div>
                             <div class="col-md-4">
@@ -52,8 +52,8 @@ export const ConfiguracionModule = {
                                         <span style="width: 18px; height: 18px; border-radius: 4px; background: #0094d9;"></span>
                                         <span style="width: 18px; height: 18px; border-radius: 4px; background: #1a1a1a;"></span>
                                     </div>
-                                    <div class="fw-semibold" style="font-size: 14px; color: var(--text-main);">Mezcla Azul Corporativo</div>
-                                    <div class="text-muted" style="font-size: 12px;">Oscuro, azul MAS Accesorios</div>
+                                    <div class="fw-semibold" style="font-size: var(--fs-md); color: var(--text-main);">Mezcla Azul Corporativo</div>
+                                    <div class="text-muted" style="font-size: var(--fs-sm);">Oscuro, azul MAS Accesorios</div>
                                 </div>
                             </div>
                         </div>
@@ -65,7 +65,7 @@ export const ConfiguracionModule = {
 
                 <div class="dash-table-container mb-4">
                     <div class="card-header bg-white border-bottom py-3">
-                        <h5 class="mb-0 fw-bold" style="color: #2cbfb7;">Numeración de documentos</h5>
+                        <h5 class="mb-0 fw-bold" style="color: var(--primary);">Numeración de documentos</h5>
                     </div>
                     <div class="card-body p-4 text-center" id="config-loader">
                         <div class="spinner-border text-primary" role="status"></div>

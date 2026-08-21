@@ -8,7 +8,7 @@ export async function init(container = null) {
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <div>
                     <h2 class="h3 fw-bold mb-1 text-dark">🛡️ Auditoría de Integridad</h2>
-                    <p class="text-muted mb-0" style="font-size: 14px;">Este módulo ejecuta verificaciones lógicas de integridad de datos en la base de datos para detectar discrepancias e inconsistencias, como sobreventas, huérfanos o saldos desalineados.</p>
+                    <p class="text-muted mb-0" style="font-size: var(--fs-md);">Este módulo ejecuta verificaciones lógicas de integridad de datos en la base de datos para detectar discrepancias e inconsistencias, como sobreventas, huérfanos o saldos desalineados.</p>
                 </div>
                 <div>
                     <button id="btn-run-audit" class="btn btn-primary-action">
@@ -56,8 +56,8 @@ async function runAudit() {
         card.innerHTML = `
             <div class="card-body d-flex justify-content-between align-items-center">
                 <div>
-                    <h5 class="card-title mb-1" style="font-size: 1rem;">${check.title}</h5>
-                    <p class="card-text text-muted mb-0" style="font-size: 0.85rem;" id="audit-status-${check.id}">Ejecutando...</p>
+                    <h5 class="card-title mb-1" style="font-size: var(--fs-lg);">${check.title}</h5>
+                    <p class="card-text text-muted mb-0" style="font-size: var(--fs-base);" id="audit-status-${check.id}">Ejecutando...</p>
                 </div>
                 <div id="audit-icon-${check.id}">
                     <div class="spinner-border text-primary" role="status" style="width: 1.5rem; height: 1.5rem;">
@@ -80,11 +80,11 @@ async function runAudit() {
             if (result.customUi) {
                 result.customUi(iconDiv, statusText, detailsDiv);
             } else if (result.success) {
-                iconDiv.innerHTML = `<span style="font-size: 1.5rem;">✅</span>`;
+                iconDiv.innerHTML = `<span style="font-size: var(--fs-xl);">✅</span>`;
                 statusText.innerText = 'Sin problemas detectados';
                 statusText.classList.add('text-success');
             } else {
-                iconDiv.innerHTML = `<span style="font-size: 1.5rem;">❌</span>`;
+                iconDiv.innerHTML = `<span style="font-size: var(--fs-xl);">❌</span>`;
                 statusText.innerText = `Se encontraron ${result.count} discrepancia(s)`;
                 statusText.classList.add('text-danger');
                 
@@ -111,7 +111,7 @@ async function runAudit() {
             console.error(`Error en chequeo ${check.id}:`, error);
             const iconDiv = document.getElementById(`audit-icon-${check.id}`);
             const statusText = document.getElementById(`audit-status-${check.id}`);
-            iconDiv.innerHTML = `<span style="font-size: 1.5rem;">⚠️</span>`;
+            iconDiv.innerHTML = `<span style="font-size: var(--fs-xl);">⚠️</span>`;
             statusText.innerText = `Error al ejecutar: ${error.message}`;
             statusText.classList.add('text-warning');
         }
@@ -123,7 +123,7 @@ async function runAudit() {
 
 function buildTable(columns, data) {
     if (!data || data.length === 0) return '';
-    let html = '<table class="table table-sm table-bordered table-striped" style="font-size: 0.85rem;">';
+    let html = '<table class="table table-sm table-bordered table-striped" style="font-size: var(--fs-base);">';
     html += '<thead><tr>';
     for (const col of columns) {
         html += `<th>${col}</th>`;
@@ -261,10 +261,10 @@ async function check9() {
             
             // Icono principal (Rojo si hay discrepancias, si no Verde)
             if (conDiscrepancia.length > 0) {
-                iconDiv.innerHTML = `<span style="font-size: 1.5rem;">❌</span>`;
+                iconDiv.innerHTML = `<span style="font-size: var(--fs-xl);">❌</span>`;
                 statusText.classList.add('text-danger');
             } else {
-                iconDiv.innerHTML = `<span style="font-size: 1.5rem;">✅</span>`;
+                iconDiv.innerHTML = `<span style="font-size: var(--fs-xl);">✅</span>`;
                 statusText.classList.add('text-success');
             }
             
@@ -277,9 +277,9 @@ async function check9() {
                 html += `
                     <div class="alert alert-danger mt-2 mb-3">
                         <h6 class="alert-heading fw-bold"><i class="bi bi-exclamation-triangle-fill"></i> ${conDiscrepancia.length} Discrepancias Urgentes Detectadas</h6>
-                        <p class="mb-2" style="font-size: 0.85rem;">Estos productos tienen un inventario actual que NO coincide con su historial matemático desde el último ajuste (checkpoint).</p>
+                        <p class="mb-2" style="font-size: var(--fs-base);">Estos productos tienen un inventario actual que NO coincide con su historial matemático desde el último ajuste (checkpoint).</p>
                         <div class="table-responsive">
-                            <table class="table table-sm table-bordered mb-0 bg-white" style="font-size: 0.85rem;">
+                            <table class="table table-sm table-bordered mb-0 bg-white" style="font-size: var(--fs-base);">
                                 <thead>
                                     <tr>
                                         <th>SKU</th>
@@ -315,13 +315,13 @@ async function check9() {
             // SECCIÓN B (Confirmación Verde)
             if (sinDiscrepancia.length > 0) {
                 html += `
-                    <div class="border rounded p-2 mb-3" style="background-color: #f8fff9; border-color: #c3e6cb !important;">
+                    <div class="border rounded p-2 mb-3" style="background-color: var(--bg-main); border-color: var(--success) !important;">
                         <div class="d-flex justify-content-between align-items-center cursor-pointer" onclick="document.getElementById('sec-b-det').classList.toggle('d-none')">
-                            <span class="text-success fw-bold" style="font-size: 0.9rem;"><i class="bi bi-check-circle-fill"></i> ${sinDiscrepancia.length} productos verificados exitosamente</span>
-                            <span class="text-muted" style="font-size: 0.8rem;">Ver detalle ▼</span>
+                            <span class="text-success fw-bold" style="font-size: var(--fs-md);"><i class="bi bi-check-circle-fill"></i> ${sinDiscrepancia.length} productos verificados exitosamente</span>
+                            <span class="text-muted" style="font-size: var(--fs-sm);">Ver detalle ▼</span>
                         </div>
                         <div id="sec-b-det" class="d-none mt-2 table-responsive">
-                            <table class="table table-sm table-bordered mb-0 bg-white" style="font-size: 0.8rem;">
+                            <table class="table table-sm table-bordered mb-0 bg-white" style="font-size: var(--fs-sm);">
                                 <thead><tr><th>SKU</th><th>Nombre</th><th>Checkpoint</th><th>Actual</th></tr></thead>
                                 <tbody>
                                     ${sinDiscrepancia.map(d => `<tr><td>${d.sku}</td><td>${d.nombre}</td><td>${d.checkpoint}</td><td>${d.actual}</td></tr>`).join('')}
@@ -337,12 +337,12 @@ async function check9() {
                 html += `
                     <div class="border rounded p-2 bg-light">
                         <div class="d-flex justify-content-between align-items-center cursor-pointer" onclick="document.getElementById('sec-c-det').classList.toggle('d-none')">
-                            <span class="text-secondary fw-bold" style="font-size: 0.9rem;"><i class="bi bi-info-circle-fill"></i> ${sinCheckpoint.length} productos sin checkpoint conocido</span>
-                            <span class="text-muted" style="font-size: 0.8rem;">Ver detalle ▼</span>
+                            <span class="text-secondary fw-bold" style="font-size: var(--fs-md);"><i class="bi bi-info-circle-fill"></i> ${sinCheckpoint.length} productos sin checkpoint conocido</span>
+                            <span class="text-muted" style="font-size: var(--fs-sm);">Ver detalle ▼</span>
                         </div>
-                        <p class="mb-2 mt-1 text-muted" style="font-size: 0.8rem;">Estos productos nunca han pasado por una auditoría de cantidad, por lo que no se pueden verificar con este método. Considera hacer un conteo físico y registrar un ajuste para habilitar la verificación automática.</p>
+                        <p class="mb-2 mt-1 text-muted" style="font-size: var(--fs-sm);">Estos productos nunca han pasado por una auditoría de cantidad, por lo que no se pueden verificar con este método. Considera hacer un conteo físico y registrar un ajuste para habilitar la verificación automática.</p>
                         <div id="sec-c-det" class="d-none mt-2 table-responsive">
-                            <table class="table table-sm table-bordered mb-0 bg-white" style="font-size: 0.8rem;">
+                            <table class="table table-sm table-bordered mb-0 bg-white" style="font-size: var(--fs-sm);">
                                 <thead><tr><th>SKU</th><th>Nombre</th><th>Actual</th></tr></thead>
                                 <tbody>
                                     ${sinCheckpoint.map(d => `<tr><td>${d.sku}</td><td>${d.nombre}</td><td>${d.actual}</td></tr>`).join('')}

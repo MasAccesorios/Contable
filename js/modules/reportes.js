@@ -66,8 +66,8 @@ export default {
                                                     <i class="bi bi-graph-up fs-5"></i>
                                                 </div>
                                                 <div>
-                                                    <h6 class="mb-1 fw-bold text-dark" style="font-size: 14px;">Ventas por Rango</h6>
-                                                    <p class="mb-0 text-muted" style="font-size: 12px;">Historial de facturas</p>
+                                                    <h6 class="mb-1 fw-bold text-dark" style="font-size: var(--fs-md);">Ventas por Rango</h6>
+                                                    <p class="mb-0 text-muted" style="font-size: var(--fs-sm);">Historial de facturas</p>
                                                 </div>
                                             </div>
                                         </div>
@@ -80,8 +80,8 @@ export default {
                                                     <i class="bi bi-currency-dollar fs-5"></i>
                                                 </div>
                                                 <div>
-                                                    <h6 class="mb-1 fw-bold text-dark" style="font-size: 14px;">Utilidad Operativa</h6>
-                                                    <p class="mb-0 text-muted" style="font-size: 12px;">Margen bruto</p>
+                                                    <h6 class="mb-1 fw-bold text-dark" style="font-size: var(--fs-md);">Utilidad Operativa</h6>
+                                                    <p class="mb-0 text-muted" style="font-size: var(--fs-sm);">Margen bruto</p>
                                                 </div>
                                             </div>
                                         </div>
@@ -94,8 +94,8 @@ export default {
                                                     <i class="bi bi-journal-text fs-5"></i>
                                                 </div>
                                                 <div>
-                                                    <h6 class="mb-1 fw-bold text-dark" style="font-size: 14px;">Cartera por Cliente</h6>
-                                                    <p class="mb-0 text-muted" style="font-size: 12px;">Cuentas por cobrar</p>
+                                                    <h6 class="mb-1 fw-bold text-dark" style="font-size: var(--fs-md);">Cartera por Cliente</h6>
+                                                    <p class="mb-0 text-muted" style="font-size: var(--fs-sm);">Cuentas por cobrar</p>
                                                 </div>
                                             </div>
                                         </div>
@@ -108,8 +108,8 @@ export default {
                                                     <i class="bi bi-whatsapp fs-5"></i>
                                                 </div>
                                                 <div>
-                                                    <h6 class="mb-1 fw-bold text-dark" style="font-size: 14px;">Estado de Cuenta</h6>
-                                                    <p class="mb-0 text-muted" style="font-size: 12px;">Envío por WhatsApp</p>
+                                                    <h6 class="mb-1 fw-bold text-dark" style="font-size: var(--fs-md);">Estado de Cuenta</h6>
+                                                    <p class="mb-0 text-muted" style="font-size: var(--fs-sm);">Envío por WhatsApp</p>
                                                 </div>
                                             </div>
                                         </div>
@@ -122,8 +122,8 @@ export default {
                                                     <i class="bi bi-box-seam fs-5"></i>
                                                 </div>
                                                 <div>
-                                                    <h6 class="mb-1 fw-bold text-dark" style="font-size: 14px;">Inventario Valorizado</h6>
-                                                    <p class="mb-0 text-muted" style="font-size: 12px;">Stock actual</p>
+                                                    <h6 class="mb-1 fw-bold text-dark" style="font-size: var(--fs-md);">Inventario Valorizado</h6>
+                                                    <p class="mb-0 text-muted" style="font-size: var(--fs-sm);">Stock actual</p>
                                                 </div>
                                             </div>
                                         </div>
@@ -136,8 +136,8 @@ export default {
                                                     <i class="bi bi-cash-stack fs-5"></i>
                                                 </div>
                                                 <div>
-                                                    <h6 class="mb-1 fw-bold text-dark" style="font-size: 14px;">Gastos y Egresos</h6>
-                                                    <p class="mb-0 text-muted" style="font-size: 12px;">Módulo tesorería</p>
+                                                    <h6 class="mb-1 fw-bold text-dark" style="font-size: var(--fs-md);">Gastos y Egresos</h6>
+                                                    <p class="mb-0 text-muted" style="font-size: var(--fs-sm);">Módulo tesorería</p>
                                                 </div>
                                             </div>
                                         </div>
@@ -267,8 +267,8 @@ export default {
                                 <div class="card border-0 shadow-sm h-100" style="border-radius: 8px;">
                                     <div class="card-body d-flex justify-content-between align-items-center p-3">
                                         <div>
-                                            <h6 class="mb-1 text-dark fw-bold" style="font-size: 14px;">${c.nombre}</h6>
-                                            <div class="text-danger fw-bold" style="font-size: 15px;">$${c.total.toLocaleString('es-CO', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+                                            <h6 class="mb-1 text-dark fw-bold" style="font-size: var(--fs-md);">${c.nombre}</h6>
+                                            <div class="text-danger fw-bold" style="font-size: var(--fs-md);">$${c.total.toLocaleString('es-CO', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
                                         </div>
                                         <button class="btn btn-sm btn-outline-success d-flex align-items-center btn-wpp-estado" data-id="${c.id}" style="border-radius: 6px;">
                                             <i class="bi bi-whatsapp me-1"></i> Enviar
