@@ -2,6 +2,7 @@ import DB, { getLocalDate } from '../../core/db.js';
 import { CoreActions } from '../../shared/crud.js';
 import { supabase } from '../../core/supabase.js';
 import { applyCurrencyFormatting, parseCurrencyValue } from '../../shared/formatters.js';
+import { UI } from '../../shared/combobox.js';
 
 export default {
     async init(element) {
@@ -43,6 +44,7 @@ export default {
         try {
             const cuentas = await DB.getAll('cuentas_bancarias') || [];
             const contactos = await DB.getAll('contactos') || [];
+            this.contactos = contactos;
             let cliente = null;
             let facturasPendientesRPC = [];
 
@@ -125,10 +127,10 @@ export default {
                             <div class="card-body p-4 bg-light rounded-4">
                                 <h6 class="text-uppercase text-muted fw-bold mb-1" style="font-size: 12px;">Cliente</h6>
                                 ${cliente ? `<h4 class="fw-bold text-dark mb-3">${cliente.nombre}</h4>` : `
-                                <select id="pago-cliente-select" class="form-select border-2 bg-white mb-3 shadow-sm">
-                                    <option value="">Seleccione un cliente...</option>
-                                    ${contactos.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('')}
-                                </select>
+                                <div class="custom-combobox position-relative mb-3" id="combo-cliente-container">
+                                    <input type="text" class="form-control border-2 bg-white shadow-sm" id="pago-cliente-search" placeholder="Buscar cliente por nombre o NIT..." autocomplete="off">
+                                    <input type="hidden" id="pago-cliente-id">
+                                </div>
                                 `}
                                 <div class="d-flex justify-content-between border-top pt-3">
                                     <span class="text-muted">Deuda Total:</span>
@@ -211,12 +213,19 @@ export default {
     },
 
     attachEvents(element) {
-        const selectCliente = element.querySelector('#pago-cliente-select');
-        if (selectCliente) {
-            selectCliente.addEventListener('change', (e) => {
-                if (e.target.value) {
-                    sessionStorage.setItem('clienteId', e.target.value);
-                    this.clienteId = e.target.value;
+        const searchInput = element.querySelector('#pago-cliente-search');
+        const hiddenIdEl = element.querySelector('#pago-cliente-id');
+        
+        if (searchInput && hiddenIdEl) {
+            UI.createCombobox({
+                inputEl: searchInput,
+                hiddenIdEl: hiddenIdEl,
+                items: this.contactos || [],
+                displayProp: 'nombre',
+                searchProps: ['nit', 'documento'],
+                onSelect: (item) => {
+                    sessionStorage.setItem('clienteId', item.id);
+                    this.clienteId = item.id;
                     element.innerHTML = this.renderLoading();
                     this.loadData(element);
                 }
