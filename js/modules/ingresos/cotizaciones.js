@@ -42,16 +42,16 @@ export const CotizacionesModule = {
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <div>
                         <h2 class="h3 fw-bold mb-1" style="color: var(--text-main);">Cotizaciones</h2>
-                        <p class="text-muted mb-0" style="font-size: 14px;">
+                        <p class="text-muted mb-0" style="font-size: var(--fs-md);">
                             Crea y gestiona cotizaciones personalizadas para tus clientes potenciales. 
-                            <a href="#" style="color: #2cbfb7; text-decoration: none;">Saber más</a>
+                            <a href="#" style="color: var(--primary); text-decoration: none;">Saber más</a>
                         </p>
                     </div>
                     <div class="d-flex gap-2">
-                        <button id="btn-refresh-list" class="btn btn-light bg-white border me-2" style="font-weight: var(--weight-medium); font-size: 14px; color: var(--text-body);">
+                        <button id="btn-refresh-list" class="btn btn-light bg-white border me-2" style="font-weight: var(--weight-medium); font-size: var(--fs-md); color: var(--text-body);">
                             <i class="bi bi-arrow-clockwise me-1"></i> Actualizar
                         </button>
-                        <button id="btn-export-list" class="btn btn-light bg-white border" style="font-weight: var(--weight-medium); font-size: 14px; color: var(--text-body);">
+                        <button id="btn-export-list" class="btn btn-light bg-white border" style="font-weight: var(--weight-medium); font-size: var(--fs-md); color: var(--text-body);">
                             <i class="bi bi-download me-1"></i> Exportar
                         </button>
                         <a href="#/ingresos/cotizaciones/nueva" class="btn btn-primary-action">
@@ -92,10 +92,10 @@ export const CotizacionesModule = {
                             <input type="text" class="ds-search-input" id="searchCotizaciones" autocomplete="off" placeholder="Buscar..." value="">
                         </div>
                         <div class="dropdown">
-                            <button class="btn btn-link text-decoration-none text-muted p-0 dropdown-toggle" data-bs-toggle="dropdown" style="font-size: 14px;">
-                                <i class="bi bi-funnel me-1"></i> Filtrar <span id="lbl-filtro-actual" style="font-size: 12px; font-weight: 500; color: #2cbfb7;"></span>
+                            <button class="btn btn-link text-decoration-none text-muted p-0 dropdown-toggle" data-bs-toggle="dropdown" style="font-size: var(--fs-md);">
+                                <i class="bi bi-funnel me-1"></i> Filtrar <span id="lbl-filtro-actual" style="font-size: var(--fs-sm); font-weight: 500; color: var(--primary);"></span>
                             </button>
-                            <ul class="dropdown-menu shadow border-0" style="font-size: 13px;">
+                            <ul class="dropdown-menu shadow border-0" style="font-size: var(--fs-base);">
                                 <li><a class="dropdown-item filter-opt" href="#" data-criteria="todos">Todos los campos</a></li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li><a class="dropdown-item filter-opt" href="#" data-criteria="numero">Por Número</a></li>
@@ -120,7 +120,7 @@ export const CotizacionesModule = {
                     </div>
 
                     <!-- PAGINATION FOOTER -->
-                    <div class="card-footer bg-white border-top p-3 d-flex justify-content-between align-items-center" style="border-radius: 0 0 8px 8px;" id="grid-pagination">
+                    <div class="card-footer bg-white border-top p-3 d-flex justify-content-between align-items-center" style="border-radius: 0 0 var(--border-radius-sm) var(--border-radius-sm);" id="grid-pagination">
                         <!-- Llenado dinámicamente -->
                     </div>
                 </div>
@@ -211,13 +211,13 @@ export const CotizacionesModule = {
                 const clientNameDisplay = c.cliente_nombre || 'Sin Cliente';
                 
                 return `
-                    <tr style="cursor: pointer; border-bottom: 1px solid var(--border-color); font-size: 13px; color: var(--text-body);" onclick="if(!event.target.closest('button')) window.location.hash = '#/ingresos/cotizaciones/ver/${c.id}'">
+                    <tr style="cursor: pointer; border-bottom: 1px solid var(--border-color); font-size: var(--fs-base); color: var(--text-body);" onclick="if(!event.target.closest('button')) window.location.hash = '#/ingresos/cotizaciones/ver/${c.id}'">
                         <td class="py-2" style="white-space: nowrap;">${numDisplay}</td>
                         <td class="py-2" style="color: var(--text-main); font-weight: var(--weight-medium); max-width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${clientNameDisplay}</td>
                         <td class="py-2" style="white-space: nowrap;">${c.fecha}</td>
                         <td class="py-2 text-end" style="white-space: nowrap;">${formatMoney(c.total)}</td>
                         <td class="py-2 text-center" style="white-space: nowrap;">
-                            <span class="badge ${badgeClass} rounded-pill fw-medium" style="font-size: 11px; padding: 5px 10px;">${labelEstado}</span>
+                            <span class="badge ${badgeClass} rounded-pill fw-medium" style="font-size: var(--fs-xs); padding: 5px 10px;">${labelEstado}</span>
                         </td>
                         <td class="py-2 text-end" style="position: relative; white-space: nowrap;">
                             <button class="btn btn-link text-muted p-0 me-2 btn-imprimir-row" data-id="${c.id}">
@@ -233,7 +233,7 @@ export const CotizacionesModule = {
 
             // Generar Paginador
             const paginationHtml = `
-                <div class="d-flex align-items-center gap-3" style="font-size: 13px; color: var(--text-body);">
+                <div class="d-flex align-items-center gap-3" style="font-size: var(--fs-base); color: var(--text-body);">
                     <div class="d-flex align-items-center gap-2">
                         <span>Resultados por página:</span>
                         <select class="form-select form-select-sm text-muted" id="select-per-page" style="width: 70px;">
@@ -246,7 +246,7 @@ export const CotizacionesModule = {
                     <span class="text-muted border-start ps-3">${totalItems > 0 ? startIndex + 1 : 0}-${Math.min(startIndex + itemsPerPage, totalItems)} de ${totalItems}</span>
                 </div>
 
-                <div class="d-flex align-items-center gap-2" style="font-size: 13px; color: var(--text-body);">
+                <div class="d-flex align-items-center gap-2" style="font-size: var(--fs-base); color: var(--text-body);">
                     <span>Página</span>
                     <input type="number" id="input-page" class="form-control form-control-sm text-center text-muted" value="${currentPage}" min="1" max="${totalPages}" style="width: 50px;">
                     <span>de ${totalPages}</span>
@@ -378,10 +378,10 @@ export const CotizacionesModule = {
                     const menuHtml = `
                         <div class="row-action-menu position-absolute bg-white shadow rounded border py-2" 
                              style="z-index: 1060; width: 140px; top: ${rect.bottom + window.scrollY}px; left: ${rect.left - 100}px;">
-                            <a href="#/ingresos/cotizaciones/editar/${id}" class="d-block px-3 py-1 text-decoration-none" style="color: var(--text-body); font-size: 13px;">
+                            <a href="#/ingresos/cotizaciones/editar/${id}" class="d-block px-3 py-1 text-decoration-none" style="color: var(--text-body); font-size: var(--fs-base);">
                                 <i class="bi bi-pencil me-2"></i> Editar
                             </a>
-                            <a href="#" class="d-block px-3 py-1 text-decoration-none mt-1 btn-delete-row" data-id="${id}" style="color: #ef4444; font-size: 13px;">
+                            <a href="#" class="d-block px-3 py-1 text-decoration-none mt-1 btn-delete-row" data-id="${id}" style="color: var(--danger); font-size: var(--fs-base);">
                                 <i class="bi bi-trash me-2"></i> Eliminar
                             </a>
                         </div>
@@ -504,7 +504,7 @@ export const CotizacionesModule = {
                                 <select class="form-select mb-2 bg-light border-0">
                                     <option>Cotización</option>
                                 </select>
-                                <div class="d-flex justify-content-between align-items-center text-muted" style="font-size: 14px;">
+                                <div class="d-flex justify-content-between align-items-center text-muted" style="font-size: var(--fs-md);">
                                     <span id="lbl-numero">No. <strong style="color: var(--text-main);">${cotizacion.numero || '[Autogenerado al guardar]'}</strong></span>
                                     ${!isViewOnly ? `<i class="bi bi-gear" id="btn-config-num" style="cursor: pointer;"></i>` : ''}
                                 </div>
@@ -515,16 +515,16 @@ export const CotizacionesModule = {
                         <h6 class="fw-bold mb-3" style="color: var(--text-main);">Información de la cotización</h6>
                         <div class="row mb-5 g-4">
                             <div class="col-md-4">
-                                <label class="form-label" style="font-size: 12px; font-weight: var(--weight-medium); color: var(--text-body);">Cliente <span class="text-danger">*</span></label>
+                                <label class="form-label" style="font-size: var(--fs-sm); font-weight: var(--weight-medium); color: var(--text-body);">Cliente <span class="text-danger">*</span></label>
                                 <input type="text" id="search-cliente" class="form-control form-control-sm text-muted" placeholder="Buscar cliente..." value="${clienteNombreActual}" autocomplete="off" ${isViewOnly ? 'disabled' : ''}>
                                 <input type="hidden" id="select-cliente" value="${cotizacion.clienteId || ''}">
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label" style="font-size: 12px; font-weight: var(--weight-medium); color: var(--text-body);">Fecha de creación</label>
+                                <label class="form-label" style="font-size: var(--fs-sm); font-weight: var(--weight-medium); color: var(--text-body);">Fecha de creación</label>
                                 <input type="date" id="input-fecha" class="form-control form-control-sm text-muted" value="${cotizacion.fecha}" ${isViewOnly ? 'disabled' : ''}>
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label" style="font-size: 12px; font-weight: var(--weight-medium); color: var(--text-body);">Fecha de vencimiento</label>
+                                <label class="form-label" style="font-size: var(--fs-sm); font-weight: var(--weight-medium); color: var(--text-body);">Fecha de vencimiento</label>
                                 <input type="date" id="input-vencimiento" class="form-control form-control-sm text-muted" value="${cotizacion.vencimiento}" ${isViewOnly ? 'disabled' : ''}>
                             </div>
                         </div>
@@ -534,7 +534,7 @@ export const CotizacionesModule = {
                         <!-- PRODUCTOS -->
                         <h6 class="fw-bold mb-3" style="color: var(--text-main);">Productos y servicios</h6>
                         <div class="table-responsive mb-3" style="overflow: visible;">
-                            <table class="table table-borderless align-middle mb-0" id="tabla-detalles" style="font-size: 13px;">
+                            <table class="table table-borderless align-middle mb-0" id="tabla-detalles" style="font-size: var(--fs-base);">
                                 <thead style="border-bottom: 1px solid var(--border-color);">
                                     <tr style="color: var(--text-muted); font-weight: var(--weight-regular);">
                                         <th style="width: 40px;"><input type="checkbox" class="form-check-input" disabled></th>
@@ -554,7 +554,7 @@ export const CotizacionesModule = {
                         </div>
                         
                         ${!isViewOnly ? `
-                        <button id="btn-agregar-linea" class="btn btn-link text-decoration-none p-0 mb-5" style="font-size: 14px; font-weight: var(--weight-medium); color: var(--primary);">
+                        <button id="btn-agregar-linea" class="btn btn-link text-decoration-none p-0 mb-5" style="font-size: var(--fs-md); font-weight: var(--weight-medium); color: var(--primary);">
                             <i class="bi bi-plus-lg me-1"></i>Agregar línea
                         </button>
                         ` : ''}
@@ -562,18 +562,18 @@ export const CotizacionesModule = {
                         <!-- TOTALES -->
                         <div class="row justify-content-end mb-5">
                             <div class="col-md-4">
-                                <div class="d-flex justify-content-between mb-2" style="font-size: 14px; color: var(--text-body);">
+                                <div class="d-flex justify-content-between mb-2" style="font-size: var(--fs-md); color: var(--text-body);">
                                     <span>Subtotal</span><span id="tot-subtotal">$0,00</span>
                                 </div>
-                                <div class="d-flex justify-content-between mb-2" style="font-size: 14px; color: var(--text-body);">
+                                <div class="d-flex justify-content-between mb-2" style="font-size: var(--fs-md); color: var(--text-body);">
                                     <span>Descuento</span><span id="tot-descuento">$0,00</span>
                                 </div>
-                                <div class="d-flex justify-content-between mb-3" style="font-size: 14px; color: var(--text-body);">
+                                <div class="d-flex justify-content-between mb-3" style="font-size: var(--fs-md); color: var(--text-body);">
                                     <span>Impuestos</span><span id="tot-impuestos">$0,00</span>
                                 </div>
                                 <div class="d-flex justify-content-between align-items-center">
-                                    <span class="fw-bold" style="font-size: 16px; color: var(--text-main);">Total</span>
-                                    <span class="fw-bold" id="tot-total" style="font-size: 20px; color: var(--text-main);" data-raw-total="0">$0,00</span>
+                                    <span class="fw-bold" style="font-size: var(--fs-lg); color: var(--text-main);">Total</span>
+                                    <span class="fw-bold" id="tot-total" style="font-size: var(--fs-lg); color: var(--text-main);" data-raw-total="0">$0,00</span>
                                 </div>
                             </div>
                         </div>
@@ -583,12 +583,12 @@ export const CotizacionesModule = {
 
                 <!-- TEXTAREAS ADICIONALES -->
                 <div class="mb-4">
-                    <h6 class="fw-bold mb-1" style="font-size: 14px; color: var(--text-main);">Notas</h6>
-                    <textarea id="input-notas" class="form-control text-muted" rows="2" style="font-size: 13px; border-color: var(--border-color); resize: none;" placeholder="Agrega comentarios para aclarar datos de la cotización, serán visibles para tus clientes" ${isViewOnly ? 'disabled' : ''}>${cotizacion.notas}</textarea>
+                    <h6 class="fw-bold mb-1" style="font-size: var(--fs-md); color: var(--text-main);">Notas</h6>
+                    <textarea id="input-notas" class="form-control text-muted" rows="2" style="font-size: var(--fs-base); border-color: var(--border-color); resize: none;" placeholder="Agrega comentarios para aclarar datos de la cotización, serán visibles para tus clientes" ${isViewOnly ? 'disabled' : ''}>${cotizacion.notas}</textarea>
                 </div>
                 <div>
-                    <h6 class="fw-bold mb-1" style="font-size: 14px; color: var(--text-main);">Términos y condiciones</h6>
-                    <textarea id="input-terminos" class="form-control text-muted" rows="2" style="font-size: 13px; border-color: var(--border-color); resize: none;" placeholder="Define los términos y condiciones, y/o las posibles cláusulas en caso de reclamos" ${isViewOnly ? 'disabled' : ''}>${cotizacion.terminosCondiciones}</textarea>
+                    <h6 class="fw-bold mb-1" style="font-size: var(--fs-md); color: var(--text-main);">Términos y condiciones</h6>
+                    <textarea id="input-terminos" class="form-control text-muted" rows="2" style="font-size: var(--fs-base); border-color: var(--border-color); resize: none;" placeholder="Define los términos y condiciones, y/o las posibles cláusulas en caso de reclamos" ${isViewOnly ? 'disabled' : ''}>${cotizacion.terminosCondiciones}</textarea>
                 </div>
 
                 <!-- DOCUMENTOS RELACIONADOS (Solo Vista) -->
@@ -597,7 +597,7 @@ export const CotizacionesModule = {
                     <h6 class="fw-bold mb-3" style="color: var(--text-main);">Documentos relacionados</h6>
                     <ul class="nav nav-tabs mb-3" role="tablist" style="border-bottom: 2px solid var(--border-color);">
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-factura" type="button" role="tab" style="font-size: 13px; font-weight: var(--weight-medium); color: var(--text-main); border-bottom-color: transparent;">Factura relacionada</button>
+                            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-factura" type="button" role="tab" style="font-size: var(--fs-base); font-weight: var(--weight-medium); color: var(--text-main); border-bottom-color: transparent;">Factura relacionada</button>
                         </li>
                     </ul>
                     
@@ -606,10 +606,10 @@ export const CotizacionesModule = {
                             <div class="card border border-light shadow-sm" style="max-width:300px; cursor:pointer;" onclick="sessionStorage.setItem('origenVolver', JSON.stringify({hash: '#/ingresos/cotizaciones/ver/${cotizacion.id}', label: 'Volver a la cotización'})); window.location.hash='#/ingresos/facturas/ver/${cotizacion.facturaDestinoId}'">
                                 <div class="card-body py-3 px-3 d-flex justify-content-between align-items-center">
                                     <div>
-                                        <small class="text-muted d-block" style="font-size:11px;">Ver documento destino</small>
-                                        <span class="fw-medium text-dark" style="font-size:14px; color: var(--primary) !important;">Factura</span>
+                                        <small class="text-muted d-block" style="font-size: var(--fs-xs);">Ver documento destino</small>
+                                        <span class="fw-medium text-dark" style="font-size: var(--fs-md); color: var(--primary) !important;">Factura</span>
                                     </div>
-                                    <i class="bi bi-box-arrow-up-right text-muted" style="font-size: 12px;"></i>
+                                    <i class="bi bi-box-arrow-up-right text-muted" style="font-size: var(--fs-sm);"></i>
                                 </div>
                             </div>
                         </div>
@@ -669,7 +669,7 @@ export const CotizacionesModule = {
                 <td class="align-top"><input type="number" step="any" min="0" max="100" class="form-control form-control-sm border-0 bg-light input-tax" value="${detalle.impuesto}" placeholder="%" ${isViewOnly ? 'disabled' : ''}></td>
                 <td class="text-end align-top pt-3">
                     <span class="calc-subtotal fw-bold d-block" style="color: var(--text-main);">$0,00</span>
-                    <a href="#" class="toggle-desc-tax d-md-none text-decoration-none mt-2 d-inline-block" style="font-size: 11px; color: var(--primary);">+ Editar descuento/impuesto</a>
+                    <a href="#" class="toggle-desc-tax d-md-none text-decoration-none mt-2 d-inline-block" style="font-size: var(--fs-xs); color: var(--primary);">+ Editar descuento/impuesto</a>
                 </td>
                 <td class="text-center align-top pt-2">
                     ${!isViewOnly ? `<button class="btn btn-link text-muted p-0 btn-eliminar-linea">
@@ -720,8 +720,8 @@ export const CotizacionesModule = {
                 const metaQty = tr.querySelector('.meta-qty');
                 const prod = productos.find(p => p.id === detalle.productoId);
                 if (prod) {
-                    if (metaProd) metaProd.innerHTML = `<span style="color: var(--text-muted); font-size: 11px;">${prod.sku || 'S/N'}</span>`;
-                    if (metaQty) metaQty.innerHTML = `<span style="color: var(--text-muted); font-size: 11px;">Disp: ${prod.stockActual || prod.cantidad || 0}</span>`;
+                    if (metaProd) metaProd.innerHTML = `<span style="color: var(--text-muted); font-size: var(--fs-xs);">${prod.sku || 'S/N'}</span>`;
+                    if (metaQty) metaQty.innerHTML = `<span style="color: var(--text-muted); font-size: var(--fs-xs);">Disp: ${prod.stockActual || prod.cantidad || 0}</span>`;
                 }
             }
         };

@@ -328,7 +328,7 @@ export const PagosRealizadosModule = {
     renderComprobanteWrapper() {
         const t = this.state.currentComprobanteData;
         this.element.innerHTML = `
-            <div class="py-4 px-4" style="font-family: 'Inter', sans-serif; background-color: #f8f9fa; min-height: 100vh;">
+            <div class="py-4 px-4" style="font-family: 'Inter', sans-serif; background-color: var(--bg-main); min-height: 100vh;">
                 <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom" style="max-width: 750px; margin: 0 auto;">
                     <button class="btn btn-link text-decoration-none text-muted p-0 d-flex align-items-center gap-2 fw-medium" id="btn-volver-pagos">
                         <i class="bi bi-arrow-left"></i> Volver a Pagos Realizados
@@ -337,13 +337,13 @@ export const PagosRealizadosModule = {
                         <button class="btn btn-outline-info text-info border-info bg-info bg-opacity-10 fw-medium px-4" id="btn-imprimir-comprobante" data-id="${t.id}">
                             <i class="bi bi-printer me-2"></i> Imprimir
                         </button>
-                        <button class="btn fw-medium px-4 text-white" style="background-color: #1877f2; border-color: #1877f2;" id="btn-editar-comprobante" data-id="${t.id}">
+                        <button class="btn fw-medium px-4 text-white" style="background-color: var(--primary); border-color: var(--primary);" id="btn-editar-comprobante" data-id="${t.id}">
                             <i class="bi bi-pencil me-2"></i> Editar
                         </button>
                     </div>
                 </div>
                 <div class="mb-4" style="max-width: 750px; margin: 0 auto;">
-                    <h2 class="h3 fw-bold m-0" style="color: #0f172a;">Pago Realizado</h2>
+                    <h2 class="h3 fw-bold m-0" style="color: var(--text-main);">Pago Realizado</h2>
                 </div>
                 ${this.getComprobanteHTML(t)}
             </div>
@@ -353,7 +353,7 @@ export const PagosRealizadosModule = {
     renderComprobanteWrapper(container) {
         const t = this.state.currentComprobanteData;
         container.innerHTML = `
-            <div class="py-4 px-4" style="font-family: 'Inter', sans-serif; background-color: #f8f9fa; min-height: 100vh;">
+            <div class="py-4 px-4" style="font-family: 'Inter', sans-serif; background-color: var(--bg-main); min-height: 100vh;">
                 <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom" style="max-width: 750px; margin: 0 auto;">
                     <button class="btn btn-link text-decoration-none text-muted p-0 d-flex align-items-center gap-2 fw-medium" id="btn-volver-pagos">
                         <i class="bi bi-arrow-left"></i> Volver a Pagos Realizados
@@ -365,13 +365,13 @@ export const PagosRealizadosModule = {
                         <button class="btn btn-outline-info text-info border-info bg-info bg-opacity-10 fw-medium px-4" id="btn-imprimir-comprobante" data-id="${t.id}">
                             <i class="bi bi-printer me-2"></i> Imprimir
                         </button>
-                        <button class="btn fw-medium px-4 text-white" style="background-color: #1877f2; border-color: #1877f2;" id="btn-editar-comprobante" data-id="${t.id}">
+                        <button class="btn fw-medium px-4 text-white" style="background-color: var(--primary); border-color: var(--primary);" id="btn-editar-comprobante" data-id="${t.id}">
                             <i class="bi bi-pencil me-2"></i> Editar
                         </button>
                     </div>
                 </div>
                 <div class="mb-4" style="max-width: 750px; margin: 0 auto;">
-                    <h2 class="h3 fw-bold m-0" style="color: #0f172a;">Pago Realizado</h2>
+                    <h2 class="h3 fw-bold m-0" style="color: var(--text-main);">Pago Realizado</h2>
                 </div>
                 ${this.getComprobanteHTML(t)}
             </div>
@@ -387,12 +387,12 @@ export const PagosRealizadosModule = {
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <div>
                         <h2 class="h3 fw-bold mb-1" style="color: var(--text-main);">Pagos Realizados</h2>
-                        <p class="text-muted mb-0" style="font-size: 14px;">
+                        <p class="text-muted mb-0" style="font-size: var(--fs-md);">
                             Historial de todos los egresos de dinero (tipo "Salida").
                         </p>
                     </div>
                     <div class="d-flex gap-2">
-                        <a href="#" onclick="event.preventDefault(); window.history.length > 2 ? window.history.back() : window.location.hash = '#/dashboard';" class="btn btn-light bg-white border me-2" style="font-weight: var(--weight-medium); font-size: 14px; color: var(--text-body);">
+                        <a href="#" onclick="event.preventDefault(); window.history.length > 2 ? window.history.back() : window.location.hash = '#/dashboard';" class="btn btn-light bg-white border me-2" style="font-weight: var(--weight-medium); font-size: var(--fs-md); color: var(--text-body);">
                             <i class="bi bi-arrow-left me-1"></i> Volver
                         </a>
                         <button id="btn-nuevo-egreso" class="btn btn-primary-action">
@@ -520,7 +520,7 @@ export const PagosRealizadosModule = {
                                 ${formatMoney(pago.monto)}
                             </td>
                             <td class="py-3 text-end pe-3 position-relative">
-                                <button class="btn btn-sm btn-link text-muted p-0 border-0 btn-menu-row" data-id="${pago.id}" data-conciliado="${pago.estado_conciliacion}" data-factura="${pago.factura_id || ''}" data-anulado="${pago.estado_transaccion === 'anulado'}" style="text-decoration: none; font-size: 16px;"><i class="bi bi-three-dots-vertical"></i></button>
+                                <button class="btn btn-sm btn-link text-muted p-0 border-0 btn-menu-row" data-id="${pago.id}" data-conciliado="${pago.estado_conciliacion}" data-factura="${pago.factura_id || ''}" data-anulado="${pago.estado_transaccion === 'anulado'}" style="text-decoration: none; font-size: var(--fs-lg);"><i class="bi bi-three-dots-vertical"></i></button>
                             </td>
                         </tr>
                         `;
@@ -537,8 +537,8 @@ export const PagosRealizadosModule = {
             </div>
             
             <!-- PAGINADOR SERVER-SIDE -->
-            <div class="card-footer bg-white border-top p-3 d-flex justify-content-between align-items-center" style="border-radius: 0 0 8px 8px;">
-                <div class="d-flex align-items-center gap-3" style="font-size: 13px; color: var(--text-body);">
+            <div class="card-footer bg-white border-top p-3 d-flex justify-content-between align-items-center" style="border-radius: 0 0 var(--border-radius-sm) var(--border-radius-sm);">
+                <div class="d-flex align-items-center gap-3" style="font-size: var(--fs-base); color: var(--text-body);">
                     <div class="d-flex align-items-center gap-2">
                         <span>Resultados por página:</span>
                         <select class="form-select form-select-sm text-muted" id="select-limit" style="width: 70px;">
@@ -550,7 +550,7 @@ export const PagosRealizadosModule = {
                     <span class="text-muted border-start ps-3" id="showing-count">${this.state.totalItems > 0 ? `${startItem}-${endItem}` : '0'} de ${this.state.totalItems}</span>
                 </div>
 
-                <div class="d-flex align-items-center gap-2" style="font-size: 13px; color: var(--text-body);">
+                <div class="d-flex align-items-center gap-2" style="font-size: var(--fs-base); color: var(--text-body);">
                     <span>Página</span>
                     <span id="current-page" class="fw-medium text-center" style="min-width: 20px;">${this.state.currentPage}</span>
                     <span>de <span id="total-pages">${totalPages}</span></span>
