@@ -45,10 +45,10 @@ export const TesoreriaModule = {
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <div>
                         <h2 class="h3 fw-bold mb-1" style="color: var(--text-main);">Bancos</h2>
-                        <p class="text-muted mb-0" style="font-size: 14px;">Controla los movimientos de dinero con tus cuentas de banco, efectivo y tarjetas de crédito.</p>
+                        <p class="text-muted mb-0" style="font-size: var(--fs-md);">Controla los movimientos de dinero con tus cuentas de banco, efectivo y tarjetas de crédito.</p>
                     </div>
                     <div class="d-flex gap-2">
-                        <button id="btn-transferir" class="btn bg-white border fw-medium shadow-sm d-flex align-items-center px-3" style="color: #475569; font-size: 14px; border-radius: 6px;">
+                        <button id="btn-transferir" class="btn bg-white border fw-medium shadow-sm d-flex align-items-center px-3" style="color: var(--text-body); font-size: var(--fs-md); border-radius: 6px;">
                             <i class="bi bi-arrow-down-up me-2"></i> Transferir
                         </button>
                         <button id="btn-agregar-banco" class="btn btn-primary-action">
@@ -101,7 +101,7 @@ export const TesoreriaModule = {
                         <div class="card border-0 h-100" style="background: var(--surface); box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.03), 0px 1px 3px rgba(0, 0, 0, 0.05); border-radius: 8px;">
                             <div class="card-body p-4">
                                 <div class="d-flex justify-content-between align-items-center mb-4">
-                                    <h5 class="fw-bold mb-0" style="color: var(--text-main); font-size: 16px;">Ingresos y gastos</h5>
+                                    <h5 class="fw-bold mb-0" style="color: var(--text-main); font-size: var(--fs-lg);">Ingresos y gastos</h5>
                                     <select id="select-chart-rango" class="form-select form-select-sm border text-muted fw-medium" style="width: auto; border-radius: 6px; box-shadow: none;">
                                         <option value="1">1 mes</option>
                                         <option value="3">3 meses</option>
@@ -118,20 +118,20 @@ export const TesoreriaModule = {
                     <div class="col-md-4">
                         <div class="card border-0 h-100" style="background: var(--surface); box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.03), 0px 1px 3px rgba(0, 0, 0, 0.05); border-radius: 8px;">
                             <div class="card-body p-4 d-flex flex-column">
-                                <h5 class="fw-bold mb-4" style="color: var(--text-main); font-size: 16px;">Resumen</h5>
+                                <h5 class="fw-bold mb-4" style="color: var(--text-main); font-size: var(--fs-lg);">Resumen</h5>
                                 
                                 <div class="mb-4">
-                                    <p class="text-muted mb-1" style="font-size: 13px;">Saldo en bancos y efectivo</p>
-                                    <h3 class="fw-bold mb-0" style="color: #2cbfb7;" id="resumen-bancos">$0,00</h3>
+                                    <p class="text-muted mb-1" style="font-size: var(--fs-base);">Saldo en bancos y efectivo</p>
+                                    <h3 class="fw-bold mb-0" style="color: var(--primary);" id="resumen-bancos">$0,00</h3>
                                 </div>
                                 
                                 <div class="mb-4 d-flex align-items-center justify-content-center" style="position: relative;">
                                     <hr class="w-100 text-muted m-0 opacity-25">
-                                    <span class="px-2 position-absolute text-muted opacity-50" style="font-size: 12px; background: var(--surface);"><i class="bi bi-dash-circle"></i></span>
+                                    <span class="px-2 position-absolute text-muted opacity-50" style="font-size: var(--fs-sm); background: var(--surface);"><i class="bi bi-dash-circle"></i></span>
                                 </div>
                                 
                                 <div class="mt-2">
-                                    <p class="text-muted mb-1" style="font-size: 13px;">Saldo total</p>
+                                    <p class="text-muted mb-1" style="font-size: var(--fs-base);">Saldo total</p>
                                     <h3 class="fw-bold mb-0" style="color: var(--text-main);" id="resumen-total">$0,00</h3>
                                 </div>
                             </div>
@@ -144,16 +144,16 @@ export const TesoreriaModule = {
                     <div class="card-header bg-white border-bottom p-3 d-flex gap-3 align-items-center" style="border-radius: 8px 8px 0 0;">
                         <div class="input-group input-group-sm" style="width: 300px;">
                             <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
-                            <input type="text" id="search-bancos" class="form-control border-start-0 ps-0 text-muted" placeholder="Buscar bancos..." style="font-size: 13px; box-shadow: none;">
+                            <input type="text" id="search-bancos" class="form-control border-start-0 ps-0 text-muted" placeholder="Buscar bancos..." style="font-size: var(--fs-base); box-shadow: none;">
                         </div>
-                        <button id="btn-actualizar-bancos" class="btn btn-sm btn-light border text-muted ms-auto d-flex align-items-center px-3" style="font-weight: 500; font-size: 13px;">
+                        <button id="btn-actualizar-bancos" class="btn btn-sm btn-light border text-muted ms-auto d-flex align-items-center px-3" style="font-weight: 500; font-size: var(--fs-base);">
                             <i class="bi bi-arrow-clockwise me-2"></i> Actualizar datos
                         </button>
                     </div>
                     <div class="table-responsive">
                         <table class="table table-borderless align-middle mb-0 table-hover">
                             <thead style="border-bottom: 1px solid var(--border-color);">
-                                <tr style="color: var(--text-muted); font-size: 13px; font-weight: var(--weight-medium); white-space: nowrap;">
+                                <tr style="color: var(--text-muted); font-size: var(--fs-base); font-weight: var(--weight-medium); white-space: nowrap;">
                                     <th class=\"py-2 fw-normal ps-4\">Nombre</th>
                                     <th class=\"py-2 fw-normal\">Tipo de cuenta</th>
                                     <th class=\"py-2 fw-normal\">Número de cuenta</th>
@@ -207,7 +207,7 @@ export const TesoreriaModule = {
                                 </div>
                                 <div class="d-flex gap-2 justify-content-end">
                                     <button type="button" class="btn btn-light border px-4" data-bs-dismiss="modal">Cancelar</button>
-                                    <button type="submit" class="btn text-white px-4" style="background-color: #2cbfb7;" id="btn-confirmar-transf">Transferir</button>
+                                    <button type="submit" class="btn text-white px-4" style="background-color: var(--primary);" id="btn-confirmar-transf">Transferir</button>
                                 </div>
                             </form>
                         </div>
@@ -243,7 +243,7 @@ export const TesoreriaModule = {
                                 </div>
                                 <div class="d-flex gap-2 justify-content-end">
                                     <button type="button" class="btn btn-light border px-4" data-bs-dismiss="modal">Cancelar</button>
-                                    <button type="submit" class="btn text-white px-4" style="background-color: #2cbfb7;" id="btn-confirmar-agregar-banco">Guardar</button>
+                                    <button type="submit" class="btn text-white px-4" style="background-color: var(--primary);" id="btn-confirmar-agregar-banco">Guardar</button>
                                 </div>
                             </form>
                         </div>
@@ -276,7 +276,7 @@ export const TesoreriaModule = {
                                 </div>
                                 <div class="d-flex gap-2 justify-content-end">
                                     <button type="button" class="btn btn-light border px-4" data-bs-dismiss="modal">Cancelar</button>
-                                    <button type="submit" class="btn text-white px-4" style="background-color: #2cbfb7;" id="btn-confirmar-editar-banco">Guardar cambios</button>
+                                    <button type="submit" class="btn text-white px-4" style="background-color: var(--primary);" id="btn-confirmar-editar-banco">Guardar cambios</button>
                                 </div>
                             </form>
                         </div>
@@ -652,8 +652,8 @@ export const TesoreriaModule = {
             const isActivo = c.estado !== 'inactivo';
             const opacityStyle = isActivo ? '' : 'opacity: 0.6;';
             const badge = isActivo 
-                ? '<span class="badge bg-success text-success bg-opacity-10 border border-success-subtle rounded-pill ms-2 fw-medium" style="font-size: 10px; padding: 4px 8px;">Activa</span>' 
-                : '<span class="badge bg-secondary text-secondary bg-opacity-10 border border-secondary-subtle rounded-pill ms-2 fw-medium" style="font-size: 10px; padding: 4px 8px;">Inactiva</span>';
+                ? '<span class="badge bg-success text-success bg-opacity-10 border border-success-subtle rounded-pill ms-2 fw-medium" style="font-size: var(--fs-xxs); padding: 4px 8px;">Activa</span>' 
+                : '<span class="badge bg-secondary text-secondary bg-opacity-10 border border-secondary-subtle rounded-pill ms-2 fw-medium" style="font-size: var(--fs-xxs); padding: 4px 8px;">Inactiva</span>';
             const actionBtnIcon = isActivo ? 'bi-pause-circle' : 'bi-play-circle';
             const actionBtnColor = isActivo ? 'text-danger' : 'text-success';
             const actionBtnTitle = isActivo ? 'Desactivar cuenta' : 'Activar cuenta';
@@ -662,27 +662,27 @@ export const TesoreriaModule = {
             
             // Layout de Alegra: ícono gris tenue a la izquierda del nombre
             html += `
-                <tr class="banco-row" data-id="${c.id}" style="cursor: pointer; font-size: 13px; color: var(--text-body); border-bottom: 1px solid var(--border-color); ${opacityStyle}">
+                <tr class="banco-row" data-id="${c.id}" style="cursor: pointer; font-size: var(--fs-base); color: var(--text-body); border-bottom: 1px solid var(--border-color); ${opacityStyle}">
                     <td class=\"py-2 ps-4 d-flex align-items-center\" style="white-space: nowrap;">
                         <div class="bg-light rounded-circle p-2 me-3 d-flex align-items-center justify-content-center text-muted" style="width: 32px; height: 32px; border: 1px solid #e2e8f0; flex-shrink: 0;">
-                            <i class="bi ${icon}" style="font-size: 14px;"></i>
+                            <i class="bi ${icon}" style="font-size: var(--fs-md);"></i>
                         </div>
                         <span style="color: var(--text-main); font-weight: 500;">${c.nombre}</span>
                         ${badge}
                     </td>
-                    <td class=\"py-2\" style="white-space: nowrap;"><span class="badge ${tipoBadgeColor} bg-opacity-10 border border-${isEfectivo?'success':'primary'}-subtle rounded-pill fw-medium" style="font-size: 12px; padding: 5px 10px;">${c.tipo}</span></td>
+                    <td class=\"py-2\" style="white-space: nowrap;"><span class="badge ${tipoBadgeColor} bg-opacity-10 border border-${isEfectivo?'success':'primary'}-subtle rounded-pill fw-medium" style="font-size: var(--fs-sm); padding: 5px 10px;">${c.tipo}</span></td>
                     <td class=\"py-2 font-monospace text-muted\" style="white-space: nowrap;">${c.numero || '-'}</td>
-                    <td class=\"py-2\" style="color: #2cbfb7; font-weight: 500; white-space: nowrap;">${formatMoney(saldo)}</td>
+                    <td class=\"py-2\" style="color: var(--primary); font-weight: 500; white-space: nowrap;">${formatMoney(saldo)}</td>
                     <td class=\"py-2 pe-4\">
                         <div class="d-flex gap-2 align-items-center">
-                            <button class="btn btn-sm btn-light border px-3 text-muted btn-conciliar" style="font-size: 12px; font-weight: 500; border-radius: 4px;" onclick="event.stopPropagation(); window.location.hash='#/bancos/conciliacion?banco_id=${c.id}'">
+                            <button class="btn btn-sm btn-light border px-3 text-muted btn-conciliar" style="font-size: var(--fs-sm); font-weight: 500; border-radius: 4px;" onclick="event.stopPropagation(); window.location.hash='#/bancos/conciliacion?banco_id=${c.id}'">
                                 Conciliar
                             </button>
                             <div class="dropdown">
                                 <button class="btn btn-sm btn-light border text-muted px-2 btn-abrir-menu-cuenta" data-bs-toggle="dropdown" aria-expanded="false" title="Más opciones" style="border-radius: 4px;">
                                     <i class="bi bi-three-dots-vertical"></i>
                                 </button>
-                                <ul class="dropdown-menu dropdown-menu-end shadow border-0" style="font-size: 13px;">
+                                <ul class="dropdown-menu dropdown-menu-end shadow border-0" style="font-size: var(--fs-base);">
                                     <li><a class="dropdown-item btn-editar-cuenta" href="javascript:void(0)" data-id="${c.id}" data-nombre="${c.nombre}" data-tipo="${c.tipo}" data-numero="${c.numero || ''}">Editar</a></li>
                                     <li><a class="dropdown-item ${actionBtnColor} btn-toggle-estado" href="javascript:void(0)" data-id="${c.id}" data-estado="${c.estado || 'activo'}">${actionBtnTitle}</a></li>
                                 </ul>

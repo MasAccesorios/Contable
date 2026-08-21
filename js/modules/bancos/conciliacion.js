@@ -106,13 +106,13 @@ export const ConciliacionModule = {
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <div>
                         <h2 class="h3 fw-bold mb-1" style="color: var(--text-main);">Conciliación Bancaria</h2>
-                        <p class="text-muted mb-0" style="font-size: 14px;">Concilia tus movimientos bancarios y mantén tu saldo exacto.</p>
+                        <p class="text-muted mb-0" style="font-size: var(--fs-md);">Concilia tus movimientos bancarios y mantén tu saldo exacto.</p>
                     </div>
                 </div>
 
                 <!-- Selector global de cuenta -->
                 <div class="mb-4">
-                    <label class="form-label text-muted" style="font-size: 12px; font-weight: 500;">Cuenta a conciliar</label>
+                    <label class="form-label text-muted" style="font-size: var(--fs-sm); font-weight: 500;">Cuenta a conciliar</label>
                     <select id="concil-cuenta" class="form-select border text-muted fw-medium" style="width: 250px; border-radius: 6px;">
                         ${opcionesCuentas}
                     </select>
@@ -146,25 +146,25 @@ export const ConciliacionModule = {
                             <div class="card-body p-4">
                                 <div class="row align-items-center text-center" id="resumen-conciliacion-row">
                                     <div class="col-3 border-end">
-                                        <p class="text-muted mb-1" style="font-size: 12px; font-weight: 500;">Saldo anterior</p>
+                                        <p class="text-muted mb-1" style="font-size: var(--fs-sm); font-weight: 500;">Saldo anterior</p>
                                         <h4 class="fw-bold mb-0" style="color: var(--text-main);" id="concil-saldo-anterior">$0,00</h4>
                                     </div>
                                     <div class="col-3 border-end text-start px-4">
-                                        <label class="text-muted mb-1 d-block" style="font-size: 12px; font-weight: 500;">Saldo bancario (Extracto)</label>
+                                        <label class="text-muted mb-1 d-block" style="font-size: var(--fs-sm); font-weight: 500;">Saldo bancario (Extracto)</label>
                                         <div class="input-group input-group-sm">
                                             <span class="input-group-text bg-light border-end-0">$</span>
                                             <input type="text" id="concil-input-saldo" class="form-control border-start-0 ps-0 text-dark fw-medium" placeholder="0.00" value="0">
                                         </div>
                                     </div>
                                     <div class="col-3 border-end">
-                                        <p class="text-muted mb-1" style="font-size: 12px; font-weight: 500;">Saldo en sistema</p>
+                                        <p class="text-muted mb-1" style="font-size: var(--fs-sm); font-weight: 500;">Saldo en sistema</p>
                                         <h4 class="fw-bold mb-0" style="color: var(--text-main);" id="concil-saldo-total">$0,00</h4>
                                     </div>
                                     <div class="col-3">
-                                        <p class="text-muted mb-1" style="font-size: 12px; font-weight: 500;">Diferencia</p>
+                                        <p class="text-muted mb-1" style="font-size: var(--fs-sm); font-weight: 500;">Diferencia</p>
                                         <div class="d-flex flex-column align-items-center justify-content-center">
-                                            <h4 class="fw-bold mb-1" id="concil-diferencia" style="color: #ef4444;">$0,00</h4>
-                                            <button id="btn-ajustar-saldo" class="btn btn-sm btn-outline-warning d-none mt-2" style="font-size: 11px; padding: 2px 8px; border-radius: 4px;">Ajustar saldo</button>
+                                            <h4 class="fw-bold mb-1" id="concil-diferencia" style="color: var(--danger);">$0,00</h4>
+                                            <button id="btn-ajustar-saldo" class="btn btn-sm btn-outline-warning d-none mt-2" style="font-size: var(--fs-xs); padding: 2px 8px; border-radius: 4px;">Ajustar saldo</button>
                                         </div>
                                     </div>
                                 </div>
@@ -176,13 +176,13 @@ export const ConciliacionModule = {
                             <div class="card-body p-0">
                                 <div class="table-responsive">
                                     <table class="table table-hover align-middle mb-0">
-                                        <thead style="background-color: #f8fafc; white-space: nowrap;">
+                                        <thead style="background-color: var(--bg-main); white-space: nowrap;">
                                             <tr>
-                                                <th class="py-3 ps-4 text-muted" style="font-size: 12px; font-weight: 600;">Fecha</th>
-                                                <th class="py-3 text-muted" style="font-size: 12px; font-weight: 600;">Descripción</th>
-                                                <th class="py-3 text-muted" style="font-size: 12px; font-weight: 600;">Tipo</th>
-                                                <th class="py-3 text-muted" style="font-size: 12px; font-weight: 600;">Monto</th>
-                                                <th class="py-3 pe-4 text-center text-muted" style="font-size: 12px; font-weight: 600;">
+                                                <th class="py-3 ps-4 text-muted" style="font-size: var(--fs-sm); font-weight: 600;">Fecha</th>
+                                                <th class="py-3 text-muted" style="font-size: var(--fs-sm); font-weight: 600;">Descripción</th>
+                                                <th class="py-3 text-muted" style="font-size: var(--fs-sm); font-weight: 600;">Tipo</th>
+                                                <th class="py-3 text-muted" style="font-size: var(--fs-sm); font-weight: 600;">Monto</th>
+                                                <th class="py-3 pe-4 text-center text-muted" style="font-size: var(--fs-sm); font-weight: 600;">
                                                     <input type="checkbox" id="chk-select-all" class="form-check-input me-1" title="Seleccionar todo" style="cursor: pointer;">
                                                     Conciliado
                                                 </th>
@@ -197,7 +197,7 @@ export const ConciliacionModule = {
                         </div>
 
                         <div class="d-flex justify-content-end mb-5">
-                            <button id="btn-guardar-concil" class="btn text-white fw-medium shadow-sm px-4 py-2" style="background-color: #2cbfb7; border-radius: 6px;">
+                            <button id="btn-guardar-concil" class="btn text-white fw-medium shadow-sm px-4 py-2" style="background-color: var(--primary); border-radius: 6px;">
                                 Guardar conciliación
                             </button>
                         </div>
@@ -209,14 +209,14 @@ export const ConciliacionModule = {
                             <div class="card-body p-0">
                                 <div class="table-responsive">
                                     <table class="table table-hover align-middle mb-0">
-                                        <thead style="background-color: #f8fafc;">
+                                        <thead style="background-color: var(--bg-main);">
                                             <tr>
-                                                <th class="py-3 ps-4 text-muted" style="font-size: 12px; font-weight: 600;">Fecha Guardado</th>
-                                                <th class="py-3 text-muted" style="font-size: 12px; font-weight: 600;">Rango de Fechas</th>
-                                                <th class="py-3 text-muted" style="font-size: 12px; font-weight: 600;">Saldo Bancario</th>
-                                                <th class="py-3 text-muted" style="font-size: 12px; font-weight: 600;">Diferencia</th>
-                                                <th class="py-3 text-center text-muted" style="font-size: 12px; font-weight: 600;">Movs. Conciliados</th>
-                                                <th class="py-3 pe-4 text-end text-muted" style="font-size: 12px; font-weight: 600;">Acciones</th>
+                                                <th class="py-3 ps-4 text-muted" style="font-size: var(--fs-sm); font-weight: 600;">Fecha Guardado</th>
+                                                <th class="py-3 text-muted" style="font-size: var(--fs-sm); font-weight: 600;">Rango de Fechas</th>
+                                                <th class="py-3 text-muted" style="font-size: var(--fs-sm); font-weight: 600;">Saldo Bancario</th>
+                                                <th class="py-3 text-muted" style="font-size: var(--fs-sm); font-weight: 600;">Diferencia</th>
+                                                <th class="py-3 text-center text-muted" style="font-size: var(--fs-sm); font-weight: 600;">Movs. Conciliados</th>
+                                                <th class="py-3 pe-4 text-end text-muted" style="font-size: var(--fs-sm); font-weight: 600;">Acciones</th>
                                             </tr>
                                         </thead>
                                         <tbody id="tbody-historial">
@@ -264,7 +264,7 @@ export const ConciliacionModule = {
             const badgeColor = isIngreso ? '#059669' : '#dc2626';
 
             html += `
-                <tr style="font-size: 13px; color: var(--text-body);">
+                <tr style="font-size: var(--fs-base); color: var(--text-body);">
                     <td class="py-3 ps-4" style="white-space: nowrap;">${(m.fecha || '').substring(0, 10)}</td>
                     <td class="py-3 fw-medium" style="color: var(--text-main); white-space: nowrap;">${m.detalle || m.referencia || m.descripcion || '-'}</td>
                     <td class="py-3" style="white-space: nowrap;">
@@ -306,7 +306,7 @@ export const ConciliacionModule = {
             const cantMovs = h.movimientos_conciliados ? h.movimientos_conciliados.length : 0;
 
             html += `
-                <tr style="font-size: 13px; color: var(--text-body);">
+                <tr style="font-size: var(--fs-base); color: var(--text-body);">
                     <td class="py-3 ps-4 fw-medium text-muted">${fechaGuardadoStr}</td>
                     <td class="py-3 text-muted">${rango}</td>
                     <td class="py-3" style="font-weight: 500;">${this.formatMoney(h.saldo_bancario)}</td>
@@ -472,7 +472,7 @@ export const ConciliacionModule = {
                     <div class="table-responsive">
                         <table class="table table-sm">
                             <thead>
-                                <tr class="text-muted" style="font-size: 13px;">
+                                <tr class="text-muted" style="font-size: var(--fs-base);">
                                     <th>Fecha</th>
                                     <th>Detalle</th>
                                     <th class="text-end">Monto</th>
@@ -486,7 +486,7 @@ export const ConciliacionModule = {
                     movs.forEach(m => {
                         const esIngreso = m.tipo === 'ingreso';
                         tableHtml += `
-                        <tr style="font-size: 13px;">
+                        <tr style="font-size: var(--fs-base);">
                             <td class="py-2">${(m.fecha || '').substring(0,10)}</td>
                             <td class="py-2 fw-medium">${m.detalle || m.referencia || '-'}</td>
                             <td class="py-2 text-end text-${esIngreso ? 'success' : 'danger'} fw-medium">${this.formatMoney(m.monto)}</td>

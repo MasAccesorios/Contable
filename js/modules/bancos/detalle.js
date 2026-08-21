@@ -154,7 +154,7 @@ export const DetalleBancoModule = {
                         <div>
                             ${headerHtml}
                             <h2 class="h3 fw-bold mb-1" style="color: var(--text-main);">${c ? c.nombre : 'Cargando...'}</h2>
-                            ${c ? `<p class="text-muted mb-0" style="font-size: 14px;">Tipo: ${c.tipo} &nbsp;|&nbsp; Número: ${c.numero}</p>` : ''}
+                            ${c ? `<p class="text-muted mb-0" style="font-size: var(--fs-md);">Tipo: ${c.tipo} &nbsp;|&nbsp; Número: ${c.numero}</p>` : ''}
                         </div>
                     </div>
 
@@ -163,8 +163,8 @@ export const DetalleBancoModule = {
                         <div class="col-md-4">
                             <div class="card border-0" style="box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.03), 0px 1px 3px rgba(0, 0, 0, 0.05); border-radius: 8px; border-top: 4px solid #2cbfb7;">
                                 <div class="card-body p-4">
-                                    <p class="text-muted mb-1" style="font-size: 13px;">Saldo en Libros</p>
-                                    <h3 class="fw-bold mb-0" id="detail-saldo-card" style="color: #2cbfb7;">${formatMoney(this.state.saldo)}</h3>
+                                    <p class="text-muted mb-1" style="font-size: var(--fs-base);">Saldo en Libros</p>
+                                    <h3 class="fw-bold mb-0" id="detail-saldo-card" style="color: var(--primary);">${formatMoney(this.state.saldo)}</h3>
                                 </div>
                             </div>
                         </div>
@@ -177,11 +177,11 @@ export const DetalleBancoModule = {
                         <div class="card-header bg-white border-bottom p-3 d-flex gap-3 align-items-center" style="border-radius: 8px 8px 0 0;">
                             <div class="input-group input-group-sm" style="width: 250px; position: relative;">
                                 <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
-                                <input type="text" class="form-control border-start-0 ps-0 text-muted" id="detail-search" placeholder="Buscar movimientos..." autocomplete="off" style="font-size: 13px; box-shadow: none;">
+                                <input type="text" class="form-control border-start-0 ps-0 text-muted" id="detail-search" placeholder="Buscar movimientos..." autocomplete="off" style="font-size: var(--fs-base); box-shadow: none;">
                                 <button class="btn btn-link position-absolute end-0 top-50 translate-middle-y text-muted d-none" id="detail-search-clear" style="z-index: 10; text-decoration: none;"><i class="bi bi-x-circle-fill"></i></button>
                             </div>
                             <div class="d-flex align-items-center gap-2">
-                                <span class="text-muted" style="font-size: 13px;">Tipo:</span>
+                                <span class="text-muted" style="font-size: var(--fs-base);">Tipo:</span>
                                 <select id="detail-filter-tipo" class="form-select form-select-sm text-muted" style="width: 130px; box-shadow: none;">
                                     <option value="todos">Todos</option>
                                     <option value="ingreso">Ingresos</option>
@@ -194,7 +194,7 @@ export const DetalleBancoModule = {
                         <div class="table-responsive">
                             <table class="table table-borderless align-middle mb-0">
                                 <thead style="border-bottom: 1px solid var(--border-color);">
-                                    <tr style="color: var(--text-muted); font-size: 13px; font-weight: var(--weight-medium);">
+                                    <tr style="color: var(--text-muted); font-size: var(--fs-base); font-weight: var(--weight-medium);">
                                         <th class="py-3 fw-normal" style="width: 100px;">Fecha</th>
                                         <th class="py-3 fw-normal">Tercero</th>
                                         <th class="py-3 fw-normal">Cuenta contable</th>
@@ -296,14 +296,14 @@ export const DetalleBancoModule = {
             const valorColor = isIngreso ? '#2cbfb7' : '#e74c3c';
             
             return `
-                <tr class="movimiento-row" style="border-bottom: 1px solid var(--border-color); font-size: 13px; color: var(--text-body); cursor: pointer; transition: background-color 0.2s;" data-id="${t.id}" onmouseover="this.style.backgroundColor='#f8f9fa'" onmouseout="this.style.backgroundColor='transparent'">
+                <tr class="movimiento-row" style="border-bottom: 1px solid var(--border-color); font-size: var(--fs-base); color: var(--text-body); cursor: pointer; transition: background-color 0.2s;" data-id="${t.id}" onmouseover="this.style.backgroundColor='#f8f9fa'" onmouseout="this.style.backgroundColor='transparent'">
                     <td class="py-3">
                         ${t.fecha || '-'}
-                        <div class="text-muted mt-1" style="font-size: 10px;">Nº trans: ${t.grupo_pago_id || t.id}</div>
+                        <div class="text-muted mt-1" style="font-size: var(--fs-xxs);">Nº trans: ${t.grupo_pago_id || t.id}</div>
                     </td>
                     <td class="py-3">
                         <div style="color: var(--text-main); font-weight: 500;">${t.terceroNombre || 'Sin tercero'}</div>
-                        ${t.terceroNit ? `<div style="font-size: 11px; color: #888;">${t.terceroNit}</div>` : ''}
+                        ${t.terceroNit ? `<div style="font-size: var(--fs-xs); color: var(--text-muted);">${t.terceroNit}</div>` : ''}
                     </td>
                     <td class="py-3" style="color: var(--text-main);">
                         ${t.cuentaContable}
@@ -314,10 +314,10 @@ export const DetalleBancoModule = {
                     <td class="py-3 text-center">
 
                         <div class="dropdown d-inline-block">
-                            <button class="btn btn-sm btn-link p-0 text-muted mx-1" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Más opciones" style="color: #6c757d !important; transition: opacity 0.2s;" onmouseover="this.style.opacity=0.7" onmouseout="this.style.opacity=1">
+                            <button class="btn btn-sm btn-link p-0 text-muted mx-1" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Más opciones" style="color: var(--text-muted) !important; transition: opacity 0.2s;" onmouseover="this.style.opacity=0.7" onmouseout="this.style.opacity=1">
                                 <i class="bi bi-three-dots-vertical fs-6"></i>
                             </button>
-                            <ul class="dropdown-menu dropdown-menu-end shadow border-0" style="font-size: 13px;">
+                            <ul class="dropdown-menu dropdown-menu-end shadow border-0" style="font-size: var(--fs-base);">
                                 <li><a class="dropdown-item btn-editar-transaccion" href="javascript:void(0)" data-id="${t.id}">Editar</a></li>
                                 <li><a class="dropdown-item text-danger btn-eliminar-banco" href="javascript:void(0)" data-id="${t.id}" data-grupo="${t.grupo_pago_id || ''}" data-monto="${t.monto}" data-fecha="${t.fecha}">Eliminar</a></li>
                             </ul>
@@ -332,7 +332,7 @@ export const DetalleBancoModule = {
                 ${this.state.isLoading ? 'Cargando...' : 'Cargar más movimientos'}
             </button>` 
         : 
-            `<span class="text-muted" style="font-size: 13px;">No hay más movimientos.</span>`;
+            `<span class="text-muted" style="font-size: var(--fs-base);">No hay más movimientos.</span>`;
 
         this.bindDynamicEvents();
     },

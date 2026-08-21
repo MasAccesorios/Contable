@@ -67,7 +67,7 @@ export default {
                 
                 <!-- BREADCRUMB Y BOTONES SUPERIORES DE ACCIÓN -->
                 <div class="d-flex justify-content-between align-items-center mb-2">
-                    <div style="font-size: 12px;" class="text-muted">
+                    <div style="font-size: var(--fs-sm);" class="text-muted">
                         <span>Reportes</span> &gt; <span>Administrativos</span> &gt; <span class="text-dark font-weight-bold">Cuentas por cobrar</span>
                     </div>
                 </div>
@@ -87,22 +87,22 @@ export default {
 
                 <!-- FILTRO DE PERIODO -->
                 <div class="card border-0 shadow-sm p-3 mb-3 bg-white position-relative" style="border-radius: 14px; border: 1px solid #e2e8f0 !important; max-width: 320px;">
-                    <label class="form-label text-muted mb-1" style="font-size: 11px; font-weight: 600;">Periodo *</label>
+                    <label class="form-label text-muted mb-1" style="font-size: var(--fs-xs); font-weight: 600;">Periodo *</label>
                     
                     <!-- INPUT DISPARADOR DEL PICKER -->
-                    <div id="input-date-range-trigger" class="form-control form-control-sm border-light-subtle d-flex justify-content-between align-items-center" style="font-size: 12px; cursor: pointer; background-color: #fff; padding: 6px 12px;">
+                    <div id="input-date-range-trigger" class="form-control form-control-sm border-light-subtle d-flex justify-content-between align-items-center" style="font-size: var(--fs-sm); cursor: pointer; background-color: var(--surface); padding: 6px 12px;">
                         <span id="lbl-rango-activo">01/01/2000 - Hoy</span>
                         <span class="text-muted">📅</span>
                     </div>
 
                     <!-- POPOVER DESPLEGABLE CON ATAJOS Y CALENDARIO -->
                     <div id="popover-date-picker" class="card shadow-lg border-0 position-absolute start-0 mt-1 d-none" style="z-index: 1050; width: 620px; border-radius: 8px; top: 100%;">
-                        <div class="card-body p-0 d-flex" style="font-size: 12px; min-height: 280px;">
+                        <div class="card-body p-0 d-flex" style="font-size: var(--fs-sm); min-height: 280px;">
                             
                             <!-- PANEL IZQUIERDO: ATAJOS PREDEFINIDOS -->
-                            <div class="border-end p-2" style="width: 170px; background-color: #f9fbfd;">
-                                <div class="text-muted fw-bold px-2 py-1" style="font-size: 11px;">Predefinido</div>
-                                <div class="list-group list-group-flush" id="lista-atajos-fecha" style="font-size: 12px;">
+                            <div class="border-end p-2" style="width: 170px; background-color: var(--bg-main);">
+                                <div class="text-muted fw-bold px-2 py-1" style="font-size: var(--fs-xs);">Predefinido</div>
+                                <div class="list-group list-group-flush" id="lista-atajos-fecha" style="font-size: var(--fs-sm);">
                                     <button type="button" class="list-group-item list-group-item-action border-0 px-2 py-1 text-primary bg-transparent fw-medium" data-range="inicio">Desde el Inicio</button>
                                     <button type="button" class="list-group-item list-group-item-action border-0 px-2 py-1 text-secondary bg-transparent" data-range="hoy">Hoy</button>
                                     <button type="button" class="list-group-item list-group-item-action border-0 px-2 py-1 text-secondary bg-transparent" data-range="ayer">Ayer</button>
@@ -121,30 +121,30 @@ export default {
                             <!-- PANEL DERECHO: VISTA DE DUAL CALENDAR -->
                             <div class="p-3 flex-fill bg-white">
                                 <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
-                                    <span class="fw-bold text-dark" style="font-size: 11px;">Rango personalizado:</span>
+                                    <span class="fw-bold text-dark" style="font-size: var(--fs-xs);">Rango personalizado:</span>
                                     <div class="d-flex gap-1">
-                                        <input type="date" id="picker-fecha-inicio" class="form-control form-control-sm py-0 px-1" style="font-size: 11px; width: 110px;" value="2000-01-01">
+                                        <input type="date" id="picker-fecha-inicio" class="form-control form-control-sm py-0 px-1" style="font-size: var(--fs-xs); width: 110px;" value="2000-01-01">
                                         <span class="text-muted">-</span>
-                                        <input type="date" id="picker-fecha-fin" class="form-control form-control-sm py-0 px-1" style="font-size: 11px; width: 110px;" value="">
+                                        <input type="date" id="picker-fecha-fin" class="form-control form-control-sm py-0 px-1" style="font-size: var(--fs-xs); width: 110px;" value="">
                                     </div>
                                 </div>
                                 
                                 <!-- MOCKUP VISUAL DE CALENDARIOS DUALES SELECCIONABLES -->
                                 <div class="d-flex gap-3 text-center align-items-start pt-1">
                                     <div class="flex-fill border rounded p-2">
-                                        <div class="fw-bold text-dark mb-1" style="font-size: 11px;">Enero 2000</div>
+                                        <div class="fw-bold text-dark mb-1" style="font-size: var(--fs-xs);">Enero 2000</div>
                                         <div class="text-muted small">◄ Mes Incial</div>
                                     </div>
                                     <div class="flex-fill border rounded p-2">
-                                        <div class="fw-bold text-dark mb-1" style="font-size: 11px;">Mes Final</div>
+                                        <div class="fw-bold text-dark mb-1" style="font-size: var(--fs-xs);">Mes Final</div>
                                         <div class="text-muted small">Mes Final ►</div>
                                     </div>
                                 </div>
 
                                 <!-- ACCIONES DE APLICACIÓN -->
                                 <div class="d-flex justify-content-end gap-2 mt-4 pt-2 border-top">
-                                    <button id="btn-cancelar-picker" class="btn btn-sm btn-light border px-3" style="font-size: 11px;">Cancelar</button>
-                                    <button id="btn-aplicar-picker" class="btn btn-sm text-white px-3" style="background-color: #2cbfb7; font-size: 11px;">Aplicar Periodo</button>
+                                    <button id="btn-cancelar-picker" class="btn btn-sm btn-light border px-3" style="font-size: var(--fs-xs);">Cancelar</button>
+                                    <button id="btn-aplicar-picker" class="btn btn-sm text-white px-3" style="background-color: var(--primary); font-size: var(--fs-xs);">Aplicar Periodo</button>
                                 </div>
                             </div>
 
@@ -192,31 +192,31 @@ export default {
                 <!-- TABLA DE DETALLE DE CARTERA POR FACTURA -->
                 <div class="dash-table-container">
                     <div class="p-3 d-flex justify-content-end border-bottom border-light-subtle">
-                        <button id="btn-toggle-filtros" class="btn btn-sm btn-light border bg-white text-secondary" style="font-size: 12px; border-radius: 6px;">⚙️ Filtrar</button>
+                        <button id="btn-toggle-filtros" class="btn btn-sm btn-light border bg-white text-secondary" style="font-size: var(--fs-sm); border-radius: 6px;">⚙️ Filtrar</button>
                     </div>
                     
-                    <div id="row-filtros-alegra" class="d-none p-2 border-bottom bg-light d-flex flex-wrap gap-2 align-items-center" style="font-size: 12px;">
+                    <div id="row-filtros-alegra" class="d-none p-2 border-bottom bg-light d-flex flex-wrap gap-2 align-items-center" style="font-size: var(--fs-sm);">
                         <input type="text" id="filtro-numero" class="form-control form-control-sm" placeholder="Número" style="border-radius: 6px; width: 120px;">
                         <select id="filtro-cliente" class="form-select form-select-sm" style="border-radius: 6px; width: 180px;">
                             <option value="">Cliente</option>
                         </select>
                         <div class="input-group input-group-sm" style="width: 150px;">
-                            <input type="text" class="form-control border-end-0 text-muted" value="Creación" disabled style="background-color: #fff; border-radius: 6px 0 0 6px;">
+                            <input type="text" class="form-control border-end-0 text-muted" value="Creación" disabled style="background-color: var(--surface); border-radius: 6px 0 0 6px;">
                             <input type="date" id="filtro-creacion" class="form-control" style="border-radius: 0 6px 6px 0;">
                         </div>
                         <div class="input-group input-group-sm" style="width: 150px;">
-                            <input type="text" class="form-control border-end-0 text-muted" value="Venc." disabled style="background-color: #fff; border-radius: 6px 0 0 6px;">
+                            <input type="text" class="form-control border-end-0 text-muted" value="Venc." disabled style="background-color: var(--surface); border-radius: 6px 0 0 6px;">
                             <input type="date" id="filtro-vencimiento" class="form-control" style="border-radius: 0 6px 6px 0;">
                         </div>
                         
                         <div class="ms-auto d-flex gap-2">
-                            <button id="btn-aplicar-filtros" class="btn btn-sm text-dark border" style="background-color: #fff; border-color: #2cbfb7 !important; border-radius: 6px; color: #2cbfb7 !important;">Filtrar</button>
+                            <button id="btn-aplicar-filtros" class="btn btn-sm text-dark border" style="background-color: var(--surface); border-color: var(--primary); !important; border-radius: 6px; color: var(--primary); !important;">Filtrar</button>
                             <button id="btn-cerrar-filtros" class="btn btn-sm btn-light border bg-white text-secondary" style="border-radius: 6px;">Cerrar</button>
                         </div>
                     </div>
 
                     <div class="table-responsive">
-                        <table class="table align-middle table-hover m-0" style="font-size: 12px;">
+                        <table class="table align-middle table-hover m-0" style="font-size: var(--fs-sm);">
                             <thead class="table-light text-muted small text-uppercase border-bottom">
                                 <tr>
                                     <th style="width: 35px;" class="ps-3 py-2"><input type="checkbox" class="form-check-input"></th>
@@ -261,13 +261,13 @@ export default {
                                         <td class="text-muted py-1" style="white-space: nowrap;">${f.fecha || '---'}</td>
                                         <td class="${isVencida ? 'text-danger fw-semibold' : 'text-muted'} py-1" style="white-space: nowrap;">${vencimientoReal || '---'}</td>
                                         <td class="py-1" style="white-space: nowrap;">
-                                            <span class="badge ${isVencida ? 'bg-danger text-danger bg-opacity-10 border border-danger-subtle' : 'bg-success text-success bg-opacity-10 border border-success-subtle'} rounded-pill fw-medium" style="font-size: 10px; padding: 3px 8px;">${isVencida ? 'Vencida' : 'Vigente'}</span>
+                                            <span class="badge ${isVencida ? 'bg-danger text-danger bg-opacity-10 border border-danger-subtle' : 'bg-success text-success bg-opacity-10 border border-success-subtle'} rounded-pill fw-medium" style="font-size: var(--fs-xxs); padding: 3px 8px;">${isVencida ? 'Vencida' : 'Vigente'}</span>
                                         </td>
                                         <td class="text-end text-dark py-1" style="white-space: nowrap;">$ ${total.toLocaleString('es-CO', {minimumFractionDigits: 2})}</td>
                                         <td class="text-end text-muted py-1" style="white-space: nowrap;">$ ${cobrado.toLocaleString('es-CO', {minimumFractionDigits: 2})}</td>
                                         <td class="text-end fw-bold text-dark pe-3 py-1" style="white-space: nowrap;">$ ${saldo.toLocaleString('es-CO', {minimumFractionDigits: 2})}</td>
                                         <td class="text-center py-1" style="white-space: nowrap;">
-                                            <button class="btn btn-sm text-white btn-abonar shadow-sm" style="background-color: #1877f2; font-size: 11px; padding: 3px 10px;" data-id="${f.id}" data-saldo="${saldo}">Registrar Pago</button>
+                                            <button class="btn btn-sm text-white btn-abonar shadow-sm" style="background-color: var(--primary); font-size: var(--fs-xs); padding: 3px 10px;" data-id="${f.id}" data-saldo="${saldo}">Registrar Pago</button>
                                         </td>
                                     </tr>
                                     `;
@@ -277,13 +277,13 @@ export default {
                     </div>
 
                     <!-- PAGINADOR FIJO INFERIOR -->
-                    <div class="d-flex justify-content-between align-items-center p-3 text-muted border-top" style="font-size: 11px;">
+                    <div class="d-flex justify-content-between align-items-center p-3 text-muted border-top" style="font-size: var(--fs-xs);">
                         <div class="d-flex align-items-center gap-2">
                             <span>Página 1 de 1</span>
                         </div>
                         <div class="d-flex align-items-center gap-3">
                             <span id="lbl-conteo-mostrando">Mostrando 1-${facturasPendientes.length} de ${facturasPendientes.length}</span>
-                            <select class="form-select form-select-sm border-light-subtle py-0" style="width: 110px; font-size: 11px;">
+                            <select class="form-select form-select-sm border-light-subtle py-0" style="width: 110px; font-size: var(--fs-xs);">
                                 <option>Resultados por página: 20</option>
                             </select>
                         </div>
