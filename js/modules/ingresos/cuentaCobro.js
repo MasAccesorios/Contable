@@ -23,7 +23,7 @@ export const CuentaCobroModule = {
     async renderList(element) {
         element.innerHTML = `
             <div class="d-flex justify-content-center align-items-center" style="min-height: 400px;">
-                <div class="spinner-border" role="status" style="width: 3rem; height: 3rem; color: #2cbfb7;">
+                <div class="spinner-border" role="status" style="width: 3rem; height: 3rem; color: var(--primary);">
                     <span class="visually-hidden">Cargando...</span>
                 </div>
             </div>
@@ -45,7 +45,7 @@ export const CuentaCobroModule = {
         });
 
         const rowsHtml = listData.map(c => `
-            <tr style="border-bottom: 1px solid var(--border-color); font-size: 13px; color: var(--text-body);">
+            <tr style="border-bottom: 1px solid var(--border-color); font-size: var(--fs-base); color: var(--text-body);">
                 <td style="padding: 12px 16px; font-weight: 500;">No. ${c.numero}</td>
                 <td style="padding: 12px 16px;">${c.fecha}</td>
                 <td style="padding: 12px 16px;">
@@ -53,7 +53,7 @@ export const CuentaCobroModule = {
                 </td>
                 <td style="padding: 12px 16px; text-align: right; font-weight: 600;">${formatMoney(c.total)}</td>
                 <td style="padding: 12px 16px; text-align: center;">
-                    <span class="badge bg-warning text-warning-emphasis bg-opacity-10 border border-warning-subtle rounded-pill fw-medium" style="font-size: 11px; padding: 5px 10px;">Pendiente</span>
+                    <span class="badge bg-warning text-warning-emphasis bg-opacity-10 border border-warning-subtle rounded-pill fw-medium" style="font-size: var(--fs-xs); padding: 5px 10px;">Pendiente</span>
                 </td>
                 <td style="padding: 12px 16px; text-align: right;">
                     <button class="btn btn-sm btn-light border btn-ver-row" data-id="${c.id}" title="Ver"><i class="bi bi-eye"></i></button>
@@ -112,8 +112,8 @@ export const CuentaCobroModule = {
                 <div class="dash-table-container">
                     <div class="table-responsive">
                         <table class="table table-hover mb-0" style="width: 100%; border-collapse: collapse;">
-                            <thead style="background-color: #f8f9fa;">
-                                <tr style="border-bottom: 2px solid var(--border-color); color: var(--text-muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">
+                            <thead style="background-color: var(--bg-main);">
+                                <tr style="border-bottom: 2px solid var(--border-color); color: var(--text-muted); font-size: var(--fs-sm); text-transform: uppercase; letter-spacing: 0.5px;">
                                     <th style="padding: 12px 16px; font-weight: 600;">Número</th>
                                     <th style="padding: 12px 16px; font-weight: 600;">Fecha</th>
                                     <th style="padding: 12px 16px; font-weight: 600;">Cliente</th>
@@ -295,8 +295,8 @@ export const CuentaCobroModule = {
                     <div class="card-body p-0">
                         <div class="table-responsive" style="overflow: visible;">
                             <table class="table mb-0" id="cc-items-table" style="min-width: 800px;">
-                                <thead style="background-color: #f8f9fa;">
-                                    <tr style="border-bottom: 2px solid var(--border-color); color: var(--text-muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">
+                                <thead style="background-color: var(--bg-main);">
+                                    <tr style="border-bottom: 2px solid var(--border-color); color: var(--text-muted); font-size: var(--fs-sm); text-transform: uppercase; letter-spacing: 0.5px;">
                                         <th style="width: 45%; padding: 12px 16px; font-weight: 600;">Ítem</th>
                                         <th style="width: 15%; padding: 12px 16px; font-weight: 600;">Precio Unitario</th>
                                         <th style="width: 15%; padding: 12px 16px; font-weight: 600;">Cantidad</th>
@@ -323,16 +323,16 @@ export const CuentaCobroModule = {
                         <div class="card border-0 shadow-sm" style="border-radius: 12px;">
                             <div class="card-body p-4">
                                 <div class="d-flex justify-content-between mb-2">
-                                    <span class="text-muted fw-medium" style="font-size: 14px;">Subtotal:</span>
-                                    <span class="fw-bold" id="cc-subtotal" style="font-size: 14px; color: var(--text-body);">${formatMoney(doc.subtotal)}</span>
+                                    <span class="text-muted fw-medium" style="font-size: var(--fs-md);">Subtotal:</span>
+                                    <span class="fw-bold" id="cc-subtotal" style="font-size: var(--fs-md); color: var(--text-body);">${formatMoney(doc.subtotal)}</span>
                                 </div>
                                 <div class="d-flex justify-content-between mb-3 pb-3 border-bottom">
-                                    <span class="text-muted fw-medium" style="font-size: 14px;">Impuestos (IVA):</span>
-                                    <span class="fw-bold" id="cc-impuestos" style="font-size: 14px; color: var(--text-body);">${formatMoney(doc.impuestos)}</span>
+                                    <span class="text-muted fw-medium" style="font-size: var(--fs-md);">Impuestos (IVA):</span>
+                                    <span class="fw-bold" id="cc-impuestos" style="font-size: var(--fs-md); color: var(--text-body);">${formatMoney(doc.impuestos)}</span>
                                 </div>
                                 <div class="d-flex justify-content-between align-items-center">
-                                    <span class="text-muted fw-bold" style="font-size: 16px;">Total a Pagar:</span>
-                                    <span class="fw-bold fs-4" id="cc-total" style="color: #2cbfb7;">${formatMoney(doc.total)}</span>
+                                    <span class="text-muted fw-bold" style="font-size: var(--fs-lg);">Total a Pagar:</span>
+                                    <span class="fw-bold fs-4" id="cc-total" style="color: var(--primary);">${formatMoney(doc.total)}</span>
                                 </div>
                             </div>
                         </div>

@@ -77,7 +77,7 @@ export const NotasCreditoModule = {
         const renderGrid = async () => {
             element.innerHTML = `
                 <div class="d-flex justify-content-center align-items-center" style="min-height: 400px;">
-                    <div class="spinner-border" style="color: #2cbfb7;" role="status"></div>
+                    <div class="spinner-border" style="color: var(--primary);" role="status"></div>
                 </div>
             `;
 
@@ -133,7 +133,7 @@ export const NotasCreditoModule = {
             const tbodyHtml = currentItems.length > 0 ? currentItems.map(n => {
                 let badgeClass = n.estado === 'anulada' ? 'bg-secondary text-secondary bg-opacity-10 border border-secondary-subtle' : 'bg-success text-success bg-opacity-10 border border-success-subtle';
                 let labelEstado = n.estado === 'anulada' ? 'Anulada' : 'Aplicada';
-                const estadoLabel = `<span class="badge ${badgeClass} rounded-pill fw-medium" style="font-size: 11px; padding: 5px 10px;">${labelEstado}</span>`;
+                const estadoLabel = `<span class="badge ${badgeClass} rounded-pill fw-medium" style="font-size: var(--fs-xs); padding: 5px 10px;">${labelEstado}</span>`;
                 const opacity = n.estado === 'anulada' ? '0.5' : '1';
                 
                 return `
@@ -157,7 +157,7 @@ export const NotasCreditoModule = {
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <div>
                             <h2 class="h3 fw-bold mb-1" style="color: var(--text-main);">Notas de Crédito</h2>
-                            <p class="text-muted mb-0" style="font-size: 14px;">Gestiona las devoluciones y saldos a favor de tus clientes.</p>
+                            <p class="text-muted mb-0" style="font-size: var(--fs-md);">Gestiona las devoluciones y saldos a favor de tus clientes.</p>
                         </div>
                         <button class="btn btn-primary-action" onclick="window.location.hash='#/ingresos/notas-credito/nueva'">
                             <i class="bi bi-plus-lg me-1"></i> Nueva Nota
@@ -206,7 +206,7 @@ export const NotasCreditoModule = {
                         <div class="card-header bg-white border-bottom p-3 d-flex gap-3 align-items-center" style="border-radius: 8px 8px 0 0;">
                             <div class="input-group input-group-sm" style="width: 250px;">
                                 <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
-                                <input type="text" class="form-control border-start-0 ps-0 text-muted" id="search-input" placeholder="Buscar..." value="${searchQuery}" style="font-size: 13px; box-shadow: none;">
+                                <input type="text" class="form-control border-start-0 ps-0 text-muted" id="search-input" placeholder="Buscar..." value="${searchQuery}" style="font-size: var(--fs-base); box-shadow: none;">
                             </div>
                         </div>
 
@@ -214,7 +214,7 @@ export const NotasCreditoModule = {
                         <div class="table-responsive">
                             <table class="table table-borderless align-middle mb-0">
                                 <thead style="border-bottom: 1px solid var(--border-color);">
-                                    <tr style="color: var(--text-muted); font-size: 13px; font-weight: 500;">
+                                    <tr style="color: var(--text-muted); font-size: var(--fs-base); font-weight: 500;">
                                         <th class="py-3">Número</th>
                                         <th class="py-3">Fecha</th>
                                         <th class="py-3">Cliente</th>
@@ -231,7 +231,7 @@ export const NotasCreditoModule = {
 
                         <!-- PAGINATION FOOTER -->
                         <div class="card-footer bg-white border-top p-3 d-flex justify-content-between align-items-center" style="border-radius: 0 0 8px 8px;">
-                            <div class="d-flex align-items-center gap-3" style="font-size: 13px; color: var(--text-body);">
+                            <div class="d-flex align-items-center gap-3" style="font-size: var(--fs-base); color: var(--text-body);">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>Resultados por página:</span>
                                     <select class="form-select form-select-sm text-muted" id="select-per-page" style="width: 70px;">
@@ -244,7 +244,7 @@ export const NotasCreditoModule = {
                                 <span class="text-muted border-start ps-3">${totalItems > 0 ? startIndex + 1 : 0}-${Math.min(startIndex + itemsPerPage, totalItems)} de ${totalItems}</span>
                             </div>
 
-                            <div class="d-flex align-items-center gap-2" style="font-size: 13px; color: var(--text-body);">
+                            <div class="d-flex align-items-center gap-2" style="font-size: var(--fs-base); color: var(--text-body);">
                                 <span>Página</span>
                                 <input type="number" id="input-page" class="form-control form-control-sm text-center text-muted" value="${currentPage}" min="1" max="${totalPages}" style="width: 50px;">
                                 <span>de ${totalPages}</span>
@@ -319,10 +319,10 @@ export const NotasCreditoModule = {
                     const menuHtml = `
                         <div class="row-action-menu position-absolute bg-white shadow rounded border py-2" 
                              style="z-index: 1060; width: 150px; top: ${rect.bottom + window.scrollY}px; left: ${rect.left - 100}px;">
-                            <a href="#/ingresos/notas-credito/ver/${id}" class="d-block px-3 py-1 text-decoration-none text-body hover-bg-light" style="font-size: 13px;">Ver Detalle</a>
+                            <a href="#/ingresos/notas-credito/ver/${id}" class="d-block px-3 py-1 text-decoration-none text-body hover-bg-light" style="font-size: var(--fs-base);">Ver Detalle</a>
                             ${!isAnulada ? `
                                 <div class="dropdown-divider my-1"></div>
-                                <a href="#" class="d-block px-3 py-1 text-decoration-none text-danger hover-bg-light btn-action-anular" data-id="${id}" style="font-size: 13px;">Anular</a>
+                                <a href="#" class="d-block px-3 py-1 text-decoration-none text-danger hover-bg-light btn-action-anular" data-id="${id}" style="font-size: var(--fs-base);">Anular</a>
                             ` : ''}
                         </div>
                     `;
@@ -368,7 +368,7 @@ export const NotasCreditoModule = {
     async renderForm(element, id, isViewOnly) {
         element.innerHTML = `
             <div class="d-flex justify-content-center align-items-center" style="min-height: 400px;">
-                <div class="spinner-border" style="color: #2cbfb7;" role="status"></div>
+                <div class="spinner-border" style="color: var(--primary);" role="status"></div>
             </div>
         `;
 
@@ -461,7 +461,7 @@ export const NotasCreditoModule = {
                         <div class="table-responsive">
                             <table class="table table-borderless align-middle" style="border-spacing: 0; min-width: 600px;">
                                 <thead style="border-bottom: 1px solid var(--border-color);">
-                                    <tr style="color: var(--text-muted); font-weight: var(--weight-regular); font-size: 13px;">
+                                    <tr style="color: var(--text-muted); font-weight: var(--weight-regular); font-size: var(--fs-base);">
                                         <th>Producto o servicio</th>
                                         <th class="text-end" style="width: 150px;">Precio Facturado</th>
                                         <th class="text-center" style="width: 150px;">Cant. a Devolver</th>
@@ -503,7 +503,7 @@ export const NotasCreditoModule = {
                     <div class="table-responsive mb-4">
                         <table class="table table-borderless align-middle" style="border-spacing: 0; min-width: 600px;">
                             <thead style="border-bottom: 1px solid var(--border-color);">
-                                <tr style="color: var(--text-muted); font-weight: var(--weight-regular); font-size: 13px;">
+                                <tr style="color: var(--text-muted); font-weight: var(--weight-regular); font-size: var(--fs-base);">
                                     <th>Producto o servicio</th>
                                     <th class="text-center" style="width: 100px;">Cant. Devuelta</th>
                                     <th class="text-end" style="width: 150px;">Precio Unit.</th>
@@ -514,11 +514,11 @@ export const NotasCreditoModule = {
                                 ${detallesNota.map(d => `
                                     <tr style="border-bottom: 1px solid var(--border-color);">
                                         <td class="align-top py-2">
-                                            <div class="fw-medium text-dark" style="font-size: 13px;">${productosMap[d.producto_id] || 'Ítem ' + d.producto_id}</div>
+                                            <div class="fw-medium text-dark" style="font-size: var(--fs-base);">${productosMap[d.producto_id] || 'Ítem ' + d.producto_id}</div>
                                         </td>
-                                        <td class="align-top text-center py-2" style="font-size: 13px;">${d.cantidad}</td>
-                                        <td class="align-top text-end py-2" style="font-size: 13px;">$${Number(d.precio_unitario || 0).toLocaleString()}</td>
-                                        <td class="align-top text-end fw-bold py-2" style="font-size: 13px;">$${Number(d.subtotal || 0).toLocaleString()}</td>
+                                        <td class="align-top text-center py-2" style="font-size: var(--fs-base);">${d.cantidad}</td>
+                                        <td class="align-top text-end py-2" style="font-size: var(--fs-base);">$${Number(d.precio_unitario || 0).toLocaleString()}</td>
+                                        <td class="align-top text-end fw-bold py-2" style="font-size: var(--fs-base);">$${Number(d.subtotal || 0).toLocaleString()}</td>
                                     </tr>
                                 `).join('')}
                             </tbody>

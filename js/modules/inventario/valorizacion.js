@@ -25,10 +25,10 @@ export const ValorizacionModule = {
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <div>
                         <h2 class="h3 fw-bold mb-1" style="color: var(--text-main);">Valor de inventario</h2>
-                        <p class="text-muted mb-0" style="font-size: 14px;">Consulta el valor actual, cantidad y costo promedio de tu inventario.</p>
+                        <p class="text-muted mb-0" style="font-size: var(--fs-md);">Consulta el valor actual, cantidad y costo promedio de tu inventario.</p>
                     </div>
                     <div class="d-flex gap-2">
-                        <span class="badge bg-light text-dark border d-flex align-items-center px-3" style="font-size: 13px; font-weight: var(--weight-medium);">
+                        <span class="badge bg-light text-dark border d-flex align-items-center px-3" style="font-size: var(--fs-base); font-weight: var(--weight-medium);">
                             <i class="bi bi-calendar-check me-2 text-muted"></i> Hasta: ${hoy}
                         </span>
                         <button id="btn-descargar-csv" class="btn btn-primary-action">
@@ -81,7 +81,7 @@ export const ValorizacionModule = {
                     <div class="card-header bg-white border-bottom p-3 d-flex gap-3 align-items-center" style="border-radius: 8px 8px 0 0;">
                         <div class="input-group input-group-sm" style="width: 300px;">
                             <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
-                            <input type="text" id="search-valorizacion" class="form-control border-start-0 ps-0 text-muted" placeholder="Buscar por nombre o referencia..." style="font-size: 13px; box-shadow: none;">
+                            <input type="text" id="search-valorizacion" class="form-control border-start-0 ps-0 text-muted" placeholder="Buscar por nombre o referencia..." style="font-size: var(--fs-base); box-shadow: none;">
                         </div>
                     </div>
 
@@ -89,7 +89,7 @@ export const ValorizacionModule = {
                     <div class="table-responsive">
                         <table class="table table-borderless align-middle mb-0">
                             <thead style="border-bottom: 1px solid var(--border-color);">
-                                <tr style="color: var(--text-muted); font-size: 13px; font-weight: var(--weight-medium);">
+                                <tr style="color: var(--text-muted); font-size: var(--fs-base); font-weight: var(--weight-medium);">
                                     <th class="py-3 fw-normal ps-4">Ítem</th>
                                     <th class="py-3 fw-normal">Referencia</th>
                                     <th class="py-3 fw-normal text-end">Cantidad</th>
@@ -101,10 +101,10 @@ export const ValorizacionModule = {
                                 <tr><td colspan="5" class="text-center py-5 text-muted"><span class="spinner-border spinner-border-sm me-2"></span>Calculando valorización...</td></tr>
                             </tbody>
                             <!-- FOOTER FIJO DE LA TABLA (Muestra siempre el Gran Total del catálogo) -->
-                            <tfoot style="border-top: 2px solid var(--border-color); background-color: #f8fafc;">
+                            <tfoot style="border-top: 2px solid var(--border-color); background-color: var(--bg-main);">
                                 <tr>
-                                    <td colspan="4" class="py-3 text-end ps-4" style="font-weight: 600; color: var(--text-main); font-size: 14px;">Total Valorizado del Inventario:</td>
-                                    <td class="py-3 text-end pe-4" style="font-weight: 700; color: #2cbfb7; font-size: 16px;" id="tfoot-gran-total">$0,00</td>
+                                    <td colspan="4" class="py-3 text-end ps-4" style="font-weight: 600; color: var(--text-main); font-size: var(--fs-md);">Total Valorizado del Inventario:</td>
+                                    <td class="py-3 text-end pe-4" style="font-weight: 700; color: var(--primary); font-size: var(--fs-lg);" id="tfoot-gran-total">$0,00</td>
                                 </tr>
                             </tfoot>
                         </table>
@@ -112,7 +112,7 @@ export const ValorizacionModule = {
 
                     <!-- PAGINATION CONTROLS -->
                     <div class="card-footer bg-white border-top p-3 d-flex justify-content-between align-items-center" style="border-radius: 0 0 8px 8px;">
-                        <div class="d-flex align-items-center gap-3" style="font-size: 13px; color: var(--text-body);">
+                        <div class="d-flex align-items-center gap-3" style="font-size: var(--fs-base); color: var(--text-body);">
                             <span class="d-flex align-items-center gap-2">
                                 Ítems por página: 
                                 <select id="items-per-page" class="form-select form-select-sm border-0 bg-transparent fw-bold" style="width: auto; box-shadow: none; cursor: pointer;">
@@ -123,7 +123,7 @@ export const ValorizacionModule = {
                             </span>
                             <span id="showing-count">...</span>
                         </div>
-                        <div class="d-flex align-items-center gap-2" style="font-size: 13px;">
+                        <div class="d-flex align-items-center gap-2" style="font-size: var(--fs-base);">
                             <span>Página <span id="current-page" class="fw-bold">1</span> de <span id="total-pages">1</span></span>
                             <button class="btn btn-sm btn-light border text-muted px-2" id="btn-prev-page" disabled><i class="bi bi-chevron-left"></i></button>
                             <button class="btn btn-sm btn-light border text-muted px-2" id="btn-next-page" disabled><i class="bi bi-chevron-right"></i></button>
@@ -255,7 +255,7 @@ export const ValorizacionModule = {
                 }
 
                 html += `
-                    <tr style="border-bottom: 1px solid var(--border-color); font-size: 13px; color: var(--text-body);">
+                    <tr style="border-bottom: 1px solid var(--border-color); font-size: var(--fs-base); color: var(--text-body);">
                         <td class="py-3 ps-4 text-truncate" style="color: var(--text-main); font-weight: var(--weight-medium); max-width: 300px;" title="${item.nombre}">${item.nombre}</td>
                         <td class="py-3">${item.sku || ''}</td>
                         <td class="py-3 text-end">${stockBadge}</td>

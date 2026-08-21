@@ -24,7 +24,7 @@ export const AjustesInventarioModule = {
     async renderList(element) {
         element.innerHTML = `
             <div class="d-flex justify-content-center align-items-center" style="min-height: 400px;">
-                <div class="spinner-border" style="color: #2cbfb7;" role="status"></div>
+                <div class="spinner-border" style="color: var(--primary);" role="status"></div>
             </div>
         `;
 
@@ -52,9 +52,9 @@ export const AjustesInventarioModule = {
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <div>
                             <h2 class="h3 fw-bold mb-1" style="color: var(--text-main);">Ajustes de Inventario</h2>
-                            <p class="text-muted mb-0" style="font-size: 14px;">Registra incrementos o disminuciones por daños, pérdidas o descuadres.</p>
+                            <p class="text-muted mb-0" style="font-size: var(--fs-md);">Registra incrementos o disminuciones por daños, pérdidas o descuadres.</p>
                         </div>
-                        <button class="btn text-white" style="background-color: #2cbfb7; font-weight: 500;" onclick="window.location.hash='#/inventario/ajustes/nuevo'">
+                        <button class="btn text-white" style="background-color: var(--primary); font-weight: 500;" onclick="window.location.hash='#/inventario/ajustes/nuevo'">
                             <i class="bi bi-plus-lg me-1"></i> Nuevo Ajuste
                         </button>
                     </div>
@@ -63,7 +63,7 @@ export const AjustesInventarioModule = {
                         <div class="table-responsive">
                             <table class="table table-borderless align-middle mb-0">
                                 <thead style="border-bottom: 1px solid var(--border-color);">
-                                    <tr style="color: var(--text-muted); font-size: 13px; font-weight: 500;">
+                                    <tr style="color: var(--text-muted); font-size: var(--fs-base); font-weight: 500;">
                                         <th class="py-3">Número</th>
                                         <th class="py-3">Fecha</th>
                                         <th class="py-3">Observaciones</th>
@@ -92,7 +92,7 @@ export const AjustesInventarioModule = {
                     const menuHtml = `
                         <div class="row-action-menu position-absolute bg-white shadow rounded border py-2" 
                              style="z-index: 1060; width: 150px; top: ${rect.bottom + window.scrollY}px; left: ${rect.left - 100}px;">
-                            <a href="#/inventario/ajustes/ver/${id}" class="d-block px-3 py-1 text-decoration-none text-body hover-bg-light" style="font-size: 13px;">Ver Detalle</a>
+                            <a href="#/inventario/ajustes/ver/${id}" class="d-block px-3 py-1 text-decoration-none text-body hover-bg-light" style="font-size: var(--fs-base);">Ver Detalle</a>
                         </div>
                     `;
                     document.body.insertAdjacentHTML('beforeend', menuHtml);
@@ -118,7 +118,7 @@ export const AjustesInventarioModule = {
     async renderForm(element, id = null, isViewOnly = false) {
         element.innerHTML = `
             <div class="d-flex justify-content-center align-items-center" style="min-height: 400px;">
-                <div class="spinner-border" style="color: #2cbfb7;" role="status"></div>
+                <div class="spinner-border" style="color: var(--primary);" role="status"></div>
             </div>
         `;
 
@@ -147,7 +147,7 @@ export const AjustesInventarioModule = {
                             <i class="bi bi-arrow-left fs-5"></i>
                         </button>
                         <h2 class="h3 fw-bold mb-0" style="color: var(--text-main);">${id ? (isViewOnly ? 'Ver Ajuste' : 'Editar Ajuste') : 'Nuevo Ajuste de Inventario'}</h2>
-                        <span class="ms-auto badge bg-light text-dark border p-2" style="font-size: 14px;">No. ${ajuste.numero}</span>
+                        <span class="ms-auto badge bg-light text-dark border p-2" style="font-size: var(--fs-md);">No. ${ajuste.numero}</span>
                     </div>
 
                     <div class="card border-0 mb-4" style="box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.03); border-radius: 8px;">
@@ -157,11 +157,11 @@ export const AjustesInventarioModule = {
                         <div class="card-body p-4">
                             <div class="row g-4">
                                 <div class="col-md-4">
-                                    <label class="form-label text-muted" style="font-size: 13px; font-weight: 500;">Fecha *</label>
+                                    <label class="form-label text-muted" style="font-size: var(--fs-base); font-weight: 500;">Fecha *</label>
                                     <input type="date" class="form-control" id="ajuste-fecha" value="${ajuste.fecha}" ${isViewOnly ? 'disabled' : ''}>
                                 </div>
                                 <div class="col-md-8">
-                                    <label class="form-label text-muted" style="font-size: 13px; font-weight: 500;">Observaciones</label>
+                                    <label class="form-label text-muted" style="font-size: var(--fs-base); font-weight: 500;">Observaciones</label>
                                     <textarea class="form-control" id="ajuste-observaciones" rows="1" placeholder="Ej. Inventario dañado por filtración de agua" ${isViewOnly ? 'disabled' : ''}>${escapeHtml(ajuste.observaciones)}</textarea>
                                 </div>
                             </div>
@@ -176,7 +176,7 @@ export const AjustesInventarioModule = {
                             <div class="table-responsive" style="overflow: visible;">
                                 <table class="table table-borderless align-middle mb-0" id="ajustes-table">
                                     <thead class="bg-light" style="border-bottom: 1px solid var(--border-color);">
-                                        <tr style="color: var(--text-muted); font-size: 13px; font-weight: 500;">
+                                        <tr style="color: var(--text-muted); font-size: var(--fs-base); font-weight: 500;">
                                             <th class="ps-4 py-3" style="width: 30%;">Ítem</th>
                                             <th class="py-3 text-center" style="width: 10%;">Stock Actual</th>
                                             <th class="py-3 text-center" style="width: 10%;">Saldo Resultante</th>
@@ -194,7 +194,7 @@ export const AjustesInventarioModule = {
                         </div>
                         ${!isViewOnly ? `
                         <div class="card-footer bg-white border-top p-3 text-center">
-                            <button type="button" class="btn btn-link text-decoration-none" id="btn-add-line" style="color: #2cbfb7; font-weight: 500;">
+                            <button type="button" class="btn btn-link text-decoration-none" id="btn-add-line" style="color: var(--primary); font-weight: 500;">
                                 <i class="bi bi-plus-circle me-1"></i> Agregar línea
                             </button>
                         </div>
@@ -204,7 +204,7 @@ export const AjustesInventarioModule = {
                     ${!isViewOnly ? `
                     <div class="d-flex justify-content-end gap-2">
                         <button class="btn btn-light border px-4" onclick="window.history.back()">Cancelar</button>
-                        <button class="btn text-white px-4" id="btn-guardar-ajuste" style="background-color: #2cbfb7; font-weight: 500;">
+                        <button class="btn text-white px-4" id="btn-guardar-ajuste" style="background-color: var(--primary); font-weight: 500;">
                             Guardar Ajuste
                         </button>
                     </div>
@@ -228,10 +228,10 @@ export const AjustesInventarioModule = {
                         ${ItemEngine.renderProductSearchBox(detalle, productos, isViewOnly)}
                     </td>
                     <td class="py-3 text-center">
-                        <span class="badge bg-secondary bg-opacity-10 text-secondary stock-actual-lbl" style="font-size: 13px;">--</span>
+                        <span class="badge bg-secondary bg-opacity-10 text-secondary stock-actual-lbl" style="font-size: var(--fs-base);">--</span>
                     </td>
                     <td class="py-3 text-center">
-                        <span class="badge bg-info bg-opacity-10 text-info saldo-resultante-lbl" style="font-size: 13px;">--</span>
+                        <span class="badge bg-info bg-opacity-10 text-info saldo-resultante-lbl" style="font-size: var(--fs-base);">--</span>
                     </td>
                     <td class="py-3">
                         <select class="form-select form-select-sm select-tipo-ajuste text-muted bg-light border-0" ${isViewOnly ? 'disabled' : ''}>
