@@ -405,7 +405,7 @@ export const PagosRealizadosModule = {
                     <div class="col-12 col-sm-6 col-lg-4">
                         <div class="ds-kpi-card">
                             <span class="ds-kpi-label">Total Egresos (Este mes)</span>
-                            <div id="kpi-total" class="ds-kpi-value">$ ${formatMoney(this.state.kpis?.total || 0).replace('$ ', '')}</div>
+                            <div id="kpi-total" class="ds-kpi-value text-danger">$ ${formatMoney(this.state.kpis?.total || 0).replace('$ ', '')}</div>
                         </div>
                     </div>
                     <div class="col-12 col-sm-6 col-lg-4">
@@ -515,7 +515,7 @@ export const PagosRealizadosModule = {
                     : `<span class="badge bg-warning text-warning-emphasis bg-opacity-10 border border-warning-subtle rounded-pill fw-medium px-2 py-1">No conciliado</span>`
             }
                             </td>
-                            <td class="py-3 text-end pe-3 ${pago.estado_transaccion === 'anulado' ? 'text-muted text-decoration-line-through opacity-50' : ''}" style="color: var(--text-main); font-weight: var(--weight-semibold);">
+                            <td class="py-3 text-end pe-3 text-danger ${pago.estado_transaccion === 'anulado' ? 'text-muted text-decoration-line-through opacity-50' : ''}" style="font-weight: var(--weight-semibold);">
                                 ${formatMoney(pago.monto)}
                             </td>
                             <td class="py-3 text-end pe-3 position-relative">
