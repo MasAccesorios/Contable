@@ -9,7 +9,7 @@ export const CategoriasModule = {
     async renderList(element) {
         element.innerHTML = `
             <div class="d-flex justify-content-center align-items-center" style="min-height: 400px;">
-                <div class="spinner-border" role="status" style="width: 3rem; height: 3rem; color: #2cbfb7;">
+                <div class="spinner-border" role="status" style="width: 3rem; height: 3rem; color: var(--primary);">
                     <span class="visually-hidden">Cargando...</span>
                 </div>
             </div>
@@ -36,12 +36,12 @@ export const CategoriasModule = {
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <div>
                         <h2 class="h3 fw-bold mb-1" style="color: var(--text-main);">Categorías</h2>
-                        <p class="text-muted mb-0" style="font-size: 14px;">
+                        <p class="text-muted mb-0" style="font-size: var(--fs-md);">
                             Gestiona las categorías de tus productos y movimientos financieros.
                         </p>
                     </div>
                     <div class="d-flex gap-2">
-                        <button class="btn btn-light bg-white border" style="font-weight: var(--weight-medium); font-size: 14px; color: var(--text-body);" onclick="location.reload()">
+                        <button class="btn btn-light bg-white border" style="font-weight: var(--weight-medium); font-size: var(--fs-md); color: var(--text-body);" onclick="location.reload()">
                             <i class="bi bi-arrow-clockwise me-1"></i> Actualizar
                         </button>
                         <button class="btn btn-primary-action">
@@ -95,11 +95,11 @@ export const CategoriasModule = {
                             </thead>
                             <tbody>
                                 ${categorias.length > 0 ? categorias.map(c => `
-                                    <tr style="border-bottom: 1px solid var(--border-color); font-size: 13px; color: var(--text-body);">
+                                    <tr style="border-bottom: 1px solid var(--border-color); font-size: var(--fs-base); color: var(--text-body);">
                                         <td class="py-3 fw-medium" style="color: var(--text-main); white-space: nowrap;">${c.nombre}</td>
                                         <td class="py-3 text-center" style="white-space: nowrap;"><span class="badge bg-light text-dark border border-secondary-subtle px-2 py-1 rounded-pill">${c.tipo_flujo || 'N/A'}</span></td>
                                         <td class="py-3 text-center" style="white-space: nowrap;">
-                                            <span class="badge ${c.estado === 'activa' ? 'bg-success text-success bg-opacity-10 border border-success-subtle' : 'bg-secondary text-secondary bg-opacity-10 border border-secondary-subtle'} rounded-pill fw-medium" style="font-size: 11px; padding: 5px 10px;">
+                                            <span class="badge ${c.estado === 'activa' ? 'bg-success text-success bg-opacity-10 border border-success-subtle' : 'bg-secondary text-secondary bg-opacity-10 border border-secondary-subtle'} rounded-pill fw-medium" style="font-size: var(--fs-xs); padding: 5px 10px;">
                                                 ${c.estado === 'activa' ? 'Activa' : 'Inactiva'}
                                             </span>
                                         </td>

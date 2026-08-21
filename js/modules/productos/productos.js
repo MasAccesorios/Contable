@@ -27,13 +27,13 @@ export const ProductosModule = {
                 <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
                     <div>
                         <h2 class="h3 fw-bold mb-1" style="color: var(--text-main);">Ítems de venta</h2>
-                        <p class="text-muted mb-0" style="font-size: 14px;">Gestiona tus productos, su costo promedio y el inventario disponible.</p>
+                        <p class="text-muted mb-0" style="font-size: var(--fs-md);">Gestiona tus productos, su costo promedio y el inventario disponible.</p>
                     </div>
                     <div class="d-flex flex-wrap gap-2 w-100 w-md-auto justify-content-md-end">
-                        <button id="btn-refresh-list" class="btn btn-light bg-white border" style="flex: 1 1 auto; font-weight: var(--weight-medium); font-size: 14px; color: var(--text-body);">
+                        <button id="btn-refresh-list" class="btn btn-light bg-white border" style="flex: 1 1 auto; font-weight: var(--weight-medium); font-size: var(--fs-md); color: var(--text-body);">
                             <i class="bi bi-arrow-clockwise me-1"></i> Actualizar
                         </button>
-                        <button id="btn-export-list" class="btn btn-light bg-white border" style="flex: 1 1 auto; font-weight: var(--weight-medium); font-size: 14px; color: var(--text-body);">
+                        <button id="btn-export-list" class="btn btn-light bg-white border" style="flex: 1 1 auto; font-weight: var(--weight-medium); font-size: var(--fs-md); color: var(--text-body);">
                             <i class="bi bi-download me-1"></i> Exportar
                         </button>
                         <button id="btn-nuevo-producto" class="btn btn-primary-action" style="flex: 1 1 auto;">
@@ -52,10 +52,10 @@ export const ProductosModule = {
                             <input type="text" id="searchProductos" class="ds-search-input" placeholder="Buscar por nombre, SKU..." value="${this.searchQuery}" autocomplete="off">
                         </div>
                         <div class="dropdown">
-                            <button class="btn btn-link text-decoration-none text-muted p-0 dropdown-toggle" data-bs-toggle="dropdown" style="font-size: 14px;">
-                                <i class="bi bi-funnel me-1"></i> Filtrar <span id="lbl-filtro-actual" style="font-size: 12px; font-weight: 500; color: #2cbfb7;"></span>
+                            <button class="btn btn-link text-decoration-none text-muted p-0 dropdown-toggle" data-bs-toggle="dropdown" style="font-size: var(--fs-md);">
+                                <i class="bi bi-funnel me-1"></i> Filtrar <span id="lbl-filtro-actual" style="font-size: var(--fs-sm); font-weight: 500; color: var(--primary);"></span>
                             </button>
-                            <ul class="dropdown-menu shadow border-0" style="font-size: 13px;">
+                            <ul class="dropdown-menu shadow border-0" style="font-size: var(--fs-base);">
                                 <li><a class="dropdown-item filter-opt" href="#" data-criteria="todos">Todos los campos</a></li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li><a class="dropdown-item filter-opt" href="#" data-criteria="nombre">Por Nombre</a></li>
@@ -77,7 +77,7 @@ export const ProductosModule = {
                     </div>
 
                     <!-- PAGINATION FOOTER -->
-                    <div class="card-footer bg-white border-top p-3 d-flex justify-content-between align-items-center" style="border-radius: 0 0 8px 8px;" id="grid-pagination">
+                    <div class="card-footer bg-white border-top p-3 d-flex justify-content-between align-items-center" style="border-radius: 0 0 var(--border-radius-sm) var(--border-radius-sm);" id="grid-pagination">
                     </div>
                 </div>
                 
@@ -293,12 +293,12 @@ export const ProductosModule = {
             const isLowStock = stockTotal <= (p.stockMinimo || 0);
             
             html += `
-                <tr data-id="${p.id}" style="cursor: pointer; border-bottom: 1px solid var(--border-color); font-size: 13px; color: var(--text-body);" class="row-clickable">
+                <tr data-id="${p.id}" style="cursor: pointer; border-bottom: 1px solid var(--border-color); font-size: var(--fs-base); color: var(--text-body);" class="row-clickable">
                     <td class="py-2 ps-4 td-sku" style="color: var(--text-main); font-weight: var(--weight-medium);">${p.sku || ''}</td>
                     <td class="py-2 text-truncate td-nombre" style="max-width: 300px;">${escapeHtml(p.nombre || '')}</td>
                     <td class="py-2 text-end">$${(p.precioVenta || 0).toLocaleString('es-CO', {minimumFractionDigits: 2})}</td>
                     <td class="py-2 text-end">
-                        <span style="${isLowStock ? 'color: #ef4444; background-color: #fee2e2;' : 'color: #15803d; background-color: #dcfce7;'} padding: 4px 12px; border-radius: 12px; font-size: 11px; font-weight: var(--weight-medium);" ${isLowStock ? 'title="¡Alerta: Stock por debajo del mínimo!"' : ''}>
+                        <span style="${isLowStock ? 'color: var(--danger); background-color: var(--danger-bg, #fee2e2);' : 'color: var(--success); background-color: var(--success-bg, #dcfce7);'} padding: 4px 12px; border-radius: var(--border-radius); font-size: var(--fs-xs); font-weight: var(--weight-medium);" ${isLowStock ? 'title="¡Alerta: Stock por debajo del mínimo!"' : ''}>
                             ${isLowStock ? '<i class="bi bi-exclamation-triangle-fill me-1"></i>' : ''}${stockTotal} und
                         </span>
                     </td>
@@ -320,7 +320,7 @@ export const ProductosModule = {
         if (pagination) {
             const from = (this.currentPage - 1) * this.itemsPerPage;
             pagination.innerHTML = `
-                <div class="d-flex align-items-center gap-3" style="font-size: 13px; color: var(--text-body);">
+                <div class="d-flex align-items-center gap-3" style="font-size: var(--fs-base); color: var(--text-body);">
                     <span>Resultados por página:</span>
                     <select class="form-select form-select-sm text-muted select-per-page" style="width: 70px;">
                         <option value="10" ${this.itemsPerPage===10?'selected':''}>10</option>
@@ -329,7 +329,7 @@ export const ProductosModule = {
                     </select>
                     <span class="text-muted border-start ps-3">${totalItems > 0 ? from + 1 : 0}-${Math.min(from + this.itemsPerPage, totalItems)} de ${totalItems}</span>
                 </div>
-                <div class="d-flex align-items-center gap-2" style="font-size: 13px; color: var(--text-body);">
+                <div class="d-flex align-items-center gap-2" style="font-size: var(--fs-base); color: var(--text-body);">
                     <span>Página</span>
                     <input type="number" class="form-control form-control-sm text-center text-muted input-page" value="${this.currentPage}" min="1" max="${totalPages}" style="width: 50px;">
                     <span>de ${totalPages}</span>
@@ -668,7 +668,7 @@ export const ProductosModule = {
                             </div>
                             
                             <!-- NUEVO BANNER STOCK TOTAL -->
-                            <div class="alert alert-info d-flex align-items-center fw-bold fs-5 mb-4 shadow-sm" style="border-left: 5px solid #0dcaf0; background-color: #f8ffff;">
+                            <div class="alert alert-info d-flex align-items-center fw-bold fs-5 mb-4 shadow-sm" style="border-left: 5px solid var(--primary); background-color: var(--bg-main);">
                                 <i class="bi bi-box-seam me-3 fs-3"></i>
                                 Stock Total Disponible: ${stockTotalDisponible} unidades
                             </div>
@@ -694,9 +694,9 @@ export const ProductosModule = {
                 </div>
                 ${facturasAsociadas.length > 0 ? `
                 <div class="col-lg-12">
-                    <div class="card border-0 mb-4 shadow-sm" style="border-radius: 8px;">
+                    <div class="card border-0 mb-4 shadow-sm" style="border-radius: var(--border-radius-sm);">
                         <div class="card-header bg-white border-bottom p-3">
-                            <h5 class="fw-bold mb-0" style="color: var(--text-main); font-size: 15px;">
+                            <h5 class="fw-bold mb-0" style="color: var(--text-main); font-size: var(--fs-md);">
                                 <i class="bi bi-receipt me-2 text-muted"></i>Facturas de Venta que incluyen este ítem
                             </h5>
                         </div>

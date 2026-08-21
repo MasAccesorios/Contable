@@ -45,7 +45,7 @@ export const ContactosModule = {
                                 <li><a class="dropdown-item" href="#">Exportar contactos</a></li>
                             </ul>
                         </div>
-                        <button id="btn-refresh-list" class="btn btn-light bg-white border me-2" style="font-weight: var(--weight-medium); font-size: 14px; color: var(--text-body);">
+                        <button id="btn-refresh-list" class="btn btn-light bg-white border me-2" style="font-weight: var(--weight-medium); font-size: var(--fs-md); color: var(--text-body);">
                             <i class="bi bi-arrow-clockwise me-1"></i> Actualizar
                         </button>
                         <button id="btn-nuevo-contacto" class="btn btn-primary-action">
@@ -245,27 +245,27 @@ export const ContactosModule = {
                 const inicial    = c.nombre ? c.nombre.charAt(0).toUpperCase() : '?';
                 let badges = [];
                 if (c.es_cliente) {
-                    badges.push(`<span class="badge bg-success text-success bg-opacity-10 border border-success-subtle rounded-pill fw-medium" style="font-size: 11px; padding: 5px 10px;">Cliente</span>`);
+                    badges.push(`<span class="badge bg-success text-success bg-opacity-10 border border-success-subtle rounded-pill fw-medium" style="font-size: var(--fs-xs); padding: 5px 10px;">Cliente</span>`);
                 }
                 if (c.es_proveedor) {
-                    badges.push(`<span class="badge bg-primary text-primary bg-opacity-10 border border-primary-subtle rounded-pill fw-medium" style="font-size: 11px; padding: 5px 10px;">Proveedor</span>`);
+                    badges.push(`<span class="badge bg-primary text-primary bg-opacity-10 border border-primary-subtle rounded-pill fw-medium" style="font-size: var(--fs-xs); padding: 5px 10px;">Proveedor</span>`);
                 }
                 if (badges.length === 0) {
                     // Fallback
                     const isCliente = (c.tipo || '').toLowerCase() === 'cliente';
                     const isProveedor = (c.tipo || '').toLowerCase() === 'proveedor';
-                    if (isCliente) badges.push(`<span class="badge bg-success text-success bg-opacity-10 border border-success-subtle rounded-pill fw-medium" style="font-size: 11px; padding: 5px 10px;">Cliente</span>`);
-                    else if (isProveedor) badges.push(`<span class="badge bg-primary text-primary bg-opacity-10 border border-primary-subtle rounded-pill fw-medium" style="font-size: 11px; padding: 5px 10px;">Proveedor</span>`);
-                    else badges.push(`<span class="badge bg-light text-dark border rounded-pill fw-medium" style="font-size: 11px; padding: 5px 10px;">${c.tipo || '-'}</span>`);
+                    if (isCliente) badges.push(`<span class="badge bg-success text-success bg-opacity-10 border border-success-subtle rounded-pill fw-medium" style="font-size: var(--fs-xs); padding: 5px 10px;">Cliente</span>`);
+                    else if (isProveedor) badges.push(`<span class="badge bg-primary text-primary bg-opacity-10 border border-primary-subtle rounded-pill fw-medium" style="font-size: var(--fs-xs); padding: 5px 10px;">Proveedor</span>`);
+                    else badges.push(`<span class="badge bg-light text-dark border rounded-pill fw-medium" style="font-size: var(--fs-xs); padding: 5px 10px;">${c.tipo || '-'}</span>`);
                 }
                 const tipoBadge = badges.join('&nbsp;');
 
                 html += `
-                    <tr data-id="${c.id}" style="cursor: pointer; border-bottom: 1px solid var(--border-color); font-size: 13px; color: var(--text-body);" onclick="if(!event.target.closest('button') && !event.target.closest('input')) window.location.hash = '#/contactos/ver/${c.id}'">
+                    <tr data-id="${c.id}" style="cursor: pointer; border-bottom: 1px solid var(--border-color); font-size: var(--fs-base); color: var(--text-body);" onclick="if(!event.target.closest('button') && !event.target.closest('input')) window.location.hash = '#/contactos/ver/${c.id}'">
                         <td class="py-2"><input type="checkbox" class="form-check-input contact-check"></td>
                         <td class="py-2">
                             <div class="d-flex align-items-center gap-3">
-                                <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold flex-shrink-0" style="width: 32px; height: 32px; background-color: var(--primary); font-size: 14px;">
+                                <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold flex-shrink-0" style="width: 32px; height: 32px; background-color: var(--primary); font-size: var(--fs-md);">
                                     ${inicial}
                                 </div>
                                 <span class="fw-medium text-dark text-capitalize text-truncate" style="max-width: 200px;">${c.nombre ? c.nombre.toLowerCase() : ''}</span>
@@ -680,7 +680,7 @@ export const ContactosModule = {
                         <div class="card border-0 shadow-sm h-100" style="border-left: 4px solid ${colorSaldo} !important;">
                             <div class="card-body d-flex flex-column justify-content-center align-items-center text-center">
                                 <h4 class="h6 fw-bold text-muted mb-2">Saldo por Cobrar</h4>
-                                <h2 class="m-0 fw-bold" style="color: ${colorSaldo}; font-size: 28px; word-break: break-all;">
+                                <h2 class="m-0 fw-bold" style="color: ${colorSaldo}; font-size: var(--fs-xxl); word-break: break-all;">
                                     $${saldoPorCobrarTotal.toLocaleString('es-CO', {minimumFractionDigits: 0})}
                                 </h2>
                             </div>
@@ -690,9 +690,9 @@ export const ContactosModule = {
                 
                 <div class="mt-4">
                     <ul class="nav nav-tabs flex-nowrap overflow-auto" id="tabs-detalle-cliente" style="white-space: nowrap;">
-                        <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-facturas" style="font-size: 14px; white-space: nowrap;">Facturas</button></li>
-                        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-cotizaciones" style="font-size: 14px; white-space: nowrap;">Cotizaciones</button></li>
-                        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-transacciones" style="font-size: 14px; white-space: nowrap;">Transacciones</button></li>
+                        <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-facturas" style="font-size: var(--fs-md); white-space: nowrap;">Facturas</button></li>
+                        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-cotizaciones" style="font-size: var(--fs-md); white-space: nowrap;">Cotizaciones</button></li>
+                        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-transacciones" style="font-size: var(--fs-md); white-space: nowrap;">Transacciones</button></li>
                     </ul>
                     <div class="tab-content border border-top-0 p-3">
 
@@ -704,9 +704,9 @@ export const ContactosModule = {
                                 </div>
                             </div>
                             <div class="table-responsive">
-                                <table class="table align-middle mb-0" style="font-size: 14px;">
+                                <table class="table align-middle mb-0" style="font-size: var(--fs-md);">
                                     <thead>
-                                        <tr class="text-muted" style="font-size: 12px; background-color: #fafbfc; border-bottom: 2px solid #eee;">
+                                        <tr class="text-muted" style="font-size: var(--fs-sm); background-color: var(--bg-main); border-bottom: 2px solid var(--border-color);">
                                             <th class="fw-medium pb-2">Número</th>
                                             <th class="fw-medium pb-2">Creación</th>
                                             <th class="fw-medium pb-2">Vencimiento</th>
@@ -770,10 +770,10 @@ export const ContactosModule = {
                                     <input type="text" class="form-control border-start-0" placeholder="Número" style="box-shadow:none;">
                                 </div>
                             </div>
-                            <div class="table-responsive" style="font-size: 13px;">
-                                <table class="table align-middle mb-0" style="font-size: 14px;">
+                            <div class="table-responsive" style="font-size: var(--fs-base);">
+                                <table class="table align-middle mb-0" style="font-size: var(--fs-md);">
                                     <thead>
-                                        <tr class="text-muted" style="font-size: 12px; background-color: #fafbfc; border-bottom: 2px solid #eee;">
+                                        <tr class="text-muted" style="font-size: var(--fs-sm); background-color: var(--bg-main); border-bottom: 2px solid var(--border-color);">
                                             <th class="fw-medium pb-2">Número</th>
                                             <th class="fw-medium pb-2">Creación</th>
                                             <th class="fw-medium pb-2">Total</th>
@@ -805,10 +805,10 @@ export const ContactosModule = {
                         </div>
 
                         <div class="tab-pane fade" id="tab-transacciones">
-                            <div class="table-responsive" style="font-size: 13px;">
-                                <table class="table align-middle mb-0" style="font-size: 14px;">
+                            <div class="table-responsive" style="font-size: var(--fs-base);">
+                                <table class="table align-middle mb-0" style="font-size: var(--fs-md);">
                                     <thead>
-                                        <tr class="text-muted" style="font-size: 12px; background-color: #fafbfc; border-bottom: 2px solid #eee;">
+                                        <tr class="text-muted" style="font-size: var(--fs-sm); background-color: var(--bg-main); border-bottom: 2px solid var(--border-color);">
                                             <th class="fw-medium pb-2">Fecha</th>
                                             <th class="fw-medium pb-2">Concepto</th>
                                             <th class="fw-medium pb-2">Monto</th>

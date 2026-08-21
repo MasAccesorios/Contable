@@ -33,7 +33,7 @@ export const FacturasModule = {
     async renderList(element) {
         element.innerHTML = `
             <div class="d-flex justify-content-center align-items-center" style="min-height: 400px;">
-                <div class="spinner-border" role="status" style="width: 3rem; height: 3rem; color: #2cbfb7;">
+                <div class="spinner-border" role="status" style="width: 3rem; height: 3rem; color: var(--primary);">
                     <span class="visually-hidden">Cargando...</span>
                 </div>
             </div>
@@ -128,15 +128,15 @@ export const FacturasModule = {
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <div>
                             <h2 class="h3 fw-bold mb-1" style="color: var(--text-main);">Facturas de venta</h2>
-                            <p class="text-muted mb-0" style="font-size: 14px;">
+                            <p class="text-muted mb-0" style="font-size: var(--fs-md);">
                                 Gestiona las facturas generadas por ventas a tus clientes. 
                             </p>
                         </div>
                         <div class="d-flex gap-2">
-                            <button id="btn-refresh-list" class="btn btn-light bg-white border me-2" style="font-weight: var(--weight-medium); font-size: 14px; color: var(--text-body);">
+                            <button id="btn-refresh-list" class="btn btn-light bg-white border me-2" style="font-weight: var(--weight-medium); font-size: var(--fs-md); color: var(--text-body);">
                                 <i class="bi bi-arrow-clockwise me-1"></i> Actualizar
                             </button>
-                            <button id="btn-export-list" class="btn btn-light bg-white border" style="font-weight: var(--weight-medium); font-size: 14px; color: var(--text-body);">
+                            <button id="btn-export-list" class="btn btn-light bg-white border" style="font-weight: var(--weight-medium); font-size: var(--fs-md); color: var(--text-body);">
                                 <i class="bi bi-download me-1"></i> Exportar
                             </button>
                             <button id="btn-nueva-factura" class="btn btn-primary-action">
@@ -176,10 +176,10 @@ export const FacturasModule = {
                                 <input type="text" class="ds-search-input" id="searchFacturas" autocomplete="off" placeholder="Buscar..." value="${searchQuery}">
                             </div>
                             <div class="dropdown">
-                                <button class="btn btn-link text-decoration-none text-muted p-0 dropdown-toggle" data-bs-toggle="dropdown" style="font-size: 14px;">
-                                    <i class="bi bi-funnel me-1"></i> Filtrar <span id="lbl-filtro-actual" style="font-size: 12px; font-weight: 500; color: #2cbfb7;">${filterCriteria !== 'todos' ? '('+filterCriteria+')' : ''}</span>
+                                <button class="btn btn-link text-decoration-none text-muted p-0 dropdown-toggle" data-bs-toggle="dropdown" style="font-size: var(--fs-md);">
+                                    <i class="bi bi-funnel me-1"></i> Filtrar <span id="lbl-filtro-actual" style="font-size: var(--fs-sm); font-weight: 500; color: var(--primary);">${filterCriteria !== 'todos' ? '('+filterCriteria+')' : ''}</span>
                                 </button>
-                                <ul class="dropdown-menu shadow border-0" style="font-size: 13px;">
+                                <ul class="dropdown-menu shadow border-0" style="font-size: var(--fs-base);">
                                     <li><a class="dropdown-item filter-opt" href="#" data-criteria="todos">Todos los campos</a></li>
                                     <li><hr class="dropdown-divider"></li>
                                     <li><a class="dropdown-item filter-opt" href="#" data-criteria="numero">Por Número</a></li>
@@ -195,8 +195,8 @@ export const FacturasModule = {
                         ${renderTablaFacturas(currentItems, contactosMap, sortColumn, sortDirection)}
 
                         <!-- PAGINATION FOOTER -->
-                        <div class="card-footer bg-white border-top p-3 d-flex justify-content-between align-items-center" style="border-radius: 0 0 8px 8px;">
-                            <div class="d-flex align-items-center gap-3" style="font-size: 13px; color: var(--text-body);">
+                        <div class="card-footer bg-white border-top p-3 d-flex justify-content-between align-items-center" style="border-radius: 0 0 var(--border-radius-sm) var(--border-radius-sm);">
+                            <div class="d-flex align-items-center gap-3" style="font-size: var(--fs-base); color: var(--text-body);">
                                 <div class="d-flex align-items-center gap-2">
                                     <span>Resultados por página:</span>
                                     <select class="form-select form-select-sm text-muted" id="select-per-page" style="width: 70px;">
@@ -209,7 +209,7 @@ export const FacturasModule = {
                                 <span class="text-muted border-start ps-3">${totalItems > 0 ? startIndex + 1 : 0}-${Math.min(startIndex + itemsPerPage, totalItems)} de ${totalItems}</span>
                             </div>
 
-                            <div class="d-flex align-items-center gap-2" style="font-size: 13px; color: var(--text-body);">
+                            <div class="d-flex align-items-center gap-2" style="font-size: var(--fs-base); color: var(--text-body);">
                                 <span>Página</span>
                                 <input type="number" id="input-page" class="form-control form-control-sm text-center text-muted" value="${currentPage}" min="1" max="${totalPages}" style="width: 50px;">
                                 <span>de ${totalPages}</span>
@@ -388,23 +388,23 @@ export const FacturasModule = {
                         <div class="row-action-menu position-absolute bg-white shadow rounded border py-2" 
                              style="z-index: 1060; width: 150px; top: ${rect.bottom + window.scrollY}px; left: ${rect.left - 100}px;">
                             ${canAbonar ? `
-                            <a href="#" class="d-block px-3 py-1 text-decoration-none btn-abonar-factura" data-id="${id}" data-saldo="${factData.saldoPendiente}" style="color: #10b981; font-size: 13px;">
+                            <a href="#" class="d-block px-3 py-1 text-decoration-none btn-abonar-factura" data-id="${id}" data-saldo="${factData.saldoPendiente}" style="color: var(--success); font-size: var(--fs-base);">
                                 <i class="bi bi-wallet2 me-2"></i> Registrar Pago
                             </a>
                             <hr class="dropdown-divider my-1">` : ''}
                             ${!isAnulada ? `
-                            <a href="#/ingresos/facturas/editar/${id}" class="d-block px-3 py-1 text-decoration-none" style="color: var(--text-body); font-size: 13px;">
+                            <a href="#/ingresos/facturas/editar/${id}" class="d-block px-3 py-1 text-decoration-none" style="color: var(--text-body); font-size: var(--fs-base);">
                                 <i class="bi bi-pencil me-2"></i> Editar
                             </a>
                             ${factData.tipo === 'compra' ? `
-                            <a href="#" class="d-block px-3 py-1 text-decoration-none mt-1 btn-anular-compra" data-id="${id}" style="color: #ef4444; font-size: 13px;">
+                            <a href="#" class="d-block px-3 py-1 text-decoration-none mt-1 btn-anular-compra" data-id="${id}" style="color: var(--danger); font-size: var(--fs-base);">
                                 <i class="bi bi-x-circle me-2"></i> Anular Compra
                             </a>` : `
-                            <a href="#" class="d-block px-3 py-1 text-decoration-none mt-1 btn-delete-row" data-id="${id}" style="color: #ef4444; font-size: 13px;">
+                            <a href="#" class="d-block px-3 py-1 text-decoration-none mt-1 btn-delete-row" data-id="${id}" style="color: var(--danger); font-size: var(--fs-base);">
                                 <i class="bi bi-trash me-2"></i> Eliminar
                             </a>`}
                             ` : `
-                            <a href="#/ingresos/facturas/editar/${id}" class="d-block px-3 py-1 text-decoration-none" style="color: var(--text-body); font-size: 13px;">
+                            <a href="#/ingresos/facturas/editar/${id}" class="d-block px-3 py-1 text-decoration-none" style="color: var(--text-body); font-size: var(--fs-base);">
                                 <i class="bi bi-eye me-2"></i> Ver Detalles
                             </a>`}
                         </div>
@@ -628,7 +628,7 @@ export const FacturasModule = {
                                 <select class="form-select mb-2 bg-light border-0 d-inline-block w-auto">
                                     <option>Factura de venta</option>
                                 </select>
-                                <div class="d-flex justify-content-center justify-content-md-end align-items-center text-muted" style="font-size: 14px;">
+                                <div class="d-flex justify-content-center justify-content-md-end align-items-center text-muted" style="font-size: var(--fs-md);">
                                     <span id="lbl-numero">No. <strong style="color: var(--text-main);">${factura.numero || '[Autogenerado al guardar]'}</strong></span>
                                     ${!isViewOnly ? `<i class="bi bi-gear ms-2" id="btn-config-num" style="cursor: pointer;"></i>` : ''}
                                 </div>
@@ -639,29 +639,29 @@ export const FacturasModule = {
                         <h6 class="fw-bold mb-3" style="color: var(--text-main);">Información de la factura</h6>
                         <div class="row mb-5 g-3">
                             <div class="col-12 col-sm-6 col-md-3">
-                                <label class="form-label" style="font-size: 12px; font-weight: var(--weight-medium); color: var(--text-body);">Cliente <span class="text-danger">*</span></label>
+                                <label class="form-label" style="font-size: var(--fs-sm); font-weight: var(--weight-medium); color: var(--text-body);">Cliente <span class="text-danger">*</span></label>
                                 <input type="text" id="search-cliente" class="form-control form-control-sm text-muted" placeholder="Buscar cliente..." value="${clienteNombreActual}" autocomplete="off" ${isViewOnly ? 'disabled' : ''}>
                                 <input type="hidden" id="select-cliente" value="${factura.clienteId || ''}">
                             </div>
                             <div class="col-12 col-sm-6 col-md-3">
-                                <label class="form-label" style="font-size: 12px; font-weight: var(--weight-medium); color: var(--text-body);">Tipo de Venta</label>
+                                <label class="form-label" style="font-size: var(--fs-sm); font-weight: var(--weight-medium); color: var(--text-body);">Tipo de Venta</label>
                                 <select id="select-tipo-venta" class="form-select form-select-sm text-muted" ${isViewOnly ? 'disabled' : ''}>
                                     <option value="credito" ${factura.tipoVenta === 'credito' || !factura.tipoVenta ? 'selected' : ''}>A Crédito (Cartera)</option>
                                     <option value="contado" ${factura.tipoVenta === 'contado' ? 'selected' : ''}>De Contado (Caja)</option>
                                 </select>
                             </div>
                             <div class="col-12 col-sm-6 col-md-3" id="container-cuenta-venta" style="display: ${factura.tipoVenta === 'contado' ? 'block' : 'none'};">
-                                <label class="form-label" style="font-size: 12px; font-weight: var(--weight-medium); color: var(--text-body);">Cuenta (Contado)</label>
+                                <label class="form-label" style="font-size: var(--fs-sm); font-weight: var(--weight-medium); color: var(--text-body);">Cuenta (Contado)</label>
                                 <select id="select-cuenta-venta" class="form-select form-select-sm text-muted" ${isViewOnly ? 'disabled' : ''}>
                                     ${cuentasActivas.map(c => `<option value="${c.nombre}" ${factura.cuentaId === c.nombre ? 'selected' : ''}>${c.nombre}</option>`).join('')}
                                 </select>
                             </div>
                             <div class="col-6 col-md-3">
-                                <label class="form-label" style="font-size: 12px; font-weight: var(--weight-medium); color: var(--text-body);">Fecha de creación</label>
+                                <label class="form-label" style="font-size: var(--fs-sm); font-weight: var(--weight-medium); color: var(--text-body);">Fecha de creación</label>
                                 <input type="date" id="input-fecha" class="form-control form-control-sm text-muted" value="${factura.fecha}" ${isViewOnly ? 'disabled' : ''}>
                             </div>
                             <div class="col-6 col-md-3">
-                                <label class="form-label" style="font-size: 12px; font-weight: var(--weight-medium); color: var(--text-body);">Fecha de vencimiento</label>
+                                <label class="form-label" style="font-size: var(--fs-sm); font-weight: var(--weight-medium); color: var(--text-body);">Fecha de vencimiento</label>
                                 <input type="date" id="input-vencimiento" class="form-control form-control-sm text-muted" value="${factura.vencimiento}" ${isViewOnly ? 'disabled' : ''}>
                             </div>
                         </div>
@@ -671,7 +671,7 @@ export const FacturasModule = {
                         <!-- PRODUCTOS -->
                         <h6 class="fw-bold mb-3" style="color: var(--text-main);">Productos y servicios</h6>
                         <div class="table-responsive mb-3" style="overflow: visible;">
-                            <table class="table table-borderless align-middle mb-0" id="tabla-detalles" style="font-size: 13px;">
+                            <table class="table table-borderless align-middle mb-0" id="tabla-detalles" style="font-size: var(--fs-base);">
                                 <thead style="border-bottom: 1px solid var(--border-color);">
                                     <tr style="color: var(--text-muted); font-weight: var(--weight-regular);">
                                         <th style="width: 40px;"><input type="checkbox" class="form-check-input" disabled></th>
@@ -691,7 +691,7 @@ export const FacturasModule = {
                         </div>
                         
                         ${!isViewOnly ? `
-                        <button id="btn-agregar-linea" class="btn btn-link text-decoration-none p-0 mb-5" style="font-size: 14px; font-weight: var(--weight-medium); color: var(--primary);">
+                        <button id="btn-agregar-linea" class="btn btn-link text-decoration-none p-0 mb-5" style="font-size: var(--fs-md); font-weight: var(--weight-medium); color: var(--primary);">
                             <i class="bi bi-plus-lg me-1"></i>Agregar línea
                         </button>
                         ` : ''}
@@ -699,18 +699,18 @@ export const FacturasModule = {
                         <!-- TOTALES -->
                         <div class="row justify-content-end mb-5">
                             <div class="col-md-4">
-                                <div class="d-flex justify-content-between mb-2" style="font-size: 14px; color: var(--text-body);">
+                                <div class="d-flex justify-content-between mb-2" style="font-size: var(--fs-md); color: var(--text-body);">
                                     <span>Subtotal</span><span id="tot-subtotal">$0,00</span>
                                 </div>
-                                <div class="d-flex justify-content-between mb-2" style="font-size: 14px; color: var(--text-body);">
+                                <div class="d-flex justify-content-between mb-2" style="font-size: var(--fs-md); color: var(--text-body);">
                                     <span>Descuento</span><span id="tot-descuento">$0,00</span>
                                 </div>
-                                <div class="d-flex justify-content-between mb-3" style="font-size: 14px; color: var(--text-body);">
+                                <div class="d-flex justify-content-between mb-3" style="font-size: var(--fs-md); color: var(--text-body);">
                                     <span>Impuestos</span><span id="tot-impuestos">$0,00</span>
                                 </div>
                                 <div class="d-flex justify-content-between align-items-center">
-                                    <span class="fw-bold" style="font-size: 16px; color: var(--text-main);">Total</span>
-                                    <span class="fw-bold" id="tot-total" style="font-size: 20px; color: var(--text-main);" data-raw-total="0">$0,00</span>
+                                    <span class="fw-bold" style="font-size: var(--fs-lg); color: var(--text-main);">Total</span>
+                                    <span class="fw-bold" id="tot-total" style="font-size: var(--fs-lg); color: var(--text-main);" data-raw-total="0">$0,00</span>
                                 </div>
                             </div>
                         </div>
@@ -720,12 +720,12 @@ export const FacturasModule = {
 
                 <!-- TEXTAREAS ADICIONALES -->
                 <div class="mb-4">
-                    <h6 class="fw-bold mb-1" style="font-size: 14px; color: var(--text-main);">Notas</h6>
-                    <textarea id="input-notas" class="form-control text-muted" rows="2" style="font-size: 13px; border-color: var(--border-color); resize: none;" placeholder="Agrega comentarios para aclarar datos de la factura, serán visibles para tus clientes" ${isViewOnly ? 'disabled' : ''}>${factura.notas}</textarea>
+                    <h6 class="fw-bold mb-1" style="font-size: var(--fs-md); color: var(--text-main);">Notas</h6>
+                    <textarea id="input-notas" class="form-control text-muted" rows="2" style="font-size: var(--fs-base); border-color: var(--border-color); resize: none;" placeholder="Agrega comentarios para aclarar datos de la factura, serán visibles para tus clientes" ${isViewOnly ? 'disabled' : ''}>${factura.notas}</textarea>
                 </div>
                 <div>
-                    <h6 class="fw-bold mb-1" style="font-size: 14px; color: var(--text-main);">Términos y condiciones</h6>
-                    <textarea id="input-terminos" class="form-control text-muted" rows="2" style="font-size: 13px; border-color: var(--border-color); resize: none;" placeholder="Define los términos y condiciones, y/o las posibles cláusulas en caso de reclamos" ${isViewOnly ? 'disabled' : ''}>${factura.terminosCondiciones}</textarea>
+                    <h6 class="fw-bold mb-1" style="font-size: var(--fs-md); color: var(--text-main);">Términos y condiciones</h6>
+                    <textarea id="input-terminos" class="form-control text-muted" rows="2" style="font-size: var(--fs-base); border-color: var(--border-color); resize: none;" placeholder="Define los términos y condiciones, y/o las posibles cláusulas en caso de reclamos" ${isViewOnly ? 'disabled' : ''}>${factura.terminosCondiciones}</textarea>
                 </div>
 
                 <!-- DOCUMENTOS RELACIONADOS (Solo Vista) -->
@@ -734,21 +734,21 @@ export const FacturasModule = {
                     <h6 class="fw-bold mb-3" style="color: var(--text-main);">Documentos relacionados</h6>
                     <ul class="nav nav-tabs mb-3" role="tablist" style="border-bottom: 2px solid var(--border-color);">
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-pagos" type="button" role="tab" style="font-size: 13px; font-weight: var(--weight-medium); color: var(--text-main); border-bottom-color: transparent;">Pagos recibidos</button>
+                            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-pagos" type="button" role="tab" style="font-size: var(--fs-base); font-weight: var(--weight-medium); color: var(--text-main); border-bottom-color: transparent;">Pagos recibidos</button>
                         </li>
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link text-muted" data-bs-toggle="tab" data-bs-target="#tab-notas-credito" type="button" role="tab" style="font-size: 13px; font-weight: var(--weight-medium); border-bottom-color: transparent;">Notas de crédito</button>
+                            <button class="nav-link text-muted" data-bs-toggle="tab" data-bs-target="#tab-notas-credito" type="button" role="tab" style="font-size: var(--fs-base); font-weight: var(--weight-medium); border-bottom-color: transparent;">Notas de crédito</button>
                         </li>
                         ${factura.cotizacion_origen_id ? `
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link text-muted" data-bs-toggle="tab" data-bs-target="#tab-cotizacion" type="button" role="tab" style="font-size: 13px; font-weight: var(--weight-medium); border-bottom-color: transparent;">Cotización origen</button>
+                            <button class="nav-link text-muted" data-bs-toggle="tab" data-bs-target="#tab-cotizacion" type="button" role="tab" style="font-size: var(--fs-base); font-weight: var(--weight-medium); border-bottom-color: transparent;">Cotización origen</button>
                         </li>` : ''}
                     </ul>
                     
                     <div class="tab-content border-0 p-0">
                         <div class="tab-pane fade show active" id="tab-pagos" role="tabpanel">
                             <div class="table-responsive">
-                                <table class="table table-sm align-middle mb-0" style="font-size: 13px;">
+                                <table class="table table-sm align-middle mb-0" style="font-size: var(--fs-base);">
                                     <thead>
                                         <tr class="text-muted" style="border-bottom: 1px solid var(--border-color);">
                                             <th class="fw-medium pb-2">Fecha</th>
@@ -774,7 +774,7 @@ export const FacturasModule = {
                         
                         <div class="tab-pane fade" id="tab-notas-credito" role="tabpanel">
                             <div class="table-responsive">
-                                <table class="table table-sm align-middle mb-0" style="font-size: 13px;">
+                                <table class="table table-sm align-middle mb-0" style="font-size: var(--fs-base);">
                                     <thead>
                                         <tr class="text-muted" style="border-bottom: 1px solid var(--border-color);">
                                             <th class="fw-medium pb-2">Fecha</th>
@@ -806,10 +806,10 @@ export const FacturasModule = {
                             <div class="card border border-light shadow-sm" style="max-width:300px; cursor:pointer;" onclick="sessionStorage.setItem('origenVolver', JSON.stringify({hash: '#/ingresos/facturas/ver/${factura.id}', label: 'Volver a la factura'})); window.location.hash='#/ingresos/cotizaciones/ver/${factura.cotizacion_origen_id}'">
                                 <div class="card-body py-3 px-3 d-flex justify-content-between align-items-center">
                                     <div>
-                                        <small class="text-muted d-block" style="font-size:11px;">Ver documento origen</small>
-                                        <span class="fw-medium text-dark" style="font-size:14px; color: var(--primary) !important;">Cotización</span>
+                                        <small class="text-muted d-block" style="font-size: var(--fs-xs);">Ver documento origen</small>
+                                        <span class="fw-medium text-dark" style="font-size: var(--fs-md); color: var(--primary) !important;">Cotización</span>
                                     </div>
-                                    <i class="bi bi-box-arrow-up-right text-muted" style="font-size: 12px;"></i>
+                                    <i class="bi bi-box-arrow-up-right text-muted" style="font-size: var(--fs-sm);"></i>
                                 </div>
                             </div>
                         </div>` : ''}
@@ -873,7 +873,7 @@ export const FacturasModule = {
                 <td class="align-top"><input type="number" step="any" min="0" max="100" class="form-control form-control-sm border-0 bg-light input-tax" value="${detalle.impuesto}" placeholder="%" ${isViewOnly ? 'disabled' : ''}></td>
                 <td class="text-end align-top pt-3">
                     <span class="calc-subtotal fw-bold d-block" style="color: var(--text-main);">$0,00</span>
-                    <a href="#" class="toggle-desc-tax d-md-none text-decoration-none mt-2 d-inline-block" style="font-size: 11px; color: var(--primary);">+ Editar descuento/impuesto</a>
+                    <a href="#" class="toggle-desc-tax d-md-none text-decoration-none mt-2 d-inline-block" style="font-size: var(--fs-xs); color: var(--primary);">+ Editar descuento/impuesto</a>
                 </td>
                 <td class="text-center align-top pt-2">
                     ${!isViewOnly ? `<button class="btn btn-link text-muted p-0 btn-eliminar-linea">
@@ -925,8 +925,8 @@ export const FacturasModule = {
                 const metaQty = tr.querySelector('.meta-qty');
                 const prod = productosFactura.find(p => p.id === detalle.productoId);
                 if (prod) {
-                    if (metaProd) metaProd.innerHTML = `<span style="color: var(--text-muted); font-size: 11px;">${prod.sku || 'S/N'}</span>`;
-                    if (metaQty) metaQty.innerHTML = `<span style="color: var(--text-muted); font-size: 11px;">Disp: ${prod.stockActual || prod.cantidad || 0}</span>`;
+                    if (metaProd) metaProd.innerHTML = `<span style="color: var(--text-muted); font-size: var(--fs-xs);">${prod.sku || 'S/N'}</span>`;
+                    if (metaQty) metaQty.innerHTML = `<span style="color: var(--text-muted); font-size: var(--fs-xs);">Disp: ${prod.stockActual || prod.cantidad || 0}</span>`;
                 }
             }
         };
