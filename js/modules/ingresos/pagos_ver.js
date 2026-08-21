@@ -225,7 +225,7 @@ export const PagosVerModule = {
                             </div>
                             <div class="border rounded p-3 bg-white">
                                 <textarea class="form-control border-0 bg-transparent mb-2 shadow-none" placeholder="Escribe un comentario" rows="1" style="font-size: var(--fs-base); resize: none;"></textarea>
-                                <div class="text-muted mb-2" style="font-size: 11.5px;">Menciona con @, asigna tareas o agenda recordatorios para tu equipo</div>
+                                <div class="text-muted mb-2" style="font-size: var(--fs-xs);">Menciona con @, asigna tareas o agenda recordatorios para tu equipo</div>
                                 <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top">
                                     <div>
                                         <button class="btn btn-sm border-0 bg-transparent text-secondary p-1 me-1"><i class="bi bi-type-bold"></i></button>
