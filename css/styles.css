@@ -27,6 +27,8 @@
     --fs-base: 13px;
     --fs-md: 14px;
     --fs-lg: 20px;
+    --fs-xl: 24px;
+    --fs-xxl: 28px;
     
     /* Variables de Grosor Estricto */
     --weight-regular: 400;

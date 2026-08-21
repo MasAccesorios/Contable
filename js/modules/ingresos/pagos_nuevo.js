@@ -125,7 +125,7 @@ export default {
                     <div class="col-lg-4">
                         <div class="card border-0 shadow-sm rounded-4 mb-4">
                             <div class="card-body p-4 bg-light rounded-4">
-                                <h6 class="text-uppercase text-muted fw-bold mb-1" style="font-size: 12px;">Cliente</h6>
+                                <h6 class="text-uppercase text-muted fw-bold mb-1" style="font-size: var(--fs-sm);">Cliente</h6>
                                 ${cliente ? `<h4 class="fw-bold text-dark mb-3">${cliente.nombre}</h4>` : `
                                 <div class="custom-combobox position-relative mb-3" id="combo-cliente-container">
                                     <input type="text" class="form-control border-2 bg-white shadow-sm" id="pago-cliente-search" placeholder="Buscar cliente por nombre o NIT..." autocomplete="off">

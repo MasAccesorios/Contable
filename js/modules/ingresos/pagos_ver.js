@@ -87,29 +87,29 @@ export const PagosVerModule = {
             const pco = (f.nuevoSaldo || f.porCobrar || 0).toLocaleString('es-CO', { style: 'currency', currency: 'COP' });
             return `
                 <tr>
-                    <td class="text-primary ps-4" style="color: #6366f1 !important; font-size: 13px;">${num}</td>
-                    <td class="text-muted" style="font-size: 13px;">${date}</td>
-                    <td style="font-size: 13px;">${total}</td>
-                    <td style="font-size: 13px;">${pag}</td>
-                    <td class="pe-4" style="font-size: 13px;">${pco}</td>
+                    <td class="text-primary ps-4" style="color: var(--primary) !important; font-size: var(--fs-base);">${num}</td>
+                    <td class="text-muted" style="font-size: var(--fs-base);">${date}</td>
+                    <td style="font-size: var(--fs-base);">${total}</td>
+                    <td style="font-size: var(--fs-base);">${pag}</td>
+                    <td class="pe-4" style="font-size: var(--fs-base);">${pco}</td>
                 </tr>
             `;
         }).join('') || `<tr><td colspan="5" class="text-center text-muted py-3">No hay facturas asociadas</td></tr>`;
 
         this.element.innerHTML = `
-            <div class="py-4 px-3" style="font-family: 'Inter', sans-serif; background-color: #f8f9fc; min-height: 100vh; font-size: 14px;">
+            <div class="py-4 px-3" style="font-family: 'Inter', sans-serif; background-color: var(--bg-main); min-height: 100vh; font-size: var(--fs-md);">
                 
                 <!-- BARRA SUPERIOR ALINEADA CON BOTONERA COMPACTA -->
                 <div class="d-flex justify-content-between align-items-center mb-4" style="max-width: 1000px; margin: 0 auto;">
                     <div>
-                        <a href="#/ingresos/pagos" class="text-decoration-none" style="font-size: 13px; color: #2cbfb7;" id="btn-volver-listado">�?Volver a mis pagos recibidos</a>
-                        <h2 class="fw-bold text-dark mt-2 mb-0" style="font-size: 24px;">Pago recibido ${numero}</h2>
+                        <a href="#/ingresos/pagos" class="text-decoration-none" style="font-size: var(--fs-base); color: var(--primary);" id="btn-volver-listado">�?Volver a mis pagos recibidos</a>
+                        <h2 class="fw-bold text-dark mt-2 mb-0" style="font-size: var(--fs-xl);">Pago recibido ${numero}</h2>
                     </div>
                     <div class="d-flex gap-2">
                         <button class="btn btn-light border bg-white text-secondary" style="border-radius: 6px; padding: 6px 12px;"><i class="bi bi-three-dots-vertical"></i></button>
                         <button class="btn btn-light border bg-white text-secondary" style="border-radius: 6px; padding: 6px 12px;"><i class="bi bi-envelope"></i></button>
                         <button class="btn btn-light border bg-white text-secondary" id="btn-print" style="border-radius: 6px; padding: 6px 12px;"><i class="bi bi-printer"></i></button>
-                        <a href="#/ingresos/pagos/editar/${p.id || numero}" class="btn btn-light border bg-white fw-medium text-dark d-flex align-items-center shadow-sm" style="border-radius: 6px; padding: 6px 16px;"><i class="bi bi-pencil me-2" style="font-size: 13px;"></i>Editar pago</a>
+                        <a href="#/ingresos/pagos/editar/${p.id || numero}" class="btn btn-light border bg-white fw-medium text-dark d-flex align-items-center shadow-sm" style="border-radius: 6px; padding: 6px 16px;"><i class="bi bi-pencil me-2" style="font-size: var(--fs-base);"></i>Editar pago</a>
                     </div>
                 </div>
 
@@ -117,38 +117,38 @@ export const PagosVerModule = {
                     <!-- TARJETA VALOR TOTAL -->
                     <div class="card border-0 shadow-sm mb-4" style="border-radius: 8px;">
                         <div class="card-body p-4">
-                            <span class="text-muted d-block mb-1" style="font-size: 13px;">Valor total</span>
-                            <h3 class="fw-bold m-0 text-dark" style="font-size: 28px; letter-spacing: -0.5px;">${valorFormateado}</h3>
+                            <span class="text-muted d-block mb-1" style="font-size: var(--fs-base);">Valor total</span>
+                            <h3 class="fw-bold m-0 text-dark" style="font-size: var(--fs-xxl); letter-spacing: -0.5px;">${valorFormateado}</h3>
                         </div>
                     </div>
 
                     <!-- TARJETA INFORMACIÓN -->
                     <div class="card border-0 shadow-sm mb-4" style="border-radius: 8px;">
                         <div class="card-body p-4">
-                            <h5 class="fw-bold mb-4 text-dark" style="font-size: 16px;">Información del pago</h5>
+                            <h5 class="fw-bold mb-4 text-dark" style="font-size: var(--fs-lg);">Información del pago</h5>
                             
                             <div class="row mb-4">
                                 <div class="col-md-6">
-                                    <span class="text-muted d-block mb-2" style="font-size: 13px;">Estado</span>
-                                    <span class="badge bg-white text-secondary border fw-normal px-2 py-1" style="font-size: 12px;">${estado}</span>
+                                    <span class="text-muted d-block mb-2" style="font-size: var(--fs-base);">Estado</span>
+                                    <span class="badge bg-white text-secondary border fw-normal px-2 py-1" style="font-size: var(--fs-sm);">${estado}</span>
                                 </div>
                             </div>
                             
                             <div class="row">
                                 <div class="col-md-6 mb-4 mb-md-0">
-                                    <span class="text-muted d-block mb-2" style="font-size: 13px;">Cliente</span>
-                                    <a href="#" class="text-decoration-none" style="color: #6366f1; font-size: 13px;">${clienteNombre}</a>
+                                    <span class="text-muted d-block mb-2" style="font-size: var(--fs-base);">Cliente</span>
+                                    <a href="#" class="text-decoration-none" style="color: var(--primary); font-size: var(--fs-base);">${clienteNombre}</a>
                                 </div>
                                 <div class="col-md-6">
-                                    <span class="text-muted d-block mb-2" style="font-size: 13px;">Fecha de creación</span>
-                                    <span class="text-dark" style="font-size: 13px;">${fecha}</span>
+                                    <span class="text-muted d-block mb-2" style="font-size: var(--fs-base);">Fecha de creación</span>
+                                    <span class="text-dark" style="font-size: var(--fs-base);">${fecha}</span>
                                 </div>
                             </div>
 
                             <div class="row mt-4">
                                 <div class="col-md-12">
-                                    <span class="text-muted d-block mb-2" style="font-size: 13px;">Cuenta bancaria</span>
-                                    <a href="#" class="text-decoration-none" style="color: #6366f1; font-size: 13px;">${cuentaBancaria}</a>
+                                    <span class="text-muted d-block mb-2" style="font-size: var(--fs-base);">Cuenta bancaria</span>
+                                    <a href="#" class="text-decoration-none" style="color: var(--primary); font-size: var(--fs-base);">${cuentaBancaria}</a>
                                 </div>
                             </div>
                         </div>
@@ -157,10 +157,10 @@ export const PagosVerModule = {
                     <!-- TARJETA ARCHIVOS ADJUNTOS -->
                     <div class="card border-0 shadow-sm mb-4" style="border-radius: 8px;">
                         <div class="card-body p-4">
-                            <h5 class="fw-bold mb-4 text-dark" style="font-size: 16px;">Archivos adjuntos</h5>
-                            <div class="text-center py-5 border rounded" style="background-color: #fefefe; border-color: #f1f3f5 !important;">
-                                <p class="text-muted mb-4" style="font-size: 13px;">Puedes subir archivos relacionados con este pago recibido</p>
-                                <button class="btn btn-light border bg-white shadow-sm fw-medium text-dark" style="border-radius: 6px; font-size: 13px;"><i class="bi bi-upload me-2 text-secondary"></i>Subir archivo</button>
+                            <h5 class="fw-bold mb-4 text-dark" style="font-size: var(--fs-lg);">Archivos adjuntos</h5>
+                            <div class="text-center py-5 border rounded" style="background-color: var(--surface); border-color: var(--border-color) !important;">
+                                <p class="text-muted mb-4" style="font-size: var(--fs-base);">Puedes subir archivos relacionados con este pago recibido</p>
+                                <button class="btn btn-light border bg-white shadow-sm fw-medium text-dark" style="border-radius: 6px; font-size: var(--fs-base);"><i class="bi bi-upload me-2 text-secondary"></i>Subir archivo</button>
                             </div>
                         </div>
                     </div>
@@ -170,26 +170,26 @@ export const PagosVerModule = {
                         <div class="card-header bg-white border-bottom pt-4 px-4 pb-0">
                             <ul class="nav nav-tabs border-bottom-0" style="gap: 15px;">
                                 <li class="nav-item">
-                                    <a class="nav-link active border-0 border-bottom border-3 text-dark fw-medium px-1 pb-3" href="#" style="background: transparent; border-color: #2cbfb7 !important; color: #333 !important; font-size: 14px;">Facturas asociadas</a>
+                                    <a class="nav-link active border-0 border-bottom border-3 text-dark fw-medium px-1 pb-3" href="#" style="background: transparent; border-color: var(--primary); !important; color: var(--text-main) !important; font-size: var(--fs-md);">Facturas asociadas</a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link border-0 text-muted px-1 pb-3" href="#" style="background: transparent; font-size: 14px;">Aplicación de anticipo</a>
+                                    <a class="nav-link border-0 text-muted px-1 pb-3" href="#" style="background: transparent; font-size: var(--fs-md);">Aplicación de anticipo</a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link border-0 text-muted px-1 pb-3" href="#" style="background: transparent; font-size: 14px;">Contabilidad</a>
+                                    <a class="nav-link border-0 text-muted px-1 pb-3" href="#" style="background: transparent; font-size: var(--fs-md);">Contabilidad</a>
                                 </li>
                             </ul>
                         </div>
                         <div class="card-body p-0">
                             <div class="table-responsive">
                                 <table class="table align-middle mb-0" style="border-collapse: separate; border-spacing: 0;">
-                                    <thead style="background-color: #fcfcfd;">
+                                    <thead style="background-color: var(--bg-main);">
                                         <tr>
-                                            <th class="border-top-0 border-bottom text-muted fw-medium py-3 ps-4" style="font-size: 12px; font-weight: 500;">Número</th>
-                                            <th class="border-top-0 border-bottom text-muted fw-medium py-3" style="font-size: 12px; font-weight: 500;">Fecha de creación</th>
-                                            <th class="border-top-0 border-bottom text-muted fw-medium py-3" style="font-size: 12px; font-weight: 500;">Total</th>
-                                            <th class="border-top-0 border-bottom text-muted fw-medium py-3" style="font-size: 12px; font-weight: 500;">Pagado</th>
-                                            <th class="border-top-0 border-bottom text-muted fw-medium py-3 pe-4" style="font-size: 12px; font-weight: 500;">Por cobrar</th>
+                                            <th class="border-top-0 border-bottom text-muted fw-medium py-3 ps-4" style="font-size: var(--fs-sm); font-weight: 500;">Número</th>
+                                            <th class="border-top-0 border-bottom text-muted fw-medium py-3" style="font-size: var(--fs-sm); font-weight: 500;">Fecha de creación</th>
+                                            <th class="border-top-0 border-bottom text-muted fw-medium py-3" style="font-size: var(--fs-sm); font-weight: 500;">Total</th>
+                                            <th class="border-top-0 border-bottom text-muted fw-medium py-3" style="font-size: var(--fs-sm); font-weight: 500;">Pagado</th>
+                                            <th class="border-top-0 border-bottom text-muted fw-medium py-3 pe-4" style="font-size: var(--fs-sm); font-weight: 500;">Por cobrar</th>
                                         </tr>
                                     </thead>
                                     <tbody style="border-top: none;">
@@ -205,35 +205,35 @@ export const PagosVerModule = {
                         <div class="card-header bg-white border-bottom pt-4 px-4 pb-0">
                             <ul class="nav nav-tabs border-bottom-0" style="gap: 15px;">
                                 <li class="nav-item">
-                                    <a class="nav-link active border-0 border-bottom border-3 text-dark fw-medium px-1 pb-3" href="#" style="background: transparent; border-color: #2cbfb7 !important; color: #333 !important; font-size: 14px;">Comentarios</a>
+                                    <a class="nav-link active border-0 border-bottom border-3 text-dark fw-medium px-1 pb-3" href="#" style="background: transparent; border-color: var(--primary); !important; color: var(--text-main) !important; font-size: var(--fs-md);">Comentarios</a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link border-0 text-muted px-1 pb-3" href="#" style="background: transparent; font-size: 14px;">Recordatorios <i class="bi bi-question-circle text-secondary ms-1"></i></a>
+                                    <a class="nav-link border-0 text-muted px-1 pb-3" href="#" style="background: transparent; font-size: var(--fs-md);">Recordatorios <i class="bi bi-question-circle text-secondary ms-1"></i></a>
                                 </li>
                             </ul>
                         </div>
                         <div class="card-body p-4">
                             <div class="d-flex justify-content-between mb-4">
-                                <button class="btn btn-sm btn-light rounded-pill border px-3 text-info fw-medium" style="background-color: #e9fbfb; border-color: #bdf2f0 !important;"><i class="bi bi-search me-1"></i> Recientes <span class="ms-1" style="font-size: 10px;">�?/span></button>
+                                <button class="btn btn-sm btn-light rounded-pill border px-3 text-info fw-medium" style="background-color: var(--primary-light); border-color: var(--primary-light) !important;"><i class="bi bi-search me-1"></i> Recientes <span class="ms-1" style="font-size: var(--fs-xxs);">�?/span></button>
                                 <button class="btn btn-sm text-muted border-0 bg-transparent"><i class="bi bi-arrows-expand"></i></button>
                             </div>
                             <div class="text-center py-4 mb-4">
                                 <div style="display:inline-block; border-radius:50%; border:2px solid #2cbfb7; width:45px; height:45px; line-height:41px; margin-bottom:15px;">
-                                    <i class="bi bi-chat-left-text" style="font-size: 20px; color: #2cbfb7;"></i>
+                                    <i class="bi bi-chat-left-text" style="font-size: var(--fs-lg); color: var(--primary);"></i>
                                 </div>
-                                <span class="text-muted d-block" style="font-size: 13px;">Aún no hay comentarios</span>
+                                <span class="text-muted d-block" style="font-size: var(--fs-base);">Aún no hay comentarios</span>
                             </div>
                             <div class="border rounded p-3 bg-white">
-                                <textarea class="form-control border-0 bg-transparent mb-2 shadow-none" placeholder="Escribe un comentario" rows="1" style="font-size: 13px; resize: none;"></textarea>
+                                <textarea class="form-control border-0 bg-transparent mb-2 shadow-none" placeholder="Escribe un comentario" rows="1" style="font-size: var(--fs-base); resize: none;"></textarea>
                                 <div class="text-muted mb-2" style="font-size: 11.5px;">Menciona con @, asigna tareas o agenda recordatorios para tu equipo</div>
                                 <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top">
                                     <div>
                                         <button class="btn btn-sm border-0 bg-transparent text-secondary p-1 me-1"><i class="bi bi-type-bold"></i></button>
                                         <button class="btn btn-sm border-0 bg-transparent text-secondary p-1"><i class="bi bi-at"></i></button>
                                     </div>
-                                    <div class="text-muted d-flex align-items-center" style="font-size: 11px;">
+                                    <div class="text-muted d-flex align-items-center" style="font-size: var(--fs-xs);">
                                         <span class="me-3">0/1000</span>
-                                        <button class="btn btn-sm text-white px-2 py-1" style="background-color: #adb5bd; border-radius: 4px;"><i class="bi bi-send-fill" style="font-size: 12px;"></i></button>
+                                        <button class="btn btn-sm text-white px-2 py-1" style="background-color: var(--text-muted); border-radius: 4px;"><i class="bi bi-send-fill" style="font-size: var(--fs-sm);"></i></button>
                                     </div>
                                 </div>
                             </div>
