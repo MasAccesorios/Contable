@@ -246,23 +246,19 @@ export const DashboardModule = {
         
         // Inventario Valorizado (Lógica unificada con valorizacion.js)
         let inventarioValorizado = 0;
-        const productosActivos = (this.productos || []).filter(p => p.estado !== 'inactivo' && p.estado !== 'inactive');
-        
-        productosActivos.forEach(p => {
-            const lotesProd = (lotes || []).filter(l => l.productoId === p.id);
-            const stockTotal = lotesProd.reduce((sum, l) => sum + (l.cantidadActual || 0), 0);
-            const lotesPositivos = lotesProd.filter(l => l.cantidadActual > 0);
-            const stockLotesPos = lotesPositivos.reduce((sum, l) => sum + l.cantidadActual, 0);
-            const costoLotes = lotesPositivos.reduce((sum, l) => sum + (l.cantidadActual * (l.costoUnitario || 0)), 0);
-            
-            const costoPromedio = stockTotal > 0 ? 
-                (stockLotesPos > 0 ? costoLotes / stockLotesPos : (parseFloat(p.costoBase) || 0)) 
-                : (parseFloat(p.costoBase) || 0);
-            
-            const valorTotal = stockTotal * costoPromedio;
-            const isRollo = p.sku && p.sku.startsWith('500');
-            inventarioValorizado += (stockTotal < 0 && !isRollo) ? 0 : valorTotal;
-        });
+        try {
+            const { data: dataValorizacion, error: errorValorizacion } = await supabase.rpc('get_inventario_valorizado', {
+                p_search: '',
+                p_page: 1,
+                p_limit: 1,
+                p_export_all: false
+            });
+            if (errorValorizacion) throw errorValorizacion;
+            inventarioValorizado = dataValorizacion?.gran_total || 0;
+        } catch (e) {
+            console.error('Error obteniendo inventario valorizado desde RPC:', e);
+            inventarioValorizado = 0;
+        }
         
         // Saldo Total Bancos (Usando la fuente de verdad de Supabase)
         let saldoBancos = 0;
