@@ -7,7 +7,7 @@ export function renderLogin(container) {
                 <div class="card-body p-4">
                     <div class="text-center mb-4">
                         <img src="LogoMas.png" alt="Logo" style="height: 50px;">
-                        <h4 class="mt-3 fw-bold" style="color: #0f172a;">Sistema Contable</h4>
+                        <h4 class="mt-3 fw-bold" style="color: var(--text-main);">Sistema Contable</h4>
                         <p class="text-muted small">Inicia sesión para continuar</p>
                     </div>
                     
@@ -21,9 +21,9 @@ export function renderLogin(container) {
                             <input type="password" id="login-password" class="form-control" required>
                         </div>
                         
-                        <div id="login-error" class="alert alert-danger d-none" style="font-size: 13px; padding: 10px;"></div>
+                        <div id="login-error" class="alert alert-danger d-none" style="font-size: var(--fs-base); padding: 10px;"></div>
                         
-                        <button type="submit" id="btn-login" class="btn btn-primary w-100 fw-medium" style="background-color: #3b82f6; border: none; padding: 10px;">
+                        <button type="submit" id="btn-login" class="btn btn-primary w-100 fw-medium" style="background-color: var(--primary); border: none; padding: 10px;">
                             Ingresar
                         </button>
                     </form>
