@@ -168,7 +168,7 @@ export default {
                                     const isVencida = diasVencida >= 1;
                                     
                                     return `
-                                    <tr class="tr-factura" data-numero="${String(f.numero || f.id).toLowerCase()}" data-cliente-nombre="${cliente.nombre}" data-cliente-nombre="${cliente.nombre}" data-cliente-id="${clienteId}" data-fecha="${f.fecha || ''}" data-vencimiento="${vencimientoReal || ''}" data-dias-vencida="${diasVencida}" data-saldo="${saldo}" style="cursor: pointer;" onclick="if(!event.target.closest('button')) { sessionStorage.setItem('origenVolver', JSON.stringify({hash: '#/cartera', label: 'Volver a Cuentas por Cobrar'})); window.location.hash = '#/ingresos/facturas/ver/${f.id}'; }">
+                                    <tr class="tr-factura" data-numero="${String(f.numero || f.id).toLowerCase()}" data-cliente-nombre="${cliente.nombre}" data-cliente-id="${clienteId}" data-fecha="${f.fecha || ''}" data-vencimiento="${vencimientoReal || ''}" data-dias-vencida="${diasVencida}" data-saldo="${saldo}" style="cursor: pointer;" onclick="if(!event.target.closest('button')) { sessionStorage.setItem('origenVolver', JSON.stringify({hash: '#/cartera', label: 'Volver a Cuentas por Cobrar'})); window.location.hash = '#/ingresos/facturas/ver/${f.id}'; }">
                                         <td class="ps-3 py-1"><input type="checkbox" class="form-check-input"></td>
                                         <td class="text-primary fw-medium py-1" style="cursor: pointer; white-space: nowrap;">${f.numero || f.id}</td>
                                         <td class="text-muted py-1" style="white-space: nowrap;">Factura de venta</td>
