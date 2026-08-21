@@ -127,7 +127,7 @@ export const InventarioUtils = {
      * FASE 2 (Write): Toma el plan de operaciones y ejecuta los guardados físicos en base de datos.
      * Implementa rollback interno LIFO en caso de fallos parciales.
      */
-    async ejecutarPlanInventario(operacionesDB) {
+    async ejecutarPlanInventario(operacionesDB, origenDocumento = null) {
         if (!operacionesDB || operacionesDB.length === 0) return;
         
         // Pila de instrucciones compensatorias (LIFO)
@@ -143,9 +143,11 @@ export const InventarioUtils = {
                     // Instrucción para revertir: Volver a hacer UPDATE con los datos viejos
                     compensaciones.push({ tipo: 'restaurar', data: snapshotPrevio });
                     
+                    if (origenDocumento) op.data.origen_movimiento = origenDocumento;
                     await DB.save('lotes_fifo', op.data);
                     
                 } else if (op.action === 'insert') {
+                    if (origenDocumento) op.data.origen_movimiento = origenDocumento;
                     // 1. Insertamos y capturamos la fila resultante (con el ID real de Postgres)
                     const loteGuardado = await DB.save('lotes_fifo', op.data);
                     

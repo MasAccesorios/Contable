@@ -532,7 +532,8 @@ export const AjustesInventarioModule = {
 
                             // 3.2 SEGUNDO: Disminuciones FIFO (Riesgo alto, toca lotes existentes)
                             if (itemsDisminucion.length > 0 && planDisminucion) {
-                                await InventarioUtils.ejecutarPlanInventario(planDisminucion.operacionesDB);
+                                const origenDoc = 'ajuste:' + nextNumero;
+                                await InventarioUtils.ejecutarPlanInventario(planDisminucion.operacionesDB, origenDoc);
                             }
 
                         } catch (invErr) {

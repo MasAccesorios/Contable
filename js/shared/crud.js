@@ -186,7 +186,8 @@ export const CoreActions = {
 
             // FASE 2: Descuento físico de inventario (Escritura Real)
             try {
-                await InventarioUtils.ejecutarPlanInventario(planInventario.operacionesDB);
+                const origenDoc = 'factura:' + (nuevaFactura.numero || idReal) + ' (desde cotizacion:' + cotizacion.id + ')';
+                await InventarioUtils.ejecutarPlanInventario(planInventario.operacionesDB, origenDoc);
             } catch (errInventario) {
                 // FALLO CRÍTICO: Se guardó la factura, pero falló el inventario.
                 console.error("Fallo crítico descontando inventario post-factura. Revirtiendo...", errInventario);

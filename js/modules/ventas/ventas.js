@@ -1262,7 +1262,8 @@ export const FacturasModule = {
                     // FASE 2: Descuento físico de inventario (Escritura Real)
                     if (isNew && planInventario) {
                         try {
-                            await InventarioUtils.ejecutarPlanInventario(planInventario.operacionesDB);
+                            const origenDoc = 'factura:' + (factura.numero || facturaGuardadaId);
+                            await InventarioUtils.ejecutarPlanInventario(planInventario.operacionesDB, origenDoc);
                         } catch (errInventario) {
                             console.error("Fallo crítico descontando inventario...", errInventario);
                             if (transaccionGuardadaId) await DB.delete('transacciones', transaccionGuardadaId);

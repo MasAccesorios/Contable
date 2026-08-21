@@ -51,7 +51,8 @@ export const NotasCreditoModule = {
 
             // 5. FASE 3: Modificación Física de Inventario con rollback interno
             if (planSalida) {
-                await InventarioUtils.ejecutarPlanInventario(planSalida.operacionesDB);
+                const origenDoc = 'anulacion_nota_credito:' + snapshotNota.numero;
+                await InventarioUtils.ejecutarPlanInventario(planSalida.operacionesDB, origenDoc);
             }
 
         } catch (errorTransaccion) {
@@ -754,7 +755,8 @@ export const NotasCreditoModule = {
                             pagoId = pagoCruzado.id;
 
                             // 4. FASE 3: Modificación Física de Inventario con Rollback interno
-                            await InventarioUtils.ejecutarPlanInventario(planReversion.operacionesDB);
+                            const origenDoc = 'nota_credito:' + ncNumero;
+                            await InventarioUtils.ejecutarPlanInventario(planReversion.operacionesDB, origenDoc);
 
                         } catch (errorTransaccion) {
                             console.error("Fallo crítico en transacción. Revirtiendo creación de nota de crédito...", errorTransaccion);
