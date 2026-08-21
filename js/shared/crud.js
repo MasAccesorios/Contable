@@ -647,8 +647,14 @@ export const ItemEngine = {
                         metaQty.innerHTML = `<span style="color: var(--text-muted); font-size: 11px; display: inline-block; margin-top: 4px;">Disp: ${stockVal}</span>`;
                     }
                         
+                    // Limpieza total del contexto anterior
                     let oldDropdown = tr.querySelector('.price-ml-dropdown');
                     if (oldDropdown) oldDropdown.remove();
+                    
+                    let oldSelect = tr.querySelector('.price-select-ml');
+                    if (oldSelect) oldSelect.remove();
+                    
+                    if (inpPrice) inpPrice.classList.remove('d-none');
 
                     // Lógica de precio sugerido para Mercado Libre
                     if (!options.isCompra) {
@@ -663,46 +669,30 @@ export const ItemEngine = {
                                     const mlInfo = Array.isArray(data) ? data[0] : data;
                                     if (mlInfo && mlInfo.veces_vendido > 0) {
                                         
-                                        if (!inpPrice.parentElement.classList.contains('position-relative')) {
-                                            inpPrice.parentElement.classList.add('position-relative');
-                                        }
+                                        // Ocultamos el input de texto manual
+                                        if (inpPrice) inpPrice.classList.add('d-none');
 
-                                        const priceDropdown = document.createElement('div');
-                                        priceDropdown.className = 'price-ml-dropdown shadow-sm border rounded bg-white';
-                                        priceDropdown.style.cssText = 'position: absolute; top: 100%; left: 0; right: 0; z-index: 1050; display: none; overflow: hidden; margin-top: 2px;';
+                                        // Creamos el selector nativo
+                                        const mlSelect = document.createElement('select');
+                                        mlSelect.className = 'form-select form-select-sm border-0 bg-light price-select-ml';
+                                        mlSelect.style.fontSize = '12px';
                                         
-                                        const formatter = (num) => Number(num || 0).toLocaleString('es-CO');
+                                        const formatter = (num) => Number(Math.round(num || 0)).toLocaleString('es-CO');
                                         
-                                        priceDropdown.innerHTML = `
-                                            <div class="px-2 py-1 text-muted" style="font-size: 10px; font-weight: 700; background: #f8fafc; text-transform: uppercase;">Sugeridos ML</div>
-                                            <div class="price-option dropdown-item py-2 px-2" style="cursor: pointer; font-size: 12px; transition: background 0.2s;" data-val="${precioReal}" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='transparent'">Base / Lista: <strong>$${formatter(precioReal)}</strong></div>
-                                            <div class="price-option dropdown-item py-2 px-2 text-primary" style="cursor: pointer; font-size: 12px; transition: background 0.2s;" data-val="${mlInfo.precio_promedio}" onmouseover="this.style.background='#f0f9ff'" onmouseout="this.style.background='transparent'">Promedio (Últimas 5): <strong>$${formatter(mlInfo.precio_promedio)}</strong></div>
-                                            <div class="price-option dropdown-item py-2 px-2 text-success" style="cursor: pointer; font-size: 12px; transition: background 0.2s;" data-val="${mlInfo.precio_maximo}" onmouseover="this.style.background='#f0fdf4'" onmouseout="this.style.background='transparent'">Máximo ML: <strong>$${formatter(mlInfo.precio_maximo)}</strong></div>
-                                            <div class="price-option dropdown-item py-2 px-2 text-danger" style="cursor: pointer; font-size: 12px; border-top: 1px solid #f1f5f9; transition: background 0.2s;" data-val="${mlInfo.precio_minimo}" onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='transparent'">Mínimo ML: <strong>$${formatter(mlInfo.precio_minimo)}</strong></div>
+                                        mlSelect.innerHTML = `
+                                            <option value="${precioReal}">Base: $${formatter(precioReal)}</option>
+                                            <option value="${mlInfo.precio_promedio}">Prom: $${formatter(mlInfo.precio_promedio)}</option>
+                                            <option value="${mlInfo.precio_maximo}">Máx: $${formatter(mlInfo.precio_maximo)}</option>
+                                            <option value="${mlInfo.precio_minimo}">Mín: $${formatter(mlInfo.precio_minimo)}</option>
                                         `;
                                         
-                                        inpPrice.parentNode.appendChild(priceDropdown);
+                                        inpPrice.parentNode.appendChild(mlSelect);
 
-                                        priceDropdown.querySelectorAll('.price-option').forEach(opt => {
-                                            opt.addEventListener('mousedown', (e) => {
-                                                e.preventDefault(); 
-                                                inpPrice.value = Number(opt.dataset.val).toLocaleString('es-CO', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-                                                priceDropdown.style.display = 'none';
-                                                inpPrice.dispatchEvent(new Event('input', { bubbles: true })); 
-                                            });
+                                        // Evento Change para disparar el motor matemático
+                                        mlSelect.addEventListener('change', (e) => {
+                                            inpPrice.value = Number(e.target.value).toLocaleString('es-CO', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                                            inpPrice.dispatchEvent(new Event('input', { bubbles: true }));
                                         });
-
-                                        if (!inpPrice.dataset.mlEventsBound) {
-                                            inpPrice.addEventListener('focus', () => {
-                                                const activeDrop = tr.querySelector('.price-ml-dropdown');
-                                                if (activeDrop) activeDrop.style.display = 'block';
-                                            });
-                                            inpPrice.addEventListener('blur', () => {
-                                                const activeDrop = tr.querySelector('.price-ml-dropdown');
-                                                if (activeDrop) setTimeout(() => activeDrop.style.display = 'none', 150);
-                                            });
-                                            inpPrice.dataset.mlEventsBound = 'true';
-                                        }
                                     }
                                 }
                             } catch (err) {
