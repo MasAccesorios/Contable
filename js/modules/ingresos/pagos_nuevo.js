@@ -25,24 +25,30 @@ export default {
 
     async loadData(element) {
         try {
-            const cliente = await DB.get('contactos', this.clienteId);
             const cuentas = await DB.getAll('cuentas_bancarias') || [];
+            const contactos = await DB.getAll('contactos') || [];
+            let cliente = null;
+            let facturasPendientesRPC = [];
+
+            if (this.clienteId) {
+                cliente = await DB.get('contactos', this.clienteId);
+                // Cargar facturas del cliente usando RPC
+                const { data, error } = await supabase.rpc('get_cartera_con_saldos', { 
+                    p_tipo_cartera: 'cxc',
+                    p_contacto_id: String(this.clienteId)
+                });
+                if (error) console.error("Error fetching cartera para pagos:", error);
+                facturasPendientesRPC = data || [];
+            }
             
-            // Cargar facturas del cliente usando RPC
-            const { data: facturasPendientesRPC, error } = await supabase.rpc('get_cartera_con_saldos', { 
-                p_tipo_cartera: 'cxc',
-                p_contacto_id: String(this.clienteId)
-            });
-            if (error) console.error("Error fetching cartera para pagos:", error);
-            
-            this.facturasData = (facturasPendientesRPC || [])
+            this.facturasData = facturasPendientesRPC
                 .map(f => ({
                     ...f, 
                     totalAbonado: f.total_pagado 
                 }))
                 .sort((a, b) => Number(a.numero) - Number(b.numero));
 
-            if (this.facturasData.length === 0) {
+            if (this.clienteId && this.facturasData.length === 0) {
                 element.innerHTML = `
                     <div class="py-5 px-4 text-center">
                         <div class="bg-white p-5 shadow-sm rounded border">
@@ -57,7 +63,7 @@ export default {
 
             this.deudaTotal = this.facturasData.reduce((sum, f) => sum + f.saldo, 0);
 
-            this.renderUI(element, cliente, cuentas);
+            this.renderUI(element, cliente, contactos, cuentas);
             this.attachEvents(element);
 
         } catch (error) {
@@ -66,7 +72,7 @@ export default {
         }
     },
 
-    renderUI(element, cliente, cuentas) {
+    renderUI(element, cliente, contactos, cuentas) {
         const cuentasOptions = cuentas.map(c => `<option value="${c.id}">${c.nombre} (${c.tipo})</option>`).join('');
         const facturasRows = this.facturasData.map(f => `
             <tr>
@@ -102,7 +108,12 @@ export default {
                         <div class="card border-0 shadow-sm rounded-4 mb-4">
                             <div class="card-body p-4 bg-light rounded-4">
                                 <h6 class="text-uppercase text-muted fw-bold mb-1" style="font-size: 12px;">Cliente</h6>
-                                <h4 class="fw-bold text-dark mb-3">${cliente ? cliente.nombre : 'Cliente Desconocido'}</h4>
+                                ${cliente ? `<h4 class="fw-bold text-dark mb-3">${cliente.nombre}</h4>` : `
+                                <select id="pago-cliente-select" class="form-select border-2 bg-white mb-3 shadow-sm">
+                                    <option value="">Seleccione un cliente...</option>
+                                    ${contactos.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('')}
+                                </select>
+                                `}
                                 <div class="d-flex justify-content-between border-top pt-3">
                                     <span class="text-muted">Deuda Total:</span>
                                     <span class="fw-bold text-danger fs-5">${this.formatCurrency(this.deudaTotal)}</span>
@@ -184,6 +195,18 @@ export default {
     },
 
     attachEvents(element) {
+        const selectCliente = element.querySelector('#pago-cliente-select');
+        if (selectCliente) {
+            selectCliente.addEventListener('change', (e) => {
+                if (e.target.value) {
+                    sessionStorage.setItem('clienteId', e.target.value);
+                    this.clienteId = e.target.value;
+                    element.innerHTML = this.renderLoading();
+                    this.loadData(element);
+                }
+            });
+        }
+
         const inputs = element.querySelectorAll('.monto-abono');
         const display = element.querySelector('#total-recibir-display');
         const btnRegistrar = element.querySelector('#btn-registrar');

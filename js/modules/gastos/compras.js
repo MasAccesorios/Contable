@@ -93,6 +93,9 @@ export const ComprasModule = {
                             </p>
                         </div>
                         <div class="d-flex gap-2">
+                            <a href="#" onclick="event.preventDefault(); window.history.length > 2 ? window.history.back() : window.location.hash = '#/dashboard';" class="btn btn-light bg-white border me-2" style="font-weight: var(--weight-medium); font-size: 14px; color: var(--text-body);">
+                                <i class="bi bi-arrow-left me-1"></i> Volver
+                            </a>
                             <button id="btn-refresh-list" class="btn btn-light bg-white border me-2" style="font-weight: var(--weight-medium); font-size: 14px; color: var(--text-body);">
                                 <i class="bi bi-arrow-clockwise me-1"></i> Actualizar
                             </button>
