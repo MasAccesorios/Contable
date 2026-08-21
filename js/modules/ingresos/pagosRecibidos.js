@@ -538,6 +538,13 @@ export const PagosRecibidosModule = {
     },
 
     bindStaticEvents() {
+        const btnNuevoPago = this.element.querySelector('#btn-nuevo-pago');
+        if (btnNuevoPago) {
+            btnNuevoPago.addEventListener('click', () => {
+                window.location.hash = '#/ingresos/pagos/nuevo';
+            });
+        }
+
         const inputSearch = this.element.querySelector('#search-pagos');
         const clearBtn = this.element.querySelector('#clearSearchBtn');
         let searchTimeout;

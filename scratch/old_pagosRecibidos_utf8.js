@@ -1,10 +1,9 @@
-
-import { supabase } from '../../core/supabase.js';
+﻿import { supabase } from '../../core/supabase.js';
 import { CoreActions } from '../../shared/crud.js';
 import { AbonoModal } from '../../shared/abonoModal.js';
 import { anularTransaccion } from '../../shared/transaccionesUtils.js';
 
-export const PagosRealizadosModule = {
+export const PagosRecibidosModule = {
     state: {
         view: 'lista',
         currentComprobanteData: null,
@@ -24,10 +23,10 @@ export const PagosRealizadosModule = {
         this.renderList();
         await this.cargarPagos();
     },
-
+    
     async calcularKPIs() {
         try {
-            const { data, error } = await supabase.rpc('get_pagos_kpis', { p_tipo: 'out' });
+            const { data, error } = await supabase.rpc('get_pagos_kpis', { p_tipo: 'in' });
             if (!error && data) {
                 this.state.kpis = { total: parseFloat(data.total) || 0 };
             }
@@ -35,13 +34,13 @@ export const PagosRealizadosModule = {
             console.error('Error calculando KPIs:', e);
         }
     },
-
+    
     async mostrarDetalle(id, mode = 'preview') {
         if (mode === 'print' || mode === 'vista-previa') {
             const { data: t } = await supabase.from('pagos_ingresos').select('*, contactos(*), cuentas_bancarias(*), facturas(*, contactos(*))').eq('id', id).single();
             if (t) {
                 const { PrintManager } = await import('../../shared/crud.js');
-                PrintManager._renderPreviewShell(this.getComprobanteHTML(t, true), { mode: mode === 'vista-previa' ? 'preview' : 'print', title: 'Comprobante de Egreso', fileName: `comprobante_egreso_${t.numero || t.id}.png`, printClass: 'formato-media-carta' });
+                PrintManager._renderPreviewShell(this.getComprobanteHTML(t, true), { mode: mode === 'vista-previa' ? 'preview' : 'print', title: 'Comprobante de Ingreso', fileName: `comprobante_ingreso_${t.numero || t.id}.png`, printClass: 'formato-media-carta' });
             }
             return;
         }
@@ -69,7 +68,7 @@ export const PagosRealizadosModule = {
 
         try {
             const { data, error } = await supabase.rpc('get_pagos_lista', {
-                p_tipo: 'out',
+                p_tipo: 'in',
                 p_page: this.state.currentPage,
                 p_limit: this.state.itemsPerPage,
                 p_search: this.state.searchQuery
@@ -80,7 +79,7 @@ export const PagosRealizadosModule = {
             this.state.pagos = data || [];
             this.state.totalItems = this.state.pagos.length > 0 ? Number(this.state.pagos[0].total_count) : 0;
         } catch (error) {
-            console.error('Error cargando pagos realizados:', error);
+            console.error('Error cargando pagos recibidos:', error);
             CoreActions.showWarningModal('Error al cargar la lista de pagos: ' + (error.message || error));
         } finally {
             this.state.isLoading = false;
@@ -91,7 +90,7 @@ export const PagosRealizadosModule = {
     render() {
         const listContainer = this.element.querySelector('#pagos-list-container');
         const detailContainer = this.element.querySelector('#pagos-detail-container');
-
+        
         if (this.state.view === 'detalle' && this.state.currentComprobanteData) {
             if (listContainer) listContainer.style.display = 'none';
             if (detailContainer) {
@@ -108,7 +107,7 @@ export const PagosRealizadosModule = {
             }
         }
     },
-
+    
     getComprobanteHTML(t, isPrintMode = false) {
         return `
             <style>
@@ -156,9 +155,9 @@ export const PagosRealizadosModule = {
                 .mas-receipt-status-badge {
                     display: inline-block;
                     padding: 4px 10px;
-                    background-color: #fef2f2;
-                    color: #dc2626;
-                    border: 1px solid #fecaca;
+                    background-color: #ecfdf5;
+                    color: #059669;
+                    border: 1px solid #a7f3d0;
                     border-radius: 999px;
                     font-size: 11px;
                     font-weight: 600;
@@ -200,7 +199,7 @@ export const PagosRealizadosModule = {
                     align-items: baseline;
                     gap: 10px;
                     padding-top: 14px;
-                    border-top: 2px solid #dc2626;
+                    border-top: 2px solid #059669;
                 }
                 .mas-receipt-total-label {
                     font-size: 12px;
@@ -222,7 +221,7 @@ export const PagosRealizadosModule = {
                     transform: translate(-50%, -50%) rotate(-15deg);
                     font-size: 50px;
                     font-weight: 900;
-                    color: rgba(220, 38, 38, 0.04);
+                    color: rgba(5, 150, 105, 0.04);
                     text-transform: uppercase;
                     pointer-events: none;
                     white-space: nowrap;
@@ -232,17 +231,17 @@ export const PagosRealizadosModule = {
             <div class="mas-receipt-container" style="padding: 20px;">
                 <div class="mas-receipt-card">
                     <!-- Marca de agua opcional -->
-                    <div class="mas-receipt-stamp">PAGO REALIZADO</div>
+                    <div class="mas-receipt-stamp">PAGO RECIBIDO</div>
                     
                     <div class="mas-receipt-header d-flex justify-content-between align-items-center position-relative" style="z-index: 1;">
                         <div>
                             <img src="LogoMas.png" alt="MAS Accesorios" style="max-height: 40px; object-fit: contain;">
                         </div>
                         <div class="text-end">
-                            <h2 style="font-size: 20px; font-weight: 800; color: #0f172a; margin: 0 0 6px 0; letter-spacing: -0.5px;">COMPROBANTE DE EGRESO</h2>
+                            <h2 style="font-size: 20px; font-weight: 800; color: #0f172a; margin: 0 0 6px 0; letter-spacing: -0.5px;">RECIBO DE CAJA</h2>
                             <div class="d-flex align-items-center justify-content-end gap-3">
-                                <span style="font-size: 13px; color: #64748b; font-weight: 500;">Nº <span style="color: #0f172a; font-weight: 700;">${t.numero || t.id}</span></span>
-                                <span class="mas-receipt-status-badge">Pagado</span>
+                                <span style="font-size: 13px; color: #64748b; font-weight: 500;">N潞 <span style="color: #0f172a; font-weight: 700;">${t.numero || t.id}</span></span>
+                                <span class="mas-receipt-status-badge">Recibido</span>
                             </div>
                         </div>
                     </div>
@@ -250,8 +249,8 @@ export const PagosRealizadosModule = {
                     <div class="mas-receipt-body position-relative" style="z-index: 1;">
                         <div class="row mb-3 align-items-start">
                             <div class="col-sm-6 mb-2 mb-sm-0">
-                                <div class="mas-receipt-info-label">Pagado a</div>
-                                <div class="mas-receipt-info-value" title="${t.contactos?.nombre || t.facturas?.contactos?.nombre || 'Proveedor / Tercero'}" style="font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${t.contactos?.nombre || t.facturas?.contactos?.nombre || 'Proveedor / Tercero'}</div>
+                                <div class="mas-receipt-info-label">Recibido de</div>
+                                <div class="mas-receipt-info-value" title="${t.contactos?.nombre || t.facturas?.contactos?.nombre || 'Cliente Contado'}" style="font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${t.contactos?.nombre || t.facturas?.contactos?.nombre || 'Cliente Contado'}</div>
                                 ${(t.contactos?.identificacion || t.facturas?.contactos?.identificacion) ? `<div style="font-size: 12px; color: #64748b; margin-top: 2px;">NIT/CC: ${t.contactos?.identificacion || t.facturas?.contactos?.identificacion}</div>` : ''}
                             </div>
                             <div class="col-sm-6 text-sm-end">
@@ -261,7 +260,7 @@ export const PagosRealizadosModule = {
                                         <div class="mas-receipt-info-value">${t.fecha}</div>
                                     </div>
                                     <div class="col-6 col-sm-12">
-                                        <div class="mas-receipt-info-label">Pagado desde</div>
+                                        <div class="mas-receipt-info-label">Ingresado a</div>
                                         <div class="mas-receipt-info-value d-flex align-items-center justify-content-sm-end gap-2">
                                             <i class="bi bi-bank" style="color: #94a3b8;"></i>
                                             ${t.cuentas_bancarias?.nombre || 'Efectivo / Caja'}
@@ -274,7 +273,7 @@ export const PagosRealizadosModule = {
                         <table class="table mas-receipt-table table-borderless mb-0 w-100">
                             <thead>
                                 <tr>
-                                    <th class="text-start" style="width: 50%;">Descripción del pago</th>
+                                    <th class="text-start" style="width: 50%;">Descripci贸n del pago</th>
                                     <th class="text-center" style="width: 25%;">Referencia</th>
                                     <th class="text-end" style="width: 25%;">Valor</th>
                                 </tr>
@@ -285,9 +284,9 @@ export const PagosRealizadosModule = {
                                         <div style="font-weight: 600; color: #0f172a;">${t.categoria || 'Abono / Pago de factura'}</div>
                                     </td>
                                     <td class="text-center">
-                                        ${t.factura_id ?
-                `<span style="background: #f1f5f9; padding: 2px 6px; border-radius: 6px; font-size: 11px; font-weight: 600; color: #475569;"># ${t.facturas?.numero || t.factura_id}</span>`
-                : '<span style="color: #94a3b8; font-size: 12px;">N/A</span>'}
+                                        ${t.factura_id ? 
+                                            `<span style="background: #f1f5f9; padding: 2px 6px; border-radius: 6px; font-size: 11px; font-weight: 600; color: #475569;"># ${t.facturas?.numero || t.factura_id}</span>` 
+                                            : '<span style="color: #94a3b8; font-size: 12px;">N/A</span>'}
                                     </td>
                                     <td class="text-end" style="font-weight: 600; color: #0f172a;">
                                         $${Number(t.monto).toLocaleString('es-CO')}
@@ -303,11 +302,11 @@ export const PagosRealizadosModule = {
                             ${t.observaciones ? t.observaciones : 'Sin notas adicionales.'}
                         </p>
                         <div class="mas-receipt-total-row">
-                            <span class="mas-receipt-total-label">Total Pagado</span>
+                            <span class="mas-receipt-total-label">Total Recibido</span>
                             <span class="mas-receipt-total-amount">$${Number(t.monto).toLocaleString('es-CO')}</span>
                         </div>
                         
-                        <!-- Sección de firmas para impresión -->
+                        <!-- Secci贸n de firmas para impresi贸n -->
                         <div class="mt-2 pt-2 border-top" style="display: ${isPrintMode ? 'flex' : 'none'}; justify-content: space-between; border-color: #cbd5e1 !important;">
                             <div style="width: 45%; text-align: center;">
                                 <div style="border-bottom: 1px solid #94a3b8; height: 20px; margin-bottom: 4px;"></div>
@@ -315,36 +314,11 @@ export const PagosRealizadosModule = {
                             </div>
                             <div style="width: 45%; text-align: center;">
                                 <div style="border-bottom: 1px solid #94a3b8; height: 20px; margin-bottom: 4px;"></div>
-                                <div style="font-size: 10px; color: #64748b; font-weight: 500; text-transform: uppercase;">Firma de quien recibe</div>
+                                <div style="font-size: 10px; color: #64748b; font-weight: 500; text-transform: uppercase;">Firma de quien entrega</div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
-        `;
-    },
-
-    renderComprobanteWrapper() {
-        const t = this.state.currentComprobanteData;
-        this.element.innerHTML = `
-            <div class="py-4 px-4" style="font-family: 'Inter', sans-serif; background-color: #f8f9fa; min-height: 100vh;">
-                <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom" style="max-width: 750px; margin: 0 auto;">
-                    <button class="btn btn-link text-decoration-none text-muted p-0 d-flex align-items-center gap-2 fw-medium" id="btn-volver-pagos">
-                        <i class="bi bi-arrow-left"></i> Volver a Pagos Realizados
-                    </button>
-                    <div class="d-flex gap-2">
-                        <button class="btn btn-outline-info text-info border-info bg-info bg-opacity-10 fw-medium px-4" id="btn-imprimir-comprobante" data-id="${t.id}">
-                            <i class="bi bi-printer me-2"></i> Imprimir
-                        </button>
-                        <button class="btn fw-medium px-4 text-white" style="background-color: #1877f2; border-color: #1877f2;" id="btn-editar-comprobante" data-id="${t.id}">
-                            <i class="bi bi-pencil me-2"></i> Editar
-                        </button>
-                    </div>
-                </div>
-                <div class="mb-4" style="max-width: 750px; margin: 0 auto;">
-                    <h2 class="h3 fw-bold m-0" style="color: #0f172a;">Pago Realizado</h2>
-                </div>
-                ${this.getComprobanteHTML(t)}
             </div>
         `;
     },
@@ -355,7 +329,7 @@ export const PagosRealizadosModule = {
             <div class="py-4 px-4" style="font-family: 'Inter', sans-serif; background-color: #f8f9fa; min-height: 100vh;">
                 <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom" style="max-width: 750px; margin: 0 auto;">
                     <button class="btn btn-link text-decoration-none text-muted p-0 d-flex align-items-center gap-2 fw-medium" id="btn-volver-pagos">
-                        <i class="bi bi-arrow-left"></i> Volver a Pagos Realizados
+                        <i class="bi bi-arrow-left"></i> Volver a Pagos Recibidos
                     </button>
                     <div class="d-flex gap-2">
                         <button class="btn btn-outline-secondary text-secondary border-secondary bg-secondary bg-opacity-10 fw-medium px-4" id="btn-vista-previa-comprobante" data-id="${t.id}">
@@ -370,7 +344,7 @@ export const PagosRealizadosModule = {
                     </div>
                 </div>
                 <div class="mb-4" style="max-width: 750px; margin: 0 auto;">
-                    <h2 class="h3 fw-bold m-0" style="color: #0f172a;">Pago Realizado</h2>
+                    <h2 class="h3 fw-bold m-0" style="color: #0f172a;">Pago Recibido</h2>
                 </div>
                 ${this.getComprobanteHTML(t)}
             </div>
@@ -380,76 +354,51 @@ export const PagosRealizadosModule = {
 
     renderList() {
         const formatMoney = val => '$ ' + parseFloat(val || 0).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        
         this.element.innerHTML = `
-            <div class="dash-layout p-4" id="pagos-list-container" style="max-width: 1100px; margin: 0 auto;">
-                <!-- TOP BAR -->
+            <div class="dash-layout p-4" id="pagos-list-container">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <div>
-                        <h2 class="h3 fw-bold mb-1" style="color: var(--text-main);">Pagos Realizados</h2>
-                        <p class="text-muted mb-0" style="font-size: 14px;">
-                            Historial de todos los egresos de dinero (tipo "Salida").
-                        </p>
-                    </div>
-                    <div class="d-flex gap-2">
-                        <a href="#" onclick="event.preventDefault(); window.history.length > 2 ? window.history.back() : window.location.hash = '#/dashboard';" class="btn btn-light bg-white border me-2" style="font-weight: var(--weight-medium); font-size: 14px; color: var(--text-body);">
-                            <i class="bi bi-arrow-left me-1"></i> Volver
-                        </a>
-                        <button id="btn-nuevo-egreso" class="btn btn-primary-action">
-                            <i class="bi bi-plus-lg me-1"></i> Registrar Egreso
-                        </button>
+                        <h2 class="h3 fw-bold mb-1 text-dark">Pagos Recibidos</h2>
+                        <p class="text-muted small mb-0">Historial de todos los ingresos de dinero (tipo "Entrada").</p>
                     </div>
                 </div>
 
-                <!-- KPI CARDS PAGOS REALIZADOS -->
+                <!-- KPI CARDS PAGOS RECIBIDOS -->
                 <div class="row g-3 mb-4">
                     <div class="col-12 col-sm-6 col-lg-4">
                         <div class="ds-kpi-card">
-                            <span class="ds-kpi-label">Total Egresos (Este mes)</span>
-                            <div id="kpi-total" class="ds-kpi-value">$ ${formatMoney(this.state.kpis?.total || 0).replace('$ ', '')}</div>
-                        </div>
-                    </div>
-                    <div class="col-12 col-sm-6 col-lg-4">
-                        <div class="ds-kpi-card">
-                            <span class="ds-kpi-label">Mes Anterior</span>
-                            <div class="ds-kpi-value text-muted">$ 0.00</div>
-                        </div>
-                    </div>
-                    <div class="col-12 col-sm-6 col-lg-4">
-                        <div class="ds-kpi-card">
-                            <span class="ds-kpi-label">Transacciones (Mes)</span>
-                            <div class="ds-kpi-value text-muted">0</div>
+                            <span class="ds-kpi-label">Total Recibido (este mes)</span>
+                            <div class="ds-kpi-value">$ ${formatMoney(this.state.kpis?.total || 0).replace('$ ', '')}</div>
                         </div>
                     </div>
                 </div>
 
-                <!-- DATA TABLE CARD -->
-                <div class="ds-table-container mb-4">
-                    <!-- FILTERS -->
-                    <div class="card-header bg-white border-bottom p-3 d-flex gap-3 align-items-center">
-                        <div class="ds-search-container" style="width: 250px;">
-                            <i class="bi bi-search ds-search-icon"></i>
-                            <input type="text" class="ds-search-input" id="search-pagos" autocomplete="off" placeholder="Buscar por número, proveedor..." value="${this.state.searchQuery}">
+                <div class="ds-table-container">
+                    <div class="card-body p-0">
+                        <div class="card-header bg-white border-bottom p-3 d-flex gap-3 align-items-center mb-3">
+                            <div class="ds-search-container" style="width: 250px;">
+                                <i class="bi bi-search ds-search-icon"></i>
+                                <input type="text" class="ds-search-input" id="search-pagos" autocomplete="off" placeholder="Buscar por n煤mero o cliente..." value="${this.state.searchQuery}">
+                            </div>
                         </div>
-                    </div>
 
-                    <!-- GRID -->
-                    <div id="grid-container">
-                        <!-- La grilla se inyecta aquí -->
-                    </div>
-                </div>
+                        <div class="view-container p-4 pt-0" id="grid-container" style="position: relative; min-height: 200px;">
+                            <!-- La grilla se inyecta aqu铆 -->
+                        </div>
                     </div>
                 </div>
             </div>
             <div id="pagos-detail-container" style="display: none;"></div>
         `;
-
+        
         this.bindStaticEvents();
     },
 
     renderGrid() {
         const gridContainer = this.element.querySelector('#grid-container');
         if (!gridContainer) return;
-
+        
         const formatMoney = val => '$ ' + parseFloat(val || 0).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         const formatFecha = dateStr => {
             if (!dateStr) return '---';
@@ -467,112 +416,100 @@ export const PagosRealizadosModule = {
                     <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Cargando...</span></div>
                 </div>
             ` : ''}
-            <div class="table-responsive">
-                <table class="table table-borderless align-middle mb-0">
-                    <thead class="ds-table-header">
-                        <tr>
-                            <th class="py-3 fw-normal ms-2" style="white-space: nowrap;">Número</th>
-                            <th class="py-3 fw-normal" style="white-space: nowrap;">Proveedor</th>
-                            <th class="py-3 fw-normal" style="white-space: nowrap;">Detalles</th>
-                            <th class="py-3 fw-normal" style="white-space: nowrap;">Creación</th>
-                            <th class="py-3 fw-normal" style="white-space: nowrap;">Cuenta bancaria</th>
-                            <th class="py-3 fw-normal text-center" style="white-space: nowrap;">Estado</th>
-                            <th class="py-3 fw-normal text-end" style="white-space: nowrap;">Monto</th>
-                            <th class="py-3 fw-normal" style="width: 50px;"></th>
-                        </tr>
-                    </thead>
-                    <tbody>
+            <table class="table table-borderless align-middle mb-0">
+                <thead class="ds-table-header">
+                    <tr>
+                        <th class="ps-4 py-2" style="white-space: nowrap;">N煤mero</th>
+                        <th class="py-2" style="white-space: nowrap;">Cliente</th>
+                        <th class="py-2" style="white-space: nowrap;">Detalles</th>
+                        <th class="py-2" style="white-space: nowrap;">Creaci贸n</th>
+                        <th class="py-2" style="white-space: nowrap;">Cuenta bancaria</th>
+                        <th class="py-2" style="white-space: nowrap;">Estado</th>
+                        <th class="py-2 text-end pe-4" style="white-space: nowrap;">Monto</th>
+                        <th class="py-2" style="width: 50px;"></th>
+                    </tr>
+                </thead>
+                <tbody style="font-size: 13px; color: #2c3e50;">
                     ${this.state.pagos.length > 0 ? this.state.pagos.map(pago => {
-            let detallesHtml = pago.categoria || 'Sin detalle';
-            if (pago.factura_id) {
-                detallesHtml = `<a href="#/gastos/compras/ver/${pago.factura_id}" class="text-decoration-none text-primary" onclick="event.stopPropagation()">Compra #${pago.factura_numero || pago.factura_id}</a>`;
-            }
-            
-            let clienteNombre = pago.cliente;
-            if (!clienteNombre) {
-                const obs = String(pago.observaciones || '').trim();
-                if (obs.includes(' — ')) {
-                    clienteNombre = obs.split(' — ').pop().trim();
-                } else if (obs.length > 0) {
-                    clienteNombre = obs.length > 50 ? obs.substring(0, 47) + '...' : obs;
-                } else {
-                    clienteNombre = pago.referencia || 'Sin proveedor';
-                }
-            }
-            
-            return `
-                        <tr style="cursor: pointer; border-bottom: 1px solid var(--border-color);" class="row-pago" data-id="${pago.id}">
-                            <td class="py-3 fw-medium ms-2" style="color: var(--text-main);">${pago.numero}</td>
-                            <td class="py-3 text-truncate" style="color: var(--text-body); max-width: 200px;">${clienteNombre}</td>
-                            <td class="py-3 text-truncate" style="color: var(--text-body); max-width: 200px;">${detallesHtml}</td>
-                            <td class="py-3" style="color: var(--text-muted);">${formatFecha(pago.fecha)}</td>
-                            <td class="py-3 text-truncate" style="color: var(--text-body); max-width: 150px;">${pago.cuenta_bancaria}</td>
-                            <td class="py-3 text-center">
-                                ${pago.estado_transaccion === 'anulado'
-                ? `<span class="badge bg-secondary text-secondary bg-opacity-10 border border-secondary-subtle rounded-pill fw-medium px-2 py-1">Anulado</span>`
-                : pago.estado_conciliacion
-                    ? `<span class="badge bg-success text-success bg-opacity-10 border border-success-subtle rounded-pill fw-medium px-2 py-1">Conciliado</span>`
-                    : `<span class="badge bg-warning text-warning-emphasis bg-opacity-10 border border-warning-subtle rounded-pill fw-medium px-2 py-1">No conciliado</span>`
-            }
-                            </td>
-                            <td class="py-3 text-end pe-3 ${pago.estado_transaccion === 'anulado' ? 'text-muted text-decoration-line-through opacity-50' : ''}" style="color: var(--text-main); font-weight: var(--weight-semibold);">
-                                ${formatMoney(pago.monto)}
-                            </td>
-                            <td class="py-3 text-end pe-3 position-relative">
-                                <button class="btn btn-sm btn-link text-muted p-0 border-0 btn-menu-row" data-id="${pago.id}" data-conciliado="${pago.estado_conciliacion}" data-factura="${pago.factura_id || ''}" data-anulado="${pago.estado_transaccion === 'anulado'}" style="text-decoration: none; font-size: 16px;"><i class="bi bi-three-dots-vertical"></i></button>
-                            </td>
-                        </tr>
+                        let detallesHtml = pago.categoria || 'Sin detalle';
+                        if (pago.factura_id) {
+                            detallesHtml = `<a href="#/ingresos/facturas/ver/${pago.factura_id}" class="text-decoration-none text-primary" onclick="event.stopPropagation()">Factura #${pago.factura_numero || pago.factura_id}</a>`;
+                        }
+                        
+                        let clienteNombre = pago.cliente;
+                        if (!clienteNombre) {
+                            const obs = String(pago.observaciones || '').trim();
+                            if (obs.includes(' 鈥?')) {
+                                clienteNombre = obs.split(' 鈥?').pop().trim();
+                            } else if (obs.length > 0) {
+                                clienteNombre = obs.length > 50 ? obs.substring(0, 47) + '...' : obs;
+                            } else {
+                                clienteNombre = pago.referencia || 'Sin cliente';
+                            }
+                        }
+                        
+                        return `
+                            <tr style="cursor: pointer;" class="row-pago" data-id="${pago.id}">
+                                <td class="ps-4 py-1 fw-bold text-dark">${pago.numero}</td>
+                                <td class="py-1 text-dark text-truncate" style="max-width: 200px;">${clienteNombre}</td>
+                                <td class="py-1 text-truncate" style="max-width: 200px;">${detallesHtml}</td>
+                                <td class="py-1 text-muted">${formatFecha(pago.fecha)}</td>
+                                <td class="py-1 text-dark text-truncate" style="max-width: 150px;">${pago.cuenta_bancaria}</td>
+                                <td class="py-1">
+                                    ${pago.estado_transaccion === 'anulado' 
+                                        ? `<span class="badge bg-secondary text-secondary bg-opacity-10 border border-secondary-subtle rounded-pill fw-medium" style="font-size: 10px; padding: 3px 8px;">Anulado</span>`
+                                        : pago.estado_conciliacion
+                                            ? `<span class="badge bg-success text-success bg-opacity-10 border border-success-subtle rounded-pill fw-medium" style="font-size: 10px; padding: 3px 8px;">Conciliado</span>`
+                                            : `<span class="badge bg-warning text-warning-emphasis bg-opacity-10 border border-warning-subtle rounded-pill fw-medium" style="font-size: 10px; padding: 3px 8px;">No conciliado</span>`
+                                    }
+                                </td>
+                                <td class="py-1 text-end fw-bold pe-4 ${pago.estado_transaccion === 'anulado' ? 'text-muted text-decoration-line-through opacity-50' : 'text-dark'}">
+                                    ${formatMoney(pago.monto)}
+                                </td>
+                                <td class="py-1 pe-3 position-relative">
+                                    <button class="btn btn-sm btn-link text-secondary p-0 border-0 btn-menu-row" data-id="${pago.id}" data-conciliado="${pago.estado_conciliacion}" data-factura="${pago.factura_id || ''}" data-anulado="${pago.estado_transaccion === 'anulado'}" style="text-decoration: none; font-size: 16px;">鈰?/button>
+                                </td>
+                            </tr>
                         `;
-        }).join('') : `
+                    }).join('') : `
                         <tr>
                             <td colspan="8" class="text-center text-muted py-5">
                                 <div class="mb-3"><i class="bi bi-inbox fs-1 text-secondary opacity-50"></i></div>
-                                <p class="mb-0">No se encontraron pagos realizados.</p>
+                                <p class="mb-0">No se encontraron pagos recibidos.</p>
                             </td>
                         </tr>
                     `}
                 </tbody>
             </table>
-            </div>
             
-            <!-- PAGINADOR SERVER-SIDE -->
-            <div class="card-footer bg-white border-top p-3 d-flex justify-content-between align-items-center" style="border-radius: 0 0 8px 8px;">
-                <div class="d-flex align-items-center gap-3" style="font-size: 13px; color: var(--text-body);">
-                    <div class="d-flex align-items-center gap-2">
-                        <span>Resultados por página:</span>
-                        <select class="form-select form-select-sm text-muted" id="select-limit" style="width: 70px;">
-                            <option value="10" ${this.state.itemsPerPage===10?'selected':''}>10</option>
-                            <option value="20" ${this.state.itemsPerPage===20?'selected':''}>20</option>
-                            <option value="50" ${this.state.itemsPerPage===50?'selected':''}>50</option>
-                        </select>
+            <div class="d-flex justify-content-between align-items-center mt-3 text-muted small">
+                <div class="d-flex align-items-center gap-3">
+                    <span>P谩gina <span id="current-page">${this.state.currentPage}</span> de <span id="total-pages">${totalPages}</span></span>
+                    <div class="btn-group">
+                        <button class="btn btn-sm btn-light border text-muted" id="btn-prev" ${this.state.currentPage <= 1 ? 'disabled' : ''}><i class="bi bi-chevron-left"></i></button>
+                        <button class="btn btn-sm btn-light border text-muted" id="btn-next" ${this.state.currentPage >= totalPages ? 'disabled' : ''}><i class="bi bi-chevron-right"></i></button>
                     </div>
-                    <span class="text-muted border-start ps-3" id="showing-count">${this.state.totalItems > 0 ? `${startItem}-${endItem}` : '0'} de ${this.state.totalItems}</span>
                 </div>
-
-                <div class="d-flex align-items-center gap-2" style="font-size: 13px; color: var(--text-body);">
-                    <span>Página</span>
-                    <span id="current-page" class="fw-medium text-center" style="min-width: 20px;">${this.state.currentPage}</span>
-                    <span>de <span id="total-pages">${totalPages}</span></span>
-                    <div class="ms-2">
-                        <button class="btn btn-link text-muted p-0 me-1" id="btn-prev" ${this.state.currentPage <= 1 ? 'disabled' : ''}><i class="bi bi-chevron-left"></i></button>
-                        <button class="btn btn-link text-muted p-0" id="btn-next" ${this.state.currentPage >= totalPages ? 'disabled' : ''}><i class="bi bi-chevron-right"></i></button>
-                    </div>
+                <div class="d-flex align-items-center gap-3">
+                    <span class="d-flex align-items-center gap-2">
+                        Pagos por p谩gina:
+                        <select id="select-limit" class="form-select form-select-sm border-0 bg-transparent text-muted fw-bold" style="width: 60px; box-shadow: none; cursor: pointer;">
+                            <option value="10" ${this.state.itemsPerPage === 10 ? 'selected' : ''}>10</option>
+                            <option value="20" ${this.state.itemsPerPage === 20 ? 'selected' : ''}>20</option>
+                            <option value="50" ${this.state.itemsPerPage === 50 ? 'selected' : ''}>50</option>
+                        </select>
+                    </span>
+                    <span id="showing-count">${this.state.totalItems > 0 ? `${startItem}-${endItem} de ${this.state.totalItems}` : '0-0 de 0'}</span>
+                    <button id="btn-refresh" class="btn btn-sm btn-light border text-muted rounded-circle" style="width: 30px; height: 30px; padding: 0;"><i class="bi bi-arrow-clockwise"></i></button>
                 </div>
             </div>
         `;
-
+        
         gridContainer.innerHTML = tableHtml;
         this.bindDynamicEvents(gridContainer);
     },
 
     bindStaticEvents() {
-        const btnNuevoEgreso = this.element.querySelector('#btn-nuevo-egreso');
-        if (btnNuevoEgreso) {
-            btnNuevoEgreso.addEventListener('click', () => {
-                window.location.hash = '#/gastos/pagos/nuevo';
-            });
-        }
-
         const inputSearch = this.element.querySelector('#search-pagos');
         const clearBtn = this.element.querySelector('#clearSearchBtn');
         let searchTimeout;
@@ -608,7 +545,7 @@ export const PagosRealizadosModule = {
                 this.render();
             });
         }
-
+        
         const btnVistaPrevia = container.querySelector('#btn-vista-previa-comprobante');
         if (btnVistaPrevia) {
             btnVistaPrevia.addEventListener('click', (e) => {
@@ -616,7 +553,7 @@ export const PagosRealizadosModule = {
                 this.mostrarDetalle(id, 'vista-previa');
             });
         }
-
+        
         const btnImprimirComprobante = container.querySelector('#btn-imprimir-comprobante');
         if (btnImprimirComprobante) {
             btnImprimirComprobante.addEventListener('click', (e) => {
@@ -624,7 +561,7 @@ export const PagosRealizadosModule = {
                 this.mostrarDetalle(id, 'print');
             });
         }
-
+        
         const btnEditarComprobante = container.querySelector('#btn-editar-comprobante');
         if (btnEditarComprobante) {
             btnEditarComprobante.addEventListener('click', (e) => {
@@ -688,7 +625,7 @@ export const PagosRealizadosModule = {
                 }
             });
         }
-
+        
         const btnRefresh = gridContainer.querySelector('#btn-refresh');
         if (btnRefresh) {
             btnRefresh.addEventListener('click', () => {
@@ -714,9 +651,8 @@ export const PagosRealizadosModule = {
                 const id = btn.getAttribute('data-id');
                 const conciliado = btn.getAttribute('data-conciliado') === 'true';
                 const anulado = btn.getAttribute('data-anulado') === 'true';
-                const facturaId = btn.getAttribute('data-factura');
                 const rect = btn.getBoundingClientRect();
-
+                
                 const menu = document.createElement('div');
                 menu.className = 'dropdown-menu row-action-menu show shadow-sm border border-light-subtle';
                 menu.style.position = 'fixed';
@@ -726,7 +662,7 @@ export const PagosRealizadosModule = {
                 menu.style.minWidth = '140px';
                 menu.style.fontSize = '13px';
                 menu.style.borderRadius = '6px';
-
+                
                 menu.innerHTML = `
                     <a class="dropdown-item py-2 d-flex align-items-center gap-2 text-dark" href="#" id="action-ver-${id}">
                         <i class="bi bi-eye text-secondary"></i> Ver detalle
@@ -759,7 +695,7 @@ export const PagosRealizadosModule = {
                         this.mostrarDetalle(id, 'preview');
                     });
                 }
-
+                
                 const actionImprimir = document.getElementById(`action-imprimir-${id}`);
                 if (actionImprimir) {
                     actionImprimir.addEventListener('click', async (ev) => {
@@ -769,7 +705,7 @@ export const PagosRealizadosModule = {
                         this.mostrarDetalle(id, 'print');
                     });
                 }
-
+                
                 const actionEditar = document.getElementById(`action-editar-${id}`);
                 if (actionEditar) {
                     actionEditar.addEventListener('click', (ev) => {
@@ -777,7 +713,7 @@ export const PagosRealizadosModule = {
                         ev.stopPropagation();
                         window.cleanupFloatingElements();
                         import('../../shared/transaccionModal.js').then(m => {
-                            supabase.from('pagos_ingresos').select('*').eq('id', id).single().then(({ data }) => {
+                            supabase.from('pagos_ingresos').select('*').eq('id', id).single().then(({data}) => {
                                 if (data) {
                                     m.mostrarDetalleTransaccion(data, () => this.cargarPagos());
                                     setTimeout(() => {
@@ -796,13 +732,13 @@ export const PagosRealizadosModule = {
                         ev.preventDefault();
                         ev.stopPropagation();
                         window.cleanupFloatingElements();
-
-                        if (confirm('¿Estás seguro de anular este pago? Esta acción no se puede deshacer.')) {
-                            const { data: t } = await supabase.from('pagos_ingresos').select('*').eq('id', id).single();
+                        
+                        if (confirm('驴Est谩s seguro de anular este pago? Esta acci贸n no se puede deshacer.')) {
+                            const {data: t} = await supabase.from('pagos_ingresos').select('*').eq('id', id).single();
                             if (t) {
                                 try {
                                     await anularTransaccion(t);
-                                    CoreActions.showWarningModal('Pago anulado con éxito', 'success');
+                                    CoreActions.showWarningModal('Pago anulado con 茅xito', 'success');
                                     this.cargarPagos();
                                 } catch (err) {
                                     CoreActions.showWarningModal('Error al anular: ' + err.message);
@@ -811,28 +747,28 @@ export const PagosRealizadosModule = {
                         }
                     });
                 }
-
+                
                 const actionEliminar = document.getElementById(`action-eliminar-${id}`);
                 if (actionEliminar) {
                     actionEliminar.addEventListener('click', async (ev) => {
                         ev.preventDefault();
                         ev.stopPropagation();
                         window.cleanupFloatingElements();
-
-                        const { data: t } = await supabase.from('pagos_ingresos').select('*').eq('id', id).single();
+                        
+                        const {data: t} = await supabase.from('pagos_ingresos').select('*').eq('id', id).single();
                         if (t.factura_id) {
-                            CoreActions.showWarningModal('No se puede eliminar un pago asociado a una factura. Por favor, usa la opción "Anular" en su lugar para mantener la consistencia del saldo.');
+                            CoreActions.showWarningModal('No se puede eliminar un pago asociado a una factura. Por favor, usa la opci贸n "Anular" en su lugar para mantener la consistencia del saldo.');
                             return;
                         }
                         if (conciliado) {
-                            CoreActions.showWarningModal('No se puede eliminar un pago que ya ha sido conciliado. Usa la opción "Anular" en su lugar.');
+                            CoreActions.showWarningModal('No se puede eliminar un pago que ya ha sido conciliado. Usa la opci贸n "Anular" en su lugar.');
                             return;
                         }
-
-                        if (confirm('¿Estás seguro de ELIMINAR permanentemente este pago? Esta acción no se puede deshacer.')) {
+                        
+                        if (confirm('驴Est谩s seguro de ELIMINAR permanentemente este pago? Esta acci贸n no se puede deshacer.')) {
                             try {
                                 await supabase.from('pagos_ingresos').delete().eq('id', id);
-                                CoreActions.showWarningModal('Pago eliminado con éxito', 'success');
+                                CoreActions.showWarningModal('Pago eliminado con 茅xito', 'success');
                                 this.cargarPagos();
                             } catch (err) {
                                 CoreActions.showWarningModal('Error al eliminar: ' + err.message);
