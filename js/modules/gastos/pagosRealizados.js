@@ -381,17 +381,22 @@ export const PagosRealizadosModule = {
     renderList() {
         const formatMoney = val => '$ ' + parseFloat(val || 0).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         this.element.innerHTML = `
-            <div class="dash-layout p-4" id="pagos-list-container">
-                <div class="d-flex justify-content-between align-items-start mb-4">
-                    <div class="d-flex align-items-start gap-3">
-                        <a href="#/gastos" class="btn btn-link text-decoration-none text-muted p-0 mt-1"><i class="bi bi-arrow-left"></i> Volver</a>
-                        <div>
-                            <h2 class="h3 fw-bold mb-1 text-dark">Pagos Realizados</h2>
-                            <p class="text-muted small mb-0">Historial de todos los egresos de dinero (tipo "Salida").</p>
-                        </div>
-                    </div>
+            <div class="dash-layout p-4" id="pagos-list-container" style="max-width: 1100px; margin: 0 auto;">
+                <!-- TOP BAR -->
+                <div class="d-flex justify-content-between align-items-center mb-4">
                     <div>
-                        <button class="btn btn-primary-action" id="btn-nuevo-egreso"><i class="bi bi-plus-lg me-1"></i> Registrar Egreso</button>
+                        <h2 class="h3 fw-bold mb-1" style="color: var(--text-main);">Pagos Realizados</h2>
+                        <p class="text-muted mb-0" style="font-size: 14px;">
+                            Historial de todos los egresos de dinero (tipo "Salida").
+                        </p>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <a href="#/gastos" class="btn btn-light bg-white border me-2" style="font-weight: var(--weight-medium); font-size: 14px; color: var(--text-body);">
+                            <i class="bi bi-arrow-left me-1"></i> Volver a Gastos
+                        </a>
+                        <button id="btn-nuevo-egreso" class="btn btn-primary-action">
+                            <i class="bi bi-plus-lg me-1"></i> Registrar Egreso
+                        </button>
                     </div>
                 </div>
 
@@ -417,18 +422,21 @@ export const PagosRealizadosModule = {
                     </div>
                 </div>
 
-                <div class="ds-table-container">
-                    <div class="card-body p-0">
-                        <div class="card-header bg-white border-bottom p-3 d-flex gap-3 align-items-center mb-3">
-                            <div class="ds-search-container" style="width: 250px;">
-                                <i class="bi bi-search ds-search-icon"></i>
-                                <input type="text" class="ds-search-input" id="search-pagos" autocomplete="off" placeholder="Buscar por número, proveedor..." value="${this.state.searchQuery}">
-                            </div>
+                <!-- DATA TABLE CARD -->
+                <div class="ds-table-container mb-4">
+                    <!-- FILTERS -->
+                    <div class="card-header bg-white border-bottom p-3 d-flex gap-3 align-items-center">
+                        <div class="ds-search-container" style="width: 250px;">
+                            <i class="bi bi-search ds-search-icon"></i>
+                            <input type="text" class="ds-search-input" id="search-pagos" autocomplete="off" placeholder="Buscar por número, proveedor..." value="${this.state.searchQuery}">
                         </div>
+                    </div>
 
-                        <div class="view-container p-4 pt-0" id="grid-container" style="position: relative; min-height: 200px;">
-                            <!-- La grilla se inyecta aquí -->
-                        </div>
+                    <!-- GRID -->
+                    <div id="grid-container">
+                        <!-- La grilla se inyecta aquí -->
+                    </div>
+                </div>
                     </div>
                 </div>
             </div>
@@ -459,20 +467,21 @@ export const PagosRealizadosModule = {
                     <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Cargando...</span></div>
                 </div>
             ` : ''}
-            <table class="table table-borderless align-middle mb-0">
-                <thead class="ds-table-header">
-                    <tr>
-                        <th class="ps-4 py-2" style="white-space: nowrap;">Número</th>
-                        <th class="py-2" style="white-space: nowrap;">Proveedor</th>
-                        <th class="py-2" style="white-space: nowrap;">Detalles</th>
-                        <th class="py-2" style="white-space: nowrap;">Creación</th>
-                        <th class="py-2" style="white-space: nowrap;">Cuenta bancaria</th>
-                        <th class="py-2" style="white-space: nowrap;">Estado</th>
-                        <th class="py-2 text-end pe-4" style="white-space: nowrap;">Monto</th>
-                        <th class="py-2" style="width: 50px;"></th>
-                    </tr>
-                </thead>
-                <tbody style="font-size: 13px; color: #2c3e50;">
+            <div class="table-responsive">
+                <table class="table table-borderless align-middle mb-0">
+                    <thead class="ds-table-header">
+                        <tr>
+                            <th class="py-3 fw-normal ms-2" style="white-space: nowrap;">Número</th>
+                            <th class="py-3 fw-normal" style="white-space: nowrap;">Proveedor</th>
+                            <th class="py-3 fw-normal" style="white-space: nowrap;">Detalles</th>
+                            <th class="py-3 fw-normal" style="white-space: nowrap;">Creación</th>
+                            <th class="py-3 fw-normal" style="white-space: nowrap;">Cuenta bancaria</th>
+                            <th class="py-3 fw-normal text-center" style="white-space: nowrap;">Estado</th>
+                            <th class="py-3 fw-normal text-end" style="white-space: nowrap;">Monto</th>
+                            <th class="py-3 fw-normal" style="width: 50px;"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
                     ${this.state.pagos.length > 0 ? this.state.pagos.map(pago => {
             let detallesHtml = pago.categoria || 'Sin detalle';
             if (pago.factura_id) {
@@ -492,27 +501,27 @@ export const PagosRealizadosModule = {
             }
             
             return `
-                            <tr style="cursor: pointer;" class="row-pago" data-id="${pago.id}">
-                                <td class="ps-4 py-1 fw-bold text-dark">${pago.numero}</td>
-                                <td class="py-1 text-dark text-truncate" style="max-width: 200px;">${clienteNombre}</td>
-                                <td class="py-1 text-truncate" style="max-width: 200px;">${detallesHtml}</td>
-                                <td class="py-1 text-muted">${formatFecha(pago.fecha)}</td>
-                                <td class="py-1 text-dark text-truncate" style="max-width: 150px;">${pago.cuenta_bancaria}</td>
-                                <td class="py-1">
-                                    ${pago.estado_transaccion === 'anulado'
-                    ? `<span class="badge bg-secondary text-secondary bg-opacity-10 border border-secondary-subtle rounded-pill fw-medium" style="font-size: 10px; padding: 3px 8px;">Anulado</span>`
-                    : pago.estado_conciliacion
-                        ? `<span class="badge bg-success text-success bg-opacity-10 border border-success-subtle rounded-pill fw-medium" style="font-size: 10px; padding: 3px 8px;">Conciliado</span>`
-                        : `<span class="badge bg-warning text-warning-emphasis bg-opacity-10 border border-warning-subtle rounded-pill fw-medium" style="font-size: 10px; padding: 3px 8px;">No conciliado</span>`
-                }
-                                </td>
-                                <td class="py-1 text-end fw-bold pe-4 ${pago.estado_transaccion === 'anulado' ? 'text-muted text-decoration-line-through opacity-50' : 'text-danger'}">
-                                    ${formatMoney(pago.monto)}
-                                </td>
-                                <td class="py-1 pe-3 position-relative">
-                                    <button class="btn btn-sm btn-link text-secondary p-0 border-0 btn-menu-row" data-id="${pago.id}" data-conciliado="${pago.estado_conciliacion}" data-factura="${pago.factura_id || ''}" data-anulado="${pago.estado_transaccion === 'anulado'}" style="text-decoration: none; font-size: 16px;">⋮</button>
-                                </td>
-                            </tr>
+                        <tr style="cursor: pointer; border-bottom: 1px solid var(--border-color);" class="row-pago" data-id="${pago.id}">
+                            <td class="py-3 fw-medium ms-2" style="color: var(--text-main);">${pago.numero}</td>
+                            <td class="py-3 text-truncate" style="color: var(--text-body); max-width: 200px;">${clienteNombre}</td>
+                            <td class="py-3 text-truncate" style="color: var(--text-body); max-width: 200px;">${detallesHtml}</td>
+                            <td class="py-3" style="color: var(--text-muted);">${formatFecha(pago.fecha)}</td>
+                            <td class="py-3 text-truncate" style="color: var(--text-body); max-width: 150px;">${pago.cuenta_bancaria}</td>
+                            <td class="py-3 text-center">
+                                ${pago.estado_transaccion === 'anulado'
+                ? `<span class="badge bg-secondary text-secondary bg-opacity-10 border border-secondary-subtle rounded-pill fw-medium px-2 py-1">Anulado</span>`
+                : pago.estado_conciliacion
+                    ? `<span class="badge bg-success text-success bg-opacity-10 border border-success-subtle rounded-pill fw-medium px-2 py-1">Conciliado</span>`
+                    : `<span class="badge bg-warning text-warning-emphasis bg-opacity-10 border border-warning-subtle rounded-pill fw-medium px-2 py-1">No conciliado</span>`
+            }
+                            </td>
+                            <td class="py-3 text-end pe-3 ${pago.estado_transaccion === 'anulado' ? 'text-muted text-decoration-line-through opacity-50' : ''}" style="color: var(--text-main); font-weight: var(--weight-semibold);">
+                                ${formatMoney(pago.monto)}
+                            </td>
+                            <td class="py-3 text-end pe-3 position-relative">
+                                <button class="btn btn-sm btn-link text-muted p-0 border-0 btn-menu-row" data-id="${pago.id}" data-conciliado="${pago.estado_conciliacion}" data-factura="${pago.factura_id || ''}" data-anulado="${pago.estado_transaccion === 'anulado'}" style="text-decoration: none; font-size: 16px;"><i class="bi bi-three-dots-vertical"></i></button>
+                            </td>
+                        </tr>
                         `;
         }).join('') : `
                         <tr>
@@ -524,27 +533,30 @@ export const PagosRealizadosModule = {
                     `}
                 </tbody>
             </table>
+            </div>
             
             <!-- PAGINADOR SERVER-SIDE -->
-            <div class="d-flex justify-content-between align-items-center mt-3 text-muted small">
-                <div class="d-flex align-items-center gap-3">
-                    <span>Página <span id="current-page">${this.state.currentPage}</span> de <span id="total-pages">${totalPages}</span></span>
-                    <div class="btn-group">
-                        <button class="btn btn-sm btn-light border text-muted" id="btn-prev" ${this.state.currentPage <= 1 ? 'disabled' : ''}><i class="bi bi-chevron-left"></i></button>
-                        <button class="btn btn-sm btn-light border text-muted" id="btn-next" ${this.state.currentPage >= totalPages ? 'disabled' : ''}><i class="bi bi-chevron-right"></i></button>
-                    </div>
-                </div>
-                <div class="d-flex align-items-center gap-3">
-                    <span class="d-flex align-items-center gap-2">
-                        Pagos por página:
-                        <select id="select-limit" class="form-select form-select-sm border-0 bg-transparent text-muted fw-bold" style="width: 60px; box-shadow: none; cursor: pointer;">
-                            <option value="10" ${this.state.itemsPerPage === 10 ? 'selected' : ''}>10</option>
-                            <option value="20" ${this.state.itemsPerPage === 20 ? 'selected' : ''}>20</option>
-                            <option value="50" ${this.state.itemsPerPage === 50 ? 'selected' : ''}>50</option>
+            <div class="card-footer bg-white border-top p-3 d-flex justify-content-between align-items-center" style="border-radius: 0 0 8px 8px;">
+                <div class="d-flex align-items-center gap-3" style="font-size: 13px; color: var(--text-body);">
+                    <div class="d-flex align-items-center gap-2">
+                        <span>Resultados por página:</span>
+                        <select class="form-select form-select-sm text-muted" id="select-limit" style="width: 70px;">
+                            <option value="10" ${this.state.itemsPerPage===10?'selected':''}>10</option>
+                            <option value="20" ${this.state.itemsPerPage===20?'selected':''}>20</option>
+                            <option value="50" ${this.state.itemsPerPage===50?'selected':''}>50</option>
                         </select>
-                    </span>
-                    <span id="showing-count">${this.state.totalItems > 0 ? `${startItem}-${endItem} de ${this.state.totalItems}` : '0-0 de 0'}</span>
-                    <button id="btn-refresh" class="btn btn-sm btn-light border text-muted rounded-circle" style="width: 30px; height: 30px; padding: 0;"><i class="bi bi-arrow-clockwise"></i></button>
+                    </div>
+                    <span class="text-muted border-start ps-3" id="showing-count">${this.state.totalItems > 0 ? `${startItem}-${endItem}` : '0'} de ${this.state.totalItems}</span>
+                </div>
+
+                <div class="d-flex align-items-center gap-2" style="font-size: 13px; color: var(--text-body);">
+                    <span>Página</span>
+                    <span id="current-page" class="fw-medium text-center" style="min-width: 20px;">${this.state.currentPage}</span>
+                    <span>de <span id="total-pages">${totalPages}</span></span>
+                    <div class="ms-2">
+                        <button class="btn btn-link text-muted p-0 me-1" id="btn-prev" ${this.state.currentPage <= 1 ? 'disabled' : ''}><i class="bi bi-chevron-left"></i></button>
+                        <button class="btn btn-link text-muted p-0" id="btn-next" ${this.state.currentPage >= totalPages ? 'disabled' : ''}><i class="bi bi-chevron-right"></i></button>
+                    </div>
                 </div>
             </div>
         `;
