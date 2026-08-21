@@ -169,7 +169,7 @@ export const AbonoModal = {
                 document.body.classList.remove('modal-open');
                 
                 // 2. Ejecutar la redirección limpia
-                window.location.hash = '#/ingresos/pagos/nuevo';
+                window.location.hash = '#/ingresos/pagos/nuevo?clienteId=' + this.clienteId;
             });
         }
 

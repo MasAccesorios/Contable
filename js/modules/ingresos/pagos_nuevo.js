@@ -7,6 +7,17 @@ export default {
     async init(element) {
         if (!element) return;
         
+        const hashParts = window.location.hash.split('?');
+        const urlParams = new URLSearchParams(hashParts[1] || '');
+        
+        if (urlParams.has('clienteId')) {
+            sessionStorage.setItem('clienteId', urlParams.get('clienteId'));
+            // Remove parameter from URL to keep it clean (optional, but good practice)
+            window.history.replaceState(null, '', window.location.pathname + hashParts[0]);
+        } else {
+            sessionStorage.removeItem('clienteId');
+        }
+
         const clienteId = sessionStorage.getItem('clienteId');
         this.clienteId = clienteId;
         this.facturasData = [];
