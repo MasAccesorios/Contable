@@ -1352,8 +1352,7 @@ export const ComprasModule = {
                         nombre: nombre,
                         sku: sku,
                         precio_venta: precio,
-                        tipo: 'producto',
-                        estado: 'activo'
+                        estado: 'active'
                     }]).select().single();
                     
                     if (error) throw error;
