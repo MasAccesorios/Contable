@@ -63,17 +63,13 @@ export default {
         });
 
         const html = `
-            <div class="dash-layout p-4">
+            <div class="dash-layout p-4" style="max-width: 1100px; margin: 0 auto;">
                 
                 <!-- BREADCRUMB Y BOTONES SUPERIORES DE ACCIÓN -->
                 <div class="d-flex justify-content-between align-items-center mb-2">
                     <div style="font-size: 12px;" class="text-muted">
                         <span>Reportes</span> &gt; <span>Administrativos</span> &gt; <span class="text-dark font-weight-bold">Cuentas por cobrar</span>
                     </div>
-                      <div class="d-flex gap-2">
-                          <button id="btn-exportar-cartera" class="btn btn-sm btn-light border bg-white text-secondary" title="Exportar">📥</button>
-                          <button class="btn btn-sm btn-light border bg-white text-secondary" title="Compartir">🔗</button>
-                      </div>
                 </div>
 
                 <!-- TÍTULO Y BOTÓN GENERAR -->
@@ -83,7 +79,9 @@ export default {
                         <p class="text-muted small mb-0">Conoce lo que te deben tus clientes y lleva un control del vencimiento de sus facturas.</p>
                     </div>
                     <div>
-                        <button id="btn-generar-reporte" class="btn btn-primary-action">Generar Reporte</button>
+                        <button id="btn-exportar-cartera" class="btn btn-outline-secondary bg-white text-dark fw-medium">
+                            <i class="bi bi-download me-1"></i> Exportar Reporte
+                        </button>
                     </div>
                 </div>
 
@@ -316,11 +314,7 @@ export default {
         this.bindFiltrosTabla(facturasPendientes, contactos);
         this.bindDatePickerEvents();
         
-        const btnGenerar = document.getElementById('btn-generar-reporte');
-        if (btnGenerar) {
-            btnGenerar.disabled = false;
-            btnGenerar.innerHTML = `Generar Reporte`;
-        }
+        this.bindDatePickerEvents();
     },
 
     bindFiltrosTabla(facturasPendientes, contactos) {
@@ -547,13 +541,7 @@ export default {
             popover?.classList.add('d-none');
         });
 
-        // VINCULACIÓN DEL BOTÓN GENERAR REPORTE
-        const btnGenerar = document.getElementById('btn-generar-reporte');
-        if (btnGenerar) {
-            btnGenerar.addEventListener('click', () => {
-                this.ejecutarFiltroReporte();
-            });
-        }
+        // Removed VINCULACIÓN DEL BOTÓN GENERAR REPORTE
     },
 
     ejecutarFiltroReporte() {
@@ -568,12 +556,7 @@ export default {
         const fechaInicio = (inputInicio && inputInicio.value) ? inputInicio.value : '2000-01-01';
         const fechaFin = (inputFin && inputFin.value) ? inputFin.value : hoyStr;
 
-        // Feedback visual inmediato en el botón
-        const btnGenerar = document.getElementById('btn-generar-reporte');
-        if (btnGenerar) {
-            btnGenerar.disabled = true;
-            btnGenerar.innerHTML = `<span class="spinner-border spinner-border-sm me-1" role="status"></span> Buscando...`;
-        }
+        // Removed Feedback visual inmediato en el botón
 
         // Ejecutar la búsqueda/filtrado
         if (this._filterTimeout) clearTimeout(this._filterTimeout);
