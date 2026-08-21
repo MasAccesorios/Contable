@@ -7,8 +7,9 @@ export function renderTablaFacturas(facturas, contactosMap, sortColumn = 'fecha'
         let badgeClass = '';
         
         let isVencida = false;
-        if (c.vencimiento) {
-            const vDate = new Date(c.vencimiento);
+        const vencimiento = c.vencimiento || c.fecha || '';
+        if (vencimiento) {
+            const vDate = new Date(vencimiento);
             const hoy = new Date();
             hoy.setHours(0,0,0,0);
             if (vDate < hoy) isVencida = true;
@@ -40,7 +41,7 @@ export function renderTablaFacturas(facturas, contactosMap, sortColumn = 'fecha'
             <tr style="cursor: pointer; border-bottom: 1px solid var(--border-color); font-size: 13px; color: var(--text-body); opacity: ${rowOpacity}; transition: opacity 0.2s;" onclick="${onclickAction}">
                 <td class="py-2" style="white-space: nowrap;">${numDisplay}</td>
                 <td class="py-2" style="white-space: nowrap;">${c.fecha || ''}</td>
-                <td class="py-2 ${isVencida && c.saldoPendiente > 0 ? 'text-danger fw-semibold' : ''}" style="white-space: nowrap;">${c.vencimiento || ''}</td>
+                <td class="py-2 ${isVencida && c.saldoPendiente > 0 ? 'text-danger fw-semibold' : ''}" style="white-space: nowrap;">${vencimiento}</td>
                 <td class="py-2" style="color: var(--text-main); font-weight: var(--weight-medium); max-width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${contactosMap[c.clienteId || c.contacto_id || c.contactoId] || 'Sin Cliente'}</td>
                 <td class="py-2 text-end" style="white-space: nowrap;">${formatMoney(c.total)}</td>
                 <td class="py-2 text-end" style="white-space: nowrap;">${formatMoney(c.totalPagado)}</td>

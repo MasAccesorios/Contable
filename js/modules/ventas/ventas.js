@@ -1215,7 +1215,7 @@ export const FacturasModule = {
                         factura.cuentaId = element.querySelector('#select-cuenta-venta').value;
                     }
                     factura.fecha = element.querySelector('#input-fecha').value;
-                    factura.vencimiento = element.querySelector('#input-vencimiento').value;
+                    factura.vencimiento = element.querySelector('#input-vencimiento').value || factura.fecha;
                     factura.notas = element.querySelector('#input-notas').value;
                     factura.terminosCondiciones = element.querySelector('#input-terminos').value;
                     factura.detalles = arrDetalles;

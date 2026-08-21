@@ -939,7 +939,7 @@ export const CotizacionesModule = {
 
                     cotizacion.clienteId = clienteId;
                     cotizacion.fecha = element.querySelector('#input-fecha').value;
-                    cotizacion.vencimiento = element.querySelector('#input-vencimiento').value;
+                    cotizacion.vencimiento = element.querySelector('#input-vencimiento').value || cotizacion.fecha;
                     cotizacion.notas = element.querySelector('#input-notas').value;
                     cotizacion.terminosCondiciones = element.querySelector('#input-terminos').value;
                     cotizacion.detalles = arrDetalles;
