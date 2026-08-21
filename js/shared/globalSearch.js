@@ -124,7 +124,7 @@ export const GlobalSearch = {
         this.renderDropdown(input, html);
 
         document.querySelectorAll('.gs-frecuente-link').forEach(l => {
-            l.addEventListener('click', (e) => {
+            l.addEventListener('mousedown', (e) => {
                 e.preventDefault();
                 const query = l.getAttribute('data-query');
                 input.value = query;
@@ -321,7 +321,7 @@ export const GlobalSearch = {
         // Bind clicks to clear input and close dropdown
         const links = document.querySelectorAll('.gs-result-link');
         links.forEach(l => {
-            l.addEventListener('click', (e) => {
+            l.addEventListener('mousedown', (e) => {
                 e.preventDefault();
                 this.registrarBusquedaExitosa(l.dataset.registrar || input.value);
                 this.closeDropdown();
