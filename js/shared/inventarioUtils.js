@@ -214,13 +214,15 @@ export const InventarioUtils = {
     },
 
     /**
-     * Devuelve el inventario (restaurando cantidadActual) de lotes previamente mermados.
-     * Se usa al borrar/anular facturas de venta.
+     * Calcula cómo devolver el inventario (restaurando cantidadActual) de lotes previamente mermados.
+     * Genera un plan de operaciones (update/insert) listo para ser ejecutado con `ejecutarPlanInventario`.
+     * Se usa al borrar/anular facturas de venta o procesar notas de crédito.
      */
-    async revertirSalidaInventario(detalles) {
+    async calcularReversionInventario(detalles) {
         try {
             const lotesGlobales = await DB.getAll('lotes_fifo');
             const productos = await DB.getAll('productos');
+            const operacionesDB = [];
             
             let qtyARevertirPorProducto = {};
             for (const det of detalles) {
@@ -248,7 +250,7 @@ export const InventarioUtils = {
                         const add = Math.min(espacioDisponible, qtyToReturn);
                         lote.cantidadActual = parseFloat(lote.cantidadActual) + add;
                         qtyToReturn -= add;
-                        await DB.save('lotes_fifo', lote);
+                        operacionesDB.push({ action: 'update', data: { ...lote } });
                     }
                 }
 
@@ -266,13 +268,13 @@ export const InventarioUtils = {
                         cantidadActual: qtyToReturn,
                         costoUnitario: costoUnitario
                     };
-                    await DB.save('lotes_fifo', nuevoLote);
+                    operacionesDB.push({ action: 'insert', data: nuevoLote });
                 }
             }
-            return { success: true };
+            return { success: true, operacionesDB };
         } catch (error) {
-            console.error("Error revirtiendo inventario:", error);
-            return { success: false, error: "Fallo al revertir el inventario: " + error.message };
+            console.error("Error calculando reversion de inventario:", error);
+            return { success: false, error: "Fallo al calcular reversion de inventario: " + error.message };
         }
     }
 };

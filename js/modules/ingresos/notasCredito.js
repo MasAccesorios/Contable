@@ -21,27 +21,48 @@ export const NotasCreditoModule = {
     },
 
     async anularNotaCredito(id) {
-        // Fetch nota
-        const { data: nota, error: errN } = await supabase.from('notas_credito').select('*').eq('id', id).single();
-        if (errN || !nota) throw new Error("No se encontró la nota de crédito");
+        // 1. Snapshot del estado previo (Cabecera y Pago Cruzado)
+        const { data: snapshotNota, error: errN } = await supabase.from('notas_credito').select('*').eq('id', id).single();
+        if (errN || !snapshotNota) throw new Error("No se encontró la nota de crédito");
         
-        // Fetch detalles
+        const { data: snapshotPago } = await supabase.from('pagos_ingresos')
+            .select('*').eq('referencia', 'NC-' + snapshotNota.numero).single();
+
+        // 2. Fetch detalles para calcular salida de inventario
         const { data: detalles } = await supabase.from('nota_credito_detalles').select('*').eq('nota_credito_id', id);
         
-        // Revertir inventario
+        // 3. FASE 1: Cálculo en memoria (Read-Only)
+        let planSalida = null;
         if (detalles && detalles.length > 0) {
             const outItems = detalles.map(d => ({ productoId: d.producto_id, cantidad: d.cantidad }));
-            const outRes = await InventarioUtils.procesarSalidaInventario(outItems);
-            if (!outRes.success) throw new Error(outRes.error);
+            planSalida = await InventarioUtils.calcularSalidaInventario(outItems);
+            if (!planSalida.success) throw new Error("No hay stock suficiente para anular la nota de crédito: " + planSalida.error);
         }
 
-        // Anular nota
-        const { error: updErr1 } = await supabase.from('notas_credito').update({ estado: 'anulada' }).eq('id', id);
-        if (updErr1) throw new Error(updErr1.message);
+        try {
+            // 4. FASE 2: Escritura Documental (Update de estado)
+            const { error: updErr1 } = await supabase.from('notas_credito').update({ estado: 'anulada' }).eq('id', id);
+            if (updErr1) throw new Error(updErr1.message);
 
-        // Anular pago
-        const { error: updErr2 } = await supabase.from('pagos_ingresos').update({ estado: 'anulado' }).eq('referencia', 'NC-' + nota.numero);
-        if (updErr2) throw new Error(updErr2.message);
+            if (snapshotPago) {
+                const { error: updErr2 } = await supabase.from('pagos_ingresos').update({ estado: 'anulado' }).eq('id', snapshotPago.id);
+                if (updErr2) throw new Error(updErr2.message);
+            }
+
+            // 5. FASE 3: Modificación Física de Inventario con rollback interno
+            if (planSalida) {
+                await InventarioUtils.ejecutarPlanInventario(planSalida.operacionesDB);
+            }
+
+        } catch (errorTransaccion) {
+            console.error("Error crítico anulando nota, revirtiendo base de datos...", errorTransaccion);
+            // 6. ROLLBACK COMPENSATORIO EXTERNO
+            await supabase.from('notas_credito').update({ estado: snapshotNota.estado }).eq('id', id);
+            if (snapshotPago) {
+                await supabase.from('pagos_ingresos').update({ estado: snapshotPago.estado }).eq('id', snapshotPago.id);
+            }
+            throw new Error("Error al anular la nota. Se ha revertido la operación por seguridad.");
+        }
     },
 
     async renderList(element) {
@@ -673,9 +694,9 @@ export const NotasCreditoModule = {
 
                         if (selectedItems.length === 0) throw new Error("Debe seleccionar al menos un ítem para devolver.");
                         
-                        // 1. Reversión de inventario
-                        const invResult = await InventarioUtils.revertirSalidaInventario(selectedItems);
-                        if (!invResult.success) throw new Error("Error revirtiendo inventario: " + invResult.error);
+                        // 1. FASE 1: Cálculo en memoria (Read-Only)
+                        const planReversion = await InventarioUtils.calcularReversionInventario(selectedItems);
+                        if (!planReversion.success) throw new Error("Error calculando inventario: " + planReversion.error);
 
                         // 2. Obtener num NC
                         const { data: seqData, error: seqError } = await supabase.rpc('execute_sql', { sql_query: "SELECT nextval('notas_credito_seq');" });
@@ -683,49 +704,73 @@ export const NotasCreditoModule = {
                         if (!seqError && seqData && seqData.length > 0) {
                             ncNumero = parseInt(seqData[0].nextval);
                         } else {
-                            // Si el RPC falla (ej. permisos), hacemos fallback manual (esto puede pasar en bases con RLS restrictivo)
                             const { data: maxNc } = await supabase.from('notas_credito').select('numero').order('numero', { ascending: false }).limit(1);
                             ncNumero = (maxNc && maxNc.length > 0 && maxNc[0].numero) ? maxNc[0].numero + 1 : 1;
                         }
 
-                        // 3. Crear Nota
-                        const { data: ncGuardada, error: ncErr } = await supabase.from('notas_credito').insert([{
-                            numero: ncNumero,
-                            factura_id: currentFactura.id,
-                            contacto_id: currentFactura.contacto_id || currentFactura.clienteId,
-                            fecha: element.querySelector('#nc-fecha').value,
-                            motivo: element.querySelector('#nc-motivo').value,
-                            total: totalNC,
-                            estado: 'activa'
-                        }]).select().single();
-                        
-                        if (ncErr) throw ncErr;
+                        let ncId = null;
+                        let pagoId = null;
 
-                        // 4. Crear detalles
-                        const detallesArr = selectedItems.map(si => ({
-                            nota_credito_id: ncGuardada.id,
-                            producto_id: parseInt(si.productoId),
-                            cantidad: si.cantidad,
-                            precio_unitario: si.precio,
-                            subtotal: si.subtotal
-                        }));
-                        const { error: detErr } = await supabase.from('nota_credito_detalles').insert(detallesArr);
-                        if (detErr) throw new Error("Error al guardar detalles de la nota: " + detErr.message);
+                        try {
+                            // 3. FASE 2: Escritura Documental Escalona (Segura)
+                            
+                            // a. Crear Cabecera
+                            const { data: ncGuardada, error: ncErr } = await supabase.from('notas_credito').insert([{
+                                numero: ncNumero,
+                                factura_id: currentFactura.id,
+                                contacto_id: currentFactura.contacto_id || currentFactura.clienteId,
+                                fecha: element.querySelector('#nc-fecha').value,
+                                motivo: element.querySelector('#nc-motivo').value,
+                                total: totalNC,
+                                estado: 'activa'
+                            }]).select().single();
+                            
+                            if (ncErr) throw new Error("Fallo al crear cabecera: " + ncErr.message);
+                            ncId = ncGuardada.id;
 
-                        // 5. Inyectar pago cruzado en pagos_ingresos
-                        const { error: pagoErr } = await supabase.from('pagos_ingresos').insert([{
-                            factura_id: currentFactura.id,
-                            fecha: element.querySelector('#nc-fecha').value,
-                            monto: totalNC,
-                            tipo: 'in', // abono a la factura
-                            cuenta_id: null,
-                            estado: 'completado',
-                            observaciones: 'Pago cruzado por Nota de Crédito #' + ncNumero,
-                            referencia: 'NC-' + ncNumero
-                        }]);
-                        if (pagoErr) throw new Error("Error al cruzar saldo en pagos: " + pagoErr.message);
+                            // b. Crear Detalles
+                            const detallesArr = selectedItems.map(si => ({
+                                nota_credito_id: ncId,
+                                producto_id: parseInt(si.productoId),
+                                cantidad: si.cantidad,
+                                precio_unitario: si.precio,
+                                subtotal: si.subtotal
+                            }));
+                            const { error: detErr } = await supabase.from('nota_credito_detalles').insert(detallesArr);
+                            if (detErr) throw new Error("Error al guardar detalles de la nota: " + detErr.message);
 
-                        CoreActions.showSuccessModal("Nota de crédito creada con éxito. Inventario revertido.");
+                            // c. Inyectar pago cruzado en pagos_ingresos
+                            const { data: pagoCruzado, error: pagoErr } = await supabase.from('pagos_ingresos').insert([{
+                                factura_id: currentFactura.id,
+                                fecha: element.querySelector('#nc-fecha').value,
+                                monto: totalNC,
+                                tipo: 'in', // abono a la factura
+                                cuenta_id: null,
+                                estado: 'completado',
+                                observaciones: 'Pago cruzado por Nota de Crédito #' + ncNumero,
+                                referencia: 'NC-' + ncNumero
+                            }]).select().single();
+                            if (pagoErr) throw new Error("Error al cruzar saldo en pagos: " + pagoErr.message);
+                            pagoId = pagoCruzado.id;
+
+                            // 4. FASE 3: Modificación Física de Inventario con Rollback interno
+                            await InventarioUtils.ejecutarPlanInventario(planReversion.operacionesDB);
+
+                        } catch (errorTransaccion) {
+                            console.error("Fallo crítico en transacción. Revirtiendo creación de nota de crédito...", errorTransaccion);
+                            
+                            // 5. ROLLBACK COMPENSATORIO EXTERNO
+                            if (pagoId) await supabase.from('pagos_ingresos').delete().eq('id', pagoId);
+                            if (ncId) {
+                                // Borrar detalles explícitamente para evitar orphans
+                                await supabase.from('nota_credito_detalles').delete().eq('nota_credito_id', ncId);
+                                await supabase.from('notas_credito').delete().eq('id', ncId);
+                            }
+                            
+                            throw new Error("Transacción fallida. Se abortó la creación y el inventario físico quedó intacto. Detalle: " + errorTransaccion.message);
+                        }
+
+                        CoreActions.showSuccessModal("Nota de crédito creada con éxito. Inventario actualizado.");
                         window.location.hash = '#/ingresos/notas-credito';
 
                     } catch (e) {
