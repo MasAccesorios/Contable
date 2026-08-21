@@ -357,10 +357,16 @@ export const PagosRecibidosModule = {
         
         this.element.innerHTML = `
             <div class="dash-layout p-4" id="pagos-list-container">
-                <div class="d-flex justify-content-between align-items-center mb-4">
+                <div class="d-flex justify-content-between align-items-start mb-4">
+                    <div class="d-flex align-items-start gap-3">
+                        <a href="#/ingresos" class="btn btn-link text-decoration-none text-muted p-0 mt-1"><i class="bi bi-arrow-left"></i> Volver</a>
+                        <div>
+                            <h2 class="h3 fw-bold mb-1 text-dark">Pagos Recibidos</h2>
+                            <p class="text-muted small mb-0">Historial de todos los ingresos de dinero (tipo "Entrada").</p>
+                        </div>
+                    </div>
                     <div>
-                        <h2 class="h3 fw-bold mb-1 text-dark">Pagos Recibidos</h2>
-                        <p class="text-muted small mb-0">Historial de todos los ingresos de dinero (tipo "Entrada").</p>
+                        <button class="btn btn-primary-action" id="btn-nuevo-pago"><i class="bi bi-plus-lg me-1"></i> Registrar Pago</button>
                     </div>
                 </div>
 
@@ -368,8 +374,20 @@ export const PagosRecibidosModule = {
                 <div class="row g-3 mb-4">
                     <div class="col-12 col-sm-6 col-lg-4">
                         <div class="ds-kpi-card">
-                            <span class="ds-kpi-label">Total Recibido (este mes)</span>
+                            <span class="ds-kpi-label">Total Recibido (Este mes)</span>
                             <div class="ds-kpi-value">$ ${formatMoney(this.state.kpis?.total || 0).replace('$ ', '')}</div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-sm-6 col-lg-4">
+                        <div class="ds-kpi-card">
+                            <span class="ds-kpi-label">Mes Anterior</span>
+                            <div class="ds-kpi-value text-muted">$ 0.00</div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-sm-6 col-lg-4">
+                        <div class="ds-kpi-card">
+                            <span class="ds-kpi-label">Transacciones (Mes)</span>
+                            <div class="ds-kpi-value text-muted">0</div>
                         </div>
                     </div>
                 </div>
