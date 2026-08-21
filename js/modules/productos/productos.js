@@ -509,13 +509,13 @@ export const ProductosModule = {
                 stockMinimo: sMin
             };
 
-            await DB.save('productos', nuevoProducto);
+            const prodGuardado = await DB.save('productos', nuevoProducto);
 
             // Si es un producto nuevo, inicializar un lote FIFO vacío con cantidad cero
             if (!id) {
                 const loteInicial = {
-                    id: 'lote_' + prodId + '_init',
-                    productoId: prodId,
+                    id: 'lote_' + prodGuardado.id + '_init',
+                    productoId: prodGuardado.id,
                     cantidadInicial: cInicial,
                     cantidadActual: cInicial,
                     costoUnitario: nuevoProducto.costoBase,
