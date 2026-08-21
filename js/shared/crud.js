@@ -668,31 +668,42 @@ export const ItemEngine = {
                                 if (!error && data) {
                                     const mlInfo = Array.isArray(data) ? data[0] : data;
                                     if (mlInfo && mlInfo.veces_vendido > 0) {
-                                        
-                                        // Ocultamos el input de texto manual
-                                        if (inpPrice) inpPrice.classList.add('d-none');
-
-                                        // Creamos el selector nativo
-                                        const mlSelect = document.createElement('select');
-                                        mlSelect.className = 'form-select form-select-sm border-0 bg-light price-select-ml';
-                                        mlSelect.style.fontSize = '12px';
+                                        // Eliminamos cualquier bloqueo del input de texto
+                                        if (inpPrice) inpPrice.classList.remove('d-none');
                                         
                                         const formatter = (num) => Number(Math.round(num || 0)).toLocaleString('es-CO');
+                                        const prom = formatter(mlInfo.precio_promedio);
+                                        const min = formatter(mlInfo.precio_minimo);
+                                        const max = formatter(mlInfo.precio_maximo);
                                         
-                                        mlSelect.innerHTML = `
-                                            <option value="${precioReal}">Base: $${formatter(precioReal)}</option>
-                                            <option value="${mlInfo.precio_promedio}">Prom: $${formatter(mlInfo.precio_promedio)}</option>
-                                            <option value="${mlInfo.precio_maximo}">Máx: $${formatter(mlInfo.precio_maximo)}</option>
-                                            <option value="${mlInfo.precio_minimo}">Mín: $${formatter(mlInfo.precio_minimo)}</option>
-                                        `;
-                                        
-                                        inpPrice.parentNode.appendChild(mlSelect);
-
-                                        // Evento Change para disparar el motor matemático
-                                        mlSelect.addEventListener('change', (e) => {
-                                            inpPrice.value = Number(e.target.value).toLocaleString('es-CO', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-                                            inpPrice.dispatchEvent(new Event('input', { bubbles: true }));
-                                        });
+                                        // Agregamos la información como texto y botones bajo "Disp: X"
+                                        if (metaQty) {
+                                            const mlContainer = document.createElement('div');
+                                            mlContainer.style.fontSize = '11px';
+                                            mlContainer.style.marginTop = '4px';
+                                            mlContainer.style.color = 'var(--primary, #0284c7)';
+                                            mlContainer.style.whiteSpace = 'nowrap';
+                                            mlContainer.innerHTML = `Prec. ML (últ. 5): 
+                                                <button type="button" class="btn btn-link p-0 text-decoration-none btn-ml-price fw-bold" data-price="${mlInfo.precio_promedio}" style="font-size: 11px;">Prom $${prom}</button> | 
+                                                <button type="button" class="btn btn-link p-0 text-decoration-none btn-ml-price" data-price="${mlInfo.precio_minimo}" style="font-size: 11px; color: inherit;">Mín $${min}</button> | 
+                                                <button type="button" class="btn btn-link p-0 text-decoration-none btn-ml-price" data-price="${mlInfo.precio_maximo}" style="font-size: 11px; color: inherit;">Máx $${max}</button>
+                                            `;
+                                            metaQty.appendChild(mlContainer);
+                                            
+                                            // Listeners para copiar el precio al input libremente
+                                            mlContainer.querySelectorAll('.btn-ml-price').forEach(btn => {
+                                                btn.addEventListener('click', (e) => {
+                                                    e.preventDefault();
+                                                    const selectedPrice = Number(e.target.getAttribute('data-price') || 0);
+                                                    if (inpPrice) {
+                                                        inpPrice.value = selectedPrice.toLocaleString('es-CO', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                                                        inpPrice.dispatchEvent(new Event('input', { bubbles: true }));
+                                                        // Fallback redundante por si acaso
+                                                        if (typeof calcEngine === 'function') calcEngine();
+                                                    }
+                                                });
+                                            });
+                                        }
                                     }
                                 }
                             } catch (err) {
