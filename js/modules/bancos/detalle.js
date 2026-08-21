@@ -13,16 +13,21 @@ export const DetalleBancoModule = {
         saldo: 0,
         totalIngresos: 0,
         totalEgresos: 0,
-        filteredTransacciones: [],
         offset: 0,
         limit: 50,
         hasMore: true,
-        isLoading: false
+        isLoading: false,
+        searchQuery: '',
+        filterTipo: 'todos'
     },
+    
+    staticRendered: false,
+    element: null,
 
     async init(element) {
         if (!element) return;
         this.element = element;
+        this.staticRendered = false;
 
         const urlParams = new URLSearchParams(window.location.hash.split('?')[1]);
         this.state.bancoId = urlParams.get('banco_id');
@@ -30,6 +35,8 @@ export const DetalleBancoModule = {
         this.state.offset = 0;
         this.state.hasMore = true;
         this.state.transacciones = [];
+        this.state.searchQuery = '';
+        this.state.filterTipo = 'todos';
         
         await this.loadData();
         this.render();
@@ -53,96 +60,34 @@ export const DetalleBancoModule = {
         }
 
         if (this.state.cuenta && this.state.cuenta.id) {
-            cuentaRealId = this.state.cuenta.id;
+            cuentaRealId = parseInt(this.state.cuenta.id);
             
-            // 1. Obtener transacciones paginadas
-            const { data: pagos, error } = await supabase
-                .from('pagos_ingresos')
-                .select('*')
-                .eq('cuenta_id', cuentaRealId)
-                .neq('estado', 'anulado') // Excluir anulados de la vista
-                .order('fecha', { ascending: false })
-                .range(this.state.offset, this.state.offset + this.state.limit - 1);
+            // 1. Obtener transacciones mediante RPC
+            const { data: pagos, error } = await supabase.rpc('get_movimientos_banco', {
+                p_cuenta_id: cuentaRealId,
+                p_offset: this.state.offset,
+                p_limit: this.state.limit,
+                p_search: this.state.searchQuery,
+                p_tipo: this.state.filterTipo
+            });
             
             if (!error && pagos) {
-                // ENRICHMENT: Fetch contacts and invoices
-                const contactoIds = [...new Set(pagos.map(p => p.contacto_id).filter(Boolean))];
-                const facturaIds = [...new Set(pagos.map(p => p.factura_id).filter(Boolean))];
-                
-                let contactosMap = {};
-                let facturasMap = {};
-
-                const [contactosResult, facturasResult] = await Promise.all([
-                    contactoIds.length > 0
-                        ? supabase.from('contactos').select('id, nombre, identificacion').in('id', contactoIds)
-                        : Promise.resolve({ data: [] }),
-                    // Cambio A: añadir contacto_id para poder resolver el tercero desde la factura
-                    facturaIds.length > 0
-                        ? supabase.from('facturas').select('id, numero, contacto_id').in('id', facturaIds)
-                        : Promise.resolve({ data: [] })
-                ]);
-
-                if (contactosResult.data) {
-                    contactosResult.data.forEach(c => contactosMap[c.id] = c);
-                }
-                if (facturasResult.data) {
-                    facturasResult.data.forEach(f => facturasMap[f.id] = f);
-                }
-
-                // Ampliar el lookup de contactos con los contacto_id que vienen
-                // indirectamente a través de las facturas (caso más frecuente en pagos_ingresos)
-                const contactoIdsDesdeFacturas = [...new Set(
-                    Object.values(facturasMap).map(f => f.contacto_id).filter(Boolean)
-                )];
-                const contactoIdsFaltantes = contactoIdsDesdeFacturas.filter(id => !contactosMap[id]);
-                if (contactoIdsFaltantes.length > 0) {
-                    const { data: contactosExtra } = await supabase
-                        .from('contactos')
-                        .select('id, nombre, identificacion')
-                        .in('id', contactoIdsFaltantes);
-                    if (contactosExtra) {
-                        contactosExtra.forEach(c => contactosMap[c.id] = c);
-                    }
-                }
-
                 const mapped = pagos.map(item => {
-                    // Cambio B: resolver tercero primero por contacto_id directo,
-                    // luego por el contacto_id de la factura asociada
-                    const contactoIdDirecto = item.contacto_id;
-                    const facturaAsociada = item.factura_id ? facturasMap[item.factura_id] : null;
-                    const contactoIdViaFactura = facturaAsociada ? facturaAsociada.contacto_id : null;
-                    const contacto = contactosMap[contactoIdDirecto] || contactosMap[contactoIdViaFactura] || null;
-                    
-                    let terceroNombre = contacto ? contacto.nombre : null;
-                    
-                    if (!terceroNombre && item.observaciones) {
-                        const obs = String(item.observaciones).trim();
-                        if (!/^\\(\\s*Alegra ID:\\s*\\d+\\s*\\)$/i.test(obs)) {
-                            if (obs.includes(' — ')) {
-                                terceroNombre = obs.split(' — ').pop().trim();
-                            } else {
-                                terceroNombre = obs.length > 50 ? obs.substring(0, 47) + '...' : obs;
-                            }
-                        }
-                    }
-                    
+                    let terceroNombre = item.tercero_nombre;
                     if (!terceroNombre) {
                         terceroNombre = item.referencia || 'Desconocido';
                     }
 
-                    let terceroNit = contacto && contacto.identificacion ? contacto.identificacion : '';
-
                     let cuentaContable = 'Otros movimientos';
-                    if (item.factura_id && facturasMap[item.factura_id]) {
-                        const fNum = facturasMap[item.factura_id].numero;
+                    if (item.factura_numero) {
+                        const fNum = item.factura_numero;
                         const fId  = item.factura_id;
-                        // Cambio B: enlace clickeable a la factura (stopPropagation evita abrir el modal de fila)
                         cuentaContable = `<a href="#/ingresos/facturas/ver/${fId}" class="text-decoration-none text-primary" onclick="event.stopPropagation()">Factura #${fNum}</a>`;
                     } else if (item.categoria) {
                         cuentaContable = item.categoria;
                     } else if (item.observaciones) {
                         const obs = String(item.observaciones).trim();
-                        // Si la observación es EXCLUSIVAMENTE la basura de migración, la ignoramos. Si tiene texto real, la mostramos.
+                        // Si la observación es EXCLUSIVAMENTE la basura de migración, la ignoramos
                         if (!/^\(\s*Alegra ID:\s*\d+\s*\)$/i.test(obs)) {
                             cuentaContable = obs;
                         }
@@ -156,7 +101,7 @@ export const DetalleBancoModule = {
                         cuentaId: String(item.cuenta_id),
                         detalle: item.observaciones || item.categoria || item.referencia || 'Sin detalle',
                         terceroNombre,
-                        terceroNit,
+                        terceroNit: item.tercero_nit || '',
                         cuentaContable
                     };
                 });
@@ -169,6 +114,8 @@ export const DetalleBancoModule = {
 
                 this.state.offset += pagos.length;
                 this.state.hasMore = pagos.length === this.state.limit;
+            } else if (error) {
+                console.error("Error cargando pagos_ingresos", error);
             }
 
             // 2. Calcular Saldos (solo en la primera carga)
@@ -186,7 +133,6 @@ export const DetalleBancoModule = {
                 this.state.saldo = saldoCalculado;
             }
         } else {
-            // Caso fallback (cuenta no encontrada por ID)
             if (!isLoadMore) this.state.transacciones = [];
             this.state.hasMore = false;
         }
@@ -199,58 +145,7 @@ export const DetalleBancoModule = {
         const formatMoney = val => '$ ' + parseFloat(val || 0).toLocaleString('es-CO', {minimumFractionDigits: 2, maximumFractionDigits: 2});
         const headerHtml = CoreActions.renderDocumentHeader('bancos', 'Volver a Bancos');
 
-        let searchQuery = '';
-        let filterTipo = 'todos'; // todos, ingreso, egreso
-        let transaccionesAgrupadas = [];
-
-        const renderGrid = () => {
-            // Filtrar localmente sobre lo que ya está cargado
-            this.state.filteredTransacciones = this.state.transacciones.filter(t => {
-                const desc = (t.detalle || t.referencia || t.categoria || '').toLowerCase();
-                const matchesSearch = !searchQuery || desc.includes(searchQuery);
-                const matchesTipo = filterTipo === 'todos' || t.tipo === filterTipo;
-                return matchesSearch && matchesTipo;
-            });
-
-            transaccionesAgrupadas = agruparTransaccionesPorPago(this.state.filteredTransacciones);
-            const currentItems = transaccionesAgrupadas;
-
-            const tbodyHtml = currentItems.length > 0 ? currentItems.map(t => {
-                const isIngreso = t.tipo === 'ingreso';
-                const valorColor = isIngreso ? '#2cbfb7' : '#e74c3c';
-                
-                return `
-                    <tr class="movimiento-row" style="border-bottom: 1px solid var(--border-color); font-size: 13px; color: var(--text-body); cursor: pointer; transition: background-color 0.2s;" data-id="${t.id}" onmouseover="this.style.backgroundColor='#f8f9fa'" onmouseout="this.style.backgroundColor='transparent'">
-                        <td class="py-3">
-                            ${t.fecha || '-'}
-                            <div class="text-muted mt-1" style="font-size: 10px;">Nº trans: ${t.grupo_pago_id || t.id}</div>
-                        </td>
-                        <td class="py-3">
-                            <div style="color: var(--text-main); font-weight: 500;">${t.terceroNombre || 'Sin tercero'}</div>
-                            ${t.terceroNit ? `<div style="font-size: 11px; color: #888;">${t.terceroNit}</div>` : ''}
-                        </td>
-                        <td class="py-3" style="color: var(--text-main);">
-                            ${t.cuentaContable}
-                        </td>
-                        <td class="py-3 text-end fw-medium" style="color: ${valorColor};">
-                            ${formatMoney(t.monto)}
-                        </td>
-                        <td class="py-3 text-center">
-
-                            <div class="dropdown d-inline-block">
-                                <button class="btn btn-sm btn-link p-0 text-muted mx-1" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Más opciones" style="color: #6c757d !important; transition: opacity 0.2s;" onmouseover="this.style.opacity=0.7" onmouseout="this.style.opacity=1">
-                                    <i class="bi bi-three-dots-vertical fs-6"></i>
-                                </button>
-                                <ul class="dropdown-menu dropdown-menu-end shadow border-0" style="font-size: 13px;">
-                                    <li><a class="dropdown-item btn-editar-transaccion" href="javascript:void(0)" data-id="${t.id}">Editar</a></li>
-                                    <li><a class="dropdown-item text-danger btn-eliminar-banco" href="javascript:void(0)" data-id="${t.id}" data-grupo="${t.grupo_pago_id || ''}" data-monto="${t.monto}" data-fecha="${t.fecha}">Eliminar</a></li>
-                                </ul>
-                            </div>
-                        </td>
-                    </tr>
-                `;
-            }).join('') : `<tr><td colspan="5" class="text-center py-5 text-muted">No se encontraron movimientos o no coinciden con la búsqueda.</td></tr>`;
-
+        if (!this.staticRendered) {
             this.element.innerHTML = `
                 <div class="module-container p-4" style="max-width: 1100px; margin: 0 auto;">
                     
@@ -258,8 +153,8 @@ export const DetalleBancoModule = {
                     <div class="d-flex justify-content-between align-items-start mb-4">
                         <div>
                             ${headerHtml}
-                            <h2 class="h3 fw-bold mb-1" style="color: var(--text-main);">${c.nombre}</h2>
-                            <p class="text-muted mb-0" style="font-size: 14px;">Tipo: ${c.tipo} &nbsp;|&nbsp; Número: ${c.numero}</p>
+                            <h2 class="h3 fw-bold mb-1" style="color: var(--text-main);">${c ? c.nombre : 'Cargando...'}</h2>
+                            ${c ? `<p class="text-muted mb-0" style="font-size: 14px;">Tipo: ${c.tipo} &nbsp;|&nbsp; Número: ${c.numero}</p>` : ''}
                         </div>
                     </div>
 
@@ -269,7 +164,7 @@ export const DetalleBancoModule = {
                             <div class="card border-0" style="box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.03), 0px 1px 3px rgba(0, 0, 0, 0.05); border-radius: 8px; border-top: 4px solid #2cbfb7;">
                                 <div class="card-body p-4">
                                     <p class="text-muted mb-1" style="font-size: 13px;">Saldo en Libros</p>
-                                    <h3 class="fw-bold mb-0" style="color: #2cbfb7;">${formatMoney(this.state.saldo)}</h3>
+                                    <h3 class="fw-bold mb-0" id="detail-saldo-card" style="color: #2cbfb7;">${formatMoney(this.state.saldo)}</h3>
                                 </div>
                             </div>
                         </div>
@@ -280,16 +175,17 @@ export const DetalleBancoModule = {
                         
                         <!-- FILTERS -->
                         <div class="card-header bg-white border-bottom p-3 d-flex gap-3 align-items-center" style="border-radius: 8px 8px 0 0;">
-                            <div class="input-group input-group-sm" style="width: 250px;">
+                            <div class="input-group input-group-sm" style="width: 250px; position: relative;">
                                 <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
-                                <input type="text" class="form-control border-start-0 ps-0 text-muted" id="detail-search" placeholder="Buscar por descripción..." value="${searchQuery}" style="font-size: 13px; box-shadow: none;">
+                                <input type="text" class="form-control border-start-0 ps-0 text-muted" id="detail-search" placeholder="Buscar movimientos..." autocomplete="off" style="font-size: 13px; box-shadow: none;">
+                                <button class="btn btn-link position-absolute end-0 top-50 translate-middle-y text-muted d-none" id="detail-search-clear" style="z-index: 10; text-decoration: none;"><i class="bi bi-x-circle-fill"></i></button>
                             </div>
                             <div class="d-flex align-items-center gap-2">
                                 <span class="text-muted" style="font-size: 13px;">Tipo:</span>
                                 <select id="detail-filter-tipo" class="form-select form-select-sm text-muted" style="width: 130px; box-shadow: none;">
-                                    <option value="todos" ${filterTipo === 'todos' ? 'selected' : ''}>Todos</option>
-                                    <option value="ingreso" ${filterTipo === 'ingreso' ? 'selected' : ''}>Ingresos</option>
-                                    <option value="egreso" ${filterTipo === 'egreso' ? 'selected' : ''}>Egresos</option>
+                                    <option value="todos">Todos</option>
+                                    <option value="ingreso">Ingresos</option>
+                                    <option value="egreso">Egresos</option>
                                 </select>
                             </div>
                         </div>
@@ -306,124 +202,217 @@ export const DetalleBancoModule = {
                                         <th class="py-3 fw-normal text-center" style="width: 120px;">Acciones</th>
                                     </tr>
                                 </thead>
-                                <tbody>
-                                    ${tbodyHtml}
+                                <tbody id="detail-grid-body">
                                 </tbody>
                             </table>
                         </div>
 
                         <!-- FOOTER (CARGAR MÁS) -->
-                        <div class="card-footer bg-white border-top p-3 text-center" style="border-radius: 0 0 8px 8px;">
-                            ${this.state.hasMore ? 
-                                `<button id="detail-btn-loadmore" class="btn btn-sm btn-outline-secondary px-4 py-2" ${this.state.isLoading ? 'disabled' : ''}>
-                                    ${this.state.isLoading ? 'Cargando...' : 'Cargar más movimientos'}
-                                </button>` 
-                            : 
-                                `<span class="text-muted" style="font-size: 13px;">No hay más movimientos.</span>`
-                            }
+                        <div class="card-footer bg-white border-top p-3 text-center" style="border-radius: 0 0 8px 8px;" id="detail-grid-footer">
                         </div>
                     </div>
                 </div>
             `;
+            this.staticRendered = true;
+            this.bindStaticEvents();
+        } else {
+            // Update saldo on re-render just in case
+            const saldoEl = this.element.querySelector('#detail-saldo-card');
+            if (saldoEl) saldoEl.textContent = formatMoney(this.state.saldo);
+        }
 
-            bindEvents();
-        };
+        this.renderGrid();
+    },
 
-        const bindEvents = () => {
-            const searchInput = this.element.querySelector('#detail-search');
-            if (searchInput) {
-                searchInput.focus();
-                const val = searchInput.value;
-                searchInput.value = '';
-                searchInput.value = val;
+    bindStaticEvents() {
+        const searchInput = this.element.querySelector('#detail-search');
+        const clearBtn = this.element.querySelector('#detail-search-clear');
+        const filterTipo = this.element.querySelector('#detail-filter-tipo');
+        let debounceTimer;
 
-                searchInput.addEventListener('input', (e) => {
-                    searchQuery = e.target.value.toLowerCase().trim();
-                    renderGrid();
-                });
-            }
-
-            this.element.querySelector('#detail-filter-tipo')?.addEventListener('change', (e) => {
-                filterTipo = e.target.value;
-                renderGrid();
-            });
-
-            this.element.querySelector('#detail-btn-loadmore')?.addEventListener('click', async (e) => {
-                const btn = e.currentTarget;
-                btn.disabled = true;
-                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Cargando...';
-                await this.loadData(true);
-                renderGrid();
-            });
-
-            this.element.querySelectorAll('.btn-eliminar-banco').forEach(btn => {
-                btn.addEventListener('click', async (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    const id = e.currentTarget.dataset.id;
-                    const grupo = e.currentTarget.dataset.grupo;
-                    const monto = e.currentTarget.dataset.monto;
-                    const fecha = e.currentTarget.dataset.fecha;
-                    const montoFormat = '$ ' + parseFloat(monto || 0).toLocaleString('es-CO', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-                    
-                    if (confirm(`¿Está seguro que desea eliminar este movimiento por valor de ${montoFormat} del ${fecha}? Esta acción revertirá el saldo de la cuenta.`)) {
-                        try {
-                            const { anularTransaccion } = await import('../../shared/transaccionesUtils.js');
-                            if (grupo) {
-                                await anularTransaccion(grupo, true);
-                            } else {
-                                await anularTransaccion(id, false);
-                            }
-                            await this.loadData(false);
-                            renderGrid();
-                        } catch (err) {
-                            alert("Error al anular el movimiento: " + err.message);
-                        }
-                    }
-                });
-            });
-
-            const openModal = async (tId, autoEdit = false) => {
-                const t = transaccionesAgrupadas.find(x => String(x.id) === String(tId));
-                if (!t) return;
-                const modalModule = await import('../../shared/transaccionModal.js');
-                await modalModule.mostrarDetalleTransaccion(t, () => {
-                    this.loadData().then(() => this.render());
-                });
-                
-                if (autoEdit) {
-                    setTimeout(() => {
-                        const btnEdit = document.getElementById('btn-activar-edicion');
-                        if (btnEdit) btnEdit.click();
-                    }, 200);
+        if (searchInput && clearBtn) {
+            searchInput.addEventListener('input', (e) => {
+                const val = e.target.value;
+                if (val.trim().length > 0) {
+                    clearBtn.classList.remove('d-none');
+                } else {
+                    clearBtn.classList.add('d-none');
                 }
-            };
 
-            this.element.querySelectorAll('.btn-ver-transaccion').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    openModal(e.currentTarget.dataset.id, false);
-                });
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(async () => {
+                    this.state.searchQuery = val.trim();
+                    this.state.offset = 0;
+                    await this.loadData(false);
+                    this.renderGrid();
+                }, 400);
             });
 
-            this.element.querySelectorAll('.btn-editar-transaccion').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    openModal(e.currentTarget.dataset.id, true);
-                });
+            clearBtn.addEventListener('click', async () => {
+                searchInput.value = '';
+                clearBtn.classList.add('d-none');
+                this.state.searchQuery = '';
+                this.state.offset = 0;
+                searchInput.focus();
+                await this.loadData(false);
+                this.renderGrid();
             });
+        }
 
-            this.element.querySelectorAll('tbody tr[data-id]').forEach(row => {
-                row.addEventListener('click', async (e) => {
-                    if (e.target.closest('button') || e.target.closest('.dropdown-menu') || e.target.closest('a')) return;
-                    const tId = row.dataset.id;
-                    openModal(tId, false);
+        if (filterTipo) {
+            filterTipo.addEventListener('change', async (e) => {
+                this.state.filterTipo = e.target.value;
+                this.state.offset = 0;
+                await this.loadData(false);
+                this.renderGrid();
+            });
+        }
+
+        const footer = this.element.querySelector('#detail-grid-footer');
+        if (footer) {
+            footer.addEventListener('click', async (e) => {
+                const btn = e.target.closest('#detail-btn-loadmore');
+                if (btn) {
+                    btn.disabled = true;
+                    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Cargando...';
+                    await this.loadData(true);
+                    this.renderGrid();
+                }
+            });
+        }
+    },
+
+    renderGrid() {
+        const tbody = this.element.querySelector('#detail-grid-body');
+        const footer = this.element.querySelector('#detail-grid-footer');
+        if (!tbody || !footer) return;
+        
+        const formatMoney = val => '$ ' + parseFloat(val || 0).toLocaleString('es-CO', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
+        const currentItems = agruparTransaccionesPorPago(this.state.transacciones);
+
+        tbody.innerHTML = currentItems.length > 0 ? currentItems.map(t => {
+            const isIngreso = t.tipo === 'ingreso';
+            const valorColor = isIngreso ? '#2cbfb7' : '#e74c3c';
+            
+            return `
+                <tr class="movimiento-row" style="border-bottom: 1px solid var(--border-color); font-size: 13px; color: var(--text-body); cursor: pointer; transition: background-color 0.2s;" data-id="${t.id}" onmouseover="this.style.backgroundColor='#f8f9fa'" onmouseout="this.style.backgroundColor='transparent'">
+                    <td class="py-3">
+                        ${t.fecha || '-'}
+                        <div class="text-muted mt-1" style="font-size: 10px;">Nº trans: ${t.grupo_pago_id || t.id}</div>
+                    </td>
+                    <td class="py-3">
+                        <div style="color: var(--text-main); font-weight: 500;">${t.terceroNombre || 'Sin tercero'}</div>
+                        ${t.terceroNit ? `<div style="font-size: 11px; color: #888;">${t.terceroNit}</div>` : ''}
+                    </td>
+                    <td class="py-3" style="color: var(--text-main);">
+                        ${t.cuentaContable}
+                    </td>
+                    <td class="py-3 text-end fw-medium" style="color: ${valorColor};">
+                        ${formatMoney(t.monto)}
+                    </td>
+                    <td class="py-3 text-center">
+
+                        <div class="dropdown d-inline-block">
+                            <button class="btn btn-sm btn-link p-0 text-muted mx-1" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Más opciones" style="color: #6c757d !important; transition: opacity 0.2s;" onmouseover="this.style.opacity=0.7" onmouseout="this.style.opacity=1">
+                                <i class="bi bi-three-dots-vertical fs-6"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end shadow border-0" style="font-size: 13px;">
+                                <li><a class="dropdown-item btn-editar-transaccion" href="javascript:void(0)" data-id="${t.id}">Editar</a></li>
+                                <li><a class="dropdown-item text-danger btn-eliminar-banco" href="javascript:void(0)" data-id="${t.id}" data-grupo="${t.grupo_pago_id || ''}" data-monto="${t.monto}" data-fecha="${t.fecha}">Eliminar</a></li>
+                            </ul>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('') : `<tr><td colspan="5" class="text-center py-5 text-muted">No se encontraron movimientos o no coinciden con la búsqueda.</td></tr>`;
+
+        footer.innerHTML = this.state.hasMore ? 
+            `<button id="detail-btn-loadmore" class="btn btn-sm btn-outline-secondary px-4 py-2" ${this.state.isLoading ? 'disabled' : ''}>
+                ${this.state.isLoading ? 'Cargando...' : 'Cargar más movimientos'}
+            </button>` 
+        : 
+            `<span class="text-muted" style="font-size: 13px;">No hay más movimientos.</span>`;
+
+        this.bindDynamicEvents();
+    },
+
+    bindDynamicEvents() {
+        this.element.querySelectorAll('.btn-eliminar-banco').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const id = e.currentTarget.dataset.id;
+                const grupo = e.currentTarget.dataset.grupo;
+                const monto = e.currentTarget.dataset.monto;
+                const fecha = e.currentTarget.dataset.fecha;
+                const montoFormat = '$ ' + parseFloat(monto || 0).toLocaleString('es-CO', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                
+                if (confirm(`¿Está seguro que desea eliminar este movimiento por valor de ${montoFormat} del ${fecha}? Esta acción revertirá el saldo de la cuenta.`)) {
+                    try {
+                        const { anularTransaccion } = await import('../../shared/transaccionesUtils.js');
+                        if (grupo) {
+                            await anularTransaccion(grupo, true);
+                        } else {
+                            await anularTransaccion(id, false);
+                        }
+                        this.state.offset = 0; // Reset pagination
+                        await this.loadData(false);
+                        this.renderGrid();
+                    } catch (err) {
+                        alert("Error al anular el movimiento: " + err.message);
+                    }
+                }
+            });
+        });
+
+        const openModal = async (tId, autoEdit = false) => {
+            // Because we grouped, we might need to find inside the grouped array or original array.
+            // But we already grouped in renderGrid, so we can just use agruparTransaccionesPorPago directly or search the grouped one.
+            const currentItems = agruparTransaccionesPorPago(this.state.transacciones);
+            const t = currentItems.find(x => String(x.id) === String(tId));
+            if (!t) return;
+            const modalModule = await import('../../shared/transaccionModal.js');
+            await modalModule.mostrarDetalleTransaccion(t, () => {
+                this.state.offset = 0;
+                this.loadData(false).then(() => {
+                    // Force static component update if saldo changed
+                    const saldoEl = this.element.querySelector('#detail-saldo-card');
+                    if (saldoEl) saldoEl.textContent = '$ ' + parseFloat(this.state.saldo || 0).toLocaleString('es-CO', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                    this.renderGrid();
                 });
             });
+            
+            if (autoEdit) {
+                setTimeout(() => {
+                    const btnEdit = document.getElementById('btn-activar-edicion');
+                    if (btnEdit) btnEdit.click();
+                }, 200);
+            }
         };
 
-        renderGrid();
+        this.element.querySelectorAll('.btn-ver-transaccion').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                openModal(e.currentTarget.dataset.id, false);
+            });
+        });
+
+        this.element.querySelectorAll('.btn-editar-transaccion').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                openModal(e.currentTarget.dataset.id, true);
+            });
+        });
+
+        this.element.querySelectorAll('tbody tr[data-id]').forEach(row => {
+            row.addEventListener('click', async (e) => {
+                if (e.target.closest('button') || e.target.closest('.dropdown-menu') || e.target.closest('a')) return;
+                const tId = row.dataset.id;
+                openModal(tId, false);
+            });
+        });
     }
 };
