@@ -661,9 +661,9 @@ export const ItemEngine = {
                                             const prom = '$' + Number(mlInfo.precio_promedio).toLocaleString('es-CO');
                                             const min = '$' + Number(mlInfo.precio_minimo).toLocaleString('es-CO');
                                             const max = '$' + Number(mlInfo.precio_maximo).toLocaleString('es-CO');
-                                            metaQty.innerHTML += `<div style="color: #0284c7; font-size: 11px; margin-top: 2px; font-weight: 500;">Prec. ML (últimas 5): ${prom} — rango ${min} a ${max}</div>`;
+                                            metaQty.innerHTML += `<div style="color: #0284c7; font-size: 11px; margin-top: 2px; font-weight: 500; white-space: nowrap;">Prec. ML: ${prom} (rango ${min}-${max})</div>`;
                                         } else {
-                                            metaQty.innerHTML += `<div style="color: #64748b; font-size: 11px; margin-top: 2px;">Sin historial con Mercado Libre</div>`;
+                                            metaQty.innerHTML += `<div style="color: #64748b; font-size: 11px; margin-top: 2px; white-space: nowrap;">Sin historial con ML</div>`;
                                         }
                                     }
                                 } catch (err) {
