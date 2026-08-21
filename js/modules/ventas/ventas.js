@@ -148,48 +148,32 @@ export const FacturasModule = {
                     <!-- KPI CARDS FACTURAS -->
                     <div class="row g-3 mb-4">
                         <div class="col-12 col-sm-6 col-lg-4">
-                            <div class="dash-kpi-card d-flex flex-column justify-content-between" style="min-height: 90px;">
-                                <div class="d-flex justify-content-between align-items-start">
-                                    <span class="dash-kpi-label">Total Facturado</span>
-                                    <div class="dash-icon-box variant-blue">
-                                        <i class="bi bi-receipt"></i>
-                                    </div>
-                                </div>
-                                <div class="dash-kpi-value">$ ${formatMoney(kpiDataCxc.facturado).replace('$ ', '')}</div>
+                            <div class="ds-kpi-card">
+                                <span class="ds-kpi-label">Total Facturado</span>
+                                <div class="ds-kpi-value">$ ${formatMoney(kpiDataCxc.facturado).replace('$ ', '')}</div>
                             </div>
                         </div>
                         <div class="col-12 col-sm-6 col-lg-4">
-                            <div class="dash-kpi-card d-flex flex-column justify-content-between" style="min-height: 90px;">
-                                <div class="d-flex justify-content-between align-items-start">
-                                    <span class="dash-kpi-label">Total Cobrado</span>
-                                    <div class="dash-icon-box variant-green">
-                                        <i class="bi bi-check-circle"></i>
-                                    </div>
-                                </div>
-                                <div class="dash-kpi-value">$ ${formatMoney(kpiDataCxc.cobrado).replace('$ ', '')}</div>
+                            <div class="ds-kpi-card">
+                                <span class="ds-kpi-label">Total Cobrado</span>
+                                <div class="ds-kpi-value">$ ${formatMoney(kpiDataCxc.cobrado).replace('$ ', '')}</div>
                             </div>
                         </div>
                         <div class="col-12 col-sm-6 col-lg-4">
-                            <div class="dash-kpi-card d-flex flex-column justify-content-between" style="min-height: 90px;">
-                                <div class="d-flex justify-content-between align-items-start">
-                                    <span class="dash-kpi-label">Total Pendiente</span>
-                                    <div class="dash-icon-box variant-yellow">
-                                        <i class="bi bi-clock-history"></i>
-                                    </div>
-                                </div>
-                                <div class="dash-kpi-value">$ ${formatMoney(kpiDataCxc.pendiente).replace('$ ', '')}</div>
+                            <div class="ds-kpi-card">
+                                <span class="ds-kpi-label">Total Pendiente</span>
+                                <div class="ds-kpi-value">$ ${formatMoney(kpiDataCxc.pendiente).replace('$ ', '')}</div>
                             </div>
                         </div>
                     </div>
 
                     <!-- DATA TABLE CARD -->
-                    <div class="dash-table-container mb-4">
+                    <div class="ds-table-container mb-4">
                         <!-- FILTERS -->
-                        <div class="card-header bg-white border-bottom p-3 d-flex gap-3 align-items-center" style="border-radius: 8px 8px 0 0;">
-                            <div class="input-group input-group-sm" style="width: 250px;">
-                                <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
-                                <input type="text" class="form-control border-start-0 border-end-0 ps-0 text-muted" id="searchFacturas" autocomplete="off" placeholder="Buscar por fecha, cliente, número, monto..." value="${searchQuery}" style="font-size: 13px; box-shadow: none;">
-                                <span class="input-group-text bg-white border-start-0 text-muted" id="clearSearchBtn" style="cursor: pointer; ${searchQuery ? '' : 'display: none;'}"><i class="bi bi-x-circle-fill" style="opacity: 0.5;"></i></span>
+                        <div class="card-header bg-white border-bottom p-3 d-flex gap-3 align-items-center">
+                            <div class="ds-search-container" style="width: 250px;">
+                                <i class="bi bi-search ds-search-icon"></i>
+                                <input type="text" class="ds-search-input" id="searchFacturas" autocomplete="off" placeholder="Buscar..." value="${searchQuery}">
                             </div>
                             <div class="dropdown">
                                 <button class="btn btn-link text-decoration-none text-muted p-0 dropdown-toggle" data-bs-toggle="dropdown" style="font-size: 14px;">

@@ -1374,3 +1374,87 @@ html[data-theme^="dark"] .alert-danger {
     color: #ff6b6b !important;
     border-left-color: #ff6b6b !important;
 }
+
+/* =========================================
+   SISTEMA DE DISEÑO GLOBAL - FASE 1
+   ========================================= */
+
+/* Contenedores de Tablas */
+.ds-table-container {
+    background-color: var(--surface);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+    overflow: hidden;
+}
+
+/* Tarjetas KPI Superiores */
+.ds-kpi-card {
+    background-color: var(--surface);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    height: 100%;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.ds-kpi-card:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.04);
+}
+
+.ds-kpi-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+}
+
+.ds-kpi-value {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--text-main);
+    line-height: 1.2;
+    margin: 0;
+}
+
+/* Encabezados unificados de tablas */
+.ds-table-header th {
+    background-color: var(--bg-body) !important;
+    color: var(--text-muted) !important;
+    font-weight: 600 !important;
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+    padding-top: 12px !important;
+    padding-bottom: 12px !important;
+    border-bottom: 1px solid var(--border-color) !important;
+}
+
+/* Utilidades adicionales */
+.ds-search-input {
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    padding: 8px 16px;
+    padding-left: 36px;
+    font-size: 14px;
+    background-color: var(--surface);
+    color: var(--text-main);
+    width: 100%;
+}
+.ds-search-container {
+    position: relative;
+    max-width: 350px;
+}
+.ds-search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+}
+

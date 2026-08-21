@@ -63,49 +63,33 @@ export const CotizacionesModule = {
                 <!-- KPI CARDS COTIZACIONES -->
                 <div class="row g-3 mb-4">
                     <div class="col-12 col-sm-6 col-lg-4">
-                        <div class="dash-kpi-card d-flex flex-column justify-content-between" style="min-height: 90px;">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <span class="dash-kpi-label">Total Cotizado</span>
-                                <div class="dash-icon-box variant-blue">
-                                    <i class="bi bi-file-earmark-text"></i>
-                                </div>
-                            </div>
-                            <div class="dash-kpi-value" id="kpi-cotizado">...</div>
+                        <div class="ds-kpi-card">
+                            <span class="ds-kpi-label">Total Cotizado</span>
+                            <div class="ds-kpi-value" id="kpi-cotizado">...</div>
                         </div>
                     </div>
                     <div class="col-12 col-sm-6 col-lg-4">
-                        <div class="dash-kpi-card d-flex flex-column justify-content-between" style="min-height: 90px;">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <span class="dash-kpi-label">Cotizaciones Aprobadas</span>
-                                <div class="dash-icon-box variant-green">
-                                    <i class="bi bi-check-circle"></i>
-                                </div>
-                            </div>
-                            <div class="dash-kpi-value" id="kpi-aprobado">...</div>
+                        <div class="ds-kpi-card">
+                            <span class="ds-kpi-label">Cotizaciones Aprobadas</span>
+                            <div class="ds-kpi-value" id="kpi-aprobado">...</div>
                         </div>
                     </div>
                     <div class="col-12 col-sm-6 col-lg-4">
-                        <div class="dash-kpi-card d-flex flex-column justify-content-between" style="min-height: 90px;">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <span class="dash-kpi-label">Cotizaciones Pendientes</span>
-                                <div class="dash-icon-box variant-yellow">
-                                    <i class="bi bi-clock"></i>
-                                </div>
-                            </div>
-                            <div class="dash-kpi-value" id="kpi-pendiente">...</div>
+                        <div class="ds-kpi-card">
+                            <span class="ds-kpi-label">Cotizaciones Pendientes</span>
+                            <div class="ds-kpi-value" id="kpi-pendiente">...</div>
                         </div>
                     </div>
                 </div>
 
                 <!-- DATA TABLE CARD -->
-                <div class="dash-table-container mb-4">
+                <div class="ds-table-container mb-4">
                     
                     <!-- FILTERS -->
-                    <div class="card-header bg-white border-bottom p-3 d-flex gap-3 align-items-center" style="border-radius: 8px 8px 0 0;">
-                        <div class="input-group input-group-sm" style="width: 250px;">
-                            <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
-                            <input type="text" class="form-control border-start-0 border-end-0 ps-0 text-muted" id="searchCotizaciones" autocomplete="off" placeholder="Buscar cliente, número, monto..." value="" style="font-size: 13px; box-shadow: none;">
-                            <span class="input-group-text bg-white border-start-0 text-muted" id="clearSearchBtnCotizaciones" style="cursor: pointer; display: none;"><i class="bi bi-x-circle-fill" style="opacity: 0.5;"></i></span>
+                    <div class="card-header bg-white border-bottom p-3 d-flex gap-3 align-items-center">
+                        <div class="ds-search-container" style="width: 250px;">
+                            <i class="bi bi-search ds-search-icon"></i>
+                            <input type="text" class="ds-search-input" id="searchCotizaciones" autocomplete="off" placeholder="Buscar..." value="">
                         </div>
                         <div class="dropdown">
                             <button class="btn btn-link text-decoration-none text-muted p-0 dropdown-toggle" data-bs-toggle="dropdown" style="font-size: 14px;">
@@ -202,19 +186,19 @@ export const CotizacionesModule = {
 
             // Generar Thead (Para flechas de ordenamiento)
             const theadHtml = `
-                <tr style="color: var(--text-muted); font-size: 13px; font-weight: var(--weight-medium);">
-                    <th class="py-2 fw-normal sortable-header" data-column="numero" style="cursor: pointer; user-select: none;">
+                <tr class="ds-table-header">
+                    <th class="py-2 fw-normal sortable-header" data-column="numero" style="cursor: pointer; user-select: none; white-space: nowrap; width: 80px;">
                         Número ${sortColumn === 'numero' ? (sortDirection === 'asc' ? ' ▲' : ' ▼') : ''}
                     </th>
-                    <th class="py-2 fw-normal sortable-header" data-column="cliente" style="cursor: pointer; user-select: none;">
+                    <th class="py-2 fw-normal sortable-header" data-column="cliente" style="cursor: pointer; user-select: none; min-width: 150px;">
                         Cliente ${sortColumn === 'cliente' ? (sortDirection === 'asc' ? ' ▲' : ' ▼') : ''}
                     </th>
-                    <th class="py-2 fw-normal sortable-header" data-column="fecha" style="cursor: pointer; user-select: none;">
+                    <th class="py-2 fw-normal sortable-header" data-column="fecha" style="cursor: pointer; user-select: none; white-space: nowrap;">
                         Creación ${sortColumn === 'fecha' ? (sortDirection === 'asc' ? ' ▲' : ' ▼') : ''}
                     </th>
-                    <th class="py-2 fw-normal text-end">Total</th>
-                    <th class="py-2 fw-normal text-center">Estado</th>
-                    <th class="py-2 fw-normal text-end" style="width: 80px;"></th>
+                    <th class="py-2 fw-normal text-end" style="white-space: nowrap; min-width: 120px;">Total</th>
+                    <th class="py-2 fw-normal text-center" style="white-space: nowrap; width: 100px;">Estado</th>
+                    <th class="py-2 fw-normal text-end" style="width: 80px; white-space: nowrap;"></th>
                 </tr>
             `;
 
@@ -228,14 +212,14 @@ export const CotizacionesModule = {
                 
                 return `
                     <tr style="cursor: pointer; border-bottom: 1px solid var(--border-color); font-size: 13px; color: var(--text-body);" onclick="if(!event.target.closest('button')) window.location.hash = '#/ingresos/cotizaciones/ver/${c.id}'">
-                        <td class="py-2">${numDisplay}</td>
-                        <td class="py-2" style="color: var(--text-main); font-weight: var(--weight-medium);">${clientNameDisplay}</td>
-                        <td class="py-2">${c.fecha}</td>
-                        <td class="py-2 text-end">${formatMoney(c.total)}</td>
-                        <td class="py-2 text-center">
+                        <td class="py-2" style="white-space: nowrap;">${numDisplay}</td>
+                        <td class="py-2" style="color: var(--text-main); font-weight: var(--weight-medium); max-width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${clientNameDisplay}</td>
+                        <td class="py-2" style="white-space: nowrap;">${c.fecha}</td>
+                        <td class="py-2 text-end" style="white-space: nowrap;">${formatMoney(c.total)}</td>
+                        <td class="py-2 text-center" style="white-space: nowrap;">
                             <span class="badge ${badgeClass} rounded-pill fw-medium" style="font-size: 11px; padding: 5px 10px;">${labelEstado}</span>
                         </td>
-                        <td class="py-2 text-end" style="position: relative;">
+                        <td class="py-2 text-end" style="position: relative; white-space: nowrap;">
                             <button class="btn btn-link text-muted p-0 me-2 btn-imprimir-row" data-id="${c.id}">
                                 <i class="bi bi-printer"></i>
                             </button>
