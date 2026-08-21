@@ -1347,7 +1347,8 @@ export const ComprasModule = {
                     
                     if (!nombre) throw new Error("El nombre es obligatorio");
                     
-                    const { data, error } = await import('../../core/supabase.js').then(m => m.supabase).from('productos').insert([{
+                    const { supabase } = await import('../../core/supabase.js');
+                    const { data, error } = await supabase.from('productos').insert([{
                         nombre: nombre,
                         sku: sku,
                         precio_venta: precio,
