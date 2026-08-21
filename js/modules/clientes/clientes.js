@@ -784,12 +784,24 @@ export const ContactosModule = {
                                     <tbody>
                                         ${(cotizacionesCliente || []).map(c => {
                                             const esAnuladaCot = c.estado === 'void' || c.estado === 'anulada';
+                                            let badgeClass = '';
+                                            let labelEstado = '';
+                                            
+                                            if (esAnuladaCot) {
+                                                badgeClass = 'bg-secondary text-secondary-emphasis bg-opacity-10 border border-secondary-subtle';
+                                                labelEstado = 'Anulada';
+                                            } else {
+                                                const isFacturada = c.estado === 'billed';
+                                                badgeClass = isFacturada ? 'bg-success text-success bg-opacity-10 border border-success-subtle' : 'bg-warning text-warning-emphasis bg-opacity-10 border border-warning-subtle';
+                                                labelEstado = isFacturada ? 'Aprobada' : 'Pendiente';
+                                            }
+                                            
                                             return `
                                             <tr style="border-bottom: 1px solid #f0f0f0; cursor:pointer;" onclick="sessionStorage.setItem('origenVolver', JSON.stringify({hash: '#/contactos/ver/${id}', label: 'Volver al cliente'})); if(!event.target.closest('button') && !event.target.closest('a')) window.location.hash='#/ingresos/cotizaciones/ver/${c.id}'">
                                                 <td class="py-3 fw-medium">${c.numero}</td>
                                                 <td class="py-3 text-muted">${c.fecha}</td>
                                                 <td class="py-3">$${Number(c.total).toLocaleString()}</td>
-                                                <td class="py-3"><span style="color: ${esAnuladaCot ? '#999' : '#4b5563'};">${c.estado}</span></td>
+                                                <td class="py-3"><span class="badge ${badgeClass} rounded-pill fw-medium" style="font-size: var(--fs-xs); padding: 5px 10px;">${labelEstado}</span></td>
                                                 <td class="py-3 text-end">
                                                     ${esAnuladaCot 
                                                         ? `<i class="bi bi-pencil text-muted opacity-25 me-2"></i><i class="bi bi-trash text-muted opacity-25"></i>`

@@ -197,6 +197,7 @@ export const CoreActions = {
             }
 
             // Modificar estado original
+            cotizacion.estado = 'billed';
             cotizacion.convertidoAFactura = true;
             cotizacion.facturaDestinoId = idReal;
             await DB.save('cotizaciones', cotizacion);
