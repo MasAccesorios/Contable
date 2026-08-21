@@ -1357,8 +1357,7 @@ export const ComprasModule = {
                     
                     if (error) throw error;
                     
-                    // Actualizar cache local
-                    this.cache.productos.push(data);
+
                     
                     // Cerrar modal
                     document.getElementById(modalId).remove();
