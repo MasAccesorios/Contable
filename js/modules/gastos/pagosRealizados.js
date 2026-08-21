@@ -105,6 +105,7 @@ export const PagosRealizadosModule = {
             }
             if (listContainer) {
                 listContainer.style.display = 'block';
+                this.renderGrid();
             }
         }
     },

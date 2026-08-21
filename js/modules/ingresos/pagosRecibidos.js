@@ -104,6 +104,7 @@ export const PagosRecibidosModule = {
             }
             if (listContainer) {
                 listContainer.style.display = 'block';
+                this.renderGrid();
             }
         }
     },
