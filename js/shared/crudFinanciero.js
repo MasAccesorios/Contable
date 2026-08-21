@@ -39,8 +39,13 @@ export class CrudFinanciero {
 
         element.innerHTML = `
             <div class="dash-layout p-4">
-                <div class="d-flex justify-content-between flex-wrap pt-3 pb-2 mb-3 border-bottom">
-                    <h1 class="h2">${this.config.titulo}</h1>
+                <div class="d-flex justify-content-between flex-wrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <div class="d-flex align-items-center">
+                        <a href="#" onclick="event.preventDefault(); window.history.length > 2 ? window.history.back() : window.location.hash = '#/dashboard';" class="btn btn-light bg-white border me-3" style="font-weight: var(--weight-medium); font-size: 14px; color: var(--text-body);">
+                            <i class="bi bi-arrow-left me-1"></i> Volver
+                        </a>
+                        <h1 class="h2 mb-0">${this.config.titulo}</h1>
+                    </div>
                 </div>
 
                 <!-- Panel Superior: Creación Rápida -->

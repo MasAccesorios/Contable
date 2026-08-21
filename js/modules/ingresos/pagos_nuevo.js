@@ -15,7 +15,12 @@ export default {
             // Remove parameter from URL to keep it clean (optional, but good practice)
             window.history.replaceState(null, '', window.location.pathname + hashParts[0]);
         } else {
+            // Limpieza agresiva de cualquier rastro previo si es carga directa limpia
             sessionStorage.removeItem('clienteId');
+            sessionStorage.removeItem('currentCliente');
+            localStorage.removeItem('clienteId');
+            localStorage.removeItem('currentCliente');
+            window.currentCliente = null;
         }
 
         const clienteId = sessionStorage.getItem('clienteId');
