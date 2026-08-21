@@ -1369,9 +1369,6 @@ export const ComprasModule = {
                         
                         inpSearch.value = `[${data.sku || 'S/N'}] - ${data.nombre}`;
                         inpId.value = data.id;
-                        
-                        // Disparar evento para que ItemEngine y calcTotales lo tomen
-                        inpSearch.dispatchEvent(new Event('input', { bubbles: true }));
                     }
                 } catch (err) {
                     alert("Error al crear producto: " + err.message);
