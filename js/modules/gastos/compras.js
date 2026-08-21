@@ -752,12 +752,12 @@ export const ComprasModule = {
                                 <thead style="border-bottom: 1px solid var(--border-color);">
                                     <tr style="color: var(--text-muted); font-weight: var(--weight-regular);">
                                         <th style="width: 40px;"><input type="checkbox" class="form-check-input" disabled></th>
-                                        <th>Producto o servicios</th>
-                                        <th style="width: 100px;">Cantidad</th>
-                                        <th style="width: 150px;">Precio</th>
-                                        <th style="width: 120px;">Descuento %</th>
-                                        <th style="width: 150px;">Impuesto %</th>
-                                        <th class="text-end" style="width: 120px;">Subtotal</th>
+                                        <th style="width: 35%; min-width: 180px;">Producto o servicios</th>
+                                        <th style="width: 15%;">Cantidad</th>
+                                        <th style="width: 15%;">Precio</th>
+                                        <th style="width: 10%;">Desc %</th>
+                                        <th style="width: 12%;">Impto %</th>
+                                        <th class="text-end" style="width: 13%;">Subtotal</th>
                                         <th style="width: 40px;"></th>
                                     </tr>
                                 </thead>
