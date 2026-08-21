@@ -1217,7 +1217,8 @@ export const ComprasModule = {
                                 cantidad_actual: d.cantidad,
                                 costo_unitario: d.precio, 
                                 fecha_ingreso: factura.fecha,
-                                referencia: `Factura Compra ${factura.numero}`
+                                referencia: `Factura Compra ${factura.numero}`,
+                                origen_movimiento: 'compra:' + (factura.numero || savedFactura.numero)
                             }));
                             
                             const { error: lotesError } = await supabase.from('lotes_fifo').insert(lotes);
