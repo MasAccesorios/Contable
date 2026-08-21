@@ -366,8 +366,8 @@ export const PagosRecibidosModule = {
                         </p>
                     </div>
                     <div class="d-flex gap-2">
-                        <a href="#/ingresos" class="btn btn-light bg-white border me-2" style="font-weight: var(--weight-medium); font-size: 14px; color: var(--text-body);">
-                            <i class="bi bi-arrow-left me-1"></i> Volver a Ingresos
+                        <a href="#" onclick="event.preventDefault(); window.history.length > 2 ? window.history.back() : window.location.hash = '#/dashboard';" class="btn btn-light bg-white border me-2" style="font-weight: var(--weight-medium); font-size: 14px; color: var(--text-body);">
+                            <i class="bi bi-arrow-left me-1"></i> Volver
                         </a>
                         <button id="btn-nuevo-pago" class="btn btn-primary-action">
                             <i class="bi bi-plus-lg me-1"></i> Registrar Pago
