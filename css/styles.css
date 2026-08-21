@@ -2,6 +2,12 @@
 
 :root {
     --primary: #2dbda8;
+    --danger: #dc3545;
+    --danger-bg: #fee2e2;
+    --success: #198754;
+    --success-bg: #dcfce7;
+    --warning: #fd7e14;
+    --warning-bg: #fff3cd;
     --primary-light: #e6f6f4;
     --dark: #1e293b;
     --bg-main: #f8fafc;
