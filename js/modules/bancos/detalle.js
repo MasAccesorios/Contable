@@ -112,7 +112,24 @@ export const DetalleBancoModule = {
                     const facturaAsociada = item.factura_id ? facturasMap[item.factura_id] : null;
                     const contactoIdViaFactura = facturaAsociada ? facturaAsociada.contacto_id : null;
                     const contacto = contactosMap[contactoIdDirecto] || contactosMap[contactoIdViaFactura] || null;
-                    let terceroNombre = contacto ? contacto.nombre : (item.referencia || 'Desconocido');
+                    
+                    let terceroNombre = contacto ? contacto.nombre : null;
+                    
+                    if (!terceroNombre && item.observaciones) {
+                        const obs = String(item.observaciones).trim();
+                        if (!/^\\(\\s*Alegra ID:\\s*\\d+\\s*\\)$/i.test(obs)) {
+                            if (obs.includes(' — ')) {
+                                terceroNombre = obs.split(' — ').pop().trim();
+                            } else {
+                                terceroNombre = obs.length > 50 ? obs.substring(0, 47) + '...' : obs;
+                            }
+                        }
+                    }
+                    
+                    if (!terceroNombre) {
+                        terceroNombre = item.referencia || 'Desconocido';
+                    }
+
                     let terceroNit = contacto && contacto.identificacion ? contacto.identificacion : '';
 
                     let cuentaContable = 'Otros movimientos';
