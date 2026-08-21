@@ -466,10 +466,23 @@ export const PagosRealizadosModule = {
             if (pago.factura_id) {
                 detallesHtml = `<a href="#/gastos/compras/ver/${pago.factura_id}" class="text-decoration-none text-primary" onclick="event.stopPropagation()">Compra #${pago.factura_numero || pago.factura_id}</a>`;
             }
+            
+            let clienteNombre = pago.cliente;
+            if (!clienteNombre) {
+                const obs = String(pago.observaciones || '').trim();
+                if (obs.includes(' — ')) {
+                    clienteNombre = obs.split(' — ').pop().trim();
+                } else if (obs.length > 0) {
+                    clienteNombre = obs.length > 50 ? obs.substring(0, 47) + '...' : obs;
+                } else {
+                    clienteNombre = pago.referencia || 'Sin proveedor';
+                }
+            }
+            
             return `
                             <tr style="cursor: pointer;" class="row-pago" data-id="${pago.id}">
                                 <td class="ps-4 py-1 fw-bold text-dark">${pago.numero}</td>
-                                <td class="py-1 text-dark text-truncate" style="max-width: 200px;">${pago.cliente}</td>
+                                <td class="py-1 text-dark text-truncate" style="max-width: 200px;">${clienteNombre}</td>
                                 <td class="py-1 text-truncate" style="max-width: 200px;">${detallesHtml}</td>
                                 <td class="py-1 text-muted">${formatFecha(pago.fecha)}</td>
                                 <td class="py-1 text-dark text-truncate" style="max-width: 150px;">${pago.cuenta_bancaria}</td>
