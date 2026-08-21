@@ -8,12 +8,6 @@ export default {
         if (!element) return;
         
         const clienteId = sessionStorage.getItem('clienteId');
-        if (!clienteId) {
-            CoreActions.showWarningModal('Por favor selecciona un cliente desde la vista de Cartera.');
-            window.location.hash = '#/cartera';
-            return;
-        }
-
         this.clienteId = clienteId;
         this.facturasData = [];
 

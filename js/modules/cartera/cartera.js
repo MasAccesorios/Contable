@@ -243,21 +243,23 @@ export default {
                                     const hoyDate = new Date();
                                     const utcHoy = Date.UTC(hoyDate.getFullYear(), hoyDate.getMonth(), hoyDate.getDate());
                                     let diasVencida = 0;
-                                    if (f.vencimiento) {
-                                        const vDate = new Date(f.vencimiento);
+                                    let vencimientoReal = (f.vencimiento && f.vencimiento !== 'N/A' && f.vencimiento.trim() !== '') ? f.vencimiento : f.fecha;
+
+                                    if (vencimientoReal) {
+                                        const vDate = new Date(vencimientoReal);
                                         const utcVenc = Date.UTC(vDate.getFullYear(), vDate.getMonth(), vDate.getDate());
                                         diasVencida = Math.floor((utcHoy - utcVenc) / (1000 * 60 * 60 * 24));
                                     }
                                     const isVencida = diasVencida >= 1;
                                     
                                     return `
-                                    <tr class="tr-factura" data-numero="${String(f.numero || f.id).toLowerCase()}" data-cliente-id="${clienteId}" data-fecha="${f.fecha || ''}" data-vencimiento="${f.vencimiento || ''}" data-dias-vencida="${diasVencida}" data-saldo="${saldo}" style="cursor: pointer;" onclick="if(!event.target.closest('button')) { sessionStorage.setItem('origenVolver', JSON.stringify({hash: '#/cartera', label: 'Volver a Cuentas por Cobrar'})); window.location.hash = '#/ingresos/facturas/ver/${f.id}'; }">
+                                    <tr class="tr-factura" data-numero="${String(f.numero || f.id).toLowerCase()}" data-cliente-id="${clienteId}" data-fecha="${f.fecha || ''}" data-vencimiento="${vencimientoReal || ''}" data-dias-vencida="${diasVencida}" data-saldo="${saldo}" style="cursor: pointer;" onclick="if(!event.target.closest('button')) { sessionStorage.setItem('origenVolver', JSON.stringify({hash: '#/cartera', label: 'Volver a Cuentas por Cobrar'})); window.location.hash = '#/ingresos/facturas/ver/${f.id}'; }">
                                         <td class="ps-3 py-1"><input type="checkbox" class="form-check-input"></td>
                                         <td class="text-primary fw-medium py-1" style="cursor: pointer; white-space: nowrap;">${f.numero || f.id}</td>
                                         <td class="text-muted py-1" style="white-space: nowrap;">Factura de venta</td>
                                         <td class="text-dark py-1" style="white-space: nowrap;">${cliente.nombre}</td>
-                                        <td class="text-muted py-1" style="white-space: nowrap;">${f.fecha || 'N/A'}</td>
-                                        <td class="${isVencida ? 'text-danger fw-semibold' : 'text-muted'} py-1" style="white-space: nowrap;">${f.vencimiento || 'N/A'}</td>
+                                        <td class="text-muted py-1" style="white-space: nowrap;">${f.fecha || '---'}</td>
+                                        <td class="${isVencida ? 'text-danger fw-semibold' : 'text-muted'} py-1" style="white-space: nowrap;">${vencimientoReal || '---'}</td>
                                         <td class="py-1" style="white-space: nowrap;">
                                             <span class="badge ${isVencida ? 'bg-danger text-danger bg-opacity-10 border border-danger-subtle' : 'bg-success text-success bg-opacity-10 border border-success-subtle'} rounded-pill fw-medium" style="font-size: 10px; padding: 3px 8px;">${isVencida ? 'Vencida' : 'Vigente'}</span>
                                         </td>
