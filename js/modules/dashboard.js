@@ -249,9 +249,8 @@ export const DashboardModule = {
         const productosActivos = (this.productos || []).filter(p => p.estado !== 'inactivo' && p.estado !== 'inactive');
         
         productosActivos.forEach(p => {
-            const stockTotal = parseFloat(p.stock) || 0;
-            
             const lotesProd = (lotes || []).filter(l => l.productoId === p.id);
+            const stockTotal = lotesProd.reduce((sum, l) => sum + (l.cantidadActual || 0), 0);
             const lotesPositivos = lotesProd.filter(l => l.cantidadActual > 0);
             const stockLotesPos = lotesPositivos.reduce((sum, l) => sum + l.cantidadActual, 0);
             const costoLotes = lotesPositivos.reduce((sum, l) => sum + (l.cantidadActual * (l.costoUnitario || 0)), 0);
