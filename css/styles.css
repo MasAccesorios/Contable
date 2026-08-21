@@ -21,6 +21,12 @@
 
     /* Tipografía */
     --font-mono: 'JetBrains Mono', monospace;
+    --fs-xxs: 10px;
+    --fs-xs: 11px;
+    --fs-sm: 12px;
+    --fs-base: 13px;
+    --fs-md: 14px;
+    --fs-lg: 20px;
     
     /* Variables de Grosor Estricto */
     --weight-regular: 400;

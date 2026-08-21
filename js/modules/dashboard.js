@@ -13,8 +13,8 @@ export const DashboardModule = {
                 <!-- ═══ HEADER ═══ -->
                 <div class="dash-header">
                     <div>
-                        <h3 class="fw-bold mb-0" style="font-size: 20px; color: #0f172a; letter-spacing: -0.3px;">Resumen del negocio</h3>
-                        <p class="mb-0 text-muted" style="font-size: 12px; margin-top: 2px;">Vista consolidada en tiempo real</p>
+                        <h3 class="fw-bold mb-0" style="font-size: var(--fs-lg); color: var(--text-main); letter-spacing: -0.3px;">Resumen del negocio</h3>
+                        <p class="mb-0 text-muted" style="font-size: var(--fs-sm); margin-top: 2px;">Vista consolidada en tiempo real</p>
                     </div>
                     <div class="dashboard-pill-group" role="group" id="dashboard-rango-filtro">
                         <button type="button" class="dpg-btn" data-rango="7 Días">7 Días</button>
@@ -30,7 +30,7 @@ export const DashboardModule = {
                     <div class="dash-card-premium dash-card-link" onclick="window.location.hash = '#/cartera'" tabindex="0">
                             <div class="d-flex justify-content-between align-items-start mb-1">
                                 <div>
-                                    <span class="dash-card-label"><i class="bi bi-arrow-down-circle me-1 text-success" style="font-size:12px;"></i>Cuentas por cobrar</span>
+                                    <span class="dash-card-label"><i class="bi bi-arrow-down-circle me-1 text-success" style="font-size: var(--fs-sm);"></i>Cuentas por cobrar</span>
                                     <div class="dash-card-metric" id="kpi-cxc-total"><span class="spinner-border spinner-border-sm text-secondary"></span></div>
                                 </div>
                                 <span class="badge dash-badge-mora" id="kpi-cxc-badge-mora" style="display:none;"></span>
@@ -57,7 +57,7 @@ export const DashboardModule = {
                     <div class="dash-card-premium">
                             <div class="d-flex justify-content-between align-items-start mb-1">
                                 <div>
-                                    <span class="dash-card-label"><i class="bi bi-arrow-up-circle me-1 text-danger" style="font-size:12px;"></i>Cuentas por pagar</span>
+                                    <span class="dash-card-label"><i class="bi bi-arrow-up-circle me-1 text-danger" style="font-size: var(--fs-sm);"></i>Cuentas por pagar</span>
                                     <div class="dash-card-metric" id="kpi-cxp-total"><span class="spinner-border spinner-border-sm text-secondary"></span></div>
                                 </div>
                                 <span class="badge dash-badge-mora dash-badge-mora--warning" id="kpi-cxp-badge-mora" style="display:none;"></span>
@@ -138,23 +138,23 @@ export const DashboardModule = {
                                 <h6 class="text-dark text-body mb-1 fw-bold">Total de ventas <i class="bi bi-info-circle ms-1 text-muted"></i></h6>
                                 <div class="d-flex gap-4 mt-3">
                                     <div>
-                                        <span class="text-muted d-block text-uppercase fw-semibold" style="font-size: 10px; letter-spacing: 0.5px;">Ticket Promedio</span>
-                                        <span class="text-dark fw-bold" id="kpi-ticket-promedio" style="font-size: 14px;"><span class="spinner-border spinner-border-sm text-secondary"></span></span>
+                                        <span class="text-muted d-block text-uppercase fw-semibold" style="font-size: var(--fs-xxs); letter-spacing: 0.5px;">Ticket Promedio</span>
+                                        <span class="text-dark fw-bold" id="kpi-ticket-promedio" style="font-size: var(--fs-md);"><span class="spinner-border spinner-border-sm text-secondary"></span></span>
                                     </div>
                                     <div>
-                                        <span class="text-muted d-block text-uppercase fw-semibold" style="font-size: 10px; letter-spacing: 0.5px;">Promedio Diario</span>
-                                        <span class="text-dark fw-bold" id="kpi-promedio-diario" style="font-size: 14px;"><span class="spinner-border spinner-border-sm text-secondary"></span></span>
+                                        <span class="text-muted d-block text-uppercase fw-semibold" style="font-size: var(--fs-xxs); letter-spacing: 0.5px;">Promedio Diario</span>
+                                        <span class="text-dark fw-bold" id="kpi-promedio-diario" style="font-size: var(--fs-md);"><span class="spinner-border spinner-border-sm text-secondary"></span></span>
                                     </div>
                                 </div>
                             </div>
                             <div class="text-end">
                                 <div class="d-flex align-items-center justify-content-end gap-2 mb-1">
                                     <h3 class="text-metric mb-0 text-dark fw-bold" id="kpi-total-ventas"><span class="spinner-border spinner-border-sm text-secondary"></span></h3>
-                                    <span id="kpi-ventas-growth-badge" class="badge px-2 py-1" style="font-size: 12px; border-radius: 6px; display: none;">
+                                    <span id="kpi-ventas-growth-badge" class="badge px-2 py-1" style="font-size: var(--fs-sm); border-radius: 6px; display: none;">
                                         <i id="kpi-ventas-growth-icon" class="bi me-1"></i> <span id="kpi-ventas-growth-text">...</span>
                                     </span>
                                 </div>
-                                <small id="kpi-ventas-growth-label" class="text-muted fw-medium" style="font-size: 11px;">vs periodo anterior</small>
+                                <small id="kpi-ventas-growth-label" class="text-muted fw-medium" style="font-size: var(--fs-xs);">vs periodo anterior</small>
                             </div>
                         </div>
                         

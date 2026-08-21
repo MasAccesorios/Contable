@@ -104,19 +104,19 @@ export const GlobalSearch = {
         const itemsHtml = top.map(([query]) => `
             <div class="dropdown-item py-2 gs-frecuente-item px-3 d-flex align-items-center justify-content-between gap-2">
                 <a href="javascript:void(0)" class="gs-frecuente-link flex-grow-1 d-flex align-items-center gap-2 text-decoration-none text-dark" data-query="${escapeHtml(query)}" style="min-width: 0;">
-                    <i class="bi bi-clock-history text-muted" style="font-size: 12px;"></i>
-                    <span style="font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(query)}</span>
+                    <i class="bi bi-clock-history text-muted" style="font-size: var(--fs-sm);"></i>
+                    <span style="font-size: var(--fs-base); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(query)}</span>
                 </a>
                 <button type="button" class="btn btn-sm btn-link text-muted p-0 gs-frecuente-borrar" data-query="${escapeHtml(query)}" title="Quitar de frecuentes" style="line-height: 1;">
-                    <i class="bi bi-x-lg" style="font-size: 11px;"></i>
+                    <i class="bi bi-x-lg" style="font-size: var(--fs-xs);"></i>
                 </button>
             </div>
         `).join('');
 
         const html = `
             <div class="px-3 py-1 bg-light border-bottom d-flex justify-content-between align-items-center" style="margin-top: -1px;">
-                <small class="fw-bold text-muted" style="font-size: 10px; text-transform: uppercase;">Búsquedas frecuentes</small>
-                <a href="javascript:void(0)" class="gs-frecuente-limpiar-todo text-muted text-decoration-none" style="font-size: 10px;">Borrar historial</a>
+                <small class="fw-bold text-muted" style="font-size: var(--fs-xxs); text-transform: uppercase;">Búsquedas frecuentes</small>
+                <a href="javascript:void(0)" class="gs-frecuente-limpiar-todo text-muted text-decoration-none" style="font-size: var(--fs-xxs);">Borrar historial</a>
             </div>
             ${itemsHtml}
         `;
@@ -260,8 +260,8 @@ export const GlobalSearch = {
                         title = 'Contactos';
                         itemsHtml = group.data.map(item => `
                             <a href="#/contactos/ver/${item.id}" class="dropdown-item py-2 gs-result-link px-3 text-wrap" style="white-space: normal;" data-registrar="${escapeHtml(item.nombre)}">
-                                <div class="fw-medium text-dark" style="font-size: 13px;">${item.nombre}</div>
-                                <div class="text-muted" style="font-size: 11px;">NIT: ${item.identificacion || 'N/A'}</div>
+                                <div class="fw-medium text-dark" style="font-size: var(--fs-base);">${item.nombre}</div>
+                                <div class="text-muted" style="font-size: var(--fs-xs);">NIT: ${item.identificacion || 'N/A'}</div>
                             </a>
                         `).join('');
                         break;
@@ -269,8 +269,8 @@ export const GlobalSearch = {
                         title = 'Productos';
                         itemsHtml = group.data.map(item => `
                             <a href="#/inventario/items/ver/${item.id}" class="dropdown-item py-2 gs-result-link px-3 text-wrap" style="white-space: normal;" data-registrar="${escapeHtml(item.nombre)}">
-                                <div class="fw-medium text-dark" style="font-size: 13px;">${item.nombre}</div>
-                                <div class="text-muted" style="font-size: 11px;">SKU: ${item.sku || 'N/A'}</div>
+                                <div class="fw-medium text-dark" style="font-size: var(--fs-base);">${item.nombre}</div>
+                                <div class="text-muted" style="font-size: var(--fs-xs);">SKU: ${item.sku || 'N/A'}</div>
                             </a>
                         `).join('');
                         break;
@@ -283,8 +283,8 @@ export const GlobalSearch = {
                             const label = `Factura de ${badge} #${item.numero}`;
                             return `
                                 <a href="${hash}" class="dropdown-item py-2 gs-result-link px-3 text-wrap" style="white-space: normal;" data-registrar="${escapeHtml(label)}">
-                                    <div class="fw-medium text-dark" style="font-size: 13px;">${label}</div>
-                                    <div class="text-muted" style="font-size: 11px;">${item.contactos?.nombre || 'Sin cliente'} - $${Number(item.total).toLocaleString()}</div>
+                                    <div class="fw-medium text-dark" style="font-size: var(--fs-base);">${label}</div>
+                                    <div class="text-muted" style="font-size: var(--fs-xs);">${item.contactos?.nombre || 'Sin cliente'} - $${Number(item.total).toLocaleString()}</div>
                                 </a>
                             `;
                         }).join('');
@@ -295,8 +295,8 @@ export const GlobalSearch = {
                             const label = `Cotización #${item.numero}`;
                             return `
                             <a href="#/ingresos/cotizaciones/ver/${item.id}" class="dropdown-item py-2 gs-result-link px-3 text-wrap" style="white-space: normal;" data-registrar="${escapeHtml(label)}">
-                                <div class="fw-medium text-dark" style="font-size: 13px;">${label}</div>
-                                <div class="text-muted" style="font-size: 11px;">${item.contactos?.nombre || 'Sin cliente'} - $${Number(item.total).toLocaleString()}</div>
+                                <div class="fw-medium text-dark" style="font-size: var(--fs-base);">${label}</div>
+                                <div class="text-muted" style="font-size: var(--fs-xs);">${item.contactos?.nombre || 'Sin cliente'} - $${Number(item.total).toLocaleString()}</div>
                             </a>
                         `;
                         }).join('');
@@ -305,7 +305,7 @@ export const GlobalSearch = {
 
                 html += `
                     <div class="px-3 py-1 bg-light border-bottom border-top" style="margin-top: -1px;">
-                        <small class="fw-bold text-muted" style="font-size: 10px; text-transform: uppercase;">${title}</small>
+                        <small class="fw-bold text-muted" style="font-size: var(--fs-xxs); text-transform: uppercase;">${title}</small>
                     </div>
                     ${itemsHtml}
                 `;

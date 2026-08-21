@@ -38,37 +38,37 @@ export const QuickActions = {
             dropdown.innerHTML = `
                 <a href="#/ingresos/facturas/nueva" class="dropdown-item py-2 px-3 d-flex align-items-center gap-2 qa-link">
                     <i class="bi bi-receipt text-primary"></i>
-                    <span style="font-size: 14px; font-weight: 500;">Factura</span>
+                    <span style="font-size: var(--fs-md); font-weight: 500;">Factura</span>
                 </a>
                 <a href="#/ingresos/cotizaciones/nueva" class="dropdown-item py-2 px-3 d-flex align-items-center gap-2 qa-link">
                     <i class="bi bi-file-earmark-text text-primary"></i>
-                    <span style="font-size: 14px; font-weight: 500;">Cotización</span>
+                    <span style="font-size: var(--fs-md); font-weight: 500;">Cotización</span>
                 </a>
                 <a href="#/contactos/nueva" class="dropdown-item py-2 px-3 d-flex align-items-center gap-2 qa-link">
                     <i class="bi bi-person-plus text-primary"></i>
-                    <span style="font-size: 14px; font-weight: 500;">Contacto</span>
+                    <span style="font-size: var(--fs-md); font-weight: 500;">Contacto</span>
                 </a>
                 <a href="#/gastos/pagos" class="dropdown-item py-2 px-3 d-flex align-items-center gap-2 qa-link">
                     <i class="bi bi-cash-coin text-primary"></i>
-                    <span style="font-size: 14px; font-weight: 500;">Gasto</span>
+                    <span style="font-size: var(--fs-md); font-weight: 500;">Gasto</span>
                 </a>
                 <a href="#/ingresos/operativos" class="dropdown-item py-2 px-3 d-flex align-items-center gap-2 qa-link">
                     <i class="bi bi-graph-up-arrow text-primary"></i>
-                    <span style="font-size: 14px; font-weight: 500;">Ingreso</span>
+                    <span style="font-size: var(--fs-md); font-weight: 500;">Ingreso</span>
                 </a>
                 
                 <hr class="dropdown-divider my-2">
 
                 <div class="px-3 py-1">
-                    <small class="fw-bold text-muted" style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">Ver Listas</small>
+                    <small class="fw-bold text-muted" style="font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.5px;">Ver Listas</small>
                 </div>
                 <a href="#/ingresos/facturas" class="dropdown-item py-2 px-3 d-flex align-items-center gap-2 qa-link">
                     <i class="bi bi-list-ul text-muted"></i>
-                    <span style="font-size: 14px; font-weight: 500;">Facturas de venta</span>
+                    <span style="font-size: var(--fs-md); font-weight: 500;">Facturas de venta</span>
                 </a>
                 <a href="#/gastos/proveedores" class="dropdown-item py-2 px-3 d-flex align-items-center gap-2 qa-link">
                     <i class="bi bi-list-ul text-muted"></i>
-                    <span style="font-size: 14px; font-weight: 500;">Facturas de compra</span>
+                    <span style="font-size: var(--fs-md); font-weight: 500;">Facturas de compra</span>
                 </a>
             `;
 
