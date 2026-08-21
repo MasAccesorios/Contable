@@ -735,7 +735,8 @@ export const ProductosModule = {
                 cantidadActual: qty,
                 costoUnitario: lCosto,
                 fechaIngreso: element.querySelector('#lote-fecha').value,
-                referencia: element.querySelector('#lote-ref').value.trim()
+                referencia: element.querySelector('#lote-ref').value.trim(),
+                origen_movimiento: 'ingreso_manual:' + producto.sku
             };
 
             await DB.save('lotes_fifo', nuevoLote);
