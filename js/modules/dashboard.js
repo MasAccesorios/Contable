@@ -203,29 +203,9 @@ export const DashboardModule = {
         this._loading = true;
         try {
             console.time('dashboard-total-load');
-
-            console.time('fetch-parallel');
-            const [facturas, lotes, contactos, dbCuentas, productos] = await Promise.all([
-                DB.getAll('facturas'),
-                DB.getAll('lotes_fifo'),
-                DB.getAll('contactos'),
-                DB.getAll('cuentas_bancarias'),
-                DB.getAll('productos')
-            ]);
-            this.facturas = facturas;
-            this.lotes = lotes;
-            this.contactos = contactos;
-            this.cuentasActivas = (dbCuentas || []).filter(c => c.estado === 'active' || c.estado === 'activo');
-            this.productos = productos;
-            console.timeEnd('fetch-parallel');
-
-            const { data: saldosRPC } = await supabase.rpc('get_saldos_por_cuenta');
-            this.saldosRPC = saldosRPC;
-
-            console.timeEnd('dashboard-total-load');
-
             const select = element.querySelector('#dashboard-rango-filtro .dpg-btn--active');
             await this.renderDynamicContent(element, select ? select.dataset.rango : 'Este Mes');
+            console.timeEnd('dashboard-total-load');
         } finally {
             this._loading = false;
         }
@@ -233,95 +213,38 @@ export const DashboardModule = {
 
     async renderDynamicContent(element, rango) {
         console.time('render-dynamic-content');
-        
         console.log('RANGO REAL:', JSON.stringify(rango));
-
-        const facturas = this.facturas || [];
-        const lotes = this.lotes || [];
-
-        // Extract KPIs
-        let ventasMes = 0;
-        let utilidadMes = 0;
-        let productosVendidos = 0;
-        
-        // Inventario Valorizado (Lógica unificada con valorizacion.js)
-        let inventarioValorizado = 0;
-        try {
-            const { data: dataValorizacion, error: errorValorizacion } = await supabase.rpc('get_inventario_valorizado', {
-                p_search: '',
-                p_page: 1,
-                p_limit: 1,
-                p_export_all: false
-            });
-            if (errorValorizacion) throw errorValorizacion;
-            inventarioValorizado = dataValorizacion?.gran_total || 0;
-        } catch (e) {
-            console.error('Error obteniendo inventario valorizado desde RPC:', e);
-            inventarioValorizado = 0;
-        }
-        
-        // Saldo Total Bancos (Usando la fuente de verdad de Supabase)
-        let saldoBancos = 0;
-        const saldosPorCuenta = {};
-        if (this.cuentasActivas) {
-            this.cuentasActivas.forEach(c => { saldosPorCuenta[c.id] = 0; });
-        }
-        if (this.saldosRPC) {
-            this.saldosRPC.forEach(s => {
-                if (saldosPorCuenta[s.cuenta_id] !== undefined) {
-                    saldosPorCuenta[s.cuenta_id] = Number(s.saldo);
-                }
-            });
-        }
-        if (this.cuentasActivas) {
-            this.cuentasActivas.forEach(c => { saldoBancos += (saldosPorCuenta[c.id] || 0); });
-        }
-
-        let cxcTotal = 0, cxcVigentes = 0, cxcVencidas = 0;
-        let cxcVigentesDoc = 0, cxcVencidasDoc = 0;
-
-        let cxpTotal = 0, cxpVigentes = 0, cxpVencidas = 0;
-        let cxpVigentesDoc = 0, cxpVencidasDoc = 0;
 
         const hoy = new Date();
         hoy.setHours(0,0,0,0);
 
         let startDate = new Date(hoy);
         let endDate = new Date(hoy);
-        
         let prevStartDate = new Date(hoy);
         let prevEndDate = new Date(hoy);
 
         if (rango === 'Mes actual' || rango === 'Este Mes') {
             startDate.setDate(1);
             endDate = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0); // Last day of month
-            
             prevStartDate.setDate(1);
             prevStartDate.setMonth(prevStartDate.getMonth() - 1);
-            
             prevEndDate.setMonth(prevEndDate.getMonth() - 1);
         } else if (rango === '7 Días') {
             startDate.setDate(hoy.getDate() - 6);
-            
             prevStartDate = new Date(startDate);
             prevStartDate.setDate(prevStartDate.getDate() - 7);
-            
             prevEndDate = new Date(startDate);
             prevEndDate.setDate(prevEndDate.getDate() - 1);
         } else if (rango === 'Este Año') {
             startDate.setMonth(0, 1);
-            
             prevStartDate.setFullYear(prevStartDate.getFullYear() - 1);
             prevStartDate.setMonth(0, 1);
-            
             prevEndDate.setFullYear(prevEndDate.getFullYear() - 1);
         } else {
             const months = parseInt(rango.split(' ')[0]) || 1;
             startDate.setMonth(startDate.getMonth() - months);
-            
             prevStartDate = new Date(startDate);
             prevStartDate.setMonth(prevStartDate.getMonth() - months);
-            
             prevEndDate = new Date(startDate);
             prevEndDate.setDate(prevEndDate.getDate() - 1);
         }
@@ -335,183 +258,118 @@ export const DashboardModule = {
 
         const startDateStr = formatDate(startDate);
         const endDateStr = formatDate(endDate);
-        
         const prevStartDateStr = formatDate(prevStartDate);
         const prevEndDateStr = formatDate(prevEndDate);
-        
-        // Prepare chart data grouped by day for current month
-        const dailySales = {};
-        const iterDate = new Date(startDate);
-        let elapsedDays = 0;
-        while (iterDate <= endDate) {
-            const dStr = `${iterDate.getFullYear()}-${String(iterDate.getMonth() + 1).padStart(2, '0')}-${String(iterDate.getDate()).padStart(2, '0')}`;
-            if (iterDate <= hoy) {
-                dailySales[dStr] = 0;
-                elapsedDays++;
-            } else {
-                dailySales[dStr] = null;
-            }
-            iterDate.setDate(iterDate.getDate() + 1);
-        }
 
-        const facturasMesIds = [];
-        let ventasPrev = 0;
-        console.time('calc-ventas-utilidad-productos');
-        facturas.forEach(f => {
-            // Ignorar facturas anuladas para no inflar las ventas ni los productos
-            if (f.estado === 'void' || f.estado === 'anulada') return;
-
-            // Blindaje Fase 1: Ignorar compras en el dashboard de ingresos
-            if (f.tipo === 'compra') return;
-
-            if (f.fecha && f.fecha >= startDateStr && f.fecha <= endDateStr) {
-                ventasMes += (f.total || 0);
-                utilidadMes += (f.total || 0) - (f.total_costo || 0);
-                facturasMesIds.push(f.id);
-                
-                if (dailySales[f.fecha] !== undefined) {
-                    dailySales[f.fecha] += (f.total || 0);
-                }
-            }
-            
-            if (f.fecha && f.fecha >= prevStartDateStr && f.fecha <= prevEndDateStr) {
-                ventasPrev += (f.total || 0);
-            }
-        });
-        console.timeEnd('calc-ventas-utilidad-productos');
-
-        console.time('fetch-productos-vendidos');
-        if (facturasMesIds.length > 0) {
-            const { data: detallesMes } = await supabase
-                .from('factura_detalles')
-                .select('cantidad')
-                .in('factura_id', facturasMesIds);
-            
-            if (detallesMes) {
-                productosVendidos = detallesMes.reduce((sum, d) => sum + (d.cantidad || 0), 0);
-            }
-        }
-        console.timeEnd('fetch-productos-vendidos');
-
-        console.time('fetch-cartera-rpc');
-        // Cartera CxC y CxP via RPC — el servidor calcula los saldos, evita traer transacciones completas
-        const [{ data: carteraCxC }, { data: carteraCxP }] = await Promise.all([
-            supabase.rpc('get_cartera_con_saldos', { p_tipo_cartera: 'cxc' }),
-            supabase.rpc('get_cartera_con_saldos', { p_tipo_cartera: 'cxp' })
-        ]);
-        console.timeEnd('fetch-cartera-rpc');
-        
-        console.time('iteracion-cxc');
-        carteraCxC.forEach(f => {
-            const isVencida = new Date(f.vencimiento) < hoy;
-            cxcTotal += f.saldo;
-            if (isVencida) { cxcVencidas += f.saldo; cxcVencidasDoc++; }
-            else { cxcVigentes += f.saldo; cxcVigentesDoc++; }
-        });
-        console.timeEnd('iteracion-cxc');
-
-        console.time('iteracion-cxp');
-        carteraCxP.forEach(f => {
-            const isVencida = new Date(f.vencimiento) < hoy;
-            cxpTotal += f.saldo;
-            if (isVencida) { cxpVencidas += f.saldo; cxpVencidasDoc++; }
-            else { cxpVigentes += f.saldo; cxpVigentesDoc++; }
-        });
-        console.timeEnd('iteracion-cxp');
-
-        console.time('render-dom-updates');
-        // Update KPI values in DOM
-        const formatMoney = val => '$' + (val || 0).toLocaleString('es-CO', {minimumFractionDigits: 0, maximumFractionDigits: 0});
-        
         const safeSetText = (id, text) => {
             const el = element.querySelector(id);
             if (el) el.textContent = text;
         };
+        const formatMoney = val => '$' + (val || 0).toLocaleString('es-CO', {minimumFractionDigits: 0, maximumFractionDigits: 0});
 
-        safeSetText('#kpi-total-ventas', formatMoney(ventasMes));
-        const margenPct = ventasMes > 0 ? ((utilidadMes / ventasMes) * 100) : 0;
-        safeSetText('#kpi-utilidad-mes', `${margenPct.toFixed(1)}%`);
-        safeSetText('#kpi-inventario-valorizado', formatMoney(inventarioValorizado));
-        safeSetText('#kpi-saldo-bancos', formatMoney(saldoBancos));
-        safeSetText('#kpi-productos', productosVendidos);
+        // ==========================================
+        // PROMESAS PARALELAS CON RENDER PROGRESIVO
+        // ==========================================
 
-        const ticketProm = facturasMesIds.length > 0 ? (ventasMes / facturasMesIds.length) : 0;
-        const promDiario = elapsedDays > 0 ? (ventasMes / elapsedDays) : 0;
-        safeSetText('#kpi-ticket-promedio', formatMoney(ticketProm));
-        safeSetText('#kpi-promedio-diario', formatMoney(promDiario));
-
-        const growthBadge = element.querySelector('#kpi-ventas-growth-badge');
-        const growthIcon = element.querySelector('#kpi-ventas-growth-icon');
-        const growthText = element.querySelector('#kpi-ventas-growth-text');
-        
-        console.log('DEBUG DASHBOARD VENTAS PREVIAS:', {
-            rango,
-            prevStartDateStr,
-            prevEndDateStr,
-            ventasPrev,
-            facturasLength: facturas.length
-        });
-
-        if (growthBadge) {
-            if (ventasPrev === 0) {
-                growthBadge.style.display = 'none';
-            } else {
-                growthBadge.style.display = 'inline-block';
-                const growth = ((ventasMes - ventasPrev) / ventasPrev) * 100;
-                const growthAbs = Math.abs(growth).toFixed(1);
-
-                if (growth > 0) {
-                    growthBadge.className = 'badge bg-success bg-opacity-10 text-success fw-bold px-2 py-1';
-                    growthIcon.className = 'bi bi-arrow-up-right-circle-fill me-1';
-                    growthText.textContent = `+${growthAbs}%`;
-                } else if (growth < 0) {
-                    growthBadge.className = 'badge bg-danger bg-opacity-10 text-danger fw-bold px-2 py-1';
-                    growthIcon.className = 'bi bi-arrow-down-right-circle-fill me-1';
-                    growthText.textContent = `-${growthAbs}%`;
+        // 1. KPIs de Ventas y Gráfica (RPC Nuevo)
+        const pKPIs = supabase.rpc('get_dashboard_kpis', {
+            p_fecha_inicio: startDateStr,
+            p_fecha_fin: endDateStr,
+            p_prev_fecha_inicio: prevStartDateStr,
+            p_prev_fecha_fin: prevEndDateStr
+        }).then(({ data, error }) => {
+            if (error) throw error;
+            
+            const kpis = data || {};
+            const ventasMes = kpis.ventas_mes || 0;
+            const utilidadMes = kpis.utilidad_mes || 0;
+            const ventasPrev = kpis.ventas_prev || 0;
+            const productosVendidos = kpis.productos_vendidos || 0;
+            const facturasCount = kpis.facturas_count || 0;
+            
+            // Reconstruir dailySales para la gráfica (rellenando días vacíos)
+            const dbDailySales = kpis.daily_sales || {};
+            const dailySales = {};
+            const iterDate = new Date(startDate);
+            let elapsedDays = 0;
+            
+            while (iterDate <= endDate) {
+                const dStr = `${iterDate.getFullYear()}-${String(iterDate.getMonth() + 1).padStart(2, '0')}-${String(iterDate.getDate()).padStart(2, '0')}`;
+                if (iterDate <= hoy) {
+                    dailySales[dStr] = dbDailySales[dStr] || 0;
+                    elapsedDays++;
                 } else {
-                    growthBadge.className = 'badge bg-secondary bg-opacity-10 text-secondary fw-bold px-2 py-1';
-                    growthIcon.className = 'bi bi-dash-circle-fill me-1';
-                    growthText.textContent = `0%`;
+                    dailySales[dStr] = null;
+                }
+                iterDate.setDate(iterDate.getDate() + 1);
+            }
+
+            safeSetText('#kpi-total-ventas', formatMoney(ventasMes));
+            const margenPct = ventasMes > 0 ? ((utilidadMes / ventasMes) * 100) : 0;
+            safeSetText('#kpi-utilidad-mes', `${margenPct.toFixed(1)}%`);
+            safeSetText('#kpi-productos', productosVendidos);
+            
+            const ticketProm = facturasCount > 0 ? (ventasMes / facturasCount) : 0;
+            const promDiario = elapsedDays > 0 ? (ventasMes / elapsedDays) : 0;
+            safeSetText('#kpi-ticket-promedio', formatMoney(ticketProm));
+            safeSetText('#kpi-promedio-diario', formatMoney(promDiario));
+            
+            const growthBadge = element.querySelector('#kpi-ventas-growth-badge');
+            const growthIcon = element.querySelector('#kpi-ventas-growth-icon');
+            const growthText = element.querySelector('#kpi-ventas-growth-text');
+            if (growthBadge) {
+                if (ventasPrev === 0) {
+                    growthBadge.style.display = 'none';
+                } else {
+                    growthBadge.style.display = 'inline-block';
+                    const growth = ((ventasMes - ventasPrev) / ventasPrev) * 100;
+                    const growthAbs = Math.abs(growth).toFixed(1);
+                    if (growth > 0) {
+                        growthBadge.className = 'badge bg-success bg-opacity-10 text-success fw-bold px-2 py-1';
+                        growthIcon.className = 'bi bi-arrow-up-right-circle-fill me-1';
+                        growthText.textContent = `+${growthAbs}%`;
+                    } else if (growth < 0) {
+                        growthBadge.className = 'badge bg-danger bg-opacity-10 text-danger fw-bold px-2 py-1';
+                        growthIcon.className = 'bi bi-arrow-down-right-circle-fill me-1';
+                        growthText.textContent = `-${growthAbs}%`;
+                    } else {
+                        growthBadge.className = 'badge bg-secondary bg-opacity-10 text-secondary fw-bold px-2 py-1';
+                        growthIcon.className = 'bi bi-dash-circle-fill me-1';
+                        growthText.textContent = `0%`;
+                    }
                 }
             }
-        }
 
-        // CXC Update
-        safeSetText('#kpi-cxc-total', formatMoney(cxcTotal));
-        safeSetText('#kpi-cxc-vigentes', formatMoney(cxcVigentes));
-        safeSetText('#kpi-cxc-vencidas', formatMoney(cxcVencidas));
-        safeSetText('#kpi-cxc-vigentes-doc', `${cxcVigentesDoc} documentos`);
-        safeSetText('#kpi-cxc-vencidas-doc', `${cxcVencidasDoc} documentos`);
+            this.renderChart(dailySales, rango);
+        }).catch(e => console.error('Error fetching KPIs', e));
 
-        // CXP Update
-        safeSetText('#kpi-cxp-total', formatMoney(cxpTotal));
-        safeSetText('#kpi-cxp-vigentes', formatMoney(cxpVigentes));
-        safeSetText('#kpi-cxp-vencidas', formatMoney(cxpVencidas));
-        safeSetText('#kpi-cxp-vigentes-doc', `${cxpVigentesDoc} documentos`);
-        safeSetText('#kpi-cxp-vencidas-doc', `${cxpVencidasDoc} documentos`);
+        // 2. Inventario Valorizado
+        const pInventario = supabase.rpc('get_inventario_valorizado', {
+            p_search: '', p_page: 1, p_limit: 1, p_export_all: false
+        }).then(({ data, error }) => {
+            if (error) throw error;
+            safeSetText('#kpi-inventario-valorizado', formatMoney(data?.gran_total || 0));
+        }).catch(e => console.error('Error fetching inventario', e));
 
-        // Mora badges — CxC
-        const cxcBadge = element.querySelector('#kpi-cxc-badge-mora');
-        if (cxcBadge) {
-            if (cxcVencidasDoc > 0) {
-                cxcBadge.textContent = `${cxcVencidasDoc} vencida${cxcVencidasDoc > 1 ? 's' : ''}`;
-                cxcBadge.style.display = '';
-            } else {
-                cxcBadge.style.display = 'none';
-            }
-        }
-        // Mora badges — CxP
-        const cxpBadge = element.querySelector('#kpi-cxp-badge-mora');
-        if (cxpBadge) {
-            if (cxpVencidasDoc > 0) {
-                cxpBadge.textContent = `${cxpVencidasDoc} vencida${cxpVencidasDoc > 1 ? 's' : ''}`;
-                cxpBadge.style.display = '';
-            } else {
-                cxpBadge.style.display = 'none';
-            }
-        }
+        // 3. Saldo Total Bancos (Cruzado con estado de cuenta activo)
+        const pBancos = Promise.all([
+            supabase.rpc('get_saldos_por_cuenta'),
+            supabase.from('cuentas_bancarias').select('id, estado')
+        ]).then(([{ data: saldosRPC }, { data: dbCuentas }]) => {
+            const activas = (dbCuentas || []).filter(c => c.estado === 'active' || c.estado === 'activo');
+            const saldosPorCuenta = {};
+            activas.forEach(c => { saldosPorCuenta[c.id] = 0; });
+            (saldosRPC || []).forEach(s => {
+                if (saldosPorCuenta[s.cuenta_id] !== undefined) {
+                    saldosPorCuenta[s.cuenta_id] = Number(s.saldo);
+                }
+            });
+            let saldoBancos = 0;
+            activas.forEach(c => { saldoBancos += (saldosPorCuenta[c.id] || 0); });
+            safeSetText('#kpi-saldo-bancos', formatMoney(saldoBancos));
+        }).catch(e => console.error('Error fetching bancos', e));
 
-        // Update micro-bars
+        // 4 & 5. Cartera CxC & CxP
         const updateMicroBar = (total, vigentes, vencidas, barId, colors) => {
             const bar = element.querySelector(barId);
             if (!bar) return;
@@ -526,15 +384,47 @@ export const DashboardModule = {
             if (fills[0]) { fills[0].style.width = pctV + '%'; fills[0].style.background = colors[0]; }
             if (fills[1]) { fills[1].style.width = pctVe + '%'; fills[1].style.background = colors[1]; }
         };
-        updateMicroBar(cxcTotal, cxcVigentes, cxcVencidas, '#kpi-cxc-progress', ['#2dbda8', '#f06548']);
-        updateMicroBar(cxpTotal, cxpVigentes, cxpVencidas, '#kpi-cxp-progress', ['#6c757d', '#fd7e14']);
 
-        // Render Chart
-        this.renderChart(dailySales, rango);
+        const processCartera = (data, prefix, colors) => {
+            let total = 0, vigentes = 0, vencidas = 0;
+            let vigentesDoc = 0, vencidasDoc = 0;
+            (data || []).forEach(f => {
+                const isVencida = new Date(f.vencimiento) < hoy;
+                total += f.saldo;
+                if (isVencida) { vencidas += f.saldo; vencidasDoc++; }
+                else { vigentes += f.saldo; vigentesDoc++; }
+            });
+            safeSetText(`#kpi-${prefix}-total`, formatMoney(total));
+            safeSetText(`#kpi-${prefix}-vigentes`, formatMoney(vigentes));
+            safeSetText(`#kpi-${prefix}-vencidas`, formatMoney(vencidas));
+            safeSetText(`#kpi-${prefix}-vigentes-doc`, `${vigentesDoc} documentos`);
+            safeSetText(`#kpi-${prefix}-vencidas-doc`, `${vencidasDoc} documentos`);
+            
+            const badge = element.querySelector(`#kpi-${prefix}-badge-mora`);
+            if (badge) {
+                if (vencidasDoc > 0) {
+                    badge.textContent = `${vencidasDoc} vencida${vencidasDoc > 1 ? 's' : ''}`;
+                    badge.style.display = '';
+                } else {
+                    badge.style.display = 'none';
+                }
+            }
+            updateMicroBar(total, vigentes, vencidas, `#kpi-${prefix}-progress`, colors);
+        };
 
-        console.timeEnd('render-dom-updates');
+        const pCxC = supabase.rpc('get_cartera_con_saldos', { p_tipo_cartera: 'cxc' })
+            .then(({ data }) => processCartera(data, 'cxc', ['#2dbda8', '#f06548']))
+            .catch(e => console.error('Error fetching CxC', e));
+
+        const pCxP = supabase.rpc('get_cartera_con_saldos', { p_tipo_cartera: 'cxp' })
+            .then(({ data }) => processCartera(data, 'cxp', ['#6c757d', '#fd7e14']))
+            .catch(e => console.error('Error fetching CxP', e));
+
+        // Lanzar TODAS en paralelo y esperar a que terminen para ocultar el estado general de carga
+        // El usuario ya estará viendo como se pinta cada tarjeta en el DOM tan pronto su promesa se resuelve
+        await Promise.all([pKPIs, pInventario, pBancos, pCxC, pCxP]);
         console.timeEnd('render-dynamic-content');
-    },
+    },,
 
     renderChart(dailySales, rango) {
         const canvas = document.getElementById('ventasChart');
