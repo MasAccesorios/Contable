@@ -202,18 +202,15 @@ export const DashboardModule = {
         if (this._loading) return;
         this._loading = true;
         try {
-            console.time('dashboard-total-load');
             const select = element.querySelector('#dashboard-rango-filtro .dpg-btn--active');
             await this.renderDynamicContent(element, select ? select.dataset.rango : 'Este Mes');
-            console.timeEnd('dashboard-total-load');
+
         } finally {
             this._loading = false;
         }
     },
 
     async renderDynamicContent(element, rango) {
-        console.time('render-dynamic-content');
-        console.log('RANGO REAL:', JSON.stringify(rango));
 
         const hoy = new Date();
         hoy.setHours(0,0,0,0);
@@ -410,7 +407,6 @@ export const DashboardModule = {
         // Lanzar TODAS en paralelo y esperar a que terminen para ocultar el estado general de carga
         // El usuario ya estará viendo como se pinta cada tarjeta en el DOM tan pronto su promesa se resuelve
         await Promise.all([pKPIs, pInventario, pBancos, pCartera]);
-        console.timeEnd('render-dynamic-content');
     },
 
     renderChart(dailySales, rango) {

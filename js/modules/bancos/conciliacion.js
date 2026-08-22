@@ -14,7 +14,7 @@ export const ConciliacionModule = {
         saldoBancario: 0,
         movimientosRango: [],
         editingConciliacionId: null,
-        editingConciliacionMovimientos: [],
+        saldoTotalSistema: 0,
         ajusteGastos: 0,
         ajusteImpuestos: 0,
         ajusteEntradas: 0
@@ -79,15 +79,15 @@ export const ConciliacionModule = {
         // Los valores ya vienen calculados desde el RPC — solo actualizar la UI
         const { saldoAnterior, entradas, salidas } = this.state;
         this.element.querySelector('#concil-saldo-anterior').textContent = this.formatMoney(saldoAnterior);
-        const saldoTotal = saldoAnterior + entradas - salidas;
-        this.element.querySelector('#concil-saldo-total').textContent = this.formatMoney(saldoTotal);
+        this.state.saldoTotalSistema = saldoAnterior + entradas - salidas;
+        this.element.querySelector('#concil-saldo-total').textContent = this.formatMoney(this.state.saldoTotalSistema);
         this.recalcularDiferenciaPendiente();
     },
 
     recalcularDiferenciaPendiente() {
         const difEl = this.element.querySelector('#concil-diferencia');
         
-        const staticDiff = this.state.saldoBancario - (this.state.saldoAnterior + this.state.entradas - this.state.salidas);
+        const staticDiff = this.state.saldoBancario - this.state.saldoTotalSistema;
         
         let sumaVisibleNoMarcada = 0;
         if (this.state.movimientosRango && this.state._seleccionados) {
@@ -311,7 +311,7 @@ export const ConciliacionModule = {
                     </td>
                     <td class="py-3" style="font-weight: 500; white-space: nowrap;">${this.formatMoney(m.monto)}</td>
                     <td class="py-3 pe-4 text-center" style="white-space: nowrap;">
-                        <input class="form-check-input concil-check" type="checkbox" data-id="${m.id}" ${this.state.editingConciliacionMovimientos.includes(m.id) ? 'checked' : ''} style="width: 18px; height: 18px; cursor: pointer;">
+                        <input class="form-check-input concil-check" type="checkbox" data-id="${m.id}" ${(this.state._seleccionados && this.state._seleccionados.has(m.id)) ? 'checked' : ''} style="width: 18px; height: 18px; cursor: pointer;">
                     </td>
                 </tr>
             `;
@@ -366,10 +366,10 @@ export const ConciliacionModule = {
     },
 
     attachEvents() {
-        // Rastrear selección en state (más robusto que query DOM al momento de guardar)
-        this.state._seleccionados = new Set(
-            (this.state.editingConciliacionMovimientos || []).map(id => parseInt(id, 10)).filter(Boolean)
-        );
+        // Rastrear selección en state
+        if (!this.state._seleccionados) {
+            this.state._seleccionados = new Set();
+        }
 
         // Select-all: actualiza DOM y state
         this.element.querySelector('#chk-select-all')?.addEventListener('change', (e) => {
@@ -396,11 +396,9 @@ export const ConciliacionModule = {
             this.recalcularDiferenciaPendiente();
         });
 
-        // Al cambiar cuenta/fechas, limpiar selección (nueva vista = nueva selección)
         const _resetSeleccion = () => { 
             this.state._seleccionados = new Set(); 
             this.state.editingConciliacionId = null;
-            this.state.editingConciliacionMovimientos = [];
             
             this.state.ajusteGastos = 0;
             this.state.ajusteImpuestos = 0;
@@ -535,7 +533,6 @@ export const ConciliacionModule = {
                 if (error) throw error;
                 
                 this.state.editingConciliacionId = null;
-                this.state.editingConciliacionMovimientos = [];
                 alert('Conciliación guardada exitosamente.');
                 // Redirigir a bancos
                 window.location.hash = '#/bancos';
@@ -614,7 +611,9 @@ export const ConciliacionModule = {
                 if (!concil) return;
 
                 this.state.editingConciliacionId = concil.id;
-                this.state.editingConciliacionMovimientos = concil.movimientos_conciliados || [];
+                this.state._seleccionados = new Set(
+                    (concil.movimientos_conciliados || []).map(id => parseInt(id, 10)).filter(Boolean)
+                );
 
                 // Llenar inputs
                 const inputDesde = document.getElementById('concil-desde');
