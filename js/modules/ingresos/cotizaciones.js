@@ -70,13 +70,13 @@ export const CotizacionesModule = {
                     </div>
                     <div class="col-12 col-sm-6 col-lg-4">
                         <div class="ds-kpi-card">
-                            <span class="ds-kpi-label">Cotizaciones Aprobadas</span>
+                            <span class="ds-kpi-label">Cotizaciones Facturadas</span>
                             <div class="ds-kpi-value" id="kpi-aprobado">...</div>
                         </div>
                     </div>
                     <div class="col-12 col-sm-6 col-lg-4">
                         <div class="ds-kpi-card">
-                            <span class="ds-kpi-label">Cotizaciones Pendientes</span>
+                            <span class="ds-kpi-label">Cotizaciones Sin Facturar</span>
                             <div class="ds-kpi-value" id="kpi-pendiente">...</div>
                         </div>
                     </div>
@@ -206,7 +206,7 @@ export const CotizacionesModule = {
             const tbodyHtml = currentItems.length > 0 ? currentItems.map(c => {
                 const isFacturada = c.convertido_a_factura;
                 const badgeClass = isFacturada ? 'bg-success text-success bg-opacity-10 border border-success-subtle' : 'bg-warning text-warning-emphasis bg-opacity-10 border border-warning-subtle';
-                const labelEstado = isFacturada ? 'Aprobada' : 'Pendiente';
+                const labelEstado = isFacturada ? 'Facturada' : 'Sin facturar';
                 const numDisplay = (c.numero || c.id);
                 const clientNameDisplay = c.cliente_nombre || 'Sin Cliente';
                 
