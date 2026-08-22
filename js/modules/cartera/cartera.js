@@ -27,8 +27,6 @@ export default {
         let totalVigente = 0;
         let totalVencido = 0;
         
-        const hoyUTC = Date.UTC(new Date().getFullYear(), new Date().getMonth(), new Date().getDate());
-
         facturasPendientes.forEach(f => {
             const total = parseFloat(f.total) || 0;
             const saldo = parseFloat(f.saldo !== undefined ? f.saldo : total);
@@ -150,8 +148,6 @@ export default {
                                     const clienteId = f.contacto_id || f.clienteId;
                                     const cliente = getCliente(clienteId);
                                     
-                                    const hoyDate = new Date();
-                                    const utcHoy = Date.UTC(hoyDate.getFullYear(), hoyDate.getMonth(), hoyDate.getDate());
                                     let vencimientoReal = (f.vencimiento && f.vencimiento !== 'N/A' && f.vencimiento.trim() !== '') ? f.vencimiento : f.fecha;
                                     let diasVencida = calcularDiasVencida(vencimientoReal);
                                     const isVencida = diasVencida >= 1;

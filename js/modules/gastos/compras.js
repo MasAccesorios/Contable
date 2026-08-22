@@ -61,7 +61,6 @@ export const ComprasModule = {
             const { data: cxpData } = await supabase.rpc('get_cartera_con_saldos', { p_tipo_cartera: 'cxp' });
             if (cxpData) {
                 let total = 0, vigente = 0, vencido = 0;
-                const hoyUTC = Date.UTC(new Date().getFullYear(), new Date().getMonth(), new Date().getDate());
                 cxpData.forEach(f => {
                     const saldo = parseFloat(f.saldo !== undefined ? f.saldo : f.total) || 0;
                     total += saldo;
