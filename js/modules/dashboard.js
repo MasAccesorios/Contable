@@ -385,15 +385,13 @@ export const DashboardModule = {
             if (fills[1]) { fills[1].style.width = pctVe + '%'; fills[1].style.background = colors[1]; }
         };
 
-        const processCartera = (data, prefix, colors) => {
-            let total = 0, vigentes = 0, vencidas = 0;
-            let vigentesDoc = 0, vencidasDoc = 0;
-            (data || []).forEach(f => {
-                const isVencida = new Date(f.vencimiento) < hoy;
-                total += f.saldo;
-                if (isVencida) { vencidas += f.saldo; vencidasDoc++; }
-                else { vigentes += f.saldo; vigentesDoc++; }
-            });
+        const updateCarteraUI = (kpis, prefix, colors) => {
+            const total = kpis[`${prefix}_total`] || 0;
+            const vigentes = kpis[`${prefix}_vigentes`] || 0;
+            const vencidas = kpis[`${prefix}_vencidas`] || 0;
+            const vigentesDoc = kpis[`${prefix}_vigentes_doc`] || 0;
+            const vencidasDoc = kpis[`${prefix}_vencidas_doc`] || 0;
+
             safeSetText(`#kpi-${prefix}-total`, formatMoney(total));
             safeSetText(`#kpi-${prefix}-vigentes`, formatMoney(vigentes));
             safeSetText(`#kpi-${prefix}-vencidas`, formatMoney(vencidas));
@@ -412,17 +410,17 @@ export const DashboardModule = {
             updateMicroBar(total, vigentes, vencidas, `#kpi-${prefix}-progress`, colors);
         };
 
-        const pCxC = supabase.rpc('get_cartera_con_saldos', { p_tipo_cartera: 'cxc' })
-            .then(({ data }) => processCartera(data, 'cxc', ['#2dbda8', '#f06548']))
-            .catch(e => console.error('Error fetching CxC', e));
-
-        const pCxP = supabase.rpc('get_cartera_con_saldos', { p_tipo_cartera: 'cxp' })
-            .then(({ data }) => processCartera(data, 'cxp', ['#6c757d', '#fd7e14']))
-            .catch(e => console.error('Error fetching CxP', e));
+        const pCartera = supabase.rpc('get_dashboard_cartera_kpis')
+            .then(({ data }) => {
+                const kpis = data || {};
+                updateCarteraUI(kpis, 'cxc', ['#2dbda8', '#f06548']);
+                updateCarteraUI(kpis, 'cxp', ['#6c757d', '#fd7e14']);
+            })
+            .catch(e => console.error('Error fetching Cartera KPIs', e));
 
         // Lanzar TODAS en paralelo y esperar a que terminen para ocultar el estado general de carga
         // El usuario ya estará viendo como se pinta cada tarjeta en el DOM tan pronto su promesa se resuelve
-        await Promise.all([pKPIs, pInventario, pBancos, pCxC, pCxP]);
+        await Promise.all([pKPIs, pInventario, pBancos, pCartera]);
         console.timeEnd('render-dynamic-content');
     },
 
