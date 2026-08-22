@@ -329,13 +329,39 @@ export const ConciliacionModule = {
     },
 
     attachEvents() {
+        // Rastrear selección en state (más robusto que query DOM al momento de guardar)
+        this.state._seleccionados = new Set(
+            (this.state.editingConciliacionMovimientos || []).map(id => parseInt(id, 10)).filter(Boolean)
+        );
+
+        // Select-all: actualiza DOM y state
         this.element.querySelector('#chk-select-all')?.addEventListener('change', (e) => {
             const isChecked = e.target.checked;
             const checks = this.element.querySelectorAll('.concil-check');
-            checks.forEach(cb => cb.checked = isChecked);
+            this.state._seleccionados = new Set();
+            checks.forEach(cb => {
+                cb.checked = isChecked;
+                if (isChecked) {
+                    const id = parseInt(cb.dataset.id, 10);
+                    if (!isNaN(id)) this.state._seleccionados.add(id);
+                }
+            });
         });
 
+        // Checkbox individual: event delegation en tbody
+        this.element.querySelector('#tbody-conciliacion')?.addEventListener('change', (e) => {
+            if (!e.target.classList.contains('concil-check')) return;
+            const id = parseInt(e.target.dataset.id, 10);
+            if (isNaN(id)) return;
+            if (e.target.checked) this.state._seleccionados.add(id);
+            else this.state._seleccionados.delete(id);
+        });
+
+        // Al cambiar cuenta/fechas, limpiar selección (nueva vista = nueva selección)
+        const _resetSeleccion = () => { this.state._seleccionados = new Set(); };
+
         this.element.querySelector('#concil-cuenta').addEventListener('change', async (e) => {
+            _resetSeleccion();
             this.state.bancoId = e.target.value;
             await this.cargarDatosRPC();
             this.calcularTotales();
@@ -344,6 +370,7 @@ export const ConciliacionModule = {
         });
 
         this.element.querySelector('#concil-desde').addEventListener('change', async (e) => {
+            _resetSeleccion();
             this.state.fechaDesde = e.target.value;
             await this.cargarDatosRPC();
             this.calcularTotales();
@@ -351,6 +378,7 @@ export const ConciliacionModule = {
         });
 
         this.element.querySelector('#concil-hasta').addEventListener('change', async (e) => {
+            _resetSeleccion();
             this.state.fechaHasta = e.target.value;
             await this.cargarDatosRPC();
             this.calcularTotales();
@@ -411,9 +439,8 @@ export const ConciliacionModule = {
         }
 
         this.element.querySelector('#btn-guardar-concil').addEventListener('click', async () => {
-            const checks = this.element.querySelectorAll('.concil-check:checked');
-            const movimientosConciliados = Array.from(checks).map(cb => parseInt(cb.dataset.id, 10)).filter(id => !isNaN(id));
-            console.log('[Conciliacion] Checkboxes marcados:', movimientosConciliados.length, movimientosConciliados);
+            const movimientosConciliados = Array.from(this.state._seleccionados);
+            console.log('[Conciliacion] Seleccionados (desde state):', movimientosConciliados.length, movimientosConciliados);
 
             const concil = {
                 banco_id: this.state.bancoId,
