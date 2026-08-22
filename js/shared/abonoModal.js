@@ -1,5 +1,5 @@
 // js/shared/abonoModal.js
-import DB, { getLocalDate } from './../core/db.js';
+import DB, { getLocalDate, mapPagoATransaccion } from './../core/db.js';
 import { supabase } from './../core/supabase.js';
 import { applyCurrencyFormatting, parseCurrencyValue } from './formatters.js';
 import { CoreActions } from './crud.js';
@@ -40,13 +40,7 @@ export const AbonoModal = {
                 if (errPagos) {
                     console.error('[AbonoModal] Error obteniendo pagos de la factura:', errPagos);
                 }
-                const transacciones = (pagosRaw || []).map(item => ({
-                    ...item,
-                    tipo: item.tipo === 'in' ? 'ingreso' : 'egreso',
-                    monto: Number(item.monto),
-                    referenciaId: item.factura_id ? String(item.factura_id) : null,
-                    cuentaId: item.cuenta_id ? String(item.cuenta_id) : null
-                }));
+                const transacciones = (pagosRaw || []).map(item => mapPagoATransaccion(item));
                 const estadoDinamico = calcularEstadoFactura(facturaData, transacciones);
                 this.currentSaldo = estadoDinamico.saldo;
             }

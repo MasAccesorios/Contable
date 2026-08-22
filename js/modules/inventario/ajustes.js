@@ -269,24 +269,7 @@ export const AjustesInventarioModule = {
                         UI.createAsyncCombobox({
                             inputEl: searchInput,
                             hiddenIdEl: inputProdId,
-                            fetchItems: async (query) => {
-                                const { data, error } = await supabase.rpc('get_productos_page', {
-                                    p_page: 1,
-                                    p_limit: 20,
-                                    p_sort_column: 'nombre',
-                                    p_sort_direction: 'asc',
-                                    p_search_query: query,
-                                    p_filter_criteria: 'todos'
-                                });
-                                
-                                if (error) {
-                                    console.error('Error fetching productos:', error);
-                                    return [];
-                                }
-                                
-                                const productos = data?.[0]?.data || [];
-                                return productos.map(p => DB._mapToFrontend('productos', p));
-                            },
+                            fetchItems: (query) => UI.fetchProductosCombobox(query),
                             displayProp: 'nombre',
                             renderItem: (p) => {
                                 return `<strong style="color: var(--text-main);">[${p.sku || p.reference || 'S/N'}]</strong> - ${p.nombre || p.name}`;

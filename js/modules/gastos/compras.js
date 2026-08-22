@@ -3,7 +3,7 @@ import { supabase } from '../../core/supabase.js';
 import { CoreActions, ItemEngine, NumberingManager, ExportManager, PrintManager } from '../../shared/crud.js';
 import { ContactosModule } from '../clientes/clientes.js';
 import { UI } from '../../shared/combobox.js';
-import { calcularEstadoFactura } from '../../shared/carteraUtils.js';
+import { calcularEstadoFactura, calcularDiasVencida } from '../../shared/carteraUtils.js';
 import { AbonoModal } from '../../shared/abonoModal.js';
 import { InventarioUtils } from '../../shared/inventarioUtils.js';
 import { EstadoUtils } from '../../shared/estadoUtils.js';
@@ -65,12 +65,7 @@ export const ComprasModule = {
                 cxpData.forEach(f => {
                     const saldo = parseFloat(f.saldo !== undefined ? f.saldo : f.total) || 0;
                     total += saldo;
-                    let diasVencida = 0;
-                    if (f.vencimiento) {
-                        const vDate = new Date(f.vencimiento);
-                        const utcVenc = Date.UTC(vDate.getFullYear(), vDate.getMonth(), vDate.getDate());
-                        diasVencida = Math.floor((hoyUTC - utcVenc) / (1000 * 60 * 60 * 24));
-                    }
+                    let diasVencida = calcularDiasVencida(f.vencimiento);
                     if (diasVencida >= 1) vencido += saldo;
                     else vigente += saldo;
                 });

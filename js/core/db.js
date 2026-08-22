@@ -11,6 +11,16 @@ export const getLocalDate = (d = new Date()) => {
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 };
 
+export function mapPagoATransaccion(item) {
+    return {
+        ...item,
+        tipo: item.tipo === 'in' ? 'ingreso' : 'egreso',
+        monto: Number(item.monto),
+        referenciaId: item.factura_id ? String(item.factura_id) : null,
+        cuentaId: item.cuenta_id ? String(item.cuenta_id) : null
+    };
+}
+
 const DB = {
     // Helper interno para mapear nombres de columnas de Supabase a las propiedades esperadas por la UI
     _mapToFrontend(storeName, item) {
@@ -230,13 +240,7 @@ const DB = {
                 // Adaptador al vuelo si el caller pide el formato 'transacciones'
                 if (storeName === 'transacciones') {
                     console.time('db-cache-map-transacciones');
-                    const mapped = _sessionCache[cacheKey].map(item => ({
-                        ...item,
-                        tipo: item.tipo === 'in' ? 'ingreso' : 'egreso',
-                        monto: Number(item.monto),
-                        referenciaId: item.factura_id ? String(item.factura_id) : null,
-                        cuentaId: item.cuenta_id ? String(item.cuenta_id) : null
-                    }));
+                    const mapped = _sessionCache[cacheKey].map(mapPagoATransaccion);
                     console.timeEnd('db-cache-map-transacciones');
                     return mapped;
                 }
@@ -319,13 +323,7 @@ const DB = {
 
             // Adaptador al vuelo si el caller pide el formato 'transacciones'
             if (storeName === 'transacciones') {
-                return adaptedData.map(item => ({
-                    ...item,
-                    tipo: item.tipo === 'in' ? 'ingreso' : 'egreso',
-                    monto: Number(item.monto),
-                    referenciaId: item.factura_id ? String(item.factura_id) : null,
-                    cuentaId: item.cuenta_id ? String(item.cuenta_id) : null
-                }));
+                return adaptedData.map(mapPagoATransaccion);
             }
 
             return adaptedData;

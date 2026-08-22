@@ -45,7 +45,8 @@ async function runAudit() {
         { id: 6, title: 'Cartera de clientes vs sumatoria manual de facturas y pagos', fn: check6 },
         { id: 7, title: 'Productos con suma de lotes negativa (sobreventa)', fn: check7 },
         { id: 8, title: 'Seguridad de infraestructura: tablas sin RLS o sin políticas', fn: check8 },
-        { id: 9, title: 'Reconciliación de Movimientos de Inventario', fn: check9 }
+        { id: 9, title: 'Reconciliación de Movimientos de Inventario', fn: check9 },
+        { id: 10, title: 'Facturas convertidas desde cotización con número distinto al de origen', fn: check10 }
     ];
 
     for (const check of checks) {
@@ -168,6 +169,12 @@ async function check3() {
 // 4. pagos_ingresos con factura_id que no existe en facturas
 async function check4() {
     const { data, error } = await supabase.rpc('run_audit_check_4');
+    if (error) throw error;
+    return data;
+}
+
+async function check10() {
+    const { data, error } = await supabase.rpc('run_audit_check_10');
     if (error) throw error;
     return data;
 }

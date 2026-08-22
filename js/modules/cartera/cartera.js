@@ -1,6 +1,6 @@
 import DB, { getLocalDate } from '../../core/db.js';
 import { CoreActions } from '../../shared/crud.js';
-import { obtenerCarteraFiltrada } from '../../shared/carteraUtils.js';
+import { obtenerCarteraFiltrada, calcularDiasVencida } from '../../shared/carteraUtils.js';
 import { supabase } from '../../core/supabase.js';
 import { AbonoModal } from '../../shared/abonoModal.js';
 
@@ -34,12 +34,7 @@ export default {
             const saldo = parseFloat(f.saldo !== undefined ? f.saldo : total);
             totalCartera += saldo;
             
-            let diasVencida = 0;
-            if (f.vencimiento) {
-                const vDate = new Date(f.vencimiento);
-                const utcVenc = Date.UTC(vDate.getFullYear(), vDate.getMonth(), vDate.getDate());
-                diasVencida = Math.floor((hoyUTC - utcVenc) / (1000 * 60 * 60 * 24));
-            }
+            let diasVencida = calcularDiasVencida(f.vencimiento);
             if (diasVencida >= 1) {
                 totalVencido += saldo;
             } else {
@@ -157,14 +152,8 @@ export default {
                                     
                                     const hoyDate = new Date();
                                     const utcHoy = Date.UTC(hoyDate.getFullYear(), hoyDate.getMonth(), hoyDate.getDate());
-                                    let diasVencida = 0;
                                     let vencimientoReal = (f.vencimiento && f.vencimiento !== 'N/A' && f.vencimiento.trim() !== '') ? f.vencimiento : f.fecha;
-
-                                    if (vencimientoReal) {
-                                        const vDate = new Date(vencimientoReal);
-                                        const utcVenc = Date.UTC(vDate.getFullYear(), vDate.getMonth(), vDate.getDate());
-                                        diasVencida = Math.floor((utcHoy - utcVenc) / (1000 * 60 * 60 * 24));
-                                    }
+                                    let diasVencida = calcularDiasVencida(vencimientoReal);
                                     const isVencida = diasVencida >= 1;
                                     
                                     return `

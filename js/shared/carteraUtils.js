@@ -122,3 +122,15 @@ export const obtenerCarteraFiltrada = (facturasRaw, transacciones, contactos, ti
 
     return facturasDecoradas.filter(f => filtrarFactura(f, tipoCartera === 'cxp'));
 };
+
+export const calcularDiasVencida = (fecha) => {
+    let diasVencida = 0;
+    if (fecha) {
+        const hoyDate = new Date();
+        const utcHoy = Date.UTC(hoyDate.getFullYear(), hoyDate.getMonth(), hoyDate.getDate());
+        const vDate = new Date(fecha);
+        const utcVenc = Date.UTC(vDate.getFullYear(), vDate.getMonth(), vDate.getDate());
+        diasVencida = Math.floor((utcHoy - utcVenc) / (1000 * 60 * 60 * 24));
+    }
+    return diasVencida;
+};
