@@ -8,6 +8,7 @@ import { UI } from '../../shared/combobox.js';
 import { calcularEstadoFactura } from '../../shared/carteraUtils.js';
 import { AbonoModal } from '../../shared/abonoModal.js';
 import { InventarioUtils } from '../../shared/inventarioUtils.js';
+import { EstadoUtils } from '../../shared/estadoUtils.js';
 
 export const FacturasModule = {
     cache: { contactos: null, productos: null },
@@ -381,8 +382,8 @@ export const FacturasModule = {
                     const rect = e.currentTarget.getBoundingClientRect();
 
                     const factData = currentItems.find(f => f.id == id);
-                    const canAbonar = factData && factData.estado !== 'pagada' && factData.estado !== 'anulada';
-                    const isAnulada = factData && factData.estado === 'anulada';
+                    const canAbonar = factData && factData.estado !== 'pagada' && !EstadoUtils.estaAnulado(factData.estado);
+                    const isAnulada = factData && EstadoUtils.estaAnulado(factData.estado);
                     
                     const menuHtml = `
                         <div class="row-action-menu position-absolute bg-white shadow rounded border py-2" 
@@ -466,7 +467,7 @@ export const FacturasModule = {
                                     const factura = await DB.get('facturas', id);
                                     if (!factura) throw new Error("Factura no encontrada.");
                                     
-                                    if (factura.estado === 'anulada') {
+                                    if (EstadoUtils.estaAnulado(factura.estado)) {
                                         CoreActions.showWarningModal("Esta factura ya se encuentra anulada.");
                                         return;
                                     }
@@ -607,7 +608,7 @@ export const FacturasModule = {
                         <h2 class="h3 fw-bold mb-0" style="color: var(--text-main);">${id ? 'Factura No. ' + factura.numero : 'Nueva factura'}</h2>
                     </div>
                     <div class="d-flex align-items-center gap-2">
-                        ${isViewOnly && id && factura.estado !== 'pagada' && factura.estado !== 'anulada' ? 
+                        ${isViewOnly && id && factura.estado !== 'pagada' && !EstadoUtils.estaAnulado(factura.estado) ? 
                             `<button class="btn btn-primary-action px-4 btn-abonar-detalle" data-id="${factura.id}" data-saldo="${factura.saldoPendiente}"><i class="bi bi-wallet2 me-2"></i>Registrar Pago</button>` 
                             : ''}
                         ${actionsHtml}
@@ -790,7 +791,7 @@ export const FacturasModule = {
                                             <td class="py-2 text-muted">${nc.fecha || ''}</td>
                                             <td class="py-2">NC-${nc.numero || nc.id}</td>
                                             <td class="py-2">${nc.motivo || '-'}</td>
-                                            <td class="py-2 text-center">${nc.estado === 'anulada' ? '<span class="text-danger fw-bold">Anulada</span>' : '<span class="text-success fw-bold">Activa</span>'}</td>
+                                            <td class="py-2 text-center">${EstadoUtils.estaAnulado(nc.estado) ? '<span class="text-danger fw-bold">Anulada</span>' : '<span class="text-success fw-bold">Activa</span>'}</td>
                                             <td class="py-2 text-end fw-medium">$${Number(nc.total || 0).toLocaleString()}</td>
                                         </tr>`).join('') : `
                                         <tr><td colspan="5" class="text-muted text-center py-4">No hay notas de crédito registradas</td></tr>
