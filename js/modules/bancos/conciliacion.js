@@ -97,6 +97,24 @@ export const ConciliacionModule = {
         }
     },
 
+    recalcularDiferenciaEnVivo() {
+        if (!this.state.movimientosRango || !this.state._seleccionados) return;
+        
+        let sumaSeleccionados = 0;
+        this.state.movimientosRango.forEach(m => {
+            if (this.state._seleccionados.has(m.id)) {
+                if (m.tipo === 'ingreso' || m.tipo === 'in') {
+                    sumaSeleccionados += Number(m.monto);
+                } else if (m.tipo === 'egreso' || m.tipo === 'out') {
+                    sumaSeleccionados -= Number(m.monto);
+                }
+            }
+        });
+        
+        const saldoConSeleccionados = this.state.saldoAnterior + sumaSeleccionados;
+        this.calcularDiferencia(saldoConSeleccionados);
+    },
+
     renderBase() {
         let opcionesCuentas = this.state.cuentas.map(c => 
             `<option value="${c.id}" ${String(c.id) === String(this.state.bancoId) ? 'selected' : ''}>${c.nombre}</option>`
@@ -245,6 +263,29 @@ export const ConciliacionModule = {
                     </div>
                 </div>
             </div>
+
+            <!-- Modal Ajuste Saldo -->
+            <div class="modal fade" id="modal-ajuste-saldo" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content border-0 shadow" style="border-radius: 12px;">
+                        <div class="modal-header border-bottom-0 pb-0">
+                            <h5 class="modal-title fw-bold" style="color: var(--text-main);">Ajustar Saldo</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body p-4">
+                            <p class="text-muted mb-3" id="ajuste-saldo-msg"></p>
+                            <div class="mb-3">
+                                <label class="form-label text-muted fw-medium">Observación</label>
+                                <input type="text" id="ajuste-saldo-obs" class="form-control" placeholder="Ej: Intereses, 4x1000">
+                            </div>
+                            <div class="d-flex justify-content-end gap-2 mt-4">
+                                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                                <button type="button" id="btn-confirmar-ajuste" class="btn btn-primary">Confirmar ajuste</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         `;
     },
 
@@ -282,6 +323,7 @@ export const ConciliacionModule = {
         });
 
         tbody.innerHTML = html;
+        this.recalcularDiferenciaEnVivo();
     },
 
     renderHistorial() {
@@ -347,6 +389,7 @@ export const ConciliacionModule = {
                     if (!isNaN(id)) this.state._seleccionados.add(id);
                 }
             });
+            this.recalcularDiferenciaEnVivo();
         });
 
         // Checkbox individual: event delegation en tbody
@@ -356,6 +399,7 @@ export const ConciliacionModule = {
             if (isNaN(id)) return;
             if (e.target.checked) this.state._seleccionados.add(id);
             else this.state._seleccionados.delete(id);
+            this.recalcularDiferenciaEnVivo();
         });
 
         // Al cambiar cuenta/fechas, limpiar selección (nueva vista = nueva selección)
@@ -410,7 +454,7 @@ export const ConciliacionModule = {
 
         const btnAjustar = this.element.querySelector('#btn-ajustar-saldo');
         if (btnAjustar) {
-            btnAjustar.addEventListener('click', async () => {
+            btnAjustar.addEventListener('click', () => {
                 if (!this.state.diferenciaActual) return;
                 
                 const dif = this.state.diferenciaActual;
@@ -420,12 +464,32 @@ export const ConciliacionModule = {
                 const currentAccount = this.state.cuentas.find(c => String(c.id) === String(this.state.bancoId));
                 const nombreCuenta = currentAccount ? currentAccount.nombre : 'la cuenta';
                 
-                const msg = `Se creará un ${tipoTx.toUpperCase()} de ajuste por ${this.formatMoney(montoAbs)} en ${nombreCuenta}.\n\nEscribe una breve observación para este ajuste (ej. "Intereses", "4x1000"):`;
+                const msg = `Se creará un <strong>${tipoTx.toUpperCase()}</strong> por <strong>${this.formatMoney(montoAbs)}</strong> en ${nombreCuenta}.`;
                 
-                const observacion = prompt(msg);
-                if (observacion === null) return; // Cancelado
+                const modalEl = document.getElementById('modal-ajuste-saldo');
+                document.getElementById('ajuste-saldo-msg').innerHTML = msg;
+                document.getElementById('ajuste-saldo-obs').value = '';
                 
-                const detalleFinal = observacion.trim() || 'Ajuste automático de conciliación';
+                // Guardar datos temporales en el DOM para el botón de confirmar
+                const btnConfirmar = document.getElementById('btn-confirmar-ajuste');
+                if (btnConfirmar) {
+                    btnConfirmar.dataset.tipo = tipoTx;
+                    btnConfirmar.dataset.monto = montoAbs;
+                }
+                
+                if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                    const modal = new bootstrap.Modal(modalEl);
+                    modal.show();
+                }
+            });
+        }
+
+        const btnConfirmarAjuste = this.element.querySelector('#btn-confirmar-ajuste');
+        if (btnConfirmarAjuste) {
+            btnConfirmarAjuste.addEventListener('click', async () => {
+                const obs = document.getElementById('ajuste-saldo-obs').value.trim() || 'Ajuste automático de conciliación';
+                const tipoTx = btnConfirmarAjuste.dataset.tipo;
+                const montoAbs = parseFloat(btnConfirmarAjuste.dataset.monto);
                 
                 const payload = {
                     tipo: tipoTx,
@@ -433,15 +497,33 @@ export const ConciliacionModule = {
                     monto: montoAbs,
                     cuenta_id: parseInt(this.state.bancoId, 10),
                     categoria: 'Ajuste de conciliación',
-                    observaciones: detalleFinal,
+                    observaciones: obs,
                     estado: 'open'
                 };
                 
                 try {
-                    await DB.save('transacciones', payload);
+                    const resultado = await DB.save('transacciones', payload);
+                    
+                    const modalEl = document.getElementById('modal-ajuste-saldo');
+                    if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                        const modal = bootstrap.Modal.getInstance(modalEl);
+                        if (modal) modal.hide();
+                    }
+                    
                     alert(`Ajuste guardado correctamente.`);
                     await this.cargarDatosRPC();
-                    this.calcularTotales();
+                    
+                    // Agregar el nuevo ID a seleccionados
+                    if (resultado && resultado.id) {
+                        this.state._seleccionados.add(resultado.id);
+                    } else if (resultado && resultado[0] && resultado[0].id) {
+                        this.state._seleccionados.add(resultado[0].id);
+                    } else {
+                        // Buscar por monto y observacion en caso que DB.save no devuelva el objeto directo
+                        const mov = this.state.movimientosRango.find(m => m.monto === montoAbs && m.detalle === obs);
+                        if (mov) this.state._seleccionados.add(mov.id);
+                    }
+                    
                     this.renderTabla();
                     this.renderHistorial();
                 } catch (err) {
@@ -452,6 +534,11 @@ export const ConciliacionModule = {
         }
 
         this.element.querySelector('#btn-guardar-concil').addEventListener('click', async () => {
+            if (this.state.diferenciaActual !== 0) {
+                const continuar = confirm(`Vas a guardar esta conciliación con una diferencia de ${this.formatMoney(this.state.diferenciaActual)} sin resolver. ¿Deseas continuar de todas formas?`);
+                if (!continuar) return;
+            }
+
             const movimientosConciliados = Array.from(this.state._seleccionados);
 
             const payload = {
