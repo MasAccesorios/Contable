@@ -209,12 +209,19 @@ export default {
         const hiddenIdEl = element.querySelector('#pago-cliente-id');
         
         if (searchInput && hiddenIdEl) {
-            UI.createCombobox({
+            UI.createAsyncCombobox({
                 inputEl: searchInput,
                 hiddenIdEl: hiddenIdEl,
-                items: this.contactos || [],
+                fetchItems: async (query) => {
+                    const { data } = await supabase.from('contactos')
+                        .select('id, nombre, identificacion')
+                        .eq('es_cliente', true)
+                        .neq('estado', 'inactive')
+                        .or(`nombre.ilike.%${query}%,identificacion.ilike.%${query}%`)
+                        .limit(20);
+                    return data ? data.map(d => ({ ...d, nit: d.identificacion })) : [];
+                },
                 displayProp: 'nombre',
-                searchProps: ['nit', 'documento'],
                 onSelect: (item) => {
                     sessionStorage.setItem('clienteId', item.id);
                     this.clienteId = item.id;
