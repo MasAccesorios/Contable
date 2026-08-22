@@ -302,25 +302,28 @@ export default {
                 }
 
                 if (tipo === 'ventas' || tipo === 'utilidad') {
-                    const facturas = await DB.getAll('facturas');
-                    let filtradas = facturas.filter(f => f.tipo === 'venta' && f.fecha >= fInicio && f.fecha <= fFin);
+                    const { data, error } = await supabase.rpc('get_reporte_ventas_utilidad', {
+                        p_fecha_inicio: fInicio,
+                        p_fecha_fin: fFin
+                    });
+                    if (error) throw new Error('Error al generar reporte de ventas: ' + error.message);
                     
                     if (tipo === 'ventas') {
-                        dataToExport = filtradas.map(f => ({
-                            'Documento': f.numero || parseInt(String(f.id).replace(/\D/g, ''), 10) || f.id,
-                            'Fecha': f.fecha,
-                            'Cliente': getClienteName(f.clienteId || f.contactoId),
-                            'Estado': f.estado,
-                            'Total de Venta': Math.round(f.total || 0)
+                        dataToExport = (data || []).map(r => ({
+                            'Documento': r['Documento'],
+                            'Fecha': r['Fecha'],
+                            'Cliente': r['Cliente'],
+                            'Estado': r['Estado'],
+                            'Total de Venta': r['Total de Venta']
                         }));
                     } else { // Utilidad
-                        dataToExport = filtradas.map(f => ({
-                            'Documento': f.numero || parseInt(String(f.id).replace(/\D/g, ''), 10) || f.id,
-                            'Fecha': f.fecha,
-                            'Cliente': getClienteName(f.clienteId || f.contactoId),
-                            'Total de Venta': Math.round(f.total || 0),
-                            'Costo de Venta (FIFO)': Math.round(f.total_costo || 0),
-                            'Utilidad Bruta': Math.round((f.total || 0) - (f.total_costo || 0))
+                        dataToExport = (data || []).map(r => ({
+                            'Documento': r['Documento'],
+                            'Fecha': r['Fecha'],
+                            'Cliente': r['Cliente'],
+                            'Total de Venta': r['Total de Venta'],
+                            'Costo de Venta (FIFO)': r['Costo de Venta (FIFO)'],
+                            'Utilidad Bruta': r['Utilidad Bruta']
                         }));
                     }
                 } 
@@ -337,37 +340,29 @@ export default {
                     }));
                 }
                 else if (tipo === 'inventario') {
-                    const lotes = await DB.getAll('lotes_fifo');
-                    const productos = await DB.getAll('productos');
-                    const getProdName = (id) => {
-                        const p = productos.find(x => x.id === id);
-                        return p ? p.nombre : 'Producto Desconocido';
-                    };
-                    const getProdCat = (id) => {
-                        const p = productos.find(x => x.id === id);
-                        return p ? p.categoria : '';
-                    };
-
-                    dataToExport = lotes.filter(l => l.cantidadActual > 0).map(l => ({
-                        'Producto': getProdName(l.productoId),
-                        'Categoría': getProdCat(l.productoId),
-                        'Lote/Ref': l.id,
-                        'Fecha de Ingreso': l.fechaIngreso,
-                        'Stock Disponible': l.cantidadActual,
-                        'Costo Unitario': Math.round(l.costoUnitario || 0),
-                        'Valor Total': Math.round(l.cantidadActual * (l.costoUnitario || 0))
+                    const { data, error } = await supabase.rpc('get_inventario_valorizado', {
+                        p_search: '',
+                        p_page: 1,
+                        p_limit: 999999,
+                        p_export_all: true
+                    });
+                    if (error) throw new Error('Error al cargar inventario valorizado: ' + error.message);
+                    
+                    dataToExport = (data?.items || []).map(item => ({
+                        'Producto': item.nombre || 'Producto Desconocido',
+                        'Referencia/SKU': item.sku || '',
+                        'Stock Disponible': parseFloat(item.stock_total) || 0,
+                        'Costo Promedio': Math.round(parseFloat(item.costo_promedio) || 0),
+                        'Valor Total': Math.round(parseFloat(item.valor_total) || 0)
                     }));
                 }
                 else if (tipo === 'gastos') {
-                    const transacciones = await DB.getAll('transacciones');
-                    let egresos = transacciones.filter(t => t.tipo === 'egreso' && t.fecha >= fInicio && t.fecha <= fFin);
-                    dataToExport = egresos.map(t => ({
-                        'Fecha': t.fecha,
-                        'Cuenta de Salida': t.cuentaId || t.cuenta || '',
-                        'Concepto/Detalle': t.detalle || t.referencia || '',
-                        'Referencia Documento': t.referenciaId || '',
-                        'Monto ($)': Math.round(t.monto || 0)
-                    }));
+                    const { data, error } = await supabase.rpc('get_reporte_gastos', {
+                        p_fecha_inicio: fInicio,
+                        p_fecha_fin: fFin
+                    });
+                    if (error) throw new Error('Error al generar reporte de gastos: ' + error.message);
+                    dataToExport = data || [];
                 }
 
                 if (dataToExport.length === 0) {
