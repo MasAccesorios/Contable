@@ -232,7 +232,7 @@ export const VendedoresModule = {
                 .select('*, facturas(numero, fecha)')
                 .eq('vendedor_id', vendedorId)
                 .order('created_at', { ascending: false }),
-            supabase.from('cuentas_bancarias').select('id, nombre').eq('estado', 'activo')
+            supabase.from('cuentas_bancarias').select('id, nombre').eq('estado', 'active')
         ]);
 
         if (errCom) console.error('Error cargando comisiones:', errCom);
