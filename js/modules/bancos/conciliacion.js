@@ -289,7 +289,7 @@ export const ConciliacionModule = {
         let html = '';
 
         const historialFiltrado = this.state.historialConciliaciones
-            .filter(c => c.banco_id === this.state.bancoId)
+            .filter(c => String(c.banco_id) === String(this.state.bancoId))
             .sort((a, b) => new Date(b.fecha_guardado) - new Date(a.fecha_guardado));
 
         if (historialFiltrado.length === 0) {
@@ -429,16 +429,18 @@ export const ConciliacionModule = {
                 concil.id = this.state.editingConciliacionId;
             }
 
+            console.log('[Conciliacion] Intentando guardar:', concil);
             try {
-                await DB.save('conciliaciones', concil);
+                const resultado = await DB.save('conciliaciones', concil);
+                console.log('[Conciliacion] Guardado exitoso, resultado:', resultado);
                 this.state.editingConciliacionId = null;
                 this.state.editingConciliacionMovimientos = [];
                 alert('Conciliación guardada exitosamente.');
                 // Redirigir a bancos
                 window.location.hash = '#/bancos';
             } catch (error) {
-                console.error("Error al guardar:", error);
-                alert('Hubo un error al guardar la conciliación.');
+                console.error("[Conciliacion] Error al guardar:", error);
+                alert('Hubo un error al guardar la conciliación: ' + (error?.message || JSON.stringify(error)));
             }
         });
 
