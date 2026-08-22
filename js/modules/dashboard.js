@@ -424,7 +424,7 @@ export const DashboardModule = {
         // El usuario ya estará viendo como se pinta cada tarjeta en el DOM tan pronto su promesa se resuelve
         await Promise.all([pKPIs, pInventario, pBancos, pCxC, pCxP]);
         console.timeEnd('render-dynamic-content');
-    },,
+    },
 
     renderChart(dailySales, rango) {
         const canvas = document.getElementById('ventasChart');
