@@ -766,7 +766,7 @@ export const NotasCreditoModule = {
                             if (ncId) {
                                 // Borrar detalles explícitamente para evitar orphans
                                 await supabase.from('nota_credito_detalles').delete().eq('nota_credito_id', ncId);
-                                await supabase.from('notas_credito').delete().eq('id', ncId);
+                                await supabase.rpc('rollback_eliminar_nota_credito', { p_id: ncId });
                             }
                             
                             throw new Error("Transacción fallida. Se abortó la creación y el inventario físico quedó intacto. Detalle: " + errorTransaccion.message);
