@@ -6,6 +6,7 @@ import { UI } from '../../shared/combobox.js';
 import { calcularEstadoFactura } from '../../shared/carteraUtils.js';
 import { AbonoModal } from '../../shared/abonoModal.js';
 import { InventarioUtils } from '../../shared/inventarioUtils.js';
+import { EstadoUtils } from '../../shared/estadoUtils.js';
 
 export const ComprasModule = {
     cache: { contactos: null, productos: null },
@@ -489,8 +490,8 @@ export const ComprasModule = {
                     const rect = e.currentTarget.getBoundingClientRect();
 
                     const factData = currentItems.find(f => f.id == id);
-                    const canAbonar = factData && factData.estado !== 'pagada' && factData.estado !== 'anulada';
-                    const isAnulada = factData && factData.estado === 'anulada';
+                    const canAbonar = factData && factData.estado !== 'pagada' && !EstadoUtils.estaAnulado(factData.estado);
+                    const isAnulada = factData && EstadoUtils.estaAnulado(factData.estado);
                     
                     const menuHtml = `
                         <div class="row-action-menu position-absolute bg-white shadow rounded border py-2" 
@@ -536,7 +537,7 @@ export const ComprasModule = {
                                 const factura = await DB.get('facturas', id);
                                 if (!factura) throw new Error("Factura no encontrada.");
                                 
-                                if (factura.estado === 'anulada') {
+                                if (EstadoUtils.estaAnulado(factura.estado)) {
                                     CoreActions.showWarningModal("Esta factura ya se encuentra anulada.");
                                     return;
                                 }
@@ -675,7 +676,7 @@ export const ComprasModule = {
                         <h2 class="h3 fw-bold mb-0" style="color: var(--text-main);">${id ? 'Factura No. ' + factura.numero : 'Nueva factura'}</h2>
                     </div>
                     <div class="d-flex align-items-center gap-2">
-                        ${isViewOnly && id && factura.estado !== 'pagada' && factura.estado !== 'anulada' ? 
+                        ${isViewOnly && id && factura.estado !== 'pagada' && !EstadoUtils.estaAnulado(factura.estado) ? 
                             `<button class="btn btn-primary fw-medium px-4 btn-abonar-detalle" data-id="${factura.id}" data-saldo="${factura.saldoPendiente}" style="background-color: var(--primary); border: none; border-radius: var(--border-radius-sm);"><i class="bi bi-wallet2 me-2"></i>Registrar Pago</button>` 
                             : ''}
                         ${actionsHtml}
