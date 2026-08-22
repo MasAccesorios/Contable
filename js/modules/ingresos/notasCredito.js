@@ -2,6 +2,7 @@ import DB, { getLocalDate } from '../../core/db.js';
 import { supabase } from '../../core/supabase.js';
 import { CoreActions, ItemEngine } from '../../shared/crud.js';
 import { InventarioUtils } from '../../shared/inventarioUtils.js';
+import { EstadoUtils } from '../../shared/estadoUtils.js';
 
 export const NotasCreditoModule = {
     async init(element) {
@@ -131,10 +132,10 @@ export const NotasCreditoModule = {
             const startIndex = (currentPage - 1) * itemsPerPage;
 
             const tbodyHtml = currentItems.length > 0 ? currentItems.map(n => {
-                let badgeClass = n.estado === 'anulada' ? 'bg-secondary text-secondary bg-opacity-10 border border-secondary-subtle' : 'bg-success text-success bg-opacity-10 border border-success-subtle';
-                let labelEstado = n.estado === 'anulada' ? 'Anulada' : 'Aplicada';
+                let badgeClass = EstadoUtils.estaAnulado(n.estado) ? 'bg-secondary text-secondary bg-opacity-10 border border-secondary-subtle' : 'bg-success text-success bg-opacity-10 border border-success-subtle';
+                let labelEstado = EstadoUtils.estaAnulado(n.estado) ? 'Anulada' : 'Aplicada';
                 const estadoLabel = `<span class="badge ${badgeClass} rounded-pill fw-medium" style="font-size: var(--fs-xs); padding: 5px 10px;">${labelEstado}</span>`;
-                const opacity = n.estado === 'anulada' ? '0.5' : '1';
+                const opacity = EstadoUtils.estaAnulado(n.estado) ? '0.5' : '1';
                 
                 return `
                     <tr style="cursor: pointer; opacity: ${opacity}; transition: opacity 0.2s;" onclick="if(!event.target.closest('button')) window.location.hash = '#/ingresos/notas-credito/ver/${n.id}'">
@@ -314,7 +315,7 @@ export const NotasCreditoModule = {
                     const id = e.currentTarget.dataset.id;
                     const estado = e.currentTarget.dataset.estado;
                     const rect = e.currentTarget.getBoundingClientRect();
-                    const isAnulada = estado === 'anulada';
+                    const isAnulada = EstadoUtils.estaAnulado(estado);
                     
                     const menuHtml = `
                         <div class="row-action-menu position-absolute bg-white shadow rounded border py-2" 
@@ -408,7 +409,7 @@ export const NotasCreditoModule = {
             const { data: prods } = await supabase.from('productos').select('id, nombre');
             prods?.forEach(p => productosMap[p.id] = p.nombre);
 
-            let headerTitle = id ? (nota.estado === 'anulada' ? 'Nota de Crédito (ANULADA)' : 'Detalle de Nota de Crédito') : 'Nueva Nota de Crédito';
+            let headerTitle = id ? (EstadoUtils.estaAnulado(nota.estado) ? 'Nota de Crédito (ANULADA)' : 'Detalle de Nota de Crédito') : 'Nueva Nota de Crédito';
             let headerSubtitle = id ? 'NC-' + (nota.numero || nota.id) : 'Crear documento de devolución';
 
             let html = `
@@ -421,7 +422,7 @@ export const NotasCreditoModule = {
                             <h2 class="h3 fw-bold mb-1" style="color: var(--text-main);">${headerTitle}</h2>
                             <p class="text-muted mb-0">${headerSubtitle}</p>
                         </div>
-                        ${(id && !isViewOnly && nota.estado !== 'anulada') ? `
+                        ${(id && !isViewOnly && !EstadoUtils.estaAnulado(nota.estado)) ? `
                             <button id="btn-anular-nc" class="btn btn-outline-danger bg-white" style="font-weight: 500;">
                                 <i class="bi bi-x-circle me-1"></i> Anular Nota de Crédito
                             </button>
@@ -781,7 +782,7 @@ export const NotasCreditoModule = {
                         CoreActions.showErrorModal(e.message);
                     }
                 });
-            } else if (id && nota.estado !== 'anulada') {
+            } else if (id && !EstadoUtils.estaAnulado(nota.estado)) {
                 const btnAnular = element.querySelector('#btn-anular-nc');
                 if (btnAnular) {
                     btnAnular.addEventListener('click', async () => {
