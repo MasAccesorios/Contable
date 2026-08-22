@@ -358,7 +358,19 @@ export const ConciliacionModule = {
         });
 
         // Al cambiar cuenta/fechas, limpiar selección (nueva vista = nueva selección)
-        const _resetSeleccion = () => { this.state._seleccionados = new Set(); };
+        const _resetSeleccion = () => { 
+            this.state._seleccionados = new Set(); 
+            this.state.editingConciliacionId = null;
+            this.state.editingConciliacionMovimientos = [];
+        };
+
+        this.element.querySelector('#nueva-tab')?.addEventListener('click', (e) => {
+            // Solo actuar si el usuario hizo clic real (no si se invocó via JS desde "Editar")
+            if (e.isTrusted) {
+                _resetSeleccion();
+                this.renderTabla();
+            }
+        });
 
         this.element.querySelector('#concil-cuenta').addEventListener('change', async (e) => {
             _resetSeleccion();
