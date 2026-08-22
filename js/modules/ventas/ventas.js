@@ -595,6 +595,7 @@ export const FacturasModule = {
         const dbContactos = await DB.getAll('contactos') || [];
         const clientes = dbContactos.filter(c => c.estado === 'activo' && (c.es_cliente || c.tipo !== 'proveedor'));
 
+        const { data: vendedoresActivos } = await supabase.from('vendedores').select('id, nombre').eq('estado', 'activo').order('nombre');
         const dbCuentas = await DB.getAll('cuentas_bancarias') || [];
         const cuentasActivas = dbCuentas.filter(c => c.estado === 'activo');
         const cuentasMap = {};
@@ -664,6 +665,13 @@ export const FacturasModule = {
                             <div class="col-6 col-md-3">
                                 <label class="form-label" style="font-size: var(--fs-sm); font-weight: var(--weight-medium); color: var(--text-body);">Fecha de vencimiento</label>
                                 <input type="date" id="input-vencimiento" class="form-control form-control-sm text-muted" value="${factura.vencimiento}" ${isViewOnly ? 'disabled' : ''}>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <label class="form-label" style="font-size: var(--fs-sm); font-weight: var(--weight-medium); color: var(--text-body);">Vendedor (opcional)</label>
+                                <select id="select-vendedor" class="form-select form-select-sm text-muted" ${isViewOnly ? 'disabled' : ''}>
+                                    <option value="">Sin vendedor asignado</option>
+                                    ${(vendedoresActivos || []).map(v => `<option value="${v.id}" ${String(factura.vendedor_id) === String(v.id) ? 'selected' : ''}>${v.nombre}</option>`).join('')}
+                                </select>
                             </div>
                         </div>
 
@@ -1196,6 +1204,8 @@ export const FacturasModule = {
                     factura.total_costo = costoTotalVenta;
                     factura.clienteId = clienteId;
                     factura.tipoVenta = tipoVenta;
+                    const vendedorSeleccionado = element.querySelector('#select-vendedor')?.value;
+                    factura.vendedor_id = vendedorSeleccionado ? parseInt(vendedorSeleccionado, 10) : null;
                     if (tipoVenta === 'contado') {
                         factura.cuentaId = element.querySelector('#select-cuenta-venta').value;
                     }
