@@ -740,9 +740,6 @@ export const NotasCreditoModule = {
                             const { error: detErr } = await supabase.from('nota_credito_detalles').insert(detallesArr);
                             if (detErr) throw new Error("Error al guardar detalles de la nota: " + detErr.message);
 
-                            // TEMPORAL: Forzar fallo para probar rollback
-                            throw new Error("FALLA DE PRUEBA FORZADA - verificar rollback");
-
                             // c. Inyectar pago cruzado en pagos_ingresos
                             const { data: pagoCruzado, error: pagoErr } = await supabase.from('pagos_ingresos').insert([{
                                 factura_id: currentFactura.id,
