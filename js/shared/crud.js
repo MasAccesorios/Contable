@@ -196,11 +196,13 @@ export const CoreActions = {
                 throw new Error("La factura se generó internamente pero falló el descuento de inventario. Por seguridad se ha anulado la operación. Intente nuevamente.");
             }
 
-            // Modificar estado original
-            cotizacion.estado = 'billed';
-            cotizacion.convertidoAFactura = true;
-            cotizacion.facturaDestinoId = idReal;
-            await DB.save('cotizaciones', cotizacion);
+            // Modificar estado original (solo el estado, sin tocar los detalles de la cotización)
+            const { error: errorMarcado } = await supabase.rpc('marcar_cotizacion_facturada', {
+                p_cotizacion_id: parseInt(cotizacion.id, 10)
+            });
+            if (errorMarcado) {
+                console.error("No se pudo marcar la cotización como facturada:", errorMarcado);
+            }
 
             // Callback
             if (onSuccessCallback) {

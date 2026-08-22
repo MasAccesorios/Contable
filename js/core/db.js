@@ -508,7 +508,7 @@ const DB = {
                     cantidad: parseFloat(d.cantidad) || 0,
                     precio_unitario: parseFloat(d.precio) || 0,
                     descuento_porcentaje: parseFloat(d.descuento) || 0,
-                    subtotal: parseFloat(d.total) || 0,
+                    subtotal: parseFloat(d.subtotal) || 0,
                     descripcion_personalizada: d.descripcion_personalizada || ''
                 }));
 
