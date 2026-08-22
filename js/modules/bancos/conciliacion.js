@@ -97,24 +97,6 @@ export const ConciliacionModule = {
         }
     },
 
-    recalcularDiferenciaEnVivo() {
-        if (!this.state.movimientosRango || !this.state._seleccionados) return;
-        
-        let sumaSeleccionados = 0;
-        this.state.movimientosRango.forEach(m => {
-            if (this.state._seleccionados.has(m.id)) {
-                if (m.tipo === 'ingreso' || m.tipo === 'in') {
-                    sumaSeleccionados += Number(m.monto);
-                } else if (m.tipo === 'egreso' || m.tipo === 'out') {
-                    sumaSeleccionados -= Number(m.monto);
-                }
-            }
-        });
-        
-        const saldoConSeleccionados = this.state.saldoAnterior + sumaSeleccionados;
-        this.calcularDiferencia(saldoConSeleccionados);
-    },
-
     renderBase() {
         let opcionesCuentas = this.state.cuentas.map(c => 
             `<option value="${c.id}" ${String(c.id) === String(this.state.bancoId) ? 'selected' : ''}>${c.nombre}</option>`
@@ -323,7 +305,6 @@ export const ConciliacionModule = {
         });
 
         tbody.innerHTML = html;
-        this.recalcularDiferenciaEnVivo();
     },
 
     renderHistorial() {
@@ -389,7 +370,6 @@ export const ConciliacionModule = {
                     if (!isNaN(id)) this.state._seleccionados.add(id);
                 }
             });
-            this.recalcularDiferenciaEnVivo();
         });
 
         // Checkbox individual: event delegation en tbody
@@ -399,7 +379,6 @@ export const ConciliacionModule = {
             if (isNaN(id)) return;
             if (e.target.checked) this.state._seleccionados.add(id);
             else this.state._seleccionados.delete(id);
-            this.recalcularDiferenciaEnVivo();
         });
 
         // Al cambiar cuenta/fechas, limpiar selección (nueva vista = nueva selección)
