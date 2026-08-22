@@ -611,7 +611,7 @@ export const TesoreriaModule = {
         let cajasCount = 0;
         
         this.state.cuentasActivas.forEach(c => {
-            if ((c.tipo || '').toLowerCase() === 'efectivo') cajasCount++;
+            if ((c.tipo || '').toLowerCase() === 'caja') cajasCount++;
             else bancosCount++;
         });
 
@@ -646,7 +646,7 @@ export const TesoreriaModule = {
 
         cuentasFiltradas.forEach(c => {
             const saldo = this.state.saldos[c.id] !== undefined ? this.state.saldos[c.id] : (this.state.saldos[c.nombre] || 0);
-            const isEfectivo = (c.tipo || '').toLowerCase() === 'efectivo';
+            const isEfectivo = (c.tipo || '').toLowerCase() === 'caja';
             const icon = isEfectivo ? 'bi-cash' : 'bi-bank';
             
             const isActivo = c.estado !== 'inactivo';
