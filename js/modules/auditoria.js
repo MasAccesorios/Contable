@@ -191,13 +191,10 @@ async function check6() {
     const { data: sumasManuales, error: errManual } = await supabase.rpc('run_audit_check_6_manual_sum');
     if (errManual) throw errManual;
     
-    const { data: carteraCxc, error: errCxc } = await supabase.rpc('get_cartera_con_saldos', { p_tipo_cartera: 'cxc' });
-    if (errCxc) throw errCxc;
-    const sumRpcCxc = carteraCxc ? carteraCxc.reduce((acc, c) => acc + parseFloat(c.saldo !== undefined ? c.saldo : 0), 0) : 0;
-
-    const { data: carteraCxp, error: errCxp } = await supabase.rpc('get_cartera_con_saldos', { p_tipo_cartera: 'cxp' });
-    if (errCxp) throw errCxp;
-    const sumRpcCxp = carteraCxp ? carteraCxp.reduce((acc, c) => acc + parseFloat(c.saldo !== undefined ? c.saldo : 0), 0) : 0;
+    const { data: carteraKpis, error: errCartera } = await supabase.rpc('get_dashboard_cartera_kpis');
+    if (errCartera) throw errCartera;
+    const sumRpcCxc = carteraKpis ? parseFloat(carteraKpis.cxc_total || 0) : 0;
+    const sumRpcCxp = carteraKpis ? parseFloat(carteraKpis.cxp_total || 0) : 0;
 
     const manualCxc = parseFloat(sumasManuales?.cxc || 0);
     const manualCxp = parseFloat(sumasManuales?.cxp || 0);

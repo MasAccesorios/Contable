@@ -23,8 +23,17 @@ export const PagosVerModule = {
         
         // Fallback robusto por si buscan por número en vez de ID
         if (!pagoEncontrado) {
-            const todos = await DB.getAll('pagos');
-            pagoEncontrado = todos.find(p => p.numero == id || p.nroRecibo == id);
+            const numId = parseInt(id, 10);
+            if (!isNaN(numId)) {
+                const { data } = await supabase
+                    .from('pagos_ingresos')
+                    .select('*')
+                    .eq('numero', numId)
+                    .limit(1)
+                    .maybeSingle();
+                
+                if (data) pagoEncontrado = DB._mapToFrontend('pagos', data);
+            }
         }
 
         if (!pagoEncontrado) {
