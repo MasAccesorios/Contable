@@ -440,7 +440,7 @@ export const ConciliacionModule = {
 
         this.element.querySelector('#btn-guardar-concil').addEventListener('click', async () => {
             const movimientosConciliados = Array.from(this.state._seleccionados);
-            console.log('[Conciliacion] Seleccionados (desde state):', movimientosConciliados.length, movimientosConciliados);
+
 
             const concil = {
                 banco_id: this.state.bancoId,
@@ -457,10 +457,8 @@ export const ConciliacionModule = {
                 concil.id = this.state.editingConciliacionId;
             }
 
-            console.log('[Conciliacion] Intentando guardar:', concil);
             try {
                 const resultado = await DB.save('conciliaciones', concil);
-                console.log('[Conciliacion] Guardado exitoso, resultado:', resultado);
                 this.state.editingConciliacionId = null;
                 this.state.editingConciliacionMovimientos = [];
                 alert('Conciliación guardada exitosamente.');
