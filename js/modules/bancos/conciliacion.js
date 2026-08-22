@@ -54,7 +54,8 @@ export const ConciliacionModule = {
         const { data, error } = await supabase.rpc('get_conciliacion_bancaria', {
             p_cuenta_id:   parseInt(this.state.bancoId, 10),
             p_fecha_desde: this.state.fechaDesde,
-            p_fecha_hasta: this.state.fechaHasta
+            p_fecha_hasta: this.state.fechaHasta,
+            p_conciliacion_id: this.state.editingConciliacionId || null
         });
         if (error) {
             console.error('[Conciliacion] RPC error:', error);
@@ -453,24 +454,21 @@ export const ConciliacionModule = {
         this.element.querySelector('#btn-guardar-concil').addEventListener('click', async () => {
             const movimientosConciliados = Array.from(this.state._seleccionados);
 
-
-            const concil = {
-                banco_id: this.state.bancoId,
-                fecha_desde: this.state.fechaDesde,
-                fecha_hasta: this.state.fechaHasta,
-                saldo_bancario: this.state.saldoBancario,
-                saldo_sistema: this.state.saldoAnterior + this.state.entradas - this.state.salidas,
-                diferencia: this.state.saldoBancario - (this.state.saldoAnterior + this.state.entradas - this.state.salidas),
-                fecha_guardado: new Date().toISOString(),
-                movimientos_conciliados: movimientosConciliados
+            const payload = {
+                p_id: this.state.editingConciliacionId || null,
+                p_banco_id: parseInt(this.state.bancoId, 10),
+                p_fecha_desde: this.state.fechaDesde,
+                p_fecha_hasta: this.state.fechaHasta,
+                p_saldo_bancario: this.state.saldoBancario,
+                p_saldo_sistema: this.state.saldoAnterior + this.state.entradas - this.state.salidas,
+                p_diferencia: this.state.saldoBancario - (this.state.saldoAnterior + this.state.entradas - this.state.salidas),
+                p_movimientos_conciliados: movimientosConciliados
             };
 
-            if (this.state.editingConciliacionId) {
-                concil.id = this.state.editingConciliacionId;
-            }
-
             try {
-                const resultado = await DB.save('conciliaciones', concil);
+                const { error } = await supabase.rpc('guardar_conciliacion_bancaria', payload);
+                if (error) throw error;
+                
                 this.state.editingConciliacionId = null;
                 this.state.editingConciliacionMovimientos = [];
                 alert('Conciliación guardada exitosamente.');
