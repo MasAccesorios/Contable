@@ -8,6 +8,7 @@ import { calcularEstadoFactura } from '../../shared/carteraUtils.js';
 import { agruparTransaccionesPorPago } from '../../shared/transaccionesUtils.js';
 import { mostrarDetalleTransaccion } from '../../shared/transaccionModal.js';
 import { escapeHtml } from '../../shared/formatters.js';
+import { EstadoUtils } from '../../shared/estadoUtils.js';
 
 export const ContactosModule = {
     state: {
@@ -723,7 +724,7 @@ export const ContactosModule = {
                                             const porCobrar = estadoCalc.saldo;
                                             const cobrado = estadoCalc.totalPagado;
                                             
-                                            const esAnulada = estadoCalc.estado === 'anulada';
+                                            const esAnulada = EstadoUtils.estaAnulado(estadoCalc.estado);
                                             const esCerrada = estadoCalc.estado === 'pagada';
                                             const esBloqueada = esCerrada || esAnulada;
 
