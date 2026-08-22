@@ -93,9 +93,9 @@ export default {
     renderUI(element, cliente, contactos, cuentas) {
         const cuentasOptions = cuentas.map(c => `<option value="${c.id}">${c.nombre} (${c.tipo})</option>`).join('');
         const facturasRows = this.facturasData.map(f => `
-            <tr>
-                <td class="align-middle fw-bold">#${f.numero}</td>
-                <td class="align-middle">${f.fecha}</td>
+            <tr style="border-bottom: 1px solid var(--border-color); font-size: var(--fs-base); color: var(--text-body);">
+                <td class="align-middle fw-bold" style="color: var(--text-main);">#${f.numero}</td>
+                <td class="align-middle text-muted">${f.fecha}</td>
                 <td class="align-middle">${this.formatCurrency(f.total)}</td>
                 <td class="align-middle text-muted">${this.formatCurrency(f.totalAbonado)}</td>
                 <td class="align-middle text-danger fw-bold">${this.formatCurrency(f.saldo)}</td>
@@ -110,99 +110,91 @@ export default {
         `).join('');
 
         element.innerHTML = `
-            <div class="container-fluid py-4" style="font-family: 'Inter', sans-serif;">
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <div>
-                        <button onclick="window.location.hash='#/cartera'" class="btn btn-outline-secondary btn-sm rounded-pill mb-2">
-                            <i class="bi bi-arrow-left"></i> Volver a Cartera
-                        </button>
-                        <h2 class="fw-bold mb-0 text-dark">Registrar Pagos Multi-Factura</h2>
-                    </div>
+            <div class="dash-layout p-4" style="max-width: 1200px; margin: 0 auto;">
+                <div class="mb-4">
+                    <button onclick="window.location.hash='#/cartera'" class="btn btn-light border btn-sm rounded-pill mb-2">
+                        <i class="bi bi-arrow-left"></i> Volver a Cartera
+                    </button>
+                    <h2 class="h3 fw-bold mb-0" style="color: var(--text-main);">Registrar Pagos Multi-Factura</h2>
                 </div>
 
                 <div class="row g-4">
                     <!-- Columna Izquierda: Configuración del Pago -->
                     <div class="col-lg-4">
-                        <div class="card border-0 shadow-sm rounded-4 mb-4">
-                            <div class="card-body p-4 bg-light rounded-4">
-                                <h6 class="text-uppercase text-muted fw-bold mb-1" style="font-size: var(--fs-sm);">Cliente</h6>
-                                ${cliente ? `<h4 class="fw-bold text-dark mb-3">${cliente.nombre}</h4>` : `
-                                <div class="custom-combobox position-relative mb-3" id="combo-cliente-container">
-                                    <input type="text" class="form-control border-2 bg-white shadow-sm" id="pago-cliente-search" placeholder="Buscar cliente por nombre o NIT..." autocomplete="off">
-                                    <input type="hidden" id="pago-cliente-id">
-                                </div>
-                                `}
-                                <div class="d-flex justify-content-between border-top pt-3">
-                                    <span class="text-muted">Deuda Total:</span>
-                                    <span class="fw-bold text-danger fs-5">${this.formatCurrency(this.deudaTotal)}</span>
-                                </div>
+                        <div class="ds-table-container p-4 mb-4">
+                            <h6 class="ds-kpi-label mb-1">Cliente</h6>
+                            ${cliente ? `<h4 class="fw-bold mb-3" style="color: var(--text-main);">${cliente.nombre}</h4>` : `
+                            <div class="custom-combobox position-relative mb-3" id="combo-cliente-container">
+                                <input type="text" class="form-control" id="pago-cliente-search" placeholder="Buscar cliente por nombre o NIT..." autocomplete="off">
+                                <input type="hidden" id="pago-cliente-id">
+                            </div>
+                            `}
+                            <div class="d-flex justify-content-between pt-3" style="border-top: 1px solid var(--border-color);">
+                                <span class="text-muted">Deuda Total:</span>
+                                <span class="fw-bold text-danger fs-5">${this.formatCurrency(this.deudaTotal)}</span>
                             </div>
                         </div>
 
-                        <div class="card border-0 shadow-sm rounded-4">
-                            <div class="card-body p-4">
-                                <h5 class="fw-bold mb-4">Detalles del Recibo</h5>
-                                
-                                <div class="mb-3">
-                                    <label class="form-label text-muted small fw-bold">Cuenta de Destino</label>
-                                    <select id="pago-cuenta" class="form-select border-2 bg-light">
-                                        ${cuentasOptions}
-                                    </select>
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label class="form-label text-muted small fw-bold">Método de Pago</label>
-                                    <select id="pago-metodo" class="form-select border-2 bg-light">
-                                        <option value="transferencia">Transferencia</option>
-                                        <option value="efectivo">Efectivo</option>
-                                        <option value="tarjeta">Tarjeta</option>
-                                        <option value="otro">Otro</option>
-                                    </select>
-                                </div>
-
-                                <div class="mb-4">
-                                    <label class="form-label text-muted small fw-bold">Fecha de Pago</label>
-                                    <input type="date" id="pago-fecha" class="form-control border-2 bg-light" value="${getLocalDate()}">
-                                </div>
-
-                                <div class="p-3 bg-success bg-opacity-10 rounded-3 mb-4 text-center border border-success border-opacity-25">
-                                    <h6 class="text-success fw-bold mb-1">TOTAL A RECIBIR</h6>
-                                    <h2 id="total-recibir-display" class="fw-bold text-success mb-0">$0.00</h2>
-                                </div>
-
-                                <button id="btn-registrar" class="btn btn-success w-100 py-3 rounded-3 fw-bold fs-6" disabled>
-                                    <i class="bi bi-check-circle me-2"></i>Registrar Pagos
-                                </button>
+                        <div class="ds-table-container p-4">
+                            <h5 class="fw-bold mb-4" style="color: var(--text-main);">Detalles del Recibo</h5>
+                            
+                            <div class="mb-3">
+                                <label class="form-label text-muted" style="font-size: 13px;">Cuenta de Destino</label>
+                                <select id="pago-cuenta" class="form-select">
+                                    ${cuentasOptions}
+                                </select>
                             </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label text-muted" style="font-size: 13px;">Método de Pago</label>
+                                <select id="pago-metodo" class="form-select">
+                                    <option value="transferencia">Transferencia</option>
+                                    <option value="efectivo">Efectivo</option>
+                                    <option value="tarjeta">Tarjeta</option>
+                                    <option value="otro">Otro</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-4">
+                                <label class="form-label text-muted" style="font-size: 13px;">Fecha de Pago</label>
+                                <input type="date" id="pago-fecha" class="form-control" value="${getLocalDate()}">
+                            </div>
+
+                            <div class="p-3 bg-success bg-opacity-10 rounded-3 mb-4 text-center border border-success border-opacity-25">
+                                <h6 class="text-success fw-bold mb-1">TOTAL A RECIBIR</h6>
+                                <h2 id="total-recibir-display" class="fw-bold text-success mb-0">$0.00</h2>
+                            </div>
+
+                            <button id="btn-registrar" class="btn btn-primary-action w-100 py-3 fw-bold" disabled>
+                                <i class="bi bi-check-circle me-2"></i>Registrar Pagos
+                            </button>
                         </div>
                     </div>
 
                     <!-- Columna Derecha: Tabla de Facturas -->
                     <div class="col-lg-8">
-                        <div class="card border-0 shadow-sm rounded-4 h-100">
-                            <div class="card-header bg-white border-bottom p-4 rounded-top-4">
-                                <h5 class="fw-bold mb-0">Facturas Pendientes</h5>
+                        <div class="ds-table-container h-100">
+                            <div class="p-4" style="border-bottom: 1px solid var(--border-color);">
+                                <h5 class="fw-bold mb-0" style="color: var(--text-main);">Facturas Pendientes</h5>
                             </div>
-                            <div class="card-body p-0">
-                                <div class="table-responsive">
-                                    <table class="table table-hover align-middle mb-0">
-                                        <thead class="table-light">
-                                            <tr>
-                                                <th class="ps-4"># Factura</th>
-                                                <th>Fecha</th>
-                                                <th>Total Orig.</th>
-                                                <th>Abonado</th>
-                                                <th>Saldo Pendiente</th>
-                                                <th class="text-end pe-4">Monto a Pagar</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            ${facturasRows}
-                                        </tbody>
-                                    </table>
-                                </div>
+                            <div class="table-responsive">
+                                <table class="table table-borderless align-middle mb-0">
+                                    <thead class="ds-table-header">
+                                        <tr>
+                                            <th class="py-2 fw-normal ps-4"># Factura</th>
+                                            <th class="py-2 fw-normal">Fecha</th>
+                                            <th class="py-2 fw-normal">Total Orig.</th>
+                                            <th class="py-2 fw-normal">Abonado</th>
+                                            <th class="py-2 fw-normal">Saldo Pendiente</th>
+                                            <th class="py-2 fw-normal text-end pe-4">Monto a Pagar</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${facturasRows}
+                                    </tbody>
+                                </table>
                             </div>
-                            <div class="card-footer bg-light p-3 text-end text-muted small rounded-bottom-4">
+                            <div class="p-3 text-end text-muted" style="font-size: var(--fs-xs); border-top: 1px solid var(--border-color);">
                                 Digite el monto a abonar en la casilla correspondiente a cada factura.
                             </div>
                         </div>
@@ -256,7 +248,16 @@ export default {
         inputs.forEach(input => {
             applyCurrencyFormatting(input);
             input.addEventListener('input', updateSum);
-            input.addEventListener('focus', function() { this.select(); });
+            input.addEventListener('focus', function() {
+                const valorActual = parseCurrencyValue(this.value);
+                if (valorActual === 0) {
+                    const saldo = parseFloat(this.getAttribute('data-saldo')) || 0;
+                    this.value = saldo;
+                    applyCurrencyFormatting(this);
+                    updateSum();
+                }
+                this.select();
+            });
         });
 
         // Registrar
