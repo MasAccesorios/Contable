@@ -422,7 +422,7 @@ export const ConciliacionModule = {
                 saldo_sistema: this.state.saldoAnterior + this.state.entradas - this.state.salidas,
                 diferencia: this.state.saldoBancario - (this.state.saldoAnterior + this.state.entradas - this.state.salidas),
                 fecha_guardado: new Date().toISOString(),
-                movimientos_conciliados: movimientosConciliados.map(id => parseInt(id, 10))
+                movimientos_conciliados: movimientosConciliados.map(id => String(id))
             };
 
             if (this.state.editingConciliacionId) {
@@ -456,7 +456,7 @@ export const ConciliacionModule = {
                 if (!concil) return;
 
                 // Lookup acotado por IDs — no escanea state.transacciones completo
-                const ids = (concil.movimientos_conciliados || []).map(i => parseInt(i, 10)).filter(Boolean);
+                const ids = (concil.movimientos_conciliados || []).map(i => String(i)).filter(Boolean);
                 let movs = [];
                 if (ids.length > 0) {
                     const { data: movsData } = await supabase
