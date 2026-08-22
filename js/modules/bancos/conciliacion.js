@@ -14,7 +14,10 @@ export const ConciliacionModule = {
         saldoBancario: 0,
         movimientosRango: [],
         editingConciliacionId: null,
-        editingConciliacionMovimientos: []
+        editingConciliacionMovimientos: [],
+        ajusteGastos: 0,
+        ajusteImpuestos: 0,
+        ajusteEntradas: 0
     },
 
     async init(element) {
@@ -78,22 +81,32 @@ export const ConciliacionModule = {
         this.element.querySelector('#concil-saldo-anterior').textContent = this.formatMoney(saldoAnterior);
         const saldoTotal = saldoAnterior + entradas - salidas;
         this.element.querySelector('#concil-saldo-total').textContent = this.formatMoney(saldoTotal);
-        this.calcularDiferencia(saldoTotal);
+        this.recalcularDiferenciaPendiente();
     },
 
-    calcularDiferencia(saldoTotalCalculado) {
+    recalcularDiferenciaPendiente() {
         const difEl = this.element.querySelector('#concil-diferencia');
-        const btnAjustar = this.element.querySelector('#btn-ajustar-saldo');
         
-        this.state.diferenciaActual = this.state.saldoBancario - saldoTotalCalculado;
-        difEl.textContent = this.formatMoney(this.state.diferenciaActual);
+        const staticDiff = this.state.saldoBancario - (this.state.saldoAnterior + this.state.entradas - this.state.salidas);
         
-        if (this.state.diferenciaActual === 0) {
-            difEl.style.color = '#2cbfb7';
-            if (btnAjustar) btnAjustar.classList.add('d-none');
+        let sumaVisibleNoMarcada = 0;
+        if (this.state.movimientosRango && this.state._seleccionados) {
+            this.state.movimientosRango.forEach(m => {
+                if (!this.state._seleccionados.has(m.id)) {
+                    sumaVisibleNoMarcada += (m.tipo === 'ingreso' || m.tipo === 'in' ? Number(m.monto) : -Number(m.monto));
+                }
+            });
+        }
+        
+        const diferenciaPendiente = staticDiff + sumaVisibleNoMarcada + this.state.ajusteGastos + this.state.ajusteImpuestos - this.state.ajusteEntradas;
+        
+        this.state.diferenciaActual = diferenciaPendiente;
+        if (difEl) difEl.textContent = this.formatMoney(this.state.diferenciaActual);
+        
+        if (Math.abs(this.state.diferenciaActual) < 1) {
+            if (difEl) difEl.style.color = '#2cbfb7';
         } else {
-            difEl.style.color = '#ef4444';
-            if (btnAjustar) btnAjustar.classList.remove('d-none');
+            if (difEl) difEl.style.color = '#ef4444';
         }
     },
 
@@ -165,7 +178,29 @@ export const ConciliacionModule = {
                                         <p class="text-muted mb-1" style="font-size: var(--fs-sm); font-weight: 500;">Diferencia</p>
                                         <div class="d-flex flex-column align-items-center justify-content-center">
                                             <h4 class="fw-bold mb-1" id="concil-diferencia" style="color: var(--danger);">$0,00</h4>
-                                            <button id="btn-ajustar-saldo" class="btn btn-sm btn-outline-warning d-none mt-2" style="font-size: var(--fs-xs); padding: 2px 8px; border-radius: 4px;">Ajustar saldo</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row align-items-center mt-3 pt-3 border-top">
+                                    <div class="col-4 border-end text-start px-4">
+                                        <label class="text-muted mb-1 d-block" style="font-size: var(--fs-sm); font-weight: 500;">Gastos bancarios</label>
+                                        <div class="input-group input-group-sm">
+                                            <span class="input-group-text bg-light border-end-0">$</span>
+                                            <input type="text" id="concil-ajuste-gastos" class="form-control border-start-0 ps-0 text-dark fw-medium" placeholder="0.00" value="0">
+                                        </div>
+                                    </div>
+                                    <div class="col-4 border-end text-start px-4">
+                                        <label class="text-muted mb-1 d-block" style="font-size: var(--fs-sm); font-weight: 500;">Impuestos bancarios</label>
+                                        <div class="input-group input-group-sm">
+                                            <span class="input-group-text bg-light border-end-0">$</span>
+                                            <input type="text" id="concil-ajuste-impuestos" class="form-control border-start-0 ps-0 text-dark fw-medium" placeholder="0.00" value="0">
+                                        </div>
+                                    </div>
+                                    <div class="col-4 text-start px-4">
+                                        <label class="text-muted mb-1 d-block" style="font-size: var(--fs-sm); font-weight: 500;">Entradas bancarias</label>
+                                        <div class="input-group input-group-sm">
+                                            <span class="input-group-text bg-light border-end-0">$</span>
+                                            <input type="text" id="concil-ajuste-entradas" class="form-control border-start-0 ps-0 text-dark fw-medium" placeholder="0.00" value="0">
                                         </div>
                                     </div>
                                 </div>
@@ -246,28 +281,6 @@ export const ConciliacionModule = {
                 </div>
             </div>
 
-            <!-- Modal Ajuste Saldo -->
-            <div class="modal fade" id="modal-ajuste-saldo" tabindex="-1" aria-hidden="true">
-                <div class="modal-dialog modal-dialog-centered">
-                    <div class="modal-content border-0 shadow" style="border-radius: 12px;">
-                        <div class="modal-header border-bottom-0 pb-0">
-                            <h5 class="modal-title fw-bold" style="color: var(--text-main);">Ajustar Saldo</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-                        <div class="modal-body p-4">
-                            <p class="text-muted mb-3" id="ajuste-saldo-msg"></p>
-                            <div class="mb-3">
-                                <label class="form-label text-muted fw-medium">Observación</label>
-                                <input type="text" id="ajuste-saldo-obs" class="form-control" placeholder="Ej: Intereses, 4x1000">
-                            </div>
-                            <div class="d-flex justify-content-end gap-2 mt-4">
-                                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
-                                <button type="button" id="btn-confirmar-ajuste" class="btn btn-primary">Confirmar ajuste</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
         `;
     },
 
@@ -370,6 +383,7 @@ export const ConciliacionModule = {
                     if (!isNaN(id)) this.state._seleccionados.add(id);
                 }
             });
+            this.recalcularDiferenciaPendiente();
         });
 
         // Checkbox individual: event delegation en tbody
@@ -379,6 +393,7 @@ export const ConciliacionModule = {
             if (isNaN(id)) return;
             if (e.target.checked) this.state._seleccionados.add(id);
             else this.state._seleccionados.delete(id);
+            this.recalcularDiferenciaPendiente();
         });
 
         // Al cambiar cuenta/fechas, limpiar selección (nueva vista = nueva selección)
@@ -386,6 +401,17 @@ export const ConciliacionModule = {
             this.state._seleccionados = new Set(); 
             this.state.editingConciliacionId = null;
             this.state.editingConciliacionMovimientos = [];
+            
+            this.state.ajusteGastos = 0;
+            this.state.ajusteImpuestos = 0;
+            this.state.ajusteEntradas = 0;
+            
+            const e1 = this.element.querySelector('#concil-ajuste-gastos');
+            const e2 = this.element.querySelector('#concil-ajuste-impuestos');
+            const e3 = this.element.querySelector('#concil-ajuste-entradas');
+            if (e1) e1.value = '0';
+            if (e2) e2.value = '0';
+            if (e3) e3.value = '0';
         };
 
         this.element.querySelector('#nueva-tab')?.addEventListener('click', (e) => {
@@ -422,103 +448,76 @@ export const ConciliacionModule = {
         });
 
         const saldoInput = this.element.querySelector('#concil-input-saldo');
+        const inputGastos = this.element.querySelector('#concil-ajuste-gastos');
+        const inputImp = this.element.querySelector('#concil-ajuste-impuestos');
+        const inputEnt = this.element.querySelector('#concil-ajuste-entradas');
+
         import('../../shared/formatters.js').then(fmt => {
-            fmt.applyCurrencyFormatting(saldoInput);
-            saldoInput.addEventListener('input', (e) => {
-                this.state.saldoBancario = fmt.parseCurrencyValue(e.target.value) || 0;
-                const saldoTotal = this.state.saldoAnterior + this.state.entradas - this.state.salidas;
-                this.calcularDiferencia(saldoTotal);
-            });
+            if (saldoInput) {
+                fmt.applyCurrencyFormatting(saldoInput);
+                saldoInput.addEventListener('input', (e) => {
+                    this.state.saldoBancario = fmt.parseCurrencyValue(e.target.value) || 0;
+                    this.recalcularDiferenciaPendiente();
+                });
+            }
+            if (inputGastos) {
+                fmt.applyCurrencyFormatting(inputGastos);
+                inputGastos.addEventListener('input', (e) => {
+                    this.state.ajusteGastos = fmt.parseCurrencyValue(e.target.value) || 0;
+                    this.recalcularDiferenciaPendiente();
+                });
+            }
+            if (inputImp) {
+                fmt.applyCurrencyFormatting(inputImp);
+                inputImp.addEventListener('input', (e) => {
+                    this.state.ajusteImpuestos = fmt.parseCurrencyValue(e.target.value) || 0;
+                    this.recalcularDiferenciaPendiente();
+                });
+            }
+            if (inputEnt) {
+                fmt.applyCurrencyFormatting(inputEnt);
+                inputEnt.addEventListener('input', (e) => {
+                    this.state.ajusteEntradas = fmt.parseCurrencyValue(e.target.value) || 0;
+                    this.recalcularDiferenciaPendiente();
+                });
+            }
         });
 
-        const btnAjustar = this.element.querySelector('#btn-ajustar-saldo');
-        if (btnAjustar) {
-            btnAjustar.addEventListener('click', () => {
-                if (!this.state.diferenciaActual) return;
-                
-                const dif = this.state.diferenciaActual;
-                const tipoTx = dif > 0 ? 'ingreso' : 'egreso';
-                const montoAbs = Math.abs(dif);
-                
-                const currentAccount = this.state.cuentas.find(c => String(c.id) === String(this.state.bancoId));
-                const nombreCuenta = currentAccount ? currentAccount.nombre : 'la cuenta';
-                
-                const msg = `Se creará un <strong>${tipoTx.toUpperCase()}</strong> por <strong>${this.formatMoney(montoAbs)}</strong> en ${nombreCuenta}.`;
-                
-                const modalEl = document.getElementById('modal-ajuste-saldo');
-                document.getElementById('ajuste-saldo-msg').innerHTML = msg;
-                document.getElementById('ajuste-saldo-obs').value = '';
-                
-                // Guardar datos temporales en el DOM para el botón de confirmar
-                const btnConfirmar = document.getElementById('btn-confirmar-ajuste');
-                if (btnConfirmar) {
-                    btnConfirmar.dataset.tipo = tipoTx;
-                    btnConfirmar.dataset.monto = montoAbs;
-                }
-                
-                if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-                    const modal = new bootstrap.Modal(modalEl);
-                    modal.show();
-                }
-            });
-        }
-
-        const btnConfirmarAjuste = this.element.querySelector('#btn-confirmar-ajuste');
-        if (btnConfirmarAjuste) {
-            btnConfirmarAjuste.addEventListener('click', async () => {
-                const obs = document.getElementById('ajuste-saldo-obs').value.trim() || 'Ajuste automático de conciliación';
-                const tipoTx = btnConfirmarAjuste.dataset.tipo;
-                const montoAbs = parseFloat(btnConfirmarAjuste.dataset.monto);
-                
-                const payload = {
-                    tipo: tipoTx,
-                    fecha: new Date().toISOString(),
-                    monto: montoAbs,
-                    cuenta_id: parseInt(this.state.bancoId, 10),
-                    categoria: 'Ajuste de conciliación',
-                    observaciones: obs,
-                    estado: 'open'
-                };
-                
-                try {
-                    const resultado = await DB.save('transacciones', payload);
-                    
-                    const modalEl = document.getElementById('modal-ajuste-saldo');
-                    if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-                        const modal = bootstrap.Modal.getInstance(modalEl);
-                        if (modal) modal.hide();
-                    }
-                    
-                    alert(`Ajuste guardado correctamente.`);
-                    await this.cargarDatosRPC();
-                    
-                    // Agregar el nuevo ID a seleccionados
-                    if (resultado && resultado.id) {
-                        this.state._seleccionados.add(resultado.id);
-                    } else if (resultado && resultado[0] && resultado[0].id) {
-                        this.state._seleccionados.add(resultado[0].id);
-                    } else {
-                        // Buscar por monto y observacion en caso que DB.save no devuelva el objeto directo
-                        const mov = this.state.movimientosRango.find(m => m.monto === montoAbs && m.detalle === obs);
-                        if (mov) this.state._seleccionados.add(mov.id);
-                    }
-                    
-                    this.renderTabla();
-                    this.renderHistorial();
-                } catch (err) {
-                    console.error("Error guardando ajuste:", err);
-                    alert("Ocurrió un error al guardar el ajuste.");
-                }
-            });
-        }
-
         this.element.querySelector('#btn-guardar-concil').addEventListener('click', async () => {
-            if (this.state.diferenciaActual !== 0) {
+            if (Math.abs(this.state.diferenciaActual) >= 1) {
                 const continuar = confirm(`Vas a guardar esta conciliación con una diferencia de ${this.formatMoney(this.state.diferenciaActual)} sin resolver. ¿Deseas continuar de todas formas?`);
                 if (!continuar) return;
             }
 
             const movimientosConciliados = Array.from(this.state._seleccionados);
+            
+            // Crear ajustes si hay
+            const ajustes = [
+                { valor: this.state.ajusteGastos, tipo: 'egreso', categoria: 'Gastos bancarios' },
+                { valor: this.state.ajusteImpuestos, tipo: 'egreso', categoria: 'Impuestos bancarios' },
+                { valor: this.state.ajusteEntradas, tipo: 'ingreso', categoria: 'Entradas bancarias' }
+            ];
+            
+            for (const adj of ajustes) {
+                if (adj.valor > 0) {
+                    const payloadAdj = {
+                        tipo: adj.tipo,
+                        fecha: new Date().toISOString(),
+                        monto: adj.valor,
+                        cuenta_id: parseInt(this.state.bancoId, 10),
+                        categoria: adj.categoria,
+                        observaciones: 'Ajuste automático de conciliación',
+                        estado: 'open'
+                    };
+                    try {
+                        const res = await DB.save('transacciones', payloadAdj);
+                        if (res && res.id) movimientosConciliados.push(res.id);
+                        else if (res && res[0] && res[0].id) movimientosConciliados.push(res[0].id);
+                    } catch (err) {
+                        console.error('Error guardando ajuste', adj.categoria, err);
+                    }
+                }
+            }
 
             const payload = {
                 p_id: this.state.editingConciliacionId || null,
