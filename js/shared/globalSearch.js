@@ -2,8 +2,8 @@ import { supabase } from '../core/supabase.js';
 import { escapeHtml } from './formatters.js';
 
 const FREQ_STORAGE_KEY = 'gs_busquedas_frecuentes';
-const MAX_STORED = 30;
-const MAX_SHOWN = 6;
+const MAX_STORED = 5;
+const MAX_SHOWN = 5;
 
 export const GlobalSearch = {
     init() {
@@ -56,9 +56,10 @@ export const GlobalSearch = {
 
     getFrecuentes() {
         try {
-            return JSON.parse(localStorage.getItem(FREQ_STORAGE_KEY)) || {};
+            const stored = JSON.parse(localStorage.getItem(FREQ_STORAGE_KEY));
+            return Array.isArray(stored) ? stored : [];
         } catch {
-            return {};
+            return [];
         }
     },
 
@@ -66,24 +67,17 @@ export const GlobalSearch = {
         const key = query.trim().toLowerCase();
         if (!key) return;
 
-        const frecuentes = this.getFrecuentes();
-        frecuentes[key] = (frecuentes[key] || 0) + 1;
-
-        // Si crece demasiado, conservar solo las más frecuentes
-        const entries = Object.entries(frecuentes);
-        if (entries.length > MAX_STORED) {
-            entries.sort((a, b) => b[1] - a[1]);
-            const recortado = Object.fromEntries(entries.slice(0, MAX_STORED));
-            localStorage.setItem(FREQ_STORAGE_KEY, JSON.stringify(recortado));
-        } else {
-            localStorage.setItem(FREQ_STORAGE_KEY, JSON.stringify(frecuentes));
-        }
+        let historial = this.getFrecuentes();
+        // Quitar la búsqueda si ya estaba, para volver a ponerla de primera (más reciente)
+        historial = historial.filter(q => q !== key);
+        historial.unshift(key);
+        historial = historial.slice(0, MAX_STORED);
+        localStorage.setItem(FREQ_STORAGE_KEY, JSON.stringify(historial));
     },
 
     eliminarFrecuente(query) {
-        const frecuentes = this.getFrecuentes();
-        delete frecuentes[query];
-        localStorage.setItem(FREQ_STORAGE_KEY, JSON.stringify(frecuentes));
+        const historial = this.getFrecuentes().filter(q => q !== query);
+        localStorage.setItem(FREQ_STORAGE_KEY, JSON.stringify(historial));
     },
 
     limpiarFrecuentes() {
@@ -91,17 +85,14 @@ export const GlobalSearch = {
     },
 
     renderFrecuentes(input) {
-        const frecuentes = this.getFrecuentes();
-        const top = Object.entries(frecuentes)
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, MAX_SHOWN);
+        const top = this.getFrecuentes().slice(0, MAX_SHOWN);
 
         if (top.length === 0) {
             this.closeDropdown();
             return;
         }
 
-        const itemsHtml = top.map(([query]) => `
+        const itemsHtml = top.map(query => `
             <div class="dropdown-item py-2 gs-frecuente-item px-3 d-flex align-items-center justify-content-between gap-2">
                 <a href="javascript:void(0)" class="gs-frecuente-link flex-grow-1 d-flex align-items-center gap-2 text-decoration-none text-dark" data-query="${escapeHtml(query)}" style="min-width: 0;">
                     <i class="bi bi-clock-history text-muted" style="font-size: var(--fs-sm);"></i>
