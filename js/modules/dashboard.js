@@ -352,22 +352,11 @@ export const DashboardModule = {
         }).catch(e => console.error('Error fetching inventario', e));
 
         // 3. Saldo Total Bancos (Cruzado con estado de cuenta activo)
-        const pBancos = Promise.all([
-            supabase.rpc('get_saldos_por_cuenta'),
-            supabase.from('cuentas_bancarias').select('id, estado')
-        ]).then(([{ data: saldosRPC }, { data: dbCuentas }]) => {
-            const activas = (dbCuentas || []).filter(c => c.estado === 'active' || c.estado === 'activo');
-            const saldosPorCuenta = {};
-            activas.forEach(c => { saldosPorCuenta[c.id] = 0; });
-            (saldosRPC || []).forEach(s => {
-                if (saldosPorCuenta[s.cuenta_id] !== undefined) {
-                    saldosPorCuenta[s.cuenta_id] = Number(s.saldo);
-                }
-            });
-            let saldoBancos = 0;
-            activas.forEach(c => { saldoBancos += (saldosPorCuenta[c.id] || 0); });
-            safeSetText('#kpi-saldo-bancos', formatMoney(saldoBancos));
-        }).catch(e => console.error('Error fetching bancos', e));
+        const pBancos = supabase.rpc('get_saldo_total_bancos')
+            .then(({ data }) => {
+                safeSetText('#kpi-saldo-bancos', formatMoney(data || 0));
+            })
+            .catch(e => console.error('Error fetching bancos', e));
 
         // 4 & 5. Cartera CxC & CxP
         const updateMicroBar = (total, vigentes, vencidas, barId, colors) => {
