@@ -1237,51 +1237,63 @@ export const FacturasModule = {
                     factura.total = rawTotal;
 
                     let facturaGuardadaId = null;
-                    if (!factura.numero) {
-                        factura = await DB.saveWithNextNumero('facturas', factura);
-                    } else {
-                        await DB.save('facturas', factura);
-                    }
-                    if (isNew) facturaGuardadaId = factura.id;
-
-                    let transaccionGuardadaId = null;
-                    // Condicional Contado vs Crédito
-                    if (tipoVenta === 'contado') {
-                        if (isNew) {
-                            const transaccion = {
-                                id: 'trx_' + Date.now(),
-                                facturaId: factura.id,
-                                referenciaId: factura.id,
-                                tipo: 'ingreso',
-                                monto: rawTotal,
+                    
+                    if (isNew) {
+                        const { data: v_result, error } = await supabase.rpc('crear_venta_directa', {
+                            p_factura_header: {
                                 fecha: factura.fecha,
-                                referencia: `Venta al contado Fac. ${factura.numero}`,
-                                detalle: `Venta al contado Fac. ${factura.numero}`,
-                                cuenta: factura.cuentaId,
-                                cuentaId: factura.cuentaId
-                            };
-                            
-                            try {
-                                await DB.save('transacciones', transaccion);
-                                transaccionGuardadaId = transaccion.id;
-                            } catch (errTrx) {
-                                if (facturaGuardadaId) await DB.delete('facturas', facturaGuardadaId);
-                                throw new Error("Fallo al registrar el pago al contado. Factura revertida para evitar inconsistencias.");
+                                vencimiento: factura.vencimiento,
+                                contacto_id: parseInt(clienteId, 10),
+                                total: rawTotal,
+                                total_costo: costoTotalVenta,
+                                estado: tipoVenta === 'contado' ? 'pagada' : 'por_pagar',
+                                observaciones: factura.notas,
+                                vendedor_id: factura.vendedor_id
+                            },
+                            p_factura_detalles: arrDetalles.map(det => {
+                                const base = det.cantidad * det.precio;
+                                const sub = base - (base * (det.descuento / 100));
+                                return {
+                                    producto_id: parseInt(det.productoId, 10),
+                                    cantidad: det.cantidad,
+                                    precio_unitario: det.precio,
+                                    descuento_porcentaje: det.descuento,
+                                    subtotal: sub,
+                                    descripcion_personalizada: ''
+                                };
+                            }),
+                            p_operaciones_fifo: planInventario.operacionesDB.map(op => ({
+                                action: op.action,
+                                id: op.action === 'update' ? parseInt(op.data.id, 10) : null,
+                                producto_id: parseInt(op.data.productoId, 10),
+                                fecha_ingreso: op.data.fechaIngreso,
+                                cantidad_actual: parseFloat(op.data.cantidadActual),
+                                costo_unitario: parseFloat(op.data.costoUnitario)
+                            })),
+                            p_origen_documento: 'factura directa venta',
+                            p_pago_contado: tipoVenta === 'contado' ? {
+                                fecha: factura.fecha,
+                                monto: rawTotal,
+                                cuenta_id: parseInt(factura.cuentaId, 10)
+                            } : null
+                        });
+
+                        if (error) throw new Error("Error al guardar la venta: " + error.message);
+                        
+                        facturaGuardadaId = v_result.id;
+                        factura.id = facturaGuardadaId;
+                        
+                        if (DB.invalidateCache) {
+                            DB.invalidateCache('facturas');
+                            DB.invalidateCache('lotes_fifo');
+                            if (tipoVenta === 'contado') {
+                                DB.invalidateCache('transacciones');
+                                DB.invalidateCache('pagos_ingresos');
                             }
                         }
-                    }
-                    
-                    // FASE 2: Descuento físico de inventario (Escritura Real)
-                    if (isNew && planInventario) {
-                        try {
-                            const origenDoc = 'factura:' + (factura.numero || facturaGuardadaId);
-                            await InventarioUtils.ejecutarPlanInventario(planInventario.operacionesDB, origenDoc);
-                        } catch (errInventario) {
-                            console.error("Fallo crítico descontando inventario...", errInventario);
-                            if (transaccionGuardadaId) await DB.delete('transacciones', transaccionGuardadaId);
-                            if (facturaGuardadaId) await DB.delete('facturas', facturaGuardadaId);
-                            throw new Error("Se creó la factura internamente pero falló el descuento de inventario. Operación anulada por seguridad. Intente nuevamente.");
-                        }
+                    } else {
+                        await DB.save('facturas', factura);
+                        facturaGuardadaId = factura.id;
                     }
                     
                     // Navegar a modo lectura para bloquear edición y habilitar impresión final
