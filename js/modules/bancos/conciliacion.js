@@ -24,22 +24,31 @@ export const ConciliacionModule = {
         if (!element) return;
         this.element = element;
 
-        const urlParams = new URLSearchParams(window.location.hash.split('?')[1]);
-        this.state.bancoId = urlParams.get('banco_id');
+        const hashParts = window.location.hash.split('?')[0].split('/');
+        const subAction = hashParts[3];
+        const id = hashParts[4];
 
-        const hoy = new Date();
-        const hace3MesesDate = new Date(hoy);
-        hace3MesesDate.setMonth(hace3MesesDate.getMonth() - 3);
-        this.state.fechaDesde = getLocalDate(hace3MesesDate);
-        this.state.fechaHasta = getLocalDate(hoy);
+        if (subAction === 'detalle' && id) {
+            await this.loadData();
+            await this.renderDetalle(element, id);
+        } else {
+            const urlParams = new URLSearchParams(window.location.hash.split('?')[1]);
+            this.state.bancoId = urlParams.get('banco_id');
 
-        await this.loadData();
-        this.renderBase();
-        await this.cargarDatosRPC();
-        this.calcularTotales();
-        this.renderTabla();
-        this.renderHistorial();
-        this.attachEvents();
+            const hoy = new Date();
+            const hace3MesesDate = new Date(hoy);
+            hace3MesesDate.setMonth(hace3MesesDate.getMonth() - 3);
+            this.state.fechaDesde = getLocalDate(hace3MesesDate);
+            this.state.fechaHasta = getLocalDate(hoy);
+
+            await this.loadData();
+            this.renderBase();
+            await this.cargarDatosRPC();
+            this.calcularTotales();
+            this.renderTabla();
+            this.renderHistorial();
+            this.attachEvents();
+        }
     },
 
     async loadData() {
@@ -266,21 +275,6 @@ export const ConciliacionModule = {
                 </div>
             </div>
 
-            <!-- Modal Detalle Conciliacion -->
-            <div class="modal fade" id="modal-detalle-conciliacion" tabindex="-1" aria-hidden="true">
-                <div class="modal-dialog modal-lg modal-dialog-centered">
-                    <div class="modal-content border-0 shadow" style="border-radius: 12px;">
-                        <div class="modal-header border-bottom-0 pb-0">
-                            <h5 class="modal-title fw-bold" style="color: var(--text-main);">Detalle de Conciliación</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-                        <div class="modal-body p-4" id="modal-detalle-body">
-                            <!-- Inyectado via JS -->
-                        </div>
-                    </div>
-                </div>
-            </div>
-
         `;
     },
 
@@ -362,6 +356,119 @@ export const ConciliacionModule = {
         });
 
         tbody.innerHTML = html;
+    },
+
+    async renderDetalle(element, id) {
+        const concil = this.state.historialConciliaciones.find(c => String(c.id) === String(id));
+        if (!concil) {
+            element.innerHTML = `<div class="p-5 text-center text-muted">Conciliación no encontrada.</div>`;
+            return;
+        }
+
+        const cuenta = this.state.cuentas.find(c => String(c.id) === String(concil.banco_id));
+        const bancoNombre = cuenta ? cuenta.nombre : 'Cuenta Desconocida';
+
+        const ids = (concil.movimientos_conciliados || []).map(i => parseInt(i, 10)).filter(Boolean);
+        let movs = [];
+        if (ids.length > 0) {
+            const { data: movsData } = await supabase
+                .from('pagos_ingresos')
+                .select('id, fecha, observaciones, referencia, tipo, monto')
+                .in('id', ids);
+            movs = (movsData || []).map(m => ({
+                ...m,
+                tipo:   m.tipo === 'in' ? 'ingreso' : 'egreso',
+                detalle: m.observaciones || m.referencia || ''
+            }));
+        }
+
+        const dateObj = new Date(concil.fecha_guardado);
+        const fechaGuardadoStr = dateObj.toLocaleDateString('es-CO') + ' ' + dateObj.toLocaleTimeString('es-CO', {hour: '2-digit', minute:'2-digit'});
+        
+        let htmlRows = '';
+        if (movs.length === 0) {
+            htmlRows = `<tr><td colspan="4" class="text-center py-5 text-muted">No hay movimientos guardados en esta conciliación.</td></tr>`;
+        } else {
+            // Ordenar por fecha
+            movs.sort((a, b) => new Date(b.fecha) - new Date(a.fecha)).forEach(m => {
+                const isIngreso = m.tipo === 'ingreso';
+                const badgeBg = isIngreso ? '#d1fae5' : '#fee2e2';
+                const badgeColor = isIngreso ? '#059669' : '#dc2626';
+
+                htmlRows += `
+                    <tr style="font-size: var(--fs-base); color: var(--text-body);">
+                        <td class="py-3 ps-4" style="white-space: nowrap;">${(m.fecha || '').substring(0, 10)}</td>
+                        <td class="py-3 fw-medium" style="color: var(--text-main);">${m.detalle || m.referencia || '-'}</td>
+                        <td class="py-3" style="white-space: nowrap;">
+                            <span class="badge" style="background-color: ${badgeBg}; color: ${badgeColor}; font-weight: 500;">
+                                ${m.tipo.toUpperCase()}
+                            </span>
+                        </td>
+                        <td class="py-3 pe-4 text-end" style="font-weight: 500; white-space: nowrap;">${this.formatMoney(m.monto)}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        const isDifCero = Math.abs(concil.diferencia) < 1;
+        const difColor = isDifCero ? 'var(--success)' : 'var(--danger)';
+
+        element.innerHTML = `
+            <div class="dash-layout p-4">
+                <div class="d-flex justify-content-between align-items-start mb-4">
+                    <div>
+                        <a href="#/bancos/conciliacion?banco_id=${concil.banco_id}" class="btn btn-sm btn-light border mb-3 text-muted fw-medium" style="border-radius: 6px;">
+                            <i class="bi bi-arrow-left me-1"></i> Volver a Conciliación
+                        </a>
+                        <h2 class="h3 fw-bold mb-0" style="color: var(--text-main);">Detalle de Conciliación</h2>
+                        <p class="text-muted mb-0 mt-1" style="font-size: var(--fs-md);">${bancoNombre}</p>
+                    </div>
+                </div>
+
+                <div class="card border-0 mb-4" style="box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.03), 0px 1px 3px rgba(0, 0, 0, 0.05); border-radius: 8px;">
+                    <div class="card-body p-4">
+                        <div class="row align-items-center text-center">
+                            <div class="col-3 border-end">
+                                <p class="text-muted mb-1" style="font-size: var(--fs-sm); font-weight: 500;">Fecha Guardado</p>
+                                <h5 class="fw-bold mb-0" style="color: var(--text-main);">${fechaGuardadoStr}</h5>
+                            </div>
+                            <div class="col-3 border-end">
+                                <p class="text-muted mb-1" style="font-size: var(--fs-sm); font-weight: 500;">Rango</p>
+                                <h5 class="fw-bold mb-0" style="color: var(--text-main);">${concil.fecha_desde} a ${concil.fecha_hasta}</h5>
+                            </div>
+                            <div class="col-3 border-end">
+                                <p class="text-muted mb-1" style="font-size: var(--fs-sm); font-weight: 500;">Saldo Bancario</p>
+                                <h5 class="fw-bold mb-0" style="color: var(--text-main);">${this.formatMoney(concil.saldo_bancario)}</h5>
+                            </div>
+                            <div class="col-3">
+                                <p class="text-muted mb-1" style="font-size: var(--fs-sm); font-weight: 500;">Diferencia</p>
+                                <h5 class="fw-bold mb-0" style="color: ${difColor};">${this.formatMoney(concil.diferencia)}</h5>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card border-0 mb-4" style="box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.03), 0px 1px 3px rgba(0, 0, 0, 0.05); border-radius: 8px;">
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead style="background-color: var(--bg-main); white-space: nowrap;">
+                                    <tr>
+                                        <th class="py-3 ps-4 text-muted" style="font-size: var(--fs-sm); font-weight: 600;">Fecha</th>
+                                        <th class="py-3 text-muted" style="font-size: var(--fs-sm); font-weight: 600;">Descripción</th>
+                                        <th class="py-3 text-muted" style="font-size: var(--fs-sm); font-weight: 600;">Tipo</th>
+                                        <th class="py-3 pe-4 text-end text-muted" style="font-size: var(--fs-sm); font-weight: 600;">Monto</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${htmlRows}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
     },
 
     attachEvents() {
@@ -549,59 +656,7 @@ export const ConciliacionModule = {
 
             if (rowVer && !e.target.closest('button')) {
                 const id = rowVer.getAttribute('data-id');
-                const concil = this.state.historialConciliaciones.find(c => c.id === id);
-                if (!concil) return;
-
-                // Lookup acotado por IDs — no escanea state.transacciones completo
-                const ids = (concil.movimientos_conciliados || []).map(i => parseInt(i, 10)).filter(Boolean);
-                let movs = [];
-                if (ids.length > 0) {
-                    const { data: movsData } = await supabase
-                        .from('pagos_ingresos')
-                        .select('id, fecha, observaciones, referencia, tipo, monto')
-                        .in('id', ids);
-                    movs = (movsData || []).map(m => ({
-                        ...m,
-                        tipo:   m.tipo === 'in' ? 'ingreso' : 'egreso',
-                        detalle: m.observaciones || m.referencia || ''
-                    }));
-                }
-
-                let tableHtml = `
-                    <div class="table-responsive">
-                        <table class="table table-sm">
-                            <thead>
-                                <tr class="text-muted" style="font-size: var(--fs-base);">
-                                    <th>Fecha</th>
-                                    <th>Detalle</th>
-                                    <th class="text-end">Monto</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                `;
-                if (movs.length === 0) {
-                    tableHtml += `<tr><td colspan="3" class="text-center py-4 text-muted">No hay movimientos guardados en esta conciliación.</td></tr>`;
-                } else {
-                    movs.forEach(m => {
-                        const esIngreso = m.tipo === 'ingreso';
-                        tableHtml += `
-                        <tr style="font-size: var(--fs-base);">
-                            <td class="py-2">${(m.fecha || '').substring(0,10)}</td>
-                            <td class="py-2 fw-medium">${m.detalle || m.referencia || '-'}</td>
-                            <td class="py-2 text-end text-${esIngreso ? 'success' : 'danger'} fw-medium">${this.formatMoney(m.monto)}</td>
-                        </tr>`;
-                    });
-                }
-                tableHtml += `</tbody></table></div>`;
-
-                const modalBody = document.getElementById('modal-detalle-body');
-                if (modalBody) modalBody.innerHTML = tableHtml;
-
-                const modalEl = document.getElementById('modal-detalle-conciliacion');
-                if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-                    const modal = new bootstrap.Modal(modalEl);
-                    modal.show();
-                }
+                window.location.hash = `#/bancos/conciliacion/detalle/${id}`;
             }
 
             if (btnEditar) {
