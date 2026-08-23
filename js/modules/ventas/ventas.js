@@ -400,10 +400,13 @@ export const FacturasModule = {
                             ${factData.tipo === 'compra' ? `
                             <a href="#" class="d-block px-3 py-1 text-decoration-none mt-1 btn-anular-compra" data-id="${id}" style="color: var(--danger); font-size: var(--fs-base);">
                                 <i class="bi bi-x-circle me-2"></i> Anular Compra
+                            </a>` : (factData.estado === 'anulada' ? '' : (factData.totalPagado > 0 ? `
+                            <a href="#" class="d-block px-3 py-1 text-decoration-none mt-1 btn-anular-venta" data-id="${id}" style="color: var(--danger); font-size: var(--fs-base);">
+                                <i class="bi bi-x-circle me-2"></i> Anular Venta
                             </a>` : `
                             <a href="#" class="d-block px-3 py-1 text-decoration-none mt-1 btn-delete-row" data-id="${id}" style="color: var(--danger); font-size: var(--fs-base);">
                                 <i class="bi bi-trash me-2"></i> Eliminar
-                            </a>`}
+                            </a>`))}
                             ` : `
                             <a href="#/ingresos/facturas/editar/${id}" class="d-block px-3 py-1 text-decoration-none" style="color: var(--text-body); font-size: var(--fs-base);">
                                 <i class="bi bi-eye me-2"></i> Ver Detalles
@@ -451,6 +454,38 @@ export const FacturasModule = {
                                 } catch (error) {
                                     console.error("Error al eliminar:", error);
                                     CoreActions.showWarningModal("No se pudo eliminar: " + error.message);
+                                }
+                            }
+                        });
+                    }
+
+                    const btnAnularVenta = menu.querySelector('.btn-anular-venta');
+                    if (btnAnularVenta) {
+                        btnAnularVenta.addEventListener('click', async (ev) => {
+                            ev.preventDefault();
+                            if (confirm('¿Estás seguro de anular esta venta? Se revertirá el inventario y el pago asociado. Esta acción no se puede deshacer.')) {
+                                menu.remove();
+                                try {
+                                    const { data: result, error } = await supabase.rpc('anular_venta_pagada', { 
+                                        p_factura_id: parseInt(id, 10) 
+                                    });
+
+                                    if (error) {
+                                        throw new Error(error.message || "Error devuelto por la base de datos.");
+                                    }
+
+                                    // Forzar limpieza de caché
+                                    DB.invalidateCache('facturas');
+                                    DB.invalidateCache('lotes_fifo');
+                                    DB.invalidateCache('transacciones');
+                                    DB.invalidateCache('pagos_ingresos');
+                                    DB.invalidateCache('comisiones');
+                                    
+                                    await renderGrid();
+                                    CoreActions.showSuccessModal('Venta anulada exitosamente.');
+                                } catch (error) {
+                                    console.error("Error al anular venta:", error);
+                                    CoreActions.showWarningModal("No se pudo anular: " + error.message);
                                 }
                             }
                         });
