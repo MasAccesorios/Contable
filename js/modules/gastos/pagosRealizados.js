@@ -146,6 +146,7 @@ export const PagosRealizadosModule = {
                 }
                 .mas-receipt-body {
                     padding: 10px 20px;
+                    overflow: hidden;
                 }
                 .mas-receipt-footer {
                     background: #f8fafc;
@@ -221,7 +222,7 @@ export const PagosRealizadosModule = {
                     top: 50%;
                     left: 50%;
                     transform: translate(-50%, -50%) rotate(-15deg);
-                    font-size: 50px;
+                    font-size: 40px;
                     font-weight: 900;
                     color: rgba(220, 38, 38, 0.04);
                     text-transform: uppercase;
@@ -232,8 +233,6 @@ export const PagosRealizadosModule = {
             </style>
             <div class="mas-receipt-container" style="padding: 20px;">
                 <div class="mas-receipt-card">
-                    <!-- Marca de agua opcional -->
-                    <div class="mas-receipt-stamp">PAGO REALIZADO</div>
                     
                     <div class="mas-receipt-header d-flex justify-content-between align-items-center position-relative" style="z-index: 1;">
                         <div>
@@ -249,6 +248,9 @@ export const PagosRealizadosModule = {
                     </div>
 
                     <div class="mas-receipt-body position-relative" style="z-index: 1;">
+                        <!-- Marca de agua opcional -->
+                        <div class="mas-receipt-stamp">PAGO REALIZADO</div>
+                        
                         <div class="row mb-3 align-items-start">
                             <div class="col-sm-6 mb-2 mb-sm-0">
                                 <div class="mas-receipt-info-label">Pagado a</div>
