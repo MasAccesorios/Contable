@@ -9,6 +9,7 @@ import { calcularEstadoFactura } from '../../shared/carteraUtils.js';
 import { AbonoModal } from '../../shared/abonoModal.js';
 import { InventarioUtils } from '../../shared/inventarioUtils.js';
 import { EstadoUtils } from '../../shared/estadoUtils.js';
+import { anularTransaccion } from '../../shared/transaccionesUtils.js';
 
 export const FacturasModule = {
     cache: { contactos: null, productos: null },
@@ -516,8 +517,26 @@ export const FacturasModule = {
                                     factura.estado = 'anulada';
                                     await DB.save('facturas', factura);
                                     
-                                    if (typeof window.anularTransaccion === 'function') {
-                                        await window.anularTransaccion(factura.id);
+                                    const { data: pagos, error: pagosErr } = await supabase
+                                        .from('pagos_ingresos')
+                                        .select('id, grupo_pago_id')
+                                        .eq('factura_id', factura.id)
+                                        .neq('estado', 'anulado');
+                                        
+                                    if (pagosErr) throw new Error("Error al consultar pagos asociados: " + pagosErr.message);
+                                    
+                                    if (pagos && pagos.length > 0) {
+                                        const processedGroups = new Set();
+                                        for (const pago of pagos) {
+                                            if (pago.grupo_pago_id) {
+                                                if (!processedGroups.has(pago.grupo_pago_id)) {
+                                                    await anularTransaccion(pago.grupo_pago_id, true);
+                                                    processedGroups.add(pago.grupo_pago_id);
+                                                }
+                                            } else {
+                                                await anularTransaccion(pago.id, false);
+                                            }
+                                        }
                                     }
                                     
                                     CoreActions.showSuccessModal('Factura de compra anulada e inventario revertido con éxito.');
