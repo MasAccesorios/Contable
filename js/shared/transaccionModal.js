@@ -38,10 +38,16 @@ export async function mostrarDetalleTransaccion(t, onSuccess) {
 
     let htmlFacturaAsociada = '';
     if (!t.grupo_pago_id) {
+        let numeroVisible = '';
+        if (t.factura_id) {
+            const { data: facturaActual } = await supabase.from('facturas').select('numero').eq('id', t.factura_id).single();
+            numeroVisible = facturaActual?.numero || '';
+        }
+        
         htmlFacturaAsociada = `
         <div class="mb-3">
-            <label class="form-label text-muted small">ID Factura Asociada (opcional)</label>
-            <input type="number" id="edit-trans-factura-id" class="form-control" value="${t.factura_id || ''}" placeholder="Ej. 1024" disabled>
+            <label class="form-label text-muted small">Nº Factura Asociada (opcional)</label>
+            <input type="number" id="edit-trans-factura-id" class="form-control" value="${numeroVisible}" placeholder="Ej. 6736" disabled>
         </div>`;
     }
 
@@ -158,15 +164,15 @@ export async function mostrarDetalleTransaccion(t, onSuccess) {
                 updatePayload.monto = newMonto;
                 
                 const facVal = document.getElementById('edit-trans-factura-id').value;
-                newFacturaId = facVal ? parseInt(facVal, 10) : null;
-                updatePayload.factura_id = newFacturaId;
-
-                if (newFacturaId) {
-                    const { data: fExist } = await supabase.from('facturas').select('id').eq('id', newFacturaId).single();
+                newFacturaId = null;
+                if (facVal) {
+                    const { data: fExist } = await supabase.from('facturas').select('id').eq('numero', parseInt(facVal, 10)).single();
                     if (!fExist) {
-                        throw new Error(`La factura con ID ${newFacturaId} no existe en la base de datos.`);
+                        throw new Error(`No existe ninguna factura con el número ${facVal}.`);
                     }
+                    newFacturaId = fExist.id;
                 }
+                updatePayload.factura_id = newFacturaId;
             }
             
             let estadosFacturas = [];
