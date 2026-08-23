@@ -642,8 +642,16 @@ export const FacturasModule = {
                         <div class="row mb-5 g-3">
                             <div class="col-12 col-sm-6 col-md-3">
                                 <label class="form-label" style="font-size: var(--fs-sm); font-weight: var(--weight-medium); color: var(--text-body);">Cliente <span class="text-danger">*</span></label>
-                                <input type="text" id="search-cliente" class="form-control form-control-sm text-muted" placeholder="Buscar cliente..." value="${clienteNombreActual}" autocomplete="off" ${isViewOnly ? 'disabled' : ''}>
+                                ${isViewOnly ? `
+                                <a href="#/contactos/ver/${factura.clienteId}" class="form-control form-control-sm text-decoration-none d-flex align-items-center justify-content-between" style="cursor:pointer; color: var(--text-body); background-color: #e9ecef; border-color: #ced4da;">
+                                    ${clienteNombreActual}
+                                    <i class="bi bi-box-arrow-up-right text-muted" style="font-size: 0.75rem;"></i>
+                                </a>
                                 <input type="hidden" id="select-cliente" value="${factura.clienteId || ''}">
+                                ` : `
+                                <input type="text" id="search-cliente" class="form-control form-control-sm text-muted" placeholder="Buscar cliente..." value="${clienteNombreActual}" autocomplete="off">
+                                <input type="hidden" id="select-cliente" value="${factura.clienteId || ''}">
+                                `}
                             </div>
                             <div class="col-12 col-sm-6 col-md-3">
                                 <label class="form-label" style="font-size: var(--fs-sm); font-weight: var(--weight-medium); color: var(--text-body);">Tipo de Venta</label>

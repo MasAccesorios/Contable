@@ -253,7 +253,14 @@ export const PagosRecibidosModule = {
                         <div class="row mb-3 align-items-start">
                             <div class="col-sm-6 mb-2 mb-sm-0">
                                 <div class="mas-receipt-info-label">Recibido de</div>
+                                ${(t.contacto_id || t.facturas?.contacto_id) ? `
+                                <a href="#/contactos/ver/${t.contacto_id || t.facturas?.contacto_id}" class="mas-receipt-info-value text-decoration-none d-inline-flex align-items-center gap-1" title="${t.contactos?.nombre || t.facturas?.contactos?.nombre || 'Cliente Contado'}" style="font-size: 14px; font-weight: 700; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--bs-primary);">
+                                    <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${t.contactos?.nombre || t.facturas?.contactos?.nombre || 'Cliente Contado'}</span>
+                                    <i class="bi bi-box-arrow-up-right" style="font-size: 0.75rem;"></i>
+                                </a>
+                                ` : `
                                 <div class="mas-receipt-info-value" title="${t.contactos?.nombre || t.facturas?.contactos?.nombre || 'Cliente Contado'}" style="font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${t.contactos?.nombre || t.facturas?.contactos?.nombre || 'Cliente Contado'}</div>
+                                `}
                                 ${(t.contactos?.identificacion || t.facturas?.contactos?.identificacion) ? `<div style="font-size: 12px; color: #64748b; margin-top: 2px;">NIT/CC: ${t.contactos?.identificacion || t.facturas?.contactos?.identificacion}</div>` : ''}
                             </div>
                             <div class="col-sm-6 text-sm-end">
