@@ -343,7 +343,7 @@ export const ConciliacionModule = {
             const cantMovs = h.movimientos_conciliados ? h.movimientos_conciliados.length : 0;
 
             html += `
-                <tr style="font-size: var(--fs-base); color: var(--text-body);">
+                <tr class="row-historial-concil" data-id="${h.id}" style="cursor: pointer; font-size: var(--fs-base); color: var(--text-body);">
                     <td class="py-3 ps-4 fw-medium text-muted">${fechaGuardadoStr}</td>
                     <td class="py-3 text-muted">${rango}</td>
                     <td class="py-3" style="font-weight: 500;">${this.formatMoney(h.saldo_bancario)}</td>
@@ -353,7 +353,6 @@ export const ConciliacionModule = {
                     </td>
                     <td class="py-3 pe-4 text-end">
                         <div class="d-flex gap-2 justify-content-end">
-                            <button class="btn btn-sm btn-light border text-primary btn-ver-concil" data-id="${h.id}" title="Ver detalle"><i class="bi bi-eye"></i></button>
                             <button class="btn btn-sm btn-light border text-warning btn-editar-concil" data-id="${h.id}" title="Editar"><i class="bi bi-pencil"></i></button>
                             <button class="btn btn-sm btn-light border text-danger btn-eliminar-concil" data-id="${h.id}" title="Eliminar"><i class="bi bi-trash"></i></button>
                         </div>
@@ -544,12 +543,12 @@ export const ConciliacionModule = {
 
         // Eventos para la tabla de historial (Ver, Editar, Eliminar)
         this.element.querySelector('#tbody-historial')?.addEventListener('click', async (e) => {
-            const btnVer = e.target.closest('.btn-ver-concil');
+            const rowVer = e.target.closest('.row-historial-concil');
             const btnEditar = e.target.closest('.btn-editar-concil');
             const btnEliminar = e.target.closest('.btn-eliminar-concil');
 
-            if (btnVer) {
-                const id = btnVer.getAttribute('data-id');
+            if (rowVer && !e.target.closest('button')) {
+                const id = rowVer.getAttribute('data-id');
                 const concil = this.state.historialConciliaciones.find(c => c.id === id);
                 if (!concil) return;
 

@@ -45,7 +45,7 @@ export const CuentaCobroModule = {
         });
 
         const rowsHtml = listData.map(c => `
-            <tr style="border-bottom: 1px solid var(--border-color); font-size: var(--fs-base); color: var(--text-body);">
+            <tr class="row-cuenta-cobro" data-id="${c.id}" style="border-bottom: 1px solid var(--border-color); font-size: var(--fs-base); color: var(--text-body); cursor: pointer;">
                 <td style="padding: 12px 16px; font-weight: 500;">No. ${c.numero}</td>
                 <td style="padding: 12px 16px;">${c.fecha}</td>
                 <td style="padding: 12px 16px;">
@@ -56,7 +56,6 @@ export const CuentaCobroModule = {
                     <span class="badge bg-warning text-warning-emphasis bg-opacity-10 border border-warning-subtle rounded-pill fw-medium" style="font-size: var(--fs-xs); padding: 5px 10px;">Pendiente</span>
                 </td>
                 <td style="padding: 12px 16px; text-align: right;">
-                    <button class="btn btn-sm btn-light border btn-ver-row" data-id="${c.id}" title="Ver"><i class="bi bi-eye"></i></button>
                     <button class="btn btn-sm btn-light border ms-1 btn-imprimir-row" data-id="${c.id}" title="Imprimir"><i class="bi bi-printer"></i></button>
                     <button class="btn btn-sm btn-outline-danger ms-1 btn-delete-row" data-id="${c.id}" title="Eliminar"><i class="bi bi-trash"></i></button>
                 </td>
@@ -131,10 +130,12 @@ export const CuentaCobroModule = {
             </div>
         `;
 
-        element.querySelectorAll('.btn-ver-row').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                window.location.hash = `#/ingresos/cuenta-cobro/ver/${e.currentTarget.dataset.id}`;
-            });
+        element.querySelector('tbody').addEventListener('click', (e) => {
+            const row = e.target.closest('.row-cuenta-cobro');
+            if (!row) return;
+            if (e.target.closest('button')) return;
+            
+            window.location.hash = `#/ingresos/cuenta-cobro/ver/${row.dataset.id}`;
         });
 
         element.querySelectorAll('.btn-imprimir-row').forEach(btn => {
