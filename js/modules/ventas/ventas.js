@@ -597,7 +597,7 @@ export const FacturasModule = {
 
         const { data: vendedoresActivos } = await supabase.from('vendedores').select('id, nombre').eq('estado', 'activo').order('nombre');
         const dbCuentas = await DB.getAll('cuentas_bancarias') || [];
-        const cuentasActivas = dbCuentas.filter(c => c.estado === 'activo');
+        const cuentasActivas = dbCuentas.filter(c => c.estado === 'active');
         const cuentasMap = {};
         dbCuentas.forEach(c => cuentasMap[c.id] = c.nombre);
 
