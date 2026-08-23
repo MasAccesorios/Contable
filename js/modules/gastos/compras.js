@@ -528,34 +528,15 @@ export const ComprasModule = {
                             menu.remove();
                             
                             try {
-                                const factura = await DB.get('facturas', id);
-                                if (!factura) throw new Error("Factura no encontrada.");
+                                const { anularFacturaCompra } = await import('../../shared/anularCompraUtils.js');
+                                const result = await anularFacturaCompra(id, { DB, EstadoUtils, InventarioUtils, supabase, CoreActions });
                                 
-                                if (EstadoUtils.estaAnulado(factura.estado)) {
+                                if (result.alreadyAnnulled) {
                                     CoreActions.showWarningModal("Esta factura ya se encuentra anulada.");
                                     return;
                                 }
-
-                                // 1. Revertir inventario (Bloquea si ya se vendió algo)
-                                const revertResult = await InventarioUtils.revertirLotesPorCompra(factura.numero);
-                                if (!revertResult.success) {
-                                    CoreActions.showWarningModal(revertResult.error);
-                                    return;
-                                }
-
-                                // 2. Cambiar estado a 'anulada'
-                                factura.estado = 'anulada';
-                                await DB.save('facturas', factura);
-
-                                // 3. Anular pagos asociados
-                                const { data: pagos } = await supabase.from('pagos_ingresos').select('id').eq('factura_id', id);
-                                if (pagos && pagos.length > 0) {
-                                    const { anularTransaccion } = await import('../../shared/transaccionesUtils.js');
-                                    for (const p of pagos) {
-                                        await anularTransaccion(p.id);
-                                    }
-                                }
                                 
+                                CoreActions.showSuccessModal('Factura de compra anulada e inventario revertido con éxito.');
                                 await renderGrid();
                             } catch (error) {
                                 console.error("Error al anular factura de compra:", error);

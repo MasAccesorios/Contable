@@ -500,44 +500,13 @@ export const FacturasModule = {
                                 menu.remove();
                                 
                                 try {
-                                    const factura = await DB.get('facturas', id);
-                                    if (!factura) throw new Error("Factura no encontrada.");
+                                    const { anularFacturaCompra } = await import('../../shared/anularCompraUtils.js');
+                                    const result = await anularFacturaCompra(id, { DB, EstadoUtils, InventarioUtils, supabase, CoreActions });
                                     
-                                    if (EstadoUtils.estaAnulado(factura.estado)) {
+                                    if (result.alreadyAnnulled) {
                                         CoreActions.showWarningModal("Esta factura ya se encuentra anulada.");
                                         return;
                                     }
-
-                                    const revertResult = await InventarioUtils.revertirLotesPorCompra(factura.numero);
-                                    if (!revertResult.success) {
-                                        CoreActions.showWarningModal(revertResult.error);
-                                        return;
-                                    }
-
-                                    const { data: pagos, error: pagosErr } = await supabase
-                                        .from('pagos_ingresos')
-                                        .select('id, grupo_pago_id')
-                                        .eq('factura_id', factura.id)
-                                        .neq('estado', 'anulado');
-                                        
-                                    if (pagosErr) throw new Error("Error al consultar pagos asociados: " + pagosErr.message);
-                                    
-                                    if (pagos && pagos.length > 0) {
-                                        const processedGroups = new Set();
-                                        for (const pago of pagos) {
-                                            if (pago.grupo_pago_id) {
-                                                if (!processedGroups.has(pago.grupo_pago_id)) {
-                                                    await anularTransaccion(pago.grupo_pago_id, true);
-                                                    processedGroups.add(pago.grupo_pago_id);
-                                                }
-                                            } else {
-                                                await anularTransaccion(pago.id, false);
-                                            }
-                                        }
-                                    }
-
-                                    factura.estado = 'anulada';
-                                    await DB.save('facturas', factura);
                                     
                                     CoreActions.showSuccessModal('Factura de compra anulada e inventario revertido con éxito.');
                                     await renderGrid();
