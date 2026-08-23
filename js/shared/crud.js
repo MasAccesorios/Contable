@@ -128,81 +128,42 @@ export const CoreActions = {
                 return; // ABORTA LA CONVERSIÓN
             }
 
-            // Regla de Negocio: Condición Permitida (Primera vez) - Clonación de la data
-            const idFactura = 'fac_' + Date.now();
-            
-            // Aseguramos el mapeo explícito de campos, extrayendo la descripcion_personalizada 
-            // directamente de la cotización original (cotizacion.detalles[i])
-            const detallesConvertidos = planInventario.detallesActualizados.map((det, i) => ({
-                ...det,
-                descripcion_personalizada: cotizacion.detalles[i]?.descripcion_personalizada || ''
-            }));
-
-            const nuevaFactura = {
-                id: idFactura,
-                clienteId: cotizacion.clienteId,
-                fecha: getLocalDate(),
-                vencimiento: cotizacion.vencimiento,
-                total: cotizacion.total || 0,
-                estado: 'por_pagar',
-                tipo: 'venta',
-                detalles: detallesConvertidos,
-                total_costo: planInventario.costoTotalVenta,
-                notas: cotizacion.notas || '',
-                terminosCondiciones: cotizacion.terminosCondiciones || 'Favor realizar los pagos a nuestra cuenta bancaria.',
-                cotizacion_origen_id: parseInt(cotizacion.id, 10) || cotizacion.id,
-                // Trazabilidad: la factura hereda el mismo número que la cotización de origen.
-                // El RPC detecta este valor explícito y NO consume nextval(); en cambio,
-                // avanza documentos_numero_seq hasta >= este número para evitar colisiones futuras.
-                numero: cotizacion.numero
-            };
-
-            // Reintento automático ante duplicate key en numero (código Postgres 23505).
-            const MAX_REINTENTOS = 3;
-            let facturaGuardada = null;
-            for (let intento = 1; intento <= MAX_REINTENTOS; intento++) {
-                try {
-                    facturaGuardada = await DB.saveWithNextNumero('facturas', nuevaFactura);
-                    break; // Éxito — salir del loop
-                } catch (err) {
-                    const errorStr = (err?.message || JSON.stringify(err) || '').toLowerCase();
-                    
-                    if (errorStr.includes('facturas_cotizacion_origen_id_key')) {
-                        throw new Error("Esta cotización ya fue convertida a factura por otra sesión/clic simultáneo.");
-                    }
-
-                    const esDuplicado = err?.code === '23505' || errorStr.includes('duplicate key');
-                    if (esDuplicado && intento < MAX_REINTENTOS) {
-                        console.warn(`[convertir] Duplicate key en numero (intento ${intento}/${MAX_REINTENTOS}), reintentando...`);
-                        continue;
-                    }
-                    if (esDuplicado) {
-                        throw new Error('No se pudo asignar el número de factura. Por favor, intenta de nuevo.');
-                    }
-                    throw err; // Aborta aquí. Como NO se ha descontado inventario aún, no hay fugas.
-                }
-            }
-            const idReal = facturaGuardada.id;
-
-            // FASE 2: Descuento físico de inventario (Escritura Real)
-            try {
-                const origenDoc = 'factura:' + (nuevaFactura.numero || idReal) + ' (desde cotizacion:' + cotizacion.id + ')';
-                await InventarioUtils.ejecutarPlanInventario(planInventario.operacionesDB, origenDoc);
-            } catch (errInventario) {
-                // FALLO CRÍTICO: Se guardó la factura, pero falló el inventario.
-                console.error("Fallo crítico descontando inventario post-factura. Revirtiendo...", errInventario);
-                // Rollback compensatorio de la factura huérfana
-                await DB.delete('facturas', idReal);
-                throw new Error("La factura se generó internamente pero falló el descuento de inventario. Por seguridad se ha anulado la operación. Intente nuevamente.");
-            }
-
-            // Modificar estado original (solo el estado, sin tocar los detalles de la cotización)
-            const { error: errorMarcado } = await supabase.rpc('marcar_cotizacion_facturada', {
-                p_cotizacion_id: parseInt(cotizacion.id, 10)
+            // Regla de Negocio: Condición Permitida (Primera vez) - RPC Atómico
+            const { data: v_result, error } = await supabase.rpc('convertir_cotizacion_a_factura', {
+                p_cotizacion_id: parseInt(cotizacion.id, 10),
+                p_factura_header: {
+                    fecha: getLocalDate(),
+                    vencimiento: cotizacion.vencimiento,
+                    contacto_id: cotizacion.clienteId,
+                    total: cotizacion.total || 0,
+                    estado: 'por_pagar',
+                    tipo: 'venta',
+                    observaciones: cotizacion.notas || '',
+                    total_costo: planInventario.costoTotalVenta,
+                    numero: cotizacion.numero
+                },
+                p_factura_detalles: planInventario.detallesActualizados.map((det, i) => ({
+                    producto_id: det.productoId,
+                    cantidad: det.cantidad,
+                    precio_unitario: det.precio,
+                    descuento_porcentaje: det.descuento,
+                    subtotal: det.subtotal,
+                    descripcion_personalizada: cotizacion.detalles[i]?.descripcion_personalizada || ''
+                })),
+                p_operaciones_fifo: planInventario.operacionesDB.map(op => ({
+                    action: op.action,
+                    id: op.data.id,
+                    producto_id: op.data.productoId,
+                    fecha_ingreso: op.data.fechaIngreso,
+                    cantidad_actual: op.data.cantidadActual,
+                    costo_unitario: op.data.costoUnitario
+                })),
+                p_origen_documento: 'factura:' + (cotizacion.numero || 'nueva') + ' (desde cotizacion:' + cotizacion.id + ')'
             });
-            if (errorMarcado) {
-                console.error("No se pudo marcar la cotización como facturada:", errorMarcado);
-            }
+
+            if (error) throw new Error("Error al convertir a factura: " + error.message);
+
+            const idReal = v_result.id;
 
             // Callback
             if (onSuccessCallback) {
