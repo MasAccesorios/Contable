@@ -71,6 +71,9 @@ async function router() {
 
     GlobalSearch.clear();
 
+    const printPreview = document.getElementById('print-view-container');
+    if (printPreview) printPreview.remove();
+
     const hayModalVisible = !!document.querySelector('.modal.show');
     if (!hayModalVisible) {
         document.querySelectorAll('.modal-backdrop').forEach(b => b.remove());
