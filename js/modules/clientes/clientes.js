@@ -454,6 +454,8 @@ export const ContactosModule = {
             contacto = await DB.get('contactos', id) || contacto;
         }
 
+        const { data: vendedoresActivos } = await supabase.from('vendedores').select('id, nombre').eq('estado', 'activo').order('nombre');
+
         actionView.innerHTML = `
             <div class="form-hoja-completa bg-white rounded">
                 <div class="d-flex align-items-center mb-3">
@@ -486,6 +488,13 @@ export const ContactosModule = {
                                 <input class="form-check-input" type="checkbox" id="form-es-proveedor" ${contacto.es_proveedor ? 'checked' : ''}>
                                 <label class="form-check-label text-muted small" for="form-es-proveedor">Es proveedor</label>
                             </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-muted small fw-medium">Vendedor asignado</label>
+                            <select id="form-vendedor" class="form-select form-select-sm">
+                                <option value="">Sin vendedor asignado</option>
+                                ${(vendedoresActivos || []).map(v => `<option value="${v.id}" ${String(contacto.vendedor_id) === String(v.id) ? 'selected' : ''}>${v.nombre}</option>`).join('')}
+                            </select>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label text-muted small fw-medium">Teléfono</label>
@@ -553,6 +562,7 @@ export const ContactosModule = {
                 es_cliente: esCliente,
                 es_proveedor: esProveedor,
                 tipo: esProveedor && !esCliente ? 'proveedor' : 'cliente',
+                vendedor_id: this.element.querySelector('#form-vendedor').value || null,
                 telefono: this.element.querySelector('#form-telefono').value,
                 email: this.element.querySelector('#form-email').value,
                 ciudad: this.element.querySelector('#form-ciudad').value,

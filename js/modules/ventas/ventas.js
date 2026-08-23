@@ -1018,7 +1018,7 @@ export const FacturasModule = {
                 hiddenIdEl: element.querySelector('#select-cliente'),
                 fetchItems: async (query) => {
                     const { data } = await supabase.from('contactos')
-                        .select('id, nombre, identificacion, plazos_pago')
+                        .select('id, nombre, identificacion, plazos_pago, vendedor_id')
                         .eq('es_cliente', true)
                         .neq('estado', 'inactive')
                         .or(`nombre.ilike.%${query}%,identificacion.ilike.%${query}%`)
@@ -1029,6 +1029,10 @@ export const FacturasModule = {
                 allowCreate: true,
                 onSelect: (selectedItem) => {
                     calcularVencimiento(selectedItem);
+                    const selectVendedor = element.querySelector('#select-vendedor');
+                    if (selectVendedor && selectedItem.vendedor_id) {
+                        selectVendedor.value = selectedItem.vendedor_id;
+                    }
                 },
                 onCreate: (query) => {
                     ContactosModule.renderQuickModal(query, (nuevoContacto) => {
@@ -1039,6 +1043,11 @@ export const FacturasModule = {
                         
                         // Calculamos vencimiento explícitamente para el nuevo contacto
                         calcularVencimiento(nuevoContacto);
+                        
+                        const selectVendedor = element.querySelector('#select-vendedor');
+                        if (selectVendedor && nuevoContacto.vendedor_id) {
+                            selectVendedor.value = nuevoContacto.vendedor_id;
+                        }
                     });
                 }
             });
