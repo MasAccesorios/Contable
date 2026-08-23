@@ -514,9 +514,6 @@ export const FacturasModule = {
                                         return;
                                     }
 
-                                    factura.estado = 'anulada';
-                                    await DB.save('facturas', factura);
-                                    
                                     const { data: pagos, error: pagosErr } = await supabase
                                         .from('pagos_ingresos')
                                         .select('id, grupo_pago_id')
@@ -538,6 +535,9 @@ export const FacturasModule = {
                                             }
                                         }
                                     }
+
+                                    factura.estado = 'anulada';
+                                    await DB.save('facturas', factura);
                                     
                                     CoreActions.showSuccessModal('Factura de compra anulada e inventario revertido con éxito.');
                                     await renderGrid();
