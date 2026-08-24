@@ -1254,6 +1254,14 @@ export const PrintManager = {
 
             <!-- TABLA DE PRODUCTOS -->
             <table style="width: 100%; border-collapse: collapse; margin-bottom: 10px; table-layout: fixed;">
+                <colgroup>
+                    <col style="width: 10%;">
+                    <col style="width: 50%;">
+                    <col style="width: 12%;">
+                    <col style="width: 7%;">
+                    <col style="width: 5%;">
+                    <col style="width: 16%;">
+                </colgroup>
                 <thead style="display: table-header-group;">
                     <tr>
                         <td colspan="6" style="height: 16px; border: none; padding: 0;"></td>
