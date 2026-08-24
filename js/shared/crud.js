@@ -1279,7 +1279,7 @@ export const PrintManager = {
                         </td>
                     </tr>
                     <tr style="border-bottom: 2px solid #dee2e6; color: #495057; font-size: 13px;">
-                        <th style="text-align: left; padding: 5px 4px; width: 10%; word-break: break-word; overflow-wrap: break-word;">Referencia</th>
+                        <th style="text-align: left; padding: 5px 4px; width: 10%; word-break: break-word; overflow-wrap: break-word;">Ref.</th>
                         <th style="text-align: left; padding: 5px 4px; width: 50%; word-break: break-word; overflow-wrap: break-word;">Ítem</th>
                         <th style="text-align: right; padding: 5px 4px; width: 12%;">Precio</th>
                         <th style="text-align: center; padding: 5px 4px; width: 7%;">Cantidad</th>
