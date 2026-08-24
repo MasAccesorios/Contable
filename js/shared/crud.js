@@ -1238,7 +1238,7 @@ export const PrintManager = {
                         <strong style="color: #495057;">TEL</strong><span>${cliente.telefono || ''}</span>
                     </div>
                 </div>
-                <div style="width: 48%;">
+                <div style="width: 48%; padding-top: 10px;">
                     <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px; padding-bottom: 3px; border-bottom: 1px solid #dee2e6;">
                         <strong style="color: #495057;">${tipoDoc} No.</strong><span style="font-weight: bold; font-size: 14px;">${numDisplay}</span>
                     </div>
