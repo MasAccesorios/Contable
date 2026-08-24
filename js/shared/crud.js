@@ -1256,6 +1256,9 @@ export const PrintManager = {
             <table style="width: 100%; border-collapse: collapse; margin-bottom: 10px; table-layout: fixed;">
                 <thead style="display: table-header-group;">
                     <tr>
+                        <td colspan="6" style="height: 16px; border: none; padding: 0;"></td>
+                    </tr>
+                    <tr>
                         <td colspan="6" style="border: none; padding: 0;">
                             <!-- HEADER IMPRESIÓN -->
                             <div style="display: flex; justify-content: space-between; align-items: start; border-bottom: 2px solid #6c757d; padding-bottom: 8px; margin-bottom: 12px;">

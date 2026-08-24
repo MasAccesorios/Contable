@@ -408,10 +408,6 @@ body {
         page: hoja-horizontal;
     }
 
-    .print-document-template.documento-venta thead tr:first-child td {
-        padding-top: 16px;
-    }
-
     #app-container {
         display: none !important;
     }
