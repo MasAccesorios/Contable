@@ -1033,6 +1033,9 @@ export const PrintManager = {
             if (printClass === 'hoja-dinamica') {
                 paperContent.style.width = '816px';
                 paperContent.style.minHeight = '528px';
+            } else if (printClass === 'cuenta-cobro') {
+                paperContent.style.width = '816px';
+                paperContent.style.minHeight = '1056px';
             } else {
                 paperContent.style.width = '816px';
                 paperContent.style.minHeight = '1056px';
@@ -1187,6 +1190,7 @@ export const PrintManager = {
 
         this._renderPreviewShell(htmlContent, {
             mode,
+            printClass: 'cuenta-cobro',
             fileName: `CuentaCobro_${numDisplay}.png`,
             title: 'Cuenta de Cobro'
         });

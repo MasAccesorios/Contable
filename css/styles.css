@@ -399,6 +399,15 @@ body {
         page: hoja-media-carta;
     }
 
+    @page hoja-cuenta-cobro {
+        size: letter landscape;
+        margin: 0.4in;
+    }
+
+    .print-document-template.cuenta-cobro {
+        page: hoja-cuenta-cobro;
+    }
+
     #app-container {
         display: none !important;
     }
