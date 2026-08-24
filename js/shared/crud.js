@@ -1030,8 +1030,13 @@ export const PrintManager = {
             container.prepend(closeHeader);
 
             paperContent = document.createElement('div');
-            paperContent.style.width = '816px';
-            paperContent.style.minHeight = '1056px';
+            if (printClass === 'hoja-dinamica') {
+                paperContent.style.width = '528px';
+                paperContent.style.minHeight = '816px';
+            } else {
+                paperContent.style.width = '816px';
+                paperContent.style.minHeight = '1056px';
+            }
             paperContent.style.margin = '20px auto';
             paperContent.style.padding = '40px';
             paperContent.style.boxSizing = 'border-box';
