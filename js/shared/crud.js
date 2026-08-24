@@ -148,7 +148,7 @@ export const CoreActions = {
                     precio_unitario: det.precio,
                     descuento_porcentaje: det.descuento,
                     subtotal: det.subtotal,
-                    descripcion_personalizada: cotizacion.detalles[i]?.descripcion_personalizada || ''
+                    descripcion_personalizada: det.descripcion_personalizada || ''
                 })),
                 p_operaciones_fifo: planInventario.operacionesDB.map(op => ({
                     action: op.action,
