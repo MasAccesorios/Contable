@@ -400,8 +400,8 @@ body {
     }
 
     @page hoja-cuenta-cobro {
-        size: letter landscape;
-        margin: 0.4in;
+        size: letter;
+        margin: 0.5in;
     }
 
     .print-document-template.cuenta-cobro {
