@@ -1272,12 +1272,12 @@ export const PrintManager = {
                         </td>
                     </tr>
                     <tr style="border-bottom: 2px solid #dee2e6; color: #495057; font-size: 13px;">
-                        <th style="text-align: left; padding: 5px 4px; width: 16%; word-break: break-word; overflow-wrap: break-word;">Referencia</th>
-                        <th style="text-align: left; padding: 5px 4px; width: 36%; word-break: break-word; overflow-wrap: break-word;">Ítem</th>
-                        <th style="text-align: right; padding: 5px 4px; width: 14%;">Precio</th>
-                        <th style="text-align: center; padding: 5px 4px; width: 8%;">Cantidad</th>
-                        <th style="text-align: right; padding: 5px 4px; width: 6%;">Dto.</th>
-                        <th style="text-align: right; padding: 5px 4px; width: 20%;">Total</th>
+                        <th style="text-align: left; padding: 5px 4px; width: 10%; word-break: break-word; overflow-wrap: break-word;">Referencia</th>
+                        <th style="text-align: left; padding: 5px 4px; width: 50%; word-break: break-word; overflow-wrap: break-word;">Ítem</th>
+                        <th style="text-align: right; padding: 5px 4px; width: 12%;">Precio</th>
+                        <th style="text-align: center; padding: 5px 4px; width: 7%;">Cantidad</th>
+                        <th style="text-align: right; padding: 5px 4px; width: 5%;">Dto.</th>
+                        <th style="text-align: right; padding: 5px 4px; width: 16%;">Total</th>
                     </tr>
                 </thead>
                 <tbody>
