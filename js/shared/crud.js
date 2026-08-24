@@ -1228,16 +1228,6 @@ export const PrintManager = {
 
         // 5. Construir HTML
         const htmlContent = `
-            <!-- HEADER IMPRESIÓN -->
-            <div style="display: flex; justify-content: space-between; align-items: start; border-bottom: 2px solid #6c757d; padding-bottom: 8px; margin-bottom: 12px;">
-                <div style="width: 40%;">
-                    <img src="LogoMas.png" style="max-height: 80px; margin-bottom: 5px;" alt="Logo" onerror="this.style.display='none'">
-                </div>
-                <div style="text-align: right; width: 40%; padding-top: 15px;">
-                    <p style="margin: 0; font-size: 14px; color: #6c757d; font-weight: bold;">3158512091</p>
-                </div>
-            </div>
-
             <!-- INFO CLIENTE Y DOC -->
             <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
                 <div style="background-color: #f8f9fa; padding: 10px; width: 48%; border-radius: 6px; box-sizing: border-box;">
@@ -1265,6 +1255,19 @@ export const PrintManager = {
             <!-- TABLA DE PRODUCTOS -->
             <table style="width: 100%; border-collapse: collapse; margin-bottom: 10px; table-layout: fixed;">
                 <thead style="display: table-header-group;">
+                    <tr>
+                        <td colspan="6" style="border: none; padding: 0;">
+                            <!-- HEADER IMPRESIÓN -->
+                            <div style="display: flex; justify-content: space-between; align-items: start; border-bottom: 2px solid #6c757d; padding-bottom: 8px; margin-bottom: 12px;">
+                                <div style="width: 40%;">
+                                    <img src="LogoMas.png" style="max-height: 80px; margin-bottom: 5px;" alt="Logo" onerror="this.style.display='none'">
+                                </div>
+                                <div style="text-align: right; width: 40%; padding-top: 15px;">
+                                    <p style="margin: 0; font-size: 14px; color: #6c757d; font-weight: bold;">3158512091</p>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
                     <tr style="border-bottom: 2px solid #dee2e6; color: #495057; font-size: 13px;">
                         <th style="text-align: left; padding: 5px 4px; width: 16%; word-break: break-word; overflow-wrap: break-word;">Referencia</th>
                         <th style="text-align: left; padding: 5px 4px; width: 36%; word-break: break-word; overflow-wrap: break-word;">Ítem</th>
