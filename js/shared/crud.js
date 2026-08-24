@@ -1215,8 +1215,7 @@ export const PrintManager = {
                 <tr style="border-bottom: 1px solid #dee2e6; font-size: 11px; color: #495057;">
                     <td style="padding: 5px 4px; word-break: break-word; overflow-wrap: break-word;">${prod.sku || 'N/A'}</td>
                     <td style="padding: 5px 4px; word-break: break-word; overflow-wrap: break-word;">
-                        <div style="font-weight: 400; color: #212529; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${prod.nombre || 'Ítem sin nombre'}</div>
-                        ${det.descripcion_personalizada ? `<div style="font-size: 10.5px; color: #6c757d; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${det.descripcion_personalizada}</div>` : ''}
+                        <div style="font-weight: 400; color: #212529; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${prod.nombre || 'Ítem sin nombre'}${det.descripcion_personalizada ? ' — ' + det.descripcion_personalizada : ''}</div>
                     </td>
                     <td style="padding: 5px 4px; text-align: right; white-space: nowrap;">${formatMoney(det.precio)}</td>
                     <td style="padding: 5px 4px; text-align: center;">${det.cantidad}</td>
