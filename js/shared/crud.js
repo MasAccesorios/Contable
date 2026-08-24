@@ -1104,7 +1104,7 @@ export const PrintManager = {
                     </div>
                     <div style="padding: 10px; font-size: 14px; color: #495057;">
                         <table style="width: 100%; border-collapse: collapse;">
-                            <tr><td style="padding-bottom: 5px; width: 30%;"><strong>Razón Social:</strong></td><td style="padding-bottom: 5px; padding-left: 5px;">${doc.cliente_razon_social || ''}</td></tr>
+                            <tr><td style="padding-bottom: 5px; width: 30%; white-space: nowrap;"><strong>Razón Social:</strong></td><td style="padding-bottom: 5px; padding-left: 5px;">${doc.cliente_razon_social || ''}</td></tr>
                             <tr><td style="padding-bottom: 5px;"><strong>NIT:</strong></td><td style="padding-bottom: 5px;">${doc.cliente_nit || ''}</td></tr>
                             <tr><td style="padding-bottom: 5px;"><strong>Dirección:</strong></td><td style="padding-bottom: 5px;">${doc.cliente_direccion || ''}</td></tr>
                             <tr><td style="padding-bottom: 5px;"><strong>Ciudad:</strong></td><td style="padding-bottom: 5px;">${doc.cliente_ciudad || ''}</td></tr>
@@ -1120,10 +1120,10 @@ export const PrintManager = {
                     <div style="padding: 10px; font-size: 14px; color: #495057;">
                         <table style="width: 100%; border-collapse: collapse;">
                             <tr><td style="padding-bottom: 5px; width: 45%;"><strong>Fecha Expedición:</strong></td><td style="padding-bottom: 5px;">${doc.fecha}</td></tr>
-                            <tr><td style="padding-bottom: 5px;"><strong>Fecha Vencimiento:</strong></td><td style="padding-bottom: 5px;">${doc.fecha_vencimiento || doc.fecha}</td></tr>
-                            <tr><td style="padding-bottom: 5px;"><strong>Moneda:</strong></td><td style="padding-bottom: 5px;">COP (Pesos Colombianos)</td></tr>
+                            <tr><td style="padding-bottom: 5px; white-space: nowrap;"><strong>Fecha Vencimiento:</strong></td><td style="padding-bottom: 5px;">${doc.fecha_vencimiento || doc.fecha}</td></tr>
+                            <tr><td style="padding-bottom: 5px; white-space: nowrap;"><strong>Moneda:</strong></td><td style="padding-bottom: 5px;">COP (Pesos Colombianos)</td></tr>
                             <tr><td style="padding-bottom: 5px;"><strong>Forma de Pago:</strong></td><td style="padding-bottom: 5px;">${doc.forma_pago || 'Contado'}</td></tr>
-                            <tr><td><strong>Medio de Pago:</strong></td><td>${doc.medio_pago || 'Instrumento no definido'}</td></tr>
+                            <tr><td style="white-space: nowrap;"><strong>Medio de Pago:</strong></td><td>${doc.medio_pago || 'Instrumento no definido'}</td></tr>
                         </table>
                     </div>
                 </div>
@@ -1153,11 +1153,11 @@ export const PrintManager = {
                             <td style="text-align: right; padding: 5px 10px;">${formatMoney(doc.subtotal)}</td>
                         </tr>
                         <tr>
-                            <td style="text-align: right; padding: 5px 10px; font-weight: bold;">Impuestos (IVA):</td>
+                            <td style="text-align: right; padding: 5px 10px; font-weight: bold; white-space: nowrap;">Impuestos (IVA):</td>
                             <td style="text-align: right; padding: 5px 10px;">$ 0</td>
                         </tr>
                         <tr style="background-color: #f1f3f5;">
-                            <td style="text-align: right; padding: 10px; font-weight: bold; color: #1a365d; font-size: 17px;">TOTAL A PAGAR:</td>
+                            <td style="text-align: right; padding: 10px; font-weight: bold; color: #1a365d; font-size: 17px; white-space: nowrap;">TOTAL A PAGAR:</td>
                             <td style="text-align: right; padding: 10px; font-weight: bold; color: #1a365d; font-size: 17px;">${formatMoney(doc.total)}</td>
                         </tr>
                     </table>
@@ -1174,7 +1174,7 @@ export const PrintManager = {
             </p>
 
             <!-- FIRMA -->
-            <div style="display: flex; justify-content: space-between; margin-top: 20px; margin-bottom: 10px; padding: 0 20px;">
+            <div style="display: flex; justify-content: space-between; margin-top: 12px; margin-bottom: 5px; padding: 0 20px;">
                 <div style="text-align: center; width: 40%;">
                     <div style="border-bottom: 1px solid #ced4da; margin-bottom: 8px;"></div>
                     <strong style="font-size: 11px; color: #212529;">ELABORADO POR</strong><br>
