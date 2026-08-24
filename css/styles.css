@@ -399,15 +399,6 @@ body {
         page: hoja-media-carta;
     }
 
-    @page hoja-horizontal {
-        size: letter landscape;
-        margin: 0.5in;
-    }
-
-    .print-document-template.documento-venta {
-        page: hoja-horizontal;
-    }
-
     #app-container {
         display: none !important;
     }
