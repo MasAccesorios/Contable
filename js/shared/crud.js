@@ -1264,7 +1264,7 @@ export const PrintManager = {
                 </colgroup>
                 <thead style="display: table-header-group;">
                     <tr>
-                        <td colspan="6" style="height: 16px; border: none; padding: 0;"></td>
+                        <td colspan="6" style="height: 4px; border: none; padding: 0;"></td>
                     </tr>
                     <tr>
                         <td colspan="6" style="border: none; padding: 0;">
