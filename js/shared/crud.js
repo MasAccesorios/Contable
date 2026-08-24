@@ -1286,8 +1286,8 @@ export const PrintManager = {
             </table>
 
             <!-- FOOTER TOTALES -->
-            <div>
-                <div style="display: flex; justify-content: space-between; margin-top: 12px;">
+            <div style="page-break-inside: avoid;">
+                <div style="display: flex; justify-content: space-between; margin-top: 8px;">
                     <div style="width: 50%;">
                         <h5 style="color: #6c757d; font-size: 14px; margin: 0 0 8px 0;">Observaciones</h5>
                         <p style="font-size: 12px; color: #495057; margin: 0;">${doc.notas || ''}</p>
@@ -1304,8 +1304,8 @@ export const PrintManager = {
                         </div>
                     </div>
                 </div>
-                <div style="text-align: center; margin-top: 5px; margin-bottom: 20px; page-break-inside: avoid;">
-                    <div style="width: 200px; height: 35px; background-color: #f8f9fa; margin: 0 auto; border-bottom: 1px solid #495057;"></div>
+                <div style="text-align: center; margin-top: 5px; margin-bottom: 10px; page-break-inside: avoid;">
+                    <div style="width: 200px; height: 25px; background-color: #f8f9fa; margin: 0 auto; border-bottom: 1px solid #495057;"></div>
                     <p style="font-size: 10px; color: #212529; margin-top: 5px;">ELABORADO POR</p>
                 </div>
             </div>
