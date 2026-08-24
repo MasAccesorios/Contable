@@ -433,17 +433,6 @@ body {
     .print-document-template.formato-media-carta {
         padding: 15px !important;
     }
-
-    /* Regla de tamaño dinámico según cantidad de ítems */
-    .print-document-template.media-hoja { 
-        min-height: 148mm; 
-        max-height: none; 
-    }
-    
-    .print-document-template.hoja-completa { 
-        height: auto; 
-        page-break-inside: auto; 
-    }
 }
 
 /* ==========================================================
