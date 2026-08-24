@@ -1199,7 +1199,7 @@ export const PrintManager = {
         if (oldContainer) oldContainer.remove();
 
         // 2. Determinar tamaño de hoja
-        const printClass = 'hoja-dinamica';
+        const printClass = 'documento-venta';
 
         // 3. Resolutores de Datos
         const cliente = contactos.find(c => c.id === doc.clienteId) || {};
