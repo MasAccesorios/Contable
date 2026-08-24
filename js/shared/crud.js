@@ -1079,7 +1079,7 @@ export const PrintManager = {
 
         const htmlContent = `
             <!-- HEADER -->
-            <div style="display: flex; justify-content: space-between; align-items: start; border-bottom: 2px solid #e9ecef; padding-bottom: 15px; margin-bottom: 25px;">
+            <div style="display: flex; justify-content: space-between; align-items: start; border-bottom: 2px solid #e9ecef; padding-bottom: 10px; margin-bottom: 15px;">
                 <div style="width: 50%;">
                     <h1 style="color: #1a365d; font-size: 24px; margin: 0 0 10px 0; font-weight: 700;">DIEGO IZQUIERDO</h1>
                     <div style="font-size: 13px; color: #495057; line-height: 1.5;">
@@ -1097,18 +1097,18 @@ export const PrintManager = {
             </div>
 
             <!-- CLIENT AND PAYMENT INFO -->
-            <div style="display: flex; justify-content: space-between; margin-bottom: 25px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
                 <div style="width: 48%; border: 1px solid #e9ecef; border-radius: 8px; overflow: hidden;">
                     <div style="background-color: #f8f9fa; padding: 10px 15px; border-bottom: 1px solid #e9ecef;">
                         <strong style="color: #2b6cb0; font-size: 12px; letter-spacing: 0.5px;">DATOS DEL CLIENTE</strong>
                     </div>
-                    <div style="padding: 15px; font-size: 14px; color: #495057;">
+                    <div style="padding: 10px; font-size: 14px; color: #495057;">
                         <table style="width: 100%; border-collapse: collapse;">
-                            <tr><td style="padding-bottom: 8px; width: 30%;"><strong>Razón Social:</strong></td><td style="padding-bottom: 8px; padding-left: 5px;">${doc.cliente_razon_social || ''}</td></tr>
-                            <tr><td style="padding-bottom: 8px;"><strong>NIT:</strong></td><td style="padding-bottom: 8px;">${doc.cliente_nit || ''}</td></tr>
-                            <tr><td style="padding-bottom: 8px;"><strong>Dirección:</strong></td><td style="padding-bottom: 8px;">${doc.cliente_direccion || ''}</td></tr>
-                            <tr><td style="padding-bottom: 8px;"><strong>Ciudad:</strong></td><td style="padding-bottom: 8px;">${doc.cliente_ciudad || ''}</td></tr>
-                            <tr><td style="padding-bottom: 8px;"><strong>Teléfono:</strong></td><td style="padding-bottom: 8px;">${doc.cliente_telefono || ''}</td></tr>
+                            <tr><td style="padding-bottom: 5px; width: 30%;"><strong>Razón Social:</strong></td><td style="padding-bottom: 5px; padding-left: 5px;">${doc.cliente_razon_social || ''}</td></tr>
+                            <tr><td style="padding-bottom: 5px;"><strong>NIT:</strong></td><td style="padding-bottom: 5px;">${doc.cliente_nit || ''}</td></tr>
+                            <tr><td style="padding-bottom: 5px;"><strong>Dirección:</strong></td><td style="padding-bottom: 5px;">${doc.cliente_direccion || ''}</td></tr>
+                            <tr><td style="padding-bottom: 5px;"><strong>Ciudad:</strong></td><td style="padding-bottom: 5px;">${doc.cliente_ciudad || ''}</td></tr>
+                            <tr><td style="padding-bottom: 5px;"><strong>Teléfono:</strong></td><td style="padding-bottom: 5px;">${doc.cliente_telefono || ''}</td></tr>
                             <tr><td><strong>Correo:</strong></td><td>${doc.cliente_email || ''}</td></tr>
                         </table>
                     </div>
@@ -1117,12 +1117,12 @@ export const PrintManager = {
                     <div style="background-color: #f8f9fa; padding: 10px 15px; border-bottom: 1px solid #e9ecef;">
                         <strong style="color: #2b6cb0; font-size: 12px; letter-spacing: 0.5px;">DETALLES DEL PAGO</strong>
                     </div>
-                    <div style="padding: 15px; font-size: 14px; color: #495057;">
+                    <div style="padding: 10px; font-size: 14px; color: #495057;">
                         <table style="width: 100%; border-collapse: collapse;">
-                            <tr><td style="padding-bottom: 8px; width: 45%;"><strong>Fecha Expedición:</strong></td><td style="padding-bottom: 8px;">${doc.fecha}</td></tr>
-                            <tr><td style="padding-bottom: 8px;"><strong>Fecha Vencimiento:</strong></td><td style="padding-bottom: 8px;">${doc.fecha_vencimiento || doc.fecha}</td></tr>
-                            <tr><td style="padding-bottom: 8px;"><strong>Moneda:</strong></td><td style="padding-bottom: 8px;">COP (Pesos Colombianos)</td></tr>
-                            <tr><td style="padding-bottom: 8px;"><strong>Forma de Pago:</strong></td><td style="padding-bottom: 8px;">${doc.forma_pago || 'Contado'}</td></tr>
+                            <tr><td style="padding-bottom: 5px; width: 45%;"><strong>Fecha Expedición:</strong></td><td style="padding-bottom: 5px;">${doc.fecha}</td></tr>
+                            <tr><td style="padding-bottom: 5px;"><strong>Fecha Vencimiento:</strong></td><td style="padding-bottom: 5px;">${doc.fecha_vencimiento || doc.fecha}</td></tr>
+                            <tr><td style="padding-bottom: 5px;"><strong>Moneda:</strong></td><td style="padding-bottom: 5px;">COP (Pesos Colombianos)</td></tr>
+                            <tr><td style="padding-bottom: 5px;"><strong>Forma de Pago:</strong></td><td style="padding-bottom: 5px;">${doc.forma_pago || 'Contado'}</td></tr>
                             <tr><td><strong>Medio de Pago:</strong></td><td>${doc.medio_pago || 'Instrumento no definido'}</td></tr>
                         </table>
                     </div>
@@ -1130,13 +1130,13 @@ export const PrintManager = {
             </div>
 
             <!-- TABLA DE PRODUCTOS -->
-            <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 10px;">
                 <thead style="background-color: #2b6cb0; color: white;">
                     <tr style="font-size: 12px;">
-                        <th style="text-align: left; padding: 10px; font-weight: normal; letter-spacing: 0.5px;">DESCRIPCIÓN DEL PRODUCTO / SERVICIO</th>
-                        <th style="text-align: center; padding: 10px; font-weight: normal; letter-spacing: 0.5px; width: 10%;">CANT.</th>
-                        <th style="text-align: right; padding: 10px; font-weight: normal; letter-spacing: 0.5px; width: 18%;">PRECIO UNIT.</th>
-                        <th style="text-align: right; padding: 10px; font-weight: normal; letter-spacing: 0.5px; width: 18%;">TOTAL</th>
+                        <th style="text-align: left; padding: 6px 8px; font-weight: normal; letter-spacing: 0.5px;">DESCRIPCIÓN DEL PRODUCTO / SERVICIO</th>
+                        <th style="text-align: center; padding: 6px 8px; font-weight: normal; letter-spacing: 0.5px; width: 10%;">CANT.</th>
+                        <th style="text-align: right; padding: 6px 8px; font-weight: normal; letter-spacing: 0.5px; width: 18%;">PRECIO UNIT.</th>
+                        <th style="text-align: right; padding: 6px 8px; font-weight: normal; letter-spacing: 0.5px; width: 18%;">TOTAL</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -1145,7 +1145,7 @@ export const PrintManager = {
             </table>
 
             <!-- FOOTER TOTALES -->
-            <div style="display: flex; justify-content: flex-end; margin-bottom: 20px;">
+            <div style="display: flex; justify-content: flex-end; margin-bottom: 12px;">
                 <div style="width: 40%;">
                     <table style="width: 100%; font-size: 14px; color: #495057;">
                         <tr>
@@ -1164,17 +1164,17 @@ export const PrintManager = {
                 </div>
             </div>
             
-            <div style="background-color: #f8f9fa; border-left: 4px solid #2b6cb0; padding: 12px 15px; margin-bottom: 25px; font-size: 14px; color: #495057;">
+            <div style="background-color: #f8f9fa; border-left: 4px solid #2b6cb0; padding: 8px 12px; margin-bottom: 12px; font-size: 14px; color: #495057;">
                 <strong>Valor en letras:</strong> ${numeroALetras(doc.total)}
             </div>
 
             <!-- TEXTO LEGAL FIJO -->
-            <p style="font-size: 11px; color: #6c757d; line-height: 1.4; text-align: justify; margin-bottom: 50px;">
+            <p style="font-size: 11px; color: #6c757d; line-height: 1.4; text-align: justify; margin-bottom: 15px;">
                 Esta cuenta de cobro se asimila en todos sus efectos a una letra de cambio de conformidad con el Art. 774 del Código de Comercio. Autorizo que en caso de incumplimiento de esta obligación sea reportado a las centrales de riesgo, y se cobrarán intereses por mora a la tasa máxima legal permitida. Persona natural no responsable de IVA y no obligada a facturar electrónicamente, de conformidad con lo establecido en el artículo 437 y 616-2 del Estatuto Tributario.
             </p>
 
             <!-- FIRMA -->
-            <div style="display: flex; justify-content: space-between; margin-top: 40px; margin-bottom: 20px; padding: 0 20px;">
+            <div style="display: flex; justify-content: space-between; margin-top: 20px; margin-bottom: 10px; padding: 0 20px;">
                 <div style="text-align: center; width: 40%;">
                     <div style="border-bottom: 1px solid #ced4da; margin-bottom: 8px;"></div>
                     <strong style="font-size: 11px; color: #212529;">ELABORADO POR</strong><br>
