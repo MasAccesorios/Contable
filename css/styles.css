@@ -390,6 +390,15 @@ body {
         margin: 0.5in;
     }
 
+    @page hoja-media-carta {
+        size: 5.5in 8.5in;
+        margin: 0.35in;
+    }
+
+    .print-document-template.hoja-dinamica {
+        page: hoja-media-carta;
+    }
+
     #app-container {
         display: none !important;
     }
