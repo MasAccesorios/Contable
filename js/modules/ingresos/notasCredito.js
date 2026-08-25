@@ -13,10 +13,12 @@ export const NotasCreditoModule = {
         const action = hashParts[3];
         const id = hashParts[4];
 
-        if (action === 'nueva' || action === 'editar') {
-            await this.renderForm(element, id, false);
+        if (action === 'nueva') {
+            await this.renderForm(element, id, false, false);
+        } else if (action === 'editar') {
+            await this.renderForm(element, id, false, true);
         } else if (action === 'ver') {
-            await this.renderForm(element, id, true);
+            await this.renderForm(element, id, true, false);
         } else {
             await this.renderList(element);
         }
@@ -323,6 +325,7 @@ export const NotasCreditoModule = {
                              style="z-index: 1060; width: 150px; top: ${rect.bottom + window.scrollY}px; left: ${rect.left - 100}px;">
                             <a href="#/ingresos/notas-credito/ver/${id}" class="d-block px-3 py-1 text-decoration-none text-body hover-bg-light" style="font-size: var(--fs-base);">Ver Detalle</a>
                             ${!isAnulada ? `
+                                <a href="#/ingresos/notas-credito/editar/${id}" class="d-block px-3 py-1 text-decoration-none text-body hover-bg-light" style="font-size: var(--fs-base);">Editar</a>
                                 <div class="dropdown-divider my-1"></div>
                                 <a href="#" class="d-block px-3 py-1 text-decoration-none text-danger hover-bg-light btn-action-anular" data-id="${id}" style="font-size: var(--fs-base);">Anular</a>
                             ` : ''}
@@ -368,7 +371,7 @@ export const NotasCreditoModule = {
         renderGrid();
     },
 
-    async renderForm(element, id, isViewOnly) {
+    async renderForm(element, id, isViewOnly, isEditMode = false) {
         element.innerHTML = `
             <div class="d-flex justify-content-center align-items-center" style="min-height: 400px;">
                 <div class="spinner-border" style="color: var(--primary);" role="status"></div>
@@ -438,20 +441,24 @@ export const NotasCreditoModule = {
 
             let htmlRecibo = '';
 
-            if (!id) {
-                // Modo creación
+            if (!id || isEditMode) {
+                // Modo creación o edición
                 html += `
                     <div class="row g-3 mb-4">
                         <div class="col-md-6">
-                            <label class="form-label fw-medium text-muted small">Buscar Factura de Venta origen</label>
+                            <label class="form-label fw-medium text-muted small">${isEditMode ? 'Factura de Venta origen' : 'Buscar Factura de Venta origen'}</label>
+                            ${!isEditMode ? `
                             <div class="custom-combobox position-relative" id="combo-factura-container">
                                 <div class="input-group">
                                     <span class="input-group-text bg-light border-end-0"><i class="bi bi-search"></i></span>
-                                    <input type="text" id="input-buscar-factura" class="form-control border-start-0" placeholder="Buscar por número o cliente..." autocomplete="off">
+                                    <input type="text" id="input-buscar-factura" class="form-control border-start-0" placeholder="Buscar por número..." autocomplete="off">
                                     <input type="hidden" id="factura-id-hidden">
                                 </div>
                             </div>
-                            <div id="factura-search-result" class="mt-2 small"></div>
+                            ` : ''}
+                            <div id="factura-search-result" class="mt-2 small">
+                                ${isEditMode ? `<span class="text-success fw-bold">Factura asociada: #${facturaOrigen?.numero} - Cliente: ${clienteNombre} - Total: ${Number(facturaOrigen?.total || 0).toLocaleString()}</span>` : ''}
+                            </div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-medium text-muted small">Fecha</label>
@@ -463,7 +470,7 @@ export const NotasCreditoModule = {
                         <input type="text" id="nc-motivo" class="form-control" value="${nota.motivo}">
                     </div>
                     
-                    <div id="items-container" class="d-none">
+                    <div id="items-container" class="${!isEditMode ? 'd-none' : ''}">
                         <h6 class="fw-bold mb-3">Ítems a Devolver</h6>
                         <div class="table-responsive">
                             <table class="table table-borderless align-middle" style="border-spacing: 0; min-width: 600px;">
@@ -483,7 +490,7 @@ export const NotasCreditoModule = {
                         </div>
                     </div>
                 `;
-            } else {
+            } else if (id && isViewOnly) {
                 // Modo vista
                 let statusBadgeClass = EstadoUtils.estaAnulado(nota.estado) ? 'mas-receipt-status-anulada' : 'mas-receipt-status-aplicada';
                 let statusText = EstadoUtils.estaAnulado(nota.estado) ? 'Anulada' : 'Aplicada';
@@ -656,26 +663,15 @@ export const NotasCreditoModule = {
                         </div>
                     </div>
                 `;
-                
-                html += `
-                    <div class="text-center py-5">
-                        <i class="bi bi-receipt display-1 text-muted mb-3 d-block"></i>
-                        <h5>Comprobante Generado</h5>
-                        <p class="text-muted">La vista previa de la nota de crédito se ha abierto automáticamente.</p>
-                        <button id="btn-ver-comprobante" class="btn btn-primary-action mt-3">
-                            <i class="bi bi-eye me-2"></i>Ver Comprobante Nuevamente
-                        </button>
-                    </div>
-                `;
             }
 
             html += `</div></div>`; // End form container
 
-            if (!id) {
+            if (!id || isEditMode) {
                 html += `
                     <div class="d-flex justify-content-end gap-3 mb-5">
                         <button class="btn btn-outline-secondary px-4 bg-white" onclick="window.location.hash='#/ingresos/notas-credito'">Cancelar</button>
-                        <button id="btn-guardar-nc" class="btn btn-primary-action px-5 d-none">Crear Nota de Crédito</button>
+                        <button id="btn-guardar-nc" class="btn btn-primary-action px-5 ${!isEditMode ? 'd-none' : ''}">${isEditMode ? 'Guardar Cambios' : 'Crear Nota de Crédito'}</button>
                     </div>
                 `;
             }
@@ -683,16 +679,23 @@ export const NotasCreditoModule = {
             html += `</div>`;
             element.innerHTML = html;
 
-            if (id) {
+            if (id && isViewOnly) {
                 import('../../shared/printManager.js').then(({ PrintManager }) => {
-                    const showPreview = () => {
-                        PrintManager._renderPreviewShell(htmlRecibo, { 
-                            mode: 'preview', 
-                            title: 'Nota de Crédito', 
-                            fileName: `NotaCredito_${nota.numero || nota.id}.png`, 
-                            printClass: 'formato-media-carta' 
-                        });
-                    };
+                    PrintManager._renderPreviewShell(htmlRecibo, { 
+                        mode: 'preview', 
+                        title: 'Nota de Crédito', 
+                        fileName: `NotaCredito_${nota.numero || nota.id}.png`, 
+                        printClass: 'formato-media-carta' 
+                    });
+                    
+                    setTimeout(() => {
+                        const btnCerrar = document.querySelector('.btn-cerrar-preview');
+                        if (btnCerrar) {
+                            btnCerrar.addEventListener('click', () => window.location.hash = '#/ingresos/notas-credito');
+                        }
+                    }, 50);
+                });
+            };
                     
                     showPreview();
                     
@@ -701,9 +704,9 @@ export const NotasCreditoModule = {
                 });
             }
 
-            // Logica de creación
-            if (!id) {
-                let currentFactura = null;
+            // Logica de creación y edición
+            if (!id || isEditMode) {
+                let currentFactura = isEditMode ? facturaOrigen : null;
                 let currentDetalles = [];
 
                 const btnBuscar = element.querySelector('#btn-buscar-factura');
@@ -711,9 +714,10 @@ export const NotasCreditoModule = {
                 const tbody = element.querySelector('#nc-tbody');
                 const totalDisplay = element.querySelector('#nc-total-display');
                 
+                
                 const updateTotals = () => {
                     let sum = 0;
-                    element.querySelectorAll('.nc-input-qty').forEach((input, index) => {
+                    element.querySelectorAll('.nc-input-qty').forEach((input) => {
                         const qty = parseFloat(input.value) || 0;
                         const maxQty = parseFloat(input.dataset.max) || 0;
                         if (qty > maxQty) input.value = maxQty;
@@ -728,11 +732,61 @@ export const NotasCreditoModule = {
                     });
                     totalDisplay.textContent = sum.toLocaleString();
                     if (sum > 0) btnGuardar.classList.remove('d-none');
-                    else btnGuardar.classList.add('d-none');
+                    else if (!isEditMode) btnGuardar.classList.add('d-none');
                 };
 
                 const resultDiv = element.querySelector('#factura-search-result');
-                import('../../shared/combobox.js').then(({ UI }) => {
+                
+                if (isEditMode) {
+                    const loadEditModeData = async () => {
+                        try {
+                            const { data: fdets } = await supabase.from('factura_detalles').select('*').eq('factura_id', currentFactura.id);
+                            currentDetalles = fdets || [];
+                            
+                            const pIds = [...new Set(currentDetalles.map(d => d.producto_id).filter(Boolean))];
+                            let productosFactura = [];
+                            if (pIds.length > 0) {
+                                const { data: prodsData } = await supabase.from('productos').select('id, sku, nombre').in('id', pIds);
+                                if (prodsData) productosFactura = prodsData;
+                            }
+                            
+                            tbody.innerHTML = currentDetalles.map((d, index) => {
+                                const price = parseFloat(d.precio_unitario || d.precio) || 0;
+                                const detalleMock = { productoId: d.producto_id, descripcion_personalizada: d.descripcion_personalizada || '' };
+                                
+                                const existingDetalle = detallesNota.find(dn => dn.producto_id === d.producto_id);
+                                const returnedQty = existingDetalle ? existingDetalle.cantidad : 0;
+                                
+                                return `
+                                    <tr style="border-bottom: 1px solid var(--border-color);">
+                                        <td class="align-top py-3">${ItemEngine.renderProductSearchBox(detalleMock, productosFactura, true)}</td>
+                                        <td class="align-top text-end py-3">
+                                            <input type="text" class="form-control form-control-sm border-0 bg-light text-end" value="${price.toLocaleString()}" disabled>
+                                        </td>
+                                        <td class="align-top py-3">
+                                            <div class="d-flex align-items-center gap-2">
+                                                <input type="number" class="form-control form-control-sm border-0 bg-light nc-input-qty text-center" 
+                                                       data-index="${index}" data-max="${d.cantidad}" data-price="${price}" data-prodid="${d.producto_id}" 
+                                                       value="${returnedQty}" min="0" max="${d.cantidad}" step="1">
+                                                <span class="text-muted small text-nowrap">/ ${d.cantidad}</span>
+                                            </div>
+                                        </td>
+                                        <td class="text-end align-top py-3 fw-bold">$<span class="nc-subtotal">${(returnedQty * price).toLocaleString()}</span></td>
+                                    </tr>
+                                `;
+                            }).join('');
+                            
+                            element.querySelectorAll('.nc-input-qty').forEach(inp => {
+                                inp.addEventListener('input', updateTotals);
+                            });
+                            updateTotals();
+                        } catch (err) {
+                            console.error("Error loading edit mode data:", err);
+                        }
+                    };
+                    loadEditModeData();
+                } else {
+                    import('../../shared/combobox.js').then(({ UI }) => {
                     UI.createAsyncCombobox({
                         inputEl: element.querySelector('#input-buscar-factura'),
                         hiddenIdEl: element.querySelector('#factura-id-hidden'),
@@ -871,43 +925,81 @@ export const NotasCreditoModule = {
                             }
                         });
 
+                        
                         if (selectedItems.length === 0) throw new Error("Debe seleccionar al menos un ítem para devolver.");
+                        
+                        // Validar saldo
+                        const { data: cartera, error: errCartera } = await supabase.rpc('get_cartera_con_saldos', { p_tipo_cartera: 'cxc' });
+                        if (errCartera) throw new Error("Error consultando cartera para validación de saldo: " + errCartera.message);
+                        
+                        const facturaCartera = cartera?.find(c => c.id === currentFactura.id);
+                        const saldoPendienteActual = facturaCartera ? parseFloat(facturaCartera.saldo_pendiente) : 0;
+                        const totalAnterior = isEditMode ? parseFloat(nota.total) : 0;
+                        const saldoDisponibleReal = saldoPendienteActual + totalAnterior;
+                        
+                        if (totalNC > saldoDisponibleReal) {
+                            throw new Error(`El total de la Nota de Crédito (${totalNC.toLocaleString()}) supera el saldo disponible de la factura (${saldoDisponibleReal.toLocaleString()}).`);
+                        }
                         
                         // 1. FASE 1: Cálculo en memoria (Read-Only)
                         const planReversion = await InventarioUtils.calcularReversionInventario(selectedItems);
                         if (!planReversion.success) throw new Error("Error calculando inventario: " + planReversion.error);
 
-                        // 2. Obtener num NC
-                        const { data: seqData, error: seqError } = await supabase.rpc('execute_sql', { sql_query: "SELECT nextval('notas_credito_seq');" });
-                        let ncNumero = 1;
-                        if (!seqError && seqData && seqData.length > 0) {
-                            ncNumero = parseInt(seqData[0].nextval);
-                        } else {
-                            const { data: maxNc } = await supabase.from('notas_credito').select('numero').order('numero', { ascending: false }).limit(1);
-                            ncNumero = (maxNc && maxNc.length > 0 && maxNc[0].numero) ? maxNc[0].numero + 1 : 1;
+                        // SI ES EDICIÓN: Anular nota existente
+                        if (isEditMode) {
+                            try {
+                                await NotasCreditoModule.anularNotaCredito(id);
+                            } catch(e) {
+                                throw new Error("Fallo al anular la nota actual antes de editarla: " + e.message);
+                            }
                         }
 
-                        let ncId = null;
+                        // 2. Obtener num NC (si es creación)
+                        let ncNumero = isEditMode ? nota.numero : 1;
+                        if (!isEditMode) {
+                            const { data: seqData, error: seqError } = await supabase.rpc('execute_sql', { sql_query: "SELECT nextval('notas_credito_seq');" });
+                            if (!seqError && seqData && seqData.length > 0) {
+                                ncNumero = parseInt(seqData[0].nextval);
+                            } else {
+                                const { data: maxNc } = await supabase.from('notas_credito').select('numero').order('numero', { ascending: false }).limit(1);
+                                ncNumero = (maxNc && maxNc.length > 0 && maxNc[0].numero) ? maxNc[0].numero + 1 : 1;
+                            }
+                        }
+
+                        let ncId = isEditMode ? nota.id : null;
                         let pagoId = null;
 
                         try {
                             // 3. FASE 2: Escritura Documental Escalona (Segura)
                             
-                            // a. Crear Cabecera
-                            const { data: ncGuardada, error: ncErr } = await supabase.from('notas_credito').insert([{
-                                numero: ncNumero,
-                                factura_id: currentFactura.id,
-                                contacto_id: currentFactura.contacto_id || currentFactura.clienteId,
-                                fecha: element.querySelector('#nc-fecha').value,
-                                motivo: element.querySelector('#nc-motivo').value,
-                                total: totalNC,
-                                estado: 'activa'
-                            }]).select().single();
-                            
-                            if (ncErr) throw new Error("Fallo al crear cabecera: " + ncErr.message);
-                            ncId = ncGuardada.id;
+                            // a. Crear/Actualizar Cabecera
+                            if (isEditMode) {
+                                const { error: ncErr } = await supabase.from('notas_credito').update({
+                                    fecha: element.querySelector('#nc-fecha').value,
+                                    motivo: element.querySelector('#nc-motivo').value,
+                                    total: totalNC,
+                                    estado: 'activa'
+                                }).eq('id', ncId);
+                                if (ncErr) throw new Error("Fallo al actualizar cabecera: " + ncErr.message);
+                            } else {
+                                const { data: ncGuardada, error: ncErr } = await supabase.from('notas_credito').insert([{
+                                    numero: ncNumero,
+                                    factura_id: currentFactura.id,
+                                    contacto_id: currentFactura.contacto_id || currentFactura.clienteId,
+                                    fecha: element.querySelector('#nc-fecha').value,
+                                    motivo: element.querySelector('#nc-motivo').value,
+                                    total: totalNC,
+                                    estado: 'activa'
+                                }]).select().single();
+                                
+                                if (ncErr) throw new Error("Fallo al crear cabecera: " + ncErr.message);
+                                ncId = ncGuardada.id;
+                            }
 
                             // b. Crear Detalles
+                            if (isEditMode) {
+                                await supabase.from('nota_credito_detalles').delete().eq('nota_credito_id', ncId);
+                            }
                             const detallesArr = selectedItems.map(si => ({
                                 nota_credito_id: ncId,
                                 producto_id: parseInt(si.productoId),
@@ -923,7 +1015,7 @@ export const NotasCreditoModule = {
                                 factura_id: currentFactura.id,
                                 fecha: element.querySelector('#nc-fecha').value,
                                 monto: totalNC,
-                                tipo: 'in', // abono a la factura
+                                tipo: 'in',
                                 cuenta_id: null,
                                 estado: 'completado',
                                 observaciones: 'Pago cruzado por Nota de Crédito #' + ncNumero,
@@ -941,16 +1033,19 @@ export const NotasCreditoModule = {
                             
                             // 5. ROLLBACK COMPENSATORIO EXTERNO
                             if (pagoId) await supabase.from('pagos_ingresos').delete().eq('id', pagoId);
-                            if (ncId) {
-                                // Borrar detalles explícitamente para evitar orphans
-                                await supabase.from('nota_credito_detalles').delete().eq('nota_credito_id', ncId);
-                                await supabase.rpc('rollback_eliminar_nota_credito', { p_id: ncId });
+
+                            if (isEditMode) {
+                                throw new Error(`La nota de crédito fue revertida pero la actualización falló. Estado actual: ANULADA. Se requiere revisión manual inmediata. Detalle: ${errorTransaccion.message}`);
+                            } else {
+                                if (ncId) {
+                                    await supabase.from('nota_credito_detalles').delete().eq('nota_credito_id', ncId);
+                                    await supabase.rpc('rollback_eliminar_nota_credito', { p_id: ncId });
+                                }
+                                throw new Error("Transacción fallida. Se abortó la creación y el inventario físico quedó intacto. Detalle: " + errorTransaccion.message);
                             }
-                            
-                            throw new Error("Transacción fallida. Se abortó la creación y el inventario físico quedó intacto. Detalle: " + errorTransaccion.message);
                         }
 
-                        CoreActions.showSuccessModal("Nota de crédito creada con éxito. Inventario actualizado.");
+                        CoreActions.showSuccessModal(isEditMode ? "Nota de crédito actualizada con éxito." : "Nota de crédito creada con éxito. Inventario actualizado.");
                         window.location.hash = '#/ingresos/notas-credito';
 
                     } catch (e) {
