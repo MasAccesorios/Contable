@@ -146,14 +146,23 @@ export const CoreActions = {
                 p_factura_detalles: (planInventario.detallesActualizados?.length > 0
                     ? planInventario.detallesActualizados
                     : (cotizacion.detalles || [])
-                ).map((det, i) => ({
-                    producto_id: parseInt(det.productoId, 10) || null,
-                    cantidad: parseFloat(det.cantidad) || 0,
-                    precio_unitario: parseFloat(det.precio) || 0,
-                    descuento_porcentaje: parseFloat(det.descuento) || 0,
-                    subtotal: parseFloat(det.subtotal) || 0,
-                    descripcion_personalizada: det.descripcion_personalizada || ''
-                })),
+                ).map((det, i) => {
+                    const cantidad   = parseFloat(det.cantidad) || 0;
+                    const precio     = parseFloat(det.precio || det.precio_unitario) || 0;
+                    const descuento  = parseFloat(det.descuento || det.descuento_porcentaje) || 0;
+                    const base       = cantidad * precio;
+                    const calculado  = base - (base * (descuento / 100));
+                    // Usar el subtotal almacenado si es válido y > 0; de lo contrario, calcular.
+                    const subtotal   = parseFloat(det.subtotal) > 0 ? parseFloat(det.subtotal) : calculado;
+                    return {
+                        producto_id: parseInt(det.productoId || det.producto_id, 10) || null,
+                        cantidad,
+                        precio_unitario: precio,
+                        descuento_porcentaje: descuento,
+                        subtotal,
+                        descripcion_personalizada: det.descripcion_personalizada || ''
+                    };
+                }),
                 p_operaciones_fifo: (planInventario.operacionesDB || []).map(op => ({
                     action: op.action,
                     id: parseInt(op.data.id, 10) || null,
