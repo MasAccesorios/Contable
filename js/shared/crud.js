@@ -493,9 +493,4 @@ export const CoreActions = {
         }, 250);
     }
 };
-
-
-
-
-
 window.CoreActions = CoreActions;
