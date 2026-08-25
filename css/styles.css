@@ -431,6 +431,7 @@ body {
     }
     
     .print-document-template.formato-media-carta {
+        page: hoja-media-carta;
         padding: 15px !important;
     }
 }
