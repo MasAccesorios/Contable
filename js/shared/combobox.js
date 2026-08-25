@@ -20,13 +20,7 @@ export const UI = {
 
     async fetchFacturasCombobox(query) {
         const { supabase } = await import('../core/supabase.js');
-        const { data, error } = await supabase
-            .from('facturas')
-            .select('*, contactos(nombre, identificacion)')
-            .eq('tipo', 'venta')
-            .or(`numero.ilike.%${query}%,contactos.nombre.ilike.%${query}%`)
-            .limit(10);
-            
+        const { data, error } = await supabase.rpc('buscar_facturas_combobox', { query_text: query });
         if (error) {
             console.error('Error fetching facturas combobox:', error);
             return [];

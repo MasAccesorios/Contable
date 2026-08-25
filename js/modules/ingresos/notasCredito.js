@@ -436,6 +436,8 @@ export const NotasCreditoModule = {
             html += `<div class="dash-table-container mb-4" style="overflow: visible;">
                 <div class="card-body p-4">`;
 
+            let htmlRecibo = '';
+
             if (!id) {
                 // Modo creación
                 html += `
@@ -485,7 +487,7 @@ export const NotasCreditoModule = {
                 // Modo vista
                 let statusBadgeClass = EstadoUtils.estaAnulado(nota.estado) ? 'mas-receipt-status-anulada' : 'mas-receipt-status-aplicada';
                 let statusText = EstadoUtils.estaAnulado(nota.estado) ? 'Anulada' : 'Aplicada';
-                html += `
+                htmlRecibo = `
                     <style>
                         .mas-receipt-container {
                             font-family: 'Inter', system-ui, -apple-system, sans-serif;
@@ -654,6 +656,17 @@ export const NotasCreditoModule = {
                         </div>
                     </div>
                 `;
+                
+                html += `
+                    <div class="text-center py-5">
+                        <i class="bi bi-receipt display-1 text-muted mb-3 d-block"></i>
+                        <h5>Comprobante Generado</h5>
+                        <p class="text-muted">La vista previa de la nota de crédito se ha abierto automáticamente.</p>
+                        <button id="btn-ver-comprobante" class="btn btn-primary-action mt-3">
+                            <i class="bi bi-eye me-2"></i>Ver Comprobante Nuevamente
+                        </button>
+                    </div>
+                `;
             }
 
             html += `</div></div>`; // End form container
@@ -669,6 +682,24 @@ export const NotasCreditoModule = {
 
             html += `</div>`;
             element.innerHTML = html;
+
+            if (id) {
+                import('../../shared/printManager.js').then(({ PrintManager }) => {
+                    const showPreview = () => {
+                        PrintManager._renderPreviewShell(htmlRecibo, { 
+                            mode: 'preview', 
+                            title: 'Nota de Crédito', 
+                            fileName: \`NotaCredito_\${nota.numero || nota.id}.png\`, 
+                            printClass: 'formato-media-carta' 
+                        });
+                    };
+                    
+                    showPreview();
+                    
+                    const btnVer = element.querySelector('#btn-ver-comprobante');
+                    if (btnVer) btnVer.addEventListener('click', showPreview);
+                });
+            }
 
             // Logica de creación
             if (!id) {
@@ -709,7 +740,7 @@ export const NotasCreditoModule = {
                         displayProp: 'numero',
                         renderItem: (item) => {
                             const total = item.total ? Number(item.total).toLocaleString() : '0';
-                            const cliente = item.contactos ? item.contactos.nombre : 'Sin Cliente';
+                            const cliente = item.cliente_nombre ? item.cliente_nombre : 'Sin Cliente';
                             return `
                                 <div class="d-flex flex-column">
                                     <span class="fw-bold text-dark">#${item.numero} - ${cliente}</span>
@@ -761,10 +792,14 @@ export const NotasCreditoModule = {
                             }
                         }
 
-                        let clientName = currentFactura.clienteId;
-                        if (currentFactura.contacto_id || currentFactura.clienteId) {
-                            const { data: cd } = await supabase.from('contactos').select('nombre').eq('id', currentFactura.contacto_id || currentFactura.clienteId).single();
-                            if (cd) clientName = cd.nombre;
+                        let clientName = currentFactura.cliente_nombre || 'Sin Cliente';
+                        
+                        // Asegurar que currentFactura tenga contacto_id para btnGuardar
+                        if (!currentFactura.contacto_id && !currentFactura.clienteId) {
+                            const { data: fData } = await supabase.from('facturas').select('contacto_id').eq('id', currentFactura.id).single();
+                            if (fData) {
+                                currentFactura.contacto_id = fData.contacto_id;
+                            }
                         }
 
                         resultDiv.innerHTML = `<span class="text-success fw-bold">Factura seleccionada: #${currentFactura.numero} - Cliente: ${clientName} - Total: $${Number(currentFactura.total).toLocaleString()}</span>`;
