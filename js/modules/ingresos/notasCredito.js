@@ -689,7 +689,7 @@ export const NotasCreditoModule = {
                         PrintManager._renderPreviewShell(htmlRecibo, { 
                             mode: 'preview', 
                             title: 'Nota de Crédito', 
-                            fileName: \`NotaCredito_\${nota.numero || nota.id}.png\`, 
+                            fileName: `NotaCredito_${nota.numero || nota.id}.png`, 
                             printClass: 'formato-media-carta' 
                         });
                     };
