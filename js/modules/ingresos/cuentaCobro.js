@@ -1,6 +1,7 @@
 import { supabase } from '../../core/supabase.js';
 import { getLocalDate } from '../../core/db.js';
-import { CoreActions, PrintManager } from '../../shared/crud.js';
+import { CoreActions } from '../../shared/crud.js';
+import { PrintManager } from '../../shared/printManager.js';
 import { ItemEngine } from '../../shared/itemEngine.js';
 import { applyCurrencyFormatting, parseCurrencyValue } from '../../shared/formatters.js';
 

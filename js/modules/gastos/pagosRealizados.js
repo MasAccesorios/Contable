@@ -40,7 +40,7 @@ export const PagosRealizadosModule = {
         if (mode === 'print' || mode === 'vista-previa') {
             const { data: t } = await supabase.from('pagos_ingresos').select('*, contactos(*), cuentas_bancarias(*), facturas(*, contactos(*))').eq('id', id).single();
             if (t) {
-                const { PrintManager } = await import('../../shared/crud.js');
+                const { PrintManager } = await import('../../shared/printManager.js');
                 PrintManager._renderPreviewShell(this.getComprobanteHTML(t, true), { mode: mode === 'vista-previa' ? 'preview' : 'print', title: 'Comprobante de Egreso', fileName: `comprobante_egreso_${t.numero || t.id}.png`, printClass: 'formato-media-carta' });
             }
             return;
