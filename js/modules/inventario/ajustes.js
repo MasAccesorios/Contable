@@ -51,19 +51,19 @@ export const AjustesInventarioModule = {
                 <div class="dash-layout p-4" style="max-width: 1000px; margin: 0 auto;">
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <div>
-                            <h2 class="h3 fw-bold mb-1" style="color: var(--text-main);">Ajustes de Inventario</h2>
+                            <h2 class="h3 fw-bold mb-1 text-dark">Ajustes de Inventario</h2>
                             <p class="text-muted mb-0" style="font-size: var(--fs-md);">Registra incrementos o disminuciones por daños, pérdidas o descuadres.</p>
                         </div>
-                        <button class="btn text-white" style="background-color: var(--primary); font-weight: 500;" onclick="window.location.hash='#/inventario/ajustes/nuevo'">
+                        <button class="btn btn-primary-action" onclick="window.location.hash='#/inventario/ajustes/nuevo'">
                             <i class="bi bi-plus-lg me-1"></i> Nuevo Ajuste
                         </button>
                     </div>
 
-                    <div class="card border-0" style="box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.03); border-radius: 8px;">
+                    <div class="ds-table-container">
                         <div class="table-responsive">
                             <table class="table table-borderless align-middle mb-0">
-                                <thead style="border-bottom: 1px solid var(--border-color);">
-                                    <tr style="color: var(--text-muted); font-size: var(--fs-base); font-weight: 500;">
+                                <thead class="ds-table-header">
+                                    <tr>
                                         <th class="py-3">Número</th>
                                         <th class="py-3">Fecha</th>
                                         <th class="py-3">Observaciones</th>
