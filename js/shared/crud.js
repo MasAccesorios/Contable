@@ -142,7 +142,11 @@ export const CoreActions = {
                     total_costo: parseFloat(planInventario.costoTotalVenta) || 0,
                     numero: cotizacion.numero || null
                 },
-                p_factura_detalles: (planInventario.detallesActualizados || []).map((det, i) => ({
+                // Segunda red de seguridad: si el servidor no devolvió detalles, usar los originales de la cotización
+                p_factura_detalles: (planInventario.detallesActualizados?.length > 0
+                    ? planInventario.detallesActualizados
+                    : (cotizacion.detalles || [])
+                ).map((det, i) => ({
                     producto_id: parseInt(det.productoId, 10) || null,
                     cantidad: parseFloat(det.cantidad) || 0,
                     precio_unitario: parseFloat(det.precio) || 0,

@@ -56,6 +56,15 @@ export const InventarioUtils = {
             if (retry.error) return { success: false, error: retry.error.message };
             if (!retry.data) return { success: false, error: 'El servidor no devolvió datos al procesar con inventario negativo.' };
             response = retry.data;
+
+            // Si el servidor no retornó detallesActualizados en el path de negativos,
+            // usamos los detalles originales — la lista de productos no cambia, solo el stock.
+            if (!Array.isArray(response.detallesActualizados) || response.detallesActualizados.length === 0) {
+                response = {
+                    ...response,
+                    detallesActualizados: detallesOriginales
+                };
+            }
         }
 
         // Validar que response exista y tenga la estructura esperada antes de retornar
@@ -64,7 +73,9 @@ export const InventarioUtils = {
         return { 
             success: true, 
             costoTotalVenta: response.costoTotalVenta || 0, 
-            detallesActualizados: Array.isArray(response.detallesActualizados) ? response.detallesActualizados : [],
+            detallesActualizados: Array.isArray(response.detallesActualizados) && response.detallesActualizados.length > 0
+                ? response.detallesActualizados
+                : detallesOriginales,
             operacionesDB: [] // Las operaciones físicas ya se realizaron en el servidor
         };
     },
