@@ -485,7 +485,4 @@ export const CoreActions = {
 
 
 
-/**
-
-
 window.CoreActions = CoreActions;
