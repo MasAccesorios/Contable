@@ -1,4 +1,4 @@
-import DB, { getLocalDate } from '../../core/db.js';
+import { getLocalDate } from '../../core/db.js';
 import { supabase } from '../../core/supabase.js';
 import { CoreActions } from '../../shared/crud.js';
 import { ItemEngine } from '../../shared/itemEngine.js';
@@ -702,7 +702,6 @@ export const NotasCreditoModule = {
                 let currentFactura = isEditMode ? facturaOrigen : null;
                 let currentDetalles = [];
 
-                const btnBuscar = element.querySelector('#btn-buscar-factura');
                 const btnGuardar = element.querySelector('#btn-guardar-nc');
                 const tbody = element.querySelector('#nc-tbody');
                 const totalDisplay = element.querySelector('#nc-total-display');
@@ -801,16 +800,7 @@ export const NotasCreditoModule = {
                             resultDiv.innerHTML = '<span class="text-muted">Cargando detalles...</span>';
                             
                             try {
-                                const facts = [selectedItem];
-                                if (!facts || facts.length === 0) {
-                            resultDiv.innerHTML = '<span class="text-danger fw-medium">No se encontró la factura de venta.</span>';
-                            currentFactura = null;
-                            element.querySelector('#items-container').classList.add('d-none');
-                            btnGuardar.classList.add('d-none');
-                            return;
-                        }
-                        
-                        if (facts[0].estado === 'anulada' || facts[0].estado === 'void') {
+                        if (selectedItem.estado === 'anulada' || selectedItem.estado === 'void') {
                             resultDiv.innerHTML = '<span class="text-danger fw-medium">Esta factura está anulada, no se puede generar una nota de crédito sobre ella.</span>';
                             currentFactura = null;
                             element.querySelector('#items-container').classList.add('d-none');
@@ -818,7 +808,7 @@ export const NotasCreditoModule = {
                             return;
                         }
                         
-                        currentFactura = facts[0];
+                        currentFactura = selectedItem;
                         
                         // Cargar detalles de la factura
                         const { data: fdets } = await supabase.from('factura_detalles').select('*').eq('factura_id', currentFactura.id);
