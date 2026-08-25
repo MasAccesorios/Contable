@@ -130,35 +130,39 @@ export const CoreActions = {
 
             // Regla de Negocio: Condición Permitida (Primera vez) - RPC Atómico
             const { data: v_result, error } = await supabase.rpc('convertir_cotizacion_a_factura', {
-                p_cotizacion_id: parseInt(cotizacion.id, 10),
+                p_cotizacion_id: parseInt(cotizacion.id, 10) || null,
                 p_factura_header: {
                     fecha: getLocalDate(),
-                    vencimiento: cotizacion.vencimiento,
-                    contacto_id: cotizacion.clienteId,
-                    total: cotizacion.total || 0,
+                    vencimiento: cotizacion.vencimiento || null,
+                    contacto_id: parseInt(cotizacion.clienteId, 10) || null,
+                    total: parseFloat(cotizacion.total) || 0,
                     estado: 'por_pagar',
                     tipo: 'venta',
                     observaciones: cotizacion.notas || '',
-                    total_costo: planInventario.costoTotalVenta,
-                    numero: cotizacion.numero
+                    total_costo: parseFloat(planInventario.costoTotalVenta) || 0,
+                    numero: cotizacion.numero || null
                 },
-                p_factura_detalles: planInventario.detallesActualizados.map((det, i) => ({
-                    producto_id: det.productoId,
-                    cantidad: det.cantidad,
-                    precio_unitario: det.precio,
-                    descuento_porcentaje: det.descuento,
-                    subtotal: det.subtotal,
+                // Segunda red de seguridad: si el servidor no devolvió detalles, usar los originales de la cotización
+                p_factura_detalles: (planInventario.detallesActualizados?.length > 0
+                    ? planInventario.detallesActualizados
+                    : (cotizacion.detalles || [])
+                ).map((det, i) => ({
+                    producto_id: parseInt(det.productoId, 10) || null,
+                    cantidad: parseFloat(det.cantidad) || 0,
+                    precio_unitario: parseFloat(det.precio) || 0,
+                    descuento_porcentaje: parseFloat(det.descuento) || 0,
+                    subtotal: parseFloat(det.subtotal) || 0,
                     descripcion_personalizada: det.descripcion_personalizada || ''
                 })),
-                p_operaciones_fifo: planInventario.operacionesDB.map(op => ({
+                p_operaciones_fifo: (planInventario.operacionesDB || []).map(op => ({
                     action: op.action,
-                    id: op.data.id,
-                    producto_id: op.data.productoId,
-                    fecha_ingreso: op.data.fechaIngreso,
-                    cantidad_actual: op.data.cantidadActual,
-                    costo_unitario: op.data.costoUnitario
+                    id: parseInt(op.data.id, 10) || null,
+                    producto_id: parseInt(op.data.productoId, 10) || null,
+                    fecha_ingreso: op.data.fechaIngreso || null,
+                    cantidad_actual: parseFloat(op.data.cantidadActual) || 0,
+                    costo_unitario: parseFloat(op.data.costoUnitario) || 0
                 })),
-                p_origen_documento: 'factura:' + (cotizacion.numero || 'nueva') + ' (desde cotizacion:' + cotizacion.id + ')'
+                p_origen_documento: 'factura:' + (cotizacion.numero || 'nueva') + ' (desde cotizacion:' + (cotizacion.id || 'desconocida') + ')'
             });
 
             if (error) throw new Error("Error al convertir a factura: " + error.message);

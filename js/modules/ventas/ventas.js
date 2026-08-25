@@ -612,7 +612,9 @@ export const FacturasModule = {
         // Fetch initial products for details
         let productosFactura = [];
         if (factura.detalles && factura.detalles.length > 0) {
-            const pIds = factura.detalles.map(d => d.productoId).filter(Boolean);
+            const pIds = factura.detalles
+                .map(d => parseInt(d.productoId, 10))
+                .filter(id => !isNaN(id) && id > 0);
             if (pIds.length > 0) {
                 const { data: pData } = await supabase.from('productos').select('*').in('id', pIds);
                 if (pData) productosFactura = pData.map(p => DB._mapToFrontend('productos', p));

@@ -27,8 +27,12 @@ export const InventarioUtils = {
 
         // Si falló por stock insuficiente, pedimos confirmación
         if (!response.success && response.error === 'stock_insuficiente') {
-            const prod = await DB.get('productos', response.producto_id);
-            const nombreProd = prod ? prod.nombre : 'ID ' + response.producto_id;
+            const pid = response.producto_id || response.productoId || response.id || null;
+            let prod = null;
+            if (pid && !isNaN(parseInt(pid, 10))) {
+                prod = await DB.get('productos', parseInt(pid, 10));
+            }
+            const nombreProd = prod ? prod.nombre : 'ID ' + (pid || 'Desconocido');
             const msg = `El producto ${nombreProd} no tiene stock suficiente (Solicitado: ${response.cantidad_pedida}, Disponible: ${response.stock_disponible}).\n¿Deseas continuar y registrar el faltante como inventario negativo?`;
             
             let confirmado = false;
@@ -50,13 +54,28 @@ export const InventarioUtils = {
             });
             
             if (retry.error) return { success: false, error: retry.error.message };
+            if (!retry.data) return { success: false, error: 'El servidor no devolvió datos al procesar con inventario negativo.' };
             response = retry.data;
+
+            // Si el servidor no retornó detallesActualizados en el path de negativos,
+            // usamos los detalles originales — la lista de productos no cambia, solo el stock.
+            if (!Array.isArray(response.detallesActualizados) || response.detallesActualizados.length === 0) {
+                response = {
+                    ...response,
+                    detallesActualizados: detallesOriginales
+                };
+            }
         }
+
+        // Validar que response exista y tenga la estructura esperada antes de retornar
+        if (!response) return { success: false, error: 'Respuesta vacía del servidor al procesar inventario.' };
 
         return { 
             success: true, 
-            costoTotalVenta: response.costoTotalVenta, 
-            detallesActualizados: response.detallesActualizados, 
+            costoTotalVenta: response.costoTotalVenta || 0, 
+            detallesActualizados: Array.isArray(response.detallesActualizados) && response.detallesActualizados.length > 0
+                ? response.detallesActualizados
+                : detallesOriginales,
             operacionesDB: [] // Las operaciones físicas ya se realizaron en el servidor
         };
     },
