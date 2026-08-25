@@ -5,7 +5,7 @@ import { supabase } from '../../core/supabase.js';
 import { renderTablaFacturas } from '../../shared/tablaFacturas.js';
 import { calcularEstadoFactura } from '../../shared/carteraUtils.js';
 import { escapeHtml } from '../../shared/formatters.js';
-import { ExportManager } from '../../shared/crud.js';
+import { ExportManager } from '../../shared/exportManager.js';
 
 export const ProductosModule = {
     currentPage: 1,

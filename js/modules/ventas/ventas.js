@@ -1,6 +1,7 @@
 import DB, { getLocalDate } from '../../core/db.js';
 import { supabase } from '../../core/supabase.js';
-import { CoreActions, ExportManager, PrintManager } from '../../shared/crud.js';
+import { CoreActions, PrintManager } from '../../shared/crud.js';
+import { ExportManager } from '../../shared/exportManager.js';
 import { ItemEngine } from '../../shared/itemEngine.js';
 import { NumberingManager } from '../../shared/numberingManager.js';
 import { renderTablaFacturas } from '../../shared/tablaFacturas.js';
