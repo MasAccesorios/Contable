@@ -154,6 +154,9 @@ export const CoreActions = {
                     const calculado  = base - (base * (descuento / 100));
                     // Usar el subtotal almacenado si es válido y > 0; de lo contrario, calcular.
                     const subtotal   = parseFloat(det.subtotal) > 0 ? parseFloat(det.subtotal) : calculado;
+                    // [DEBUG TEMPORAL] - borrar tras diagnóstico
+                    console.log('ITEM COTIZACION [i=' + i + ']:', JSON.stringify(cotizacion.detalles[i]));
+                    console.log('ITEM DET (servidor):', JSON.stringify(det));
                     return {
                         producto_id: parseInt(det.productoId || det.producto_id, 10) || null,
                         cantidad,
