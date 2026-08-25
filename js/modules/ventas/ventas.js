@@ -1319,8 +1319,78 @@ export const FacturasModule = {
                             }
                         }
                     } else {
+                        // ==== NUEVO CÓDIGO PARA EDICIÓN SEGURA (DELTAS) ====
+                        const headerPayload = {
+                            total: rawTotal,
+                            total_costo: costoTotalVenta,
+                            vencimiento: factura.vencimiento,
+                            observaciones: factura.notas,
+                            contacto_id: parseInt(clienteId, 10),
+                            vendedor_id: factura.vendedor_id
+                        };
+
+                        const detallesPayload = arrDetalles.map(det => {
+                            const base = det.cantidad * det.precio;
+                            const sub = base - (base * (det.descuento / 100));
+                            return {
+                                producto_id: parseInt(det.productoId, 10),
+                                cantidad: det.cantidad,
+                                precio_unitario: det.precio,
+                                descuento_porcentaje: det.descuento,
+                                subtotal: sub,
+                                descripcion_personalizada: ''
+                            };
+                        });
+
+                        // Primer intento sin permitir negativos
+                        let { data: updateRes, error: updateErr } = await supabase.rpc('editar_factura_inventario_fifo', {
+                            p_factura_id: parseInt(id, 10),
+                            p_factura_header: headerPayload,
+                            p_nuevos_detalles: detallesPayload,
+                            p_origen_movimiento: 'Edición Factura ' + (factura.numero || id),
+                            p_permitir_negativos: false
+                        });
+
+                        if (updateErr) throw new Error("Error en BD al actualizar: " + updateErr.message);
+
+                        if (!updateRes.success && updateRes.error === 'stock_insuficiente') {
+                            const prod = await DB.get('productos', updateRes.producto_id);
+                            const nombreProd = prod ? prod.nombre : 'ID ' + updateRes.producto_id;
+                            const msg = `Al aumentar la cantidad de ${nombreProd}, no hay stock suficiente para cubrir la diferencia (Faltan: ${updateRes.cantidad_pedida - updateRes.stock_disponible}).\n¿Deseas continuar y registrar el faltante como inventario negativo?`;
+                            
+                            let confirmado = false;
+                            if (window.CoreActions && window.CoreActions.showConfirmModalAsync) {
+                                confirmado = await window.CoreActions.showConfirmModalAsync(msg);
+                            } else {
+                                confirmado = confirm(msg);
+                            }
+                            
+                            if (!confirmado) {
+                                btnGuardar.disabled = false;
+                                btnGuardar.innerHTML = originalText;
+                                return; // Abortar
+                            }
+
+                            const { data: retryRes, error: retryErr } = await supabase.rpc('editar_factura_inventario_fifo', {
+                                p_factura_id: parseInt(id, 10),
+                                p_factura_header: headerPayload,
+                                p_nuevos_detalles: detallesPayload,
+                                p_origen_movimiento: 'Edición Factura ' + (factura.numero || id),
+                                p_permitir_negativos: true
+                            });
+
+                            if (retryErr) throw new Error("Error en BD al actualizar: " + retryErr.message);
+                            updateRes = retryRes;
+                        }
+
+                        // Finalmente, guardamos localmente en Pouch/Dexie para refrescar UI sin latencia
                         await DB.save('facturas', factura);
                         facturaGuardadaId = factura.id;
+                        
+                        if (DB.invalidateCache) {
+                            DB.invalidateCache('facturas');
+                            DB.invalidateCache('lotes_fifo');
+                        }
                     }
                     
                     // Navegar a modo lectura para bloquear edición y habilitar impresión final

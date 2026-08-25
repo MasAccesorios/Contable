@@ -3,177 +3,70 @@ import { supabase } from '../core/supabase.js';
 
 export const InventarioUtils = {
     /**
-     * Valida y descuenta inventario FIFO.
-     * @param {Array} detallesOriginales - Detalles de la venta a procesar.
-     * @param {Array} [lotesCache] - Opcional. Lotes precargados en memoria para ahorrar cuota.
-     * @param {Array} [productosCache] - Opcional. Productos precargados en memoria.
-     * @returns {Object} { success, error, costoTotalVenta, detallesActualizados }
-     */
-    /**
-     * Versión "wrapper" para mantener compatibilidad con el resto del sistema.
-     * Calcula y ejecuta inmediatamente el descuento físico.
+     * Valida y descuenta inventario FIFO de forma transaccional mediante RPC en Supabase.
      */
     async procesarSalidaInventario(detallesOriginales, lotesCache = null, productosCache = null) {
-        const plan = await this.calcularSalidaInventario(detallesOriginales, lotesCache, productosCache);
-        if (!plan.success) return plan;
-        
-        await this.ejecutarPlanInventario(plan.operacionesDB);
-        
-        return plan;
+        return await this.calcularSalidaInventario(detallesOriginales, lotesCache, productosCache);
     },
 
     /**
-     * FASE 1 (Read-Only): Simula el descuento FIFO, calcula costos, y genera un plan de operaciones DB.
-     * Retorna: { success, error, costoTotalVenta, detallesActualizados, operacionesDB }
+     * Reemplaza la antigua FASE 1 simulada en JS. 
+     * Ahora ejecuta directamente el RPC transaccional en PostgreSQL.
      */
-    async calcularSalidaInventario(detallesOriginales, lotesCache = null, productosCache = null) {
-        // Hacemos deep copy de lotesCache para no mutar el cache original si se provee
-        const lotesGlobales = lotesCache ? JSON.parse(JSON.stringify(lotesCache)) : await DB.getAll('lotes_fifo');
-        const productos = productosCache || await DB.getAll('productos');
-        
-        let costoTotalVenta = 0;
-        const detalles = JSON.parse(JSON.stringify(detallesOriginales));
-        const operacionesDB = [];
+    async calcularSalidaInventario(detallesOriginales, lotesCache = null, productosCache = null, origenDocumento = null) {
+        let { data: response, error } = await supabase.rpc('procesar_salida_inventario_fifo', {
+            p_detalles: detallesOriginales,
+            p_origen_movimiento: origenDocumento || 'Venta',
+            p_permitir_negativos: false
+        });
 
-        // Validación Asíncrona de Sobreventa
-        let qtyPedidaPorProducto = {};
-        for (const det of detalles) {
-            qtyPedidaPorProducto[det.productoId] = (qtyPedidaPorProducto[det.productoId] || 0) + parseFloat(det.cantidad);
+        if (error) {
+            console.error(error);
+            return { success: false, error: "Error en base de datos: " + error.message };
         }
 
-        let itemsSinStock = [];
-        for (const prodIdStr in qtyPedidaPorProducto) {
-            const prodId = String(prodIdStr);
-            const qtyPedida = qtyPedidaPorProducto[prodIdStr];
-            
-            const lotesProd = lotesGlobales.filter(l => String(l.productoId) === prodId && l.cantidadActual > 0);
-            const stockDisponible = lotesProd.reduce((sum, l) => sum + parseInt(l.cantidadActual), 0);
-            
-            if (qtyPedida > stockDisponible) {
-                const prod = productos.find(p => String(p.id) === prodId);
-                const nombreProd = prod ? prod.nombre : 'Producto ID ' + prodId;
-                itemsSinStock.push(`- <b>${nombreProd}</b>: solicitas ${qtyPedida}, hay disponible ${stockDisponible}`);
-            }
-        }
-
-        if (itemsSinStock.length > 0) {
-            const msg = `Los siguientes productos no tienen stock suficiente para completar la transacción:<br><br>${itemsSinStock.join('<br>')}<br><br>¿Deseas continuar y registrar el faltante como inventario negativo?`;
+        // Si falló por stock insuficiente, pedimos confirmación
+        if (!response.success && response.error === 'stock_insuficiente') {
+            const prod = await DB.get('productos', response.producto_id);
+            const nombreProd = prod ? prod.nombre : 'ID ' + response.producto_id;
+            const msg = `El producto ${nombreProd} no tiene stock suficiente (Solicitado: ${response.cantidad_pedida}, Disponible: ${response.stock_disponible}).\n¿Deseas continuar y registrar el faltante como inventario negativo?`;
             
             let confirmado = false;
             if (window.CoreActions && window.CoreActions.showConfirmModalAsync) {
                 confirmado = await window.CoreActions.showConfirmModalAsync(msg);
             } else {
-                confirmado = confirm(msg.replace(/<br>/g, '\n').replace(/<b>|<\/b>/g, ''));
+                confirmado = confirm(msg);
             }
             
             if (!confirmado) {
                 return { success: false, error: "Venta cancelada por el usuario (stock insuficiente)." };
             }
-        }
 
-        // Simulación Descuento FIFO
-        for (const det of detalles) {
-            let qtyRestante = det.cantidad;
-            let costoLinea = 0;
-            const lotesProd = lotesGlobales.filter(l => String(l.productoId) === String(det.productoId) && l.cantidadActual > 0);
-            lotesProd.sort((a, b) => new Date(a.fechaIngreso) - new Date(b.fechaIngreso));
+            // Si el usuario acepta, re-ejecutamos habilitando negativos
+            const retry = await supabase.rpc('procesar_salida_inventario_fifo', {
+                p_detalles: detallesOriginales,
+                p_origen_movimiento: origenDocumento || 'Venta',
+                p_permitir_negativos: true
+            });
             
-            if (lotesProd.length === 0) {
-                // Si no hay lotes, simulamos creación de uno negativo
-                const prod = productos.find(p => String(p.id) === String(det.productoId));
-                const costoUnitario = prod ? (prod.precio_compra || prod.precioCompra || 0) : 0;
-                const nuevoLote = {
-                    id: 'lote_neg_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
-                    productoId: det.productoId,
-                    fechaIngreso: getLocalDate(),
-                    cantidadInicial: 0,
-                    cantidadActual: -qtyRestante,
-                    costoUnitario: costoUnitario
-                };
-                costoLinea += (qtyRestante * costoUnitario);
-                qtyRestante = 0;
-                
-                lotesGlobales.push(nuevoLote);
-                operacionesDB.push({ action: 'insert', data: nuevoLote });
-            } else {
-                for (let i = 0; i < lotesProd.length; i++) {
-                    const lote = lotesProd[i];
-                    if (qtyRestante <= 0) break;
-                    
-                    const isLastLote = (i === lotesProd.length - 1);
-                    let aDescontar = 0;
-                    
-                    if (isLastLote) {
-                        aDescontar = qtyRestante;
-                    } else {
-                        aDescontar = Math.min(Math.max(0, lote.cantidadActual), qtyRestante);
-                    }
-                    
-                    lote.cantidadActual -= aDescontar;
-                    qtyRestante -= aDescontar;
-                    costoLinea += (aDescontar * lote.costoUnitario);
-                    
-                    operacionesDB.push({ action: 'update', data: { ...lote } });
-                }
-            }
-            det.costoTotalCalculado = costoLinea;
-            costoTotalVenta += costoLinea;
+            if (retry.error) return { success: false, error: retry.error.message };
+            response = retry.data;
         }
 
-        return { success: true, costoTotalVenta, detallesActualizados: detalles, operacionesDB };
+        return { 
+            success: true, 
+            costoTotalVenta: response.costoTotalVenta, 
+            detallesActualizados: response.detallesActualizados, 
+            operacionesDB: [] // Las operaciones físicas ya se realizaron en el servidor
+        };
     },
 
     /**
-     * FASE 2 (Write): Toma el plan de operaciones y ejecuta los guardados físicos en base de datos.
-     * Implementa rollback interno LIFO en caso de fallos parciales.
+     * Deprecado: Las operaciones ya se ejecutan atómicamente en el servidor en calcularSalidaInventario.
+     * Mantenemos la firma para compatibilidad.
      */
     async ejecutarPlanInventario(operacionesDB, origenDocumento = null) {
-        if (!operacionesDB || operacionesDB.length === 0) return;
-        
-        // Pila de instrucciones compensatorias (LIFO)
-        const compensaciones = [];
-        
-        try {
-            for (const op of operacionesDB) {
-                if (op.action === 'update') {
-                    // 1. Snapshot ANTES de pisar el registro existente
-                    const snapshotPrevio = await DB.get('lotes_fifo', op.data.id);
-                    if (!snapshotPrevio) throw new Error(`El lote ${op.data.id} ya no existe.`);
-                    
-                    // Instrucción para revertir: Volver a hacer UPDATE con los datos viejos
-                    compensaciones.push({ tipo: 'restaurar', data: snapshotPrevio });
-                    
-                    if (origenDocumento) op.data.origen_movimiento = origenDocumento;
-                    await DB.save('lotes_fifo', op.data);
-                    
-                } else if (op.action === 'insert') {
-                    if (origenDocumento) op.data.origen_movimiento = origenDocumento;
-                    // 1. Insertamos y capturamos la fila resultante (con el ID real de Postgres)
-                    const loteGuardado = await DB.save('lotes_fifo', op.data);
-                    
-                    // Instrucción para revertir: ELIMINAR el lote recién creado
-                    compensaciones.push({ tipo: 'eliminar', idReal: loteGuardado.id });
-                }
-            }
-        } catch (errorOriginal) {
-            console.error("Fallo aplicando lote FIFO. Iniciando rollback interno...", errorOriginal);
-            
-            // Ejecutar las instrucciones compensatorias en orden INVERSO
-            for (let i = compensaciones.length - 1; i >= 0; i--) {
-                const comp = compensaciones[i];
-                try {
-                    if (comp.tipo === 'restaurar') {
-                        await DB.save('lotes_fifo', comp.data);
-                    } else if (comp.tipo === 'eliminar') {
-                        await DB.delete('lotes_fifo', comp.idReal);
-                    }
-                } catch (errRollback) {
-                    console.error("Fallo CRÍTICO compensando lote en BD:", errRollback);
-                }
-            }
-            
-            throw new Error("Transacción física fallida. Los lotes tocados fueron revertidos. Error: " + errorOriginal.message);
-        }
+        return;
     },
 
     /**
