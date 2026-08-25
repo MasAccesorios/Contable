@@ -440,6 +440,10 @@ const DB = {
      * Obtiene un registro por su ID único.
      */
     async get(storeName, id) {
+        if (id === undefined || id === null || id === '') return null;
+        const parsedId = parseInt(id, 10);
+        if (isNaN(parsedId) || parsedId <= 0) return null;
+
         const table = storeName === 'pagos' ? 'pagos_ingresos' : storeName;
         try {
             let query = supabase.from(table).select('*');
@@ -447,7 +451,7 @@ const DB = {
             if (table === 'facturas') query = supabase.from(table).select('*, items:factura_detalles(*)');
             if (table === 'cotizaciones') query = supabase.from(table).select('*, items:cotizacion_detalles(*)');
             
-            const { data, error } = await query.eq('id', parseInt(id, 10)).single();
+            const { data, error } = await query.eq('id', parsedId).single();
             
             if (error) {
                 if (error.code === 'PGRST116') return null; // Not found
