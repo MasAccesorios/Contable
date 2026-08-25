@@ -1048,25 +1048,24 @@ export const NotasCreditoModule = {
                         CoreActions.showErrorModal(e.message);
                     }
                 });
-            } else if (id && !EstadoUtils.estaAnulado(nota.estado)) {
-                const btnAnular = element.querySelector('#btn-anular-nc');
-                if (btnAnular) {
-                    btnAnular.addEventListener('click', async () => {
-                        if (confirm('¿Estás seguro de anular esta Nota de Crédito? Esto deshará la devolución de inventario y restaurará el saldo pendiente de la factura.')) {
-                            btnAnular.disabled = true;
-                            try {
-                                // 1. Anular por la función centralizada
-                                await this.anularNotaCredito(id);
+            }
 
-                                CoreActions.showSuccessModal("Nota de Crédito anulada correctamente.");
-                                this.renderForm(element, id, true);
-                            } catch (e) {
-                                btnAnular.disabled = false;
-                                CoreActions.showErrorModal("Error anulando: " + e.message);
-                            }
+            const btnAnular = element.querySelector('#btn-anular-nc');
+            if (btnAnular) {
+                btnAnular.addEventListener('click', async (e) => {
+                    e.preventDefault();
+                    if (confirm('¿Está seguro que desea anular esta nota de crédito? Esta acción revertirá el saldo y los movimientos de inventario.')) {
+                        btnAnular.disabled = true;
+                        try {
+                            await NotasCreditoModule.anularNotaCredito(id);
+                            CoreActions.showSuccessModal("Nota de Crédito anulada correctamente.");
+                            window.location.hash = '#/ingresos/notas-credito';
+                        } catch (err) {
+                            btnAnular.disabled = false;
+                            CoreActions.showErrorModal("Error anulando: " + err.message);
                         }
-                    });
-                }
+                    }
+                });
             }
         } catch (e) {
             console.error(e);
