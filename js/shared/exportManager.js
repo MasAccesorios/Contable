@@ -61,7 +61,7 @@ export const ExportManager = {
                         };
                     }
 
-                    const clienteNombre = getClienteNameFunc ? getClienteNameFunc(item.clienteId || item.cliente_id) : (item.clienteId || item.cliente_id || 'N/A');
+                    const clienteNombre = getClienteNameFunc ? getClienteNameFunc(item.clienteId || item.cliente_id, item) : (item.clienteId || item.cliente_id || 'N/A');
                     const numDoc = item.numero || parseInt(String(item.id).replace(/\D/g, ''), 10) || item.id;
                     const estado = item.convertidoAFactura || item.convertido_a_factura ? 'Facturada' : 'Borrador';
 
