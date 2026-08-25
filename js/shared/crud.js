@@ -142,7 +142,7 @@ export const CoreActions = {
                     total_costo: parseFloat(planInventario.costoTotalVenta) || 0,
                     numero: cotizacion.numero || null
                 },
-                p_factura_detalles: planInventario.detallesActualizados.map((det, i) => ({
+                p_factura_detalles: (planInventario.detallesActualizados || []).map((det, i) => ({
                     producto_id: parseInt(det.productoId, 10) || null,
                     cantidad: parseFloat(det.cantidad) || 0,
                     precio_unitario: parseFloat(det.precio) || 0,
@@ -150,7 +150,7 @@ export const CoreActions = {
                     subtotal: parseFloat(det.subtotal) || 0,
                     descripcion_personalizada: det.descripcion_personalizada || ''
                 })),
-                p_operaciones_fifo: planInventario.operacionesDB.map(op => ({
+                p_operaciones_fifo: (planInventario.operacionesDB || []).map(op => ({
                     action: op.action,
                     id: parseInt(op.data.id, 10) || null,
                     producto_id: parseInt(op.data.productoId, 10) || null,

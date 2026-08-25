@@ -54,13 +54,17 @@ export const InventarioUtils = {
             });
             
             if (retry.error) return { success: false, error: retry.error.message };
+            if (!retry.data) return { success: false, error: 'El servidor no devolvió datos al procesar con inventario negativo.' };
             response = retry.data;
         }
 
+        // Validar que response exista y tenga la estructura esperada antes de retornar
+        if (!response) return { success: false, error: 'Respuesta vacía del servidor al procesar inventario.' };
+
         return { 
             success: true, 
-            costoTotalVenta: response.costoTotalVenta, 
-            detallesActualizados: response.detallesActualizados, 
+            costoTotalVenta: response.costoTotalVenta || 0, 
+            detallesActualizados: Array.isArray(response.detallesActualizados) ? response.detallesActualizados : [],
             operacionesDB: [] // Las operaciones físicas ya se realizaron en el servidor
         };
     },
