@@ -1,6 +1,7 @@
 import DB, { getLocalDate } from '../../core/db.js';
 import { supabase } from '../../core/supabase.js';
-import { CoreActions, ItemEngine, NumberingManager, ExportManager, PrintManager } from '../../shared/crud.js';
+import { CoreActions, ItemEngine, ExportManager, PrintManager } from '../../shared/crud.js';
+import { NumberingManager } from '../../shared/numberingManager.js';
 import { ContactosModule } from '../clientes/clientes.js';
 import { UI } from '../../shared/combobox.js';
 
