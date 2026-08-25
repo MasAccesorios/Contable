@@ -18,6 +18,23 @@ export const UI = {
         return productos.map(p => DB._mapToFrontend('productos', p));
     },
 
+    async fetchFacturasCombobox(query) {
+        const { supabase } = await import('../core/supabase.js');
+        const { data, error } = await supabase
+            .from('facturas')
+            .select('*, contactos(nombre, identificacion)')
+            .eq('tipo', 'venta')
+            .or(`numero.ilike.%${query}%,contactos.nombre.ilike.%${query}%`)
+            .limit(10);
+            
+        if (error) {
+            console.error('Error fetching facturas combobox:', error);
+            return [];
+        }
+        return data || [];
+    },
+
+
     /**
      * @param {Object} options
      * @param {HTMLElement} options.inputEl - The text input element

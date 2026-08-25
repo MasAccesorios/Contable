@@ -442,10 +442,12 @@ export const NotasCreditoModule = {
                     <div class="row g-3 mb-4">
                         <div class="col-md-6">
                             <label class="form-label fw-medium text-muted small">Buscar Factura de Venta origen</label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-light border-end-0"><i class="bi bi-search"></i></span>
-                                <input type="number" id="input-buscar-factura" class="form-control border-start-0" placeholder="Ej. 6750">
-                                <button id="btn-buscar-factura" class="btn btn-primary-action">Buscar</button>
+                            <div class="custom-combobox position-relative" id="combo-factura-container">
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-end-0"><i class="bi bi-search"></i></span>
+                                    <input type="text" id="input-buscar-factura" class="form-control border-start-0" placeholder="Buscar por número o cliente..." autocomplete="off">
+                                    <input type="hidden" id="factura-id-hidden">
+                                </div>
                             </div>
                             <div id="factura-search-result" class="mt-2 small"></div>
                         </div>
@@ -481,54 +483,175 @@ export const NotasCreditoModule = {
                 `;
             } else {
                 // Modo vista
+                let statusBadgeClass = EstadoUtils.estaAnulado(nota.estado) ? 'mas-receipt-status-anulada' : 'mas-receipt-status-aplicada';
+                let statusText = EstadoUtils.estaAnulado(nota.estado) ? 'Anulada' : 'Aplicada';
                 html += `
-                    <div class="row mb-4">
-                        <div class="col-md-4">
-                            <small class="text-muted d-block fw-medium mb-1">Cliente</small>
-                            <div class="fw-bold fs-6">${clienteNombre || 'N/A'}</div>
-                        </div>
-                        <div class="col-md-4">
-                            <small class="text-muted d-block fw-medium mb-1">Factura Origen</small>
-                            <div class="fw-bold fs-6">
-                                <a href="#/ingresos/facturas/ver/${facturaOrigen?.id}" class="text-decoration-none">
-                                    #${facturaOrigen?.numero || facturaOrigen?.id || 'N/A'}
-                                </a>
+                    <style>
+                        .mas-receipt-container {
+                            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+                            color: #1e293b;
+                            background: #ffffff;
+                            max-width: 800px;
+                            margin: 0 auto;
+                        }
+                        .mas-receipt-card {
+                            background: #ffffff;
+                            border: 1px solid #e2e8f0;
+                            border-radius: 16px;
+                            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+                            overflow: hidden;
+                            position: relative;
+                        }
+                        .mas-receipt-header {
+                            background: linear-gradient(to right, #f8fafc, #ffffff);
+                            border-bottom: 2px dashed #cbd5e1;
+                            padding: 10px 20px;
+                        }
+                        .mas-receipt-body {
+                            padding: 10px 20px;
+                            overflow: hidden;
+                        }
+                        .mas-receipt-footer {
+                            background: #f8fafc;
+                            padding: 10px 20px;
+                            border-top: 1px solid #e2e8f0;
+                            border-bottom-left-radius: 16px;
+                            border-bottom-right-radius: 16px;
+                        }
+                        .mas-receipt-status-badge {
+                            display: inline-block;
+                            padding: 4px 10px;
+                            border-radius: 999px;
+                            font-size: 11px;
+                            font-weight: 600;
+                            letter-spacing: 0.5px;
+                            text-transform: uppercase;
+                        }
+                        .mas-receipt-status-aplicada { background-color: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; }
+                        .mas-receipt-status-anulada { background-color: #f1f5f9; color: #64748b; border: 1px solid #e2e8f0; }
+                        
+                        .mas-receipt-info-label {
+                            font-size: 10px;
+                            text-transform: uppercase;
+                            letter-spacing: 0.5px;
+                            color: #64748b;
+                            font-weight: 600;
+                            margin-bottom: 2px;
+                        }
+                        .mas-receipt-info-value {
+                            font-size: 13px;
+                            font-weight: 500;
+                            color: #0f172a;
+                        }
+                        .mas-receipt-table th {
+                            font-size: 11px;
+                            text-transform: uppercase;
+                            letter-spacing: 0.5px;
+                            color: #64748b;
+                            border-bottom: 1px solid #cbd5e1 !important;
+                            padding-bottom: 8px;
+                            font-weight: 600;
+                        }
+                        .mas-receipt-table td {
+                            padding: 10px 0;
+                            vertical-align: middle;
+                            font-size: 13px;
+                            color: #334155;
+                            border-bottom: 1px solid #f1f5f9 !important;
+                        }
+                        .mas-receipt-total-row {
+                            display: flex;
+                            justify-content: flex-end;
+                            align-items: baseline;
+                            gap: 10px;
+                            padding-top: 14px;
+                            border-top: 2px solid #059669;
+                        }
+                        .mas-receipt-total-label {
+                            font-size: 12px;
+                            color: #64748b;
+                            text-transform: uppercase;
+                            letter-spacing: 0.6px;
+                            font-weight: 600;
+                        }
+                        .mas-receipt-total-amount {
+                            font-size: 26px;
+                            font-weight: 800;
+                            color: #0f172a;
+                            letter-spacing: -0.6px;
+                        }
+                    </style>
+                    <div class="mas-receipt-container" style="padding: 20px;">
+                        <div class="mas-receipt-card">
+                            <div class="mas-receipt-header d-flex justify-content-between align-items-center">
+                                <div><img src="LogoMas.png" alt="MAS Accesorios" style="max-height: 40px; object-fit: contain;"></div>
+                                <div class="text-end">
+                                    <h2 style="font-size: 20px; font-weight: 800; color: #0f172a; margin: 0 0 6px 0; letter-spacing: -0.5px;">NOTA DE CRÉDITO</h2>
+                                    <div class="d-flex align-items-center justify-content-end gap-3">
+                                        <span style="font-size: 13px; color: #64748b; font-weight: 500;">Nº <span style="color: #0f172a; font-weight: 700;">${nota.numero || nota.id}</span></span>
+                                        <span class="mas-receipt-status-badge ${statusBadgeClass}">${statusText}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mas-receipt-body">
+                                <div class="row mb-4 mt-2">
+                                    <div class="col-6">
+                                        <div class="mas-receipt-info-label">CLIENTE</div>
+                                        <div class="mas-receipt-info-value">${clienteNombre || 'N/A'}</div>
+                                    </div>
+                                    <div class="col-6 text-end">
+                                        <div class="mas-receipt-info-label">FACTURA ORIGEN</div>
+                                        <div class="mas-receipt-info-value">#${facturaOrigen?.numero || facturaOrigen?.id || 'N/A'}</div>
+                                    </div>
+                                    <div class="col-6 mt-3">
+                                        <div class="mas-receipt-info-label">FECHA</div>
+                                        <div class="mas-receipt-info-value">${nota.fecha}</div>
+                                    </div>
+                                    <div class="col-6 mt-3 text-end">
+                                        <div class="mas-receipt-info-label">MOTIVO</div>
+                                        <div class="mas-receipt-info-value">${nota.motivo || 'N/A'}</div>
+                                    </div>
+                                </div>
+                                <table class="table table-borderless mas-receipt-table mb-4">
+                                    <thead>
+                                        <tr>
+                                            <th class="text-start">PRODUCTO O SERVICIO</th>
+                                            <th class="text-center">CANT. DEVUELTA</th>
+                                            <th class="text-end">PRECIO UNIT.</th>
+                                            <th class="text-end">SUBTOTAL</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${detallesNota.map(d => `
+                                            <tr>
+                                                <td class="text-start fw-medium text-dark">${productosMap[d.producto_id] || 'Ítem ' + d.producto_id}</td>
+                                                <td class="text-center">${d.cantidad}</td>
+                                                <td class="text-end">$${Number(d.precio_unitario || 0).toLocaleString()}</td>
+                                                <td class="text-end fw-bold text-dark">$${Number(d.subtotal || 0).toLocaleString()}</td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="mas-receipt-footer">
+                                <div class="mas-receipt-total-row border-0 pt-0">
+                                    <div class="mas-receipt-total-label">TOTAL NC</div>
+                                    <div class="mas-receipt-total-amount">$${Number(nota.total || 0).toLocaleString()}</div>
+                                </div>
+                                <div class="row mt-4 pt-4 border-top" style="border-color: #e2e8f0 !important;">
+                                    <div class="col-6">
+                                        <div style="border-top: 1px solid #94a3b8; width: 80%; padding-top: 5px; font-size: 11px; color: #64748b; font-weight: 500;">
+                                            ELABORADO POR
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div style="border-top: 1px solid #94a3b8; width: 80%; padding-top: 5px; font-size: 11px; color: #64748b; font-weight: 500; margin-left: auto;">
+                                            RECIBIDO / ACEPTADO
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        <div class="col-md-4">
-                            <small class="text-muted d-block fw-medium mb-1">Fecha & Motivo</small>
-                            <div class="fw-bold fs-6">${nota.fecha}</div>
-                            <div class="text-muted small">${nota.motivo || ''}</div>
-                        </div>
-                    </div>
-                    
-                    <h6 class="fw-bold mb-3">Ítems Devueltos</h6>
-                    <div class="table-responsive mb-4">
-                        <table class="table table-borderless align-middle" style="border-spacing: 0; min-width: 600px;">
-                            <thead style="border-bottom: 1px solid var(--border-color);">
-                                <tr style="color: var(--text-muted); font-weight: var(--weight-regular); font-size: var(--fs-base);">
-                                    <th>Producto o servicio</th>
-                                    <th class="text-center" style="width: 100px;">Cant. Devuelta</th>
-                                    <th class="text-end" style="width: 150px;">Precio Unit.</th>
-                                    <th class="text-end" style="width: 150px;">Subtotal</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${detallesNota.map(d => `
-                                    <tr style="border-bottom: 1px solid var(--border-color);">
-                                        <td class="align-top py-2">
-                                            <div class="fw-medium text-dark" style="font-size: var(--fs-base);">${productosMap[d.producto_id] || 'Ítem ' + d.producto_id}</div>
-                                        </td>
-                                        <td class="align-top text-center py-2" style="font-size: var(--fs-base);">${d.cantidad}</td>
-                                        <td class="align-top text-end py-2" style="font-size: var(--fs-base);">$${Number(d.precio_unitario || 0).toLocaleString()}</td>
-                                        <td class="align-top text-end fw-bold py-2" style="font-size: var(--fs-base);">$${Number(d.subtotal || 0).toLocaleString()}</td>
-                                    </tr>
-                                `).join('')}
-                            </tbody>
-                        </table>
-                    </div>
-                    <div class="d-flex justify-content-end">
-                        <h4 class="fw-bold" style="color: var(--text-main);">Total NC: $${Number(nota.total || 0).toLocaleString()}</h4>
                     </div>
                 `;
             }
@@ -577,16 +700,31 @@ export const NotasCreditoModule = {
                     else btnGuardar.classList.add('d-none');
                 };
 
-                btnBuscar.addEventListener('click', async () => {
-                    const numFactura = element.querySelector('#input-buscar-factura').value;
-                    const resultDiv = element.querySelector('#factura-search-result');
-                    if (!numFactura) return;
-                    
-                    resultDiv.innerHTML = '<span class="text-muted">Buscando...</span>';
-                    
-                    try {
-                        const { data: facts } = await supabase.from('facturas').select('*').eq('numero', numFactura).eq('tipo', 'venta');
-                        if (!facts || facts.length === 0) {
+                const resultDiv = element.querySelector('#factura-search-result');
+                import('../../shared/combobox.js').then(({ UI }) => {
+                    UI.createAsyncCombobox({
+                        inputEl: element.querySelector('#input-buscar-factura'),
+                        hiddenIdEl: element.querySelector('#factura-id-hidden'),
+                        fetchItems: (query) => UI.fetchFacturasCombobox(query),
+                        displayProp: 'numero',
+                        renderItem: (item) => {
+                            const total = item.total ? Number(item.total).toLocaleString() : '0';
+                            const cliente = item.contactos ? item.contactos.nombre : 'Sin Cliente';
+                            return `
+                                <div class="d-flex flex-column">
+                                    <span class="fw-bold text-dark">#${item.numero} - ${cliente}</span>
+                                    <span class="text-muted small">Total: $${total}</span>
+                                </div>
+                            `;
+                        },
+                        onSelect: async (selectedItem) => {
+                            if (!selectedItem) return;
+                            
+                            resultDiv.innerHTML = '<span class="text-muted">Cargando detalles...</span>';
+                            
+                            try {
+                                const facts = [selectedItem];
+                                if (!facts || facts.length === 0) {
                             resultDiv.innerHTML = '<span class="text-danger fw-medium">No se encontró la factura de venta.</span>';
                             currentFactura = null;
                             element.querySelector('#items-container').classList.add('d-none');
@@ -672,6 +810,8 @@ export const NotasCreditoModule = {
                     } catch (e) {
                         resultDiv.innerHTML = `<span class="text-danger">Error: ${e.message}</span>`;
                     }
+                        }
+                    });
                 });
 
                 btnGuardar.addEventListener('click', async () => {
