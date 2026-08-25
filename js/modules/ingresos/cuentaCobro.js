@@ -1,6 +1,7 @@
 import { supabase } from '../../core/supabase.js';
 import { getLocalDate } from '../../core/db.js';
-import { CoreActions, ItemEngine, PrintManager } from '../../shared/crud.js';
+import { CoreActions, PrintManager } from '../../shared/crud.js';
+import { ItemEngine } from '../../shared/itemEngine.js';
 import { applyCurrencyFormatting, parseCurrencyValue } from '../../shared/formatters.js';
 
 export const CuentaCobroModule = {

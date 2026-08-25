@@ -1,6 +1,7 @@
 import DB, { getLocalDate } from '../../core/db.js';
 import { supabase } from '../../core/supabase.js';
-import { CoreActions, ItemEngine } from '../../shared/crud.js';
+import { CoreActions } from '../../shared/crud.js';
+import { ItemEngine } from '../../shared/itemEngine.js';
 import { InventarioUtils } from '../../shared/inventarioUtils.js';
 import { escapeHtml } from '../../shared/formatters.js';
 
