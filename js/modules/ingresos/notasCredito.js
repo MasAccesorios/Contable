@@ -695,13 +695,6 @@ export const NotasCreditoModule = {
                         }
                     }, 50);
                 });
-            };
-                    
-                    showPreview();
-                    
-                    const btnVer = element.querySelector('#btn-ver-comprobante');
-                    if (btnVer) btnVer.addEventListener('click', showPreview);
-                });
             }
 
             // Logica de creación y edición
@@ -902,6 +895,7 @@ export const NotasCreditoModule = {
                         }
                     });
                 });
+                }
 
                 btnGuardar.addEventListener('click', async () => {
                     btnGuardar.disabled = true;
