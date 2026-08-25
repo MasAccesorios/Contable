@@ -100,8 +100,9 @@ export const AjustesInventarioModule = {
                     
                     const menu = document.querySelector('.row-action-menu');
                     
+                    const botonMenu = e.currentTarget;
                     const closeMenu = (evt) => {
-                        if (menu && !menu.contains(evt.target) && !e.currentTarget.contains(evt.target)) {
+                        if (menu && !menu.contains(evt.target) && !botonMenu.contains(evt.target)) {
                             menu.remove();
                             document.removeEventListener('click', closeMenu);
                         }

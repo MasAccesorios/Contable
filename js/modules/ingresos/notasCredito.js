@@ -353,8 +353,9 @@ export const NotasCreditoModule = {
                         });
                     }
 
+                    const botonMenu = e.currentTarget;
                     const closeMenu = (evt) => {
-                        if (menu && !menu.contains(evt.target) && !e.currentTarget.contains(evt.target)) {
+                        if (menu && !menu.contains(evt.target) && !botonMenu.contains(evt.target)) {
                             menu.remove();
                             document.removeEventListener('click', closeMenu);
                         }
