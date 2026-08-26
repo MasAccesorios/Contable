@@ -70,6 +70,12 @@ export const InventarioUtils = {
         // Validar que response exista y tenga la estructura esperada antes de retornar
         if (!response) return { success: false, error: 'Respuesta vacía del servidor al procesar inventario.' };
 
+        // Si el RPC devuelve success:false por cualquier motivo distinto a stock_insuficiente
+        // (ya manejado arriba), propagar el error en vez de retornar success:true al llamador.
+        if (response.success === false) {
+            return { success: false, error: response.error || 'Error desconocido al procesar inventario.' };
+        }
+
         return { 
             success: true, 
             costoTotalVenta: response.costoTotalVenta || 0, 

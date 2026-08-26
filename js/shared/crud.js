@@ -122,7 +122,13 @@ export const CoreActions = {
             }
 
             // Regla de Negocio: Validar y Simular FIFO antes de convertir (FASE 1 - Read Only)
-            const planInventario = await InventarioUtils.calcularSalidaInventario(cotizacion.detalles || []);
+            // Mapear detalles a snake_case: DB.get('cotizaciones') devuelve productoId (camelCase)
+            // pero el RPC procesar_salida_inventario_fifo espera producto_id (snake_case).
+            const detallesParaFifo = (cotizacion.detalles || []).map(d => ({
+                producto_id: parseInt(d.productoId || d.producto_id, 10) || null,
+                cantidad: parseFloat(d.cantidad) || 0
+            }));
+            const planInventario = await InventarioUtils.calcularSalidaInventario(detallesParaFifo);
             if (!planInventario.success) {
                 this.showWarningModal("Acción interceptada: " + planInventario.error);
                 return; // ABORTA LA CONVERSIÓN
