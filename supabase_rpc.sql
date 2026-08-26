@@ -270,22 +270,25 @@ AS $func$
 SELECT
     p.sku,
     p.nombre,
-    TRUE                                               AS tiene_checkpoint,
-    c.a                                                AS checkpoint,
-    c.created_at                                       AS fecha_checkpoint,
-    COALESCE(SUM(ABS(lfm_limpia.diferencia)), 0)       AS vendido_despues,
-    c.a - COALESCE(SUM(ABS(lfm_limpia.diferencia)), 0) AS esperado,
+    TRUE  AS tiene_checkpoint,
+    c.a   AS checkpoint,
+    c.created_at AS fecha_checkpoint,
+    -- Solo salidas (diferencia negativa), deduplicadas
+    COALESCE(SUM(ABS(lfm_limpia.diferencia)) FILTER (WHERE lfm_limpia.diferencia < 0), 0) AS vendido_despues,
+    -- Neto desde el checkpoint: incluye entradas (+) y salidas (-)
+    c.a + COALESCE(SUM(lfm_limpia.diferencia), 0) AS esperado,
+    -- Stock físico real: suma de lotes_fifo activos
     COALESCE((
         SELECT SUM(lf.cantidad_actual)
         FROM lotes_fifo lf
         WHERE lf.producto_id = p.id
-    ), 0)                                              AS actual,
+    ), 0) AS actual,
+    -- Discrepancia: real vs lo que matemáticamente debería haber
     COALESCE((
         SELECT SUM(lf.cantidad_actual)
         FROM lotes_fifo lf
         WHERE lf.producto_id = p.id
-    ), 0)
-        - (c.a - COALESCE(SUM(ABS(lfm_limpia.diferencia)), 0)) AS discrepancia
+    ), 0) - (c.a + COALESCE(SUM(lfm_limpia.diferencia), 0)) AS discrepancia
 FROM productos p
 CROSS JOIN LATERAL (
     SELECT ai.created_at, item.a
@@ -297,10 +300,10 @@ CROSS JOIN LATERAL (
     LIMIT 1
 ) c
 LEFT JOIN (
+    -- TODOS los movimientos post-checkpoint deduplicados (entradas y salidas)
     SELECT DISTINCT ON (producto_id, creado_en, diferencia)
            producto_id, creado_en, diferencia
     FROM lotes_fifo_movimientos
-    WHERE diferencia < 0
 ) lfm_limpia
     ON lfm_limpia.producto_id = p.id
     AND lfm_limpia.creado_en >= c.created_at
@@ -308,21 +311,21 @@ GROUP BY p.sku, p.nombre, p.id, c.a, c.created_at
 
 UNION ALL
 
--- Productos SIN checkpoint (sin ningún ajuste con campo "a")
+-- Productos SIN checkpoint
 SELECT
     p.sku,
     p.nombre,
-    FALSE    AS tiene_checkpoint,
-    NULL     AS checkpoint,
-    NULL     AS fecha_checkpoint,
-    NULL     AS vendido_despues,
-    NULL     AS esperado,
+    FALSE AS tiene_checkpoint,
+    NULL  AS checkpoint,
+    NULL  AS fecha_checkpoint,
+    NULL  AS vendido_despues,
+    NULL  AS esperado,
     COALESCE((
         SELECT SUM(lf.cantidad_actual)
         FROM lotes_fifo lf
         WHERE lf.producto_id = p.id
-    ), 0)    AS actual,
-    NULL     AS discrepancia
+    ), 0) AS actual,
+    NULL  AS discrepancia
 FROM productos p
 WHERE NOT EXISTS (
     SELECT 1
@@ -334,3 +337,4 @@ WHERE NOT EXISTS (
 ORDER BY tiene_checkpoint DESC, sku;
 
 $func$;
+
