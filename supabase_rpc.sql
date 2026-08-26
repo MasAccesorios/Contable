@@ -246,9 +246,9 @@ $func$;
 --
 -- FIX 2026-08-25:
 --   ANTES: la consulta usaba una clave de costo en ajustes_inventario
---          y no deduplicaba lotes_fifo_movimientos, inflando salidas.
+--          y no deduplicaba lotes_fifo_movimientos, inflado salidas.
 --   AHORA: lee item.a via jsonb_to_recordset filtrando WHERE a IS NOT NULL,
---          y aplica DISTINCT ON(producto_id, creado_en, diferencia).
+--          y aplica DISTINCT ON(id), incluyendo origen_documento.
 -- ========================================================
 CREATE OR REPLACE FUNCTION get_reconciliacion_inventario()
 RETURNS TABLE (
@@ -273,8 +273,12 @@ SELECT
     TRUE  AS tiene_checkpoint,
     c.a   AS checkpoint,
     c.created_at AS fecha_checkpoint,
-    -- Solo salidas (diferencia negativa), deduplicadas
-    COALESCE(SUM(ABS(lfm_limpia.diferencia)) FILTER (WHERE lfm_limpia.diferencia < 0), 0) AS vendido_despues,
+    -- Solo salidas (diferencia negativa) excluyendo ajustes, deduplicadas
+    COALESCE(SUM(ABS(lfm_limpia.diferencia)) FILTER (
+        WHERE lfm_limpia.diferencia < 0
+          AND (lfm_limpia.origen_documento IS NULL
+               OR lfm_limpia.origen_documento NOT LIKE 'ajuste:%')
+    ), 0) AS vendido_despues,
     -- Neto desde el checkpoint: incluye entradas (+) y salidas (-)
     c.a + COALESCE(SUM(lfm_limpia.diferencia), 0) AS esperado,
     -- Stock físico real: suma de lotes_fifo activos
@@ -301,8 +305,8 @@ CROSS JOIN LATERAL (
 ) c
 LEFT JOIN (
     -- TODOS los movimientos post-checkpoint deduplicados (entradas y salidas)
-    SELECT DISTINCT ON (producto_id, creado_en, diferencia)
-           producto_id, creado_en, diferencia
+    SELECT DISTINCT ON (id)
+           id, producto_id, creado_en, diferencia, origen_documento
     FROM lotes_fifo_movimientos
 ) lfm_limpia
     ON lfm_limpia.producto_id = p.id
@@ -337,4 +341,3 @@ WHERE NOT EXISTS (
 ORDER BY tiene_checkpoint DESC, sku;
 
 $func$;
-
