@@ -270,13 +270,21 @@ AS $func$
 SELECT
     p.sku,
     p.nombre,
-    TRUE                                              AS tiene_checkpoint,
-    c.a                                               AS checkpoint,
-    c.created_at                                      AS fecha_checkpoint,
-    COALESCE(SUM(ABS(lfm_limpia.diferencia)), 0)      AS vendido_despues,
+    TRUE                                               AS tiene_checkpoint,
+    c.a                                                AS checkpoint,
+    c.created_at                                       AS fecha_checkpoint,
+    COALESCE(SUM(ABS(lfm_limpia.diferencia)), 0)       AS vendido_despues,
     c.a - COALESCE(SUM(ABS(lfm_limpia.diferencia)), 0) AS esperado,
-    p.stock::numeric                                  AS actual,
-    p.stock::numeric
+    COALESCE((
+        SELECT SUM(lf.cantidad_actual)
+        FROM lotes_fifo lf
+        WHERE lf.producto_id = p.id
+    ), 0)                                              AS actual,
+    COALESCE((
+        SELECT SUM(lf.cantidad_actual)
+        FROM lotes_fifo lf
+        WHERE lf.producto_id = p.id
+    ), 0)
         - (c.a - COALESCE(SUM(ABS(lfm_limpia.diferencia)), 0)) AS discrepancia
 FROM productos p
 CROSS JOIN LATERAL (
@@ -296,7 +304,7 @@ LEFT JOIN (
 ) lfm_limpia
     ON lfm_limpia.producto_id = p.id
     AND lfm_limpia.creado_en >= c.created_at
-GROUP BY p.sku, p.nombre, p.stock, c.a, c.created_at
+GROUP BY p.sku, p.nombre, p.id, c.a, c.created_at
 
 UNION ALL
 
@@ -309,7 +317,11 @@ SELECT
     NULL     AS fecha_checkpoint,
     NULL     AS vendido_despues,
     NULL     AS esperado,
-    p.stock::numeric AS actual,
+    COALESCE((
+        SELECT SUM(lf.cantidad_actual)
+        FROM lotes_fifo lf
+        WHERE lf.producto_id = p.id
+    ), 0)    AS actual,
     NULL     AS discrepancia
 FROM productos p
 WHERE NOT EXISTS (
