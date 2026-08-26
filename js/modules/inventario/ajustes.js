@@ -448,12 +448,19 @@ export const AjustesInventarioModule = {
                             hasErrors = true; return;
                         }
 
+                        const stockActualTxt = r.querySelector('.stock-actual-lbl').textContent;
+                        const stockActual = parseFloat(stockActualTxt) || 0;
+                        let stockResultante = stockActual;
+                        if (tipo === 'incremento') stockResultante += qty;
+                        else if (tipo === 'disminucion') stockResultante -= qty;
+
                         itemsAjuste.push({
                             productoId: pid,
                             nombre: pName,
                             tipo: tipo,
                             cantidad: qty,
-                            costo_unitario: tipo === 'incremento' ? costo : null
+                            costo_unitario: tipo === 'incremento' ? costo : null,
+                            a: stockResultante // <-- EL CHECKPOINT FÍSICO PARA LA AUDITORÍA
                         });
                     });
 
