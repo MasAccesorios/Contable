@@ -308,6 +308,7 @@ LEFT JOIN (
     SELECT DISTINCT ON (id)
            id, producto_id, creado_en, diferencia, origen_documento
     FROM lotes_fifo_movimientos
+    WHERE tipo_operacion <> 'update'
 ) lfm_limpia
     ON lfm_limpia.producto_id = p.id
     AND lfm_limpia.creado_en >= c.created_at
