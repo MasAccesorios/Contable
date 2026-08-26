@@ -307,8 +307,16 @@ LEFT JOIN (
     -- TODOS los movimientos post-checkpoint deduplicados (entradas y salidas)
     SELECT DISTINCT ON (id)
            id, producto_id, creado_en, diferencia, origen_documento
-    FROM lotes_fifo_movimientos
-    WHERE tipo_operacion <> 'update'
+    FROM lotes_fifo_movimientos lm1
+    WHERE NOT (
+        lm1.tipo_operacion = 'update'
+        AND EXISTS (
+            SELECT 1 FROM lotes_fifo_movimientos lm2
+            WHERE lm2.lote_id = lm1.lote_id
+              AND lm2.creado_en = lm1.creado_en
+              AND lm2.tipo_operacion <> 'update'
+        )
+    )
 ) lfm_limpia
     ON lfm_limpia.producto_id = p.id
     AND lfm_limpia.creado_en >= c.created_at
