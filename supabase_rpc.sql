@@ -1,7 +1,7 @@
 -- ========================================================
 -- RPCs de Supabase -- MAS Accesorios
 -- Proyecto: oejeqszwxuucgotvdrmk
--- Ultima actualizacion: 2026-08-18
+-- Ultima actualizacion: 2026-08-25
 -- NOTA: Este archivo es documentacion local.
 --       Para desplegar cambios, ejecutar en:
 --       Supabase Dashboard -> SQL Editor
@@ -229,4 +229,96 @@ BEGIN
 
     RETURN v_result;
 END;
+$func$;
+
+
+-- ========================================================
+-- 4. RPC: get_reconciliacion_inventario
+-- Calcula la reconciliacion de movimientos de inventario.
+-- Para cada producto con checkpoint (ultimo ajuste con campo
+-- "a" en su JSON de detalles), calcula:
+--   - vendido_despues : unidades salidas en lotes_fifo_movimientos
+--                       desde la fecha del checkpoint, usando
+--                       DISTINCT ON para evitar duplicados.
+--   - esperado        : checkpoint - vendido_despues
+--   - actual          : stock actual en productos.stock
+--   - discrepancia    : actual - esperado
+--
+-- FIX 2026-08-25:
+--   ANTES: la consulta usaba una clave de costo en ajustes_inventario
+--          y no deduplicaba lotes_fifo_movimientos, inflando salidas.
+--   AHORA: lee item.a via jsonb_to_recordset filtrando WHERE a IS NOT NULL,
+--          y aplica DISTINCT ON(producto_id, creado_en, diferencia).
+-- ========================================================
+CREATE OR REPLACE FUNCTION get_reconciliacion_inventario()
+RETURNS TABLE (
+    sku            text,
+    nombre         text,
+    tiene_checkpoint boolean,
+    checkpoint     numeric,
+    fecha_checkpoint timestamptz,
+    vendido_despues numeric,
+    esperado       numeric,
+    actual         numeric,
+    discrepancia   numeric
+)
+LANGUAGE sql
+SECURITY DEFINER
+AS $func$
+
+-- Productos CON checkpoint
+SELECT
+    p.sku,
+    p.nombre,
+    TRUE                                              AS tiene_checkpoint,
+    c.a                                               AS checkpoint,
+    c.created_at                                      AS fecha_checkpoint,
+    COALESCE(SUM(ABS(lfm_limpia.diferencia)), 0)      AS vendido_despues,
+    c.a - COALESCE(SUM(ABS(lfm_limpia.diferencia)), 0) AS esperado,
+    p.stock::numeric                                  AS actual,
+    p.stock::numeric
+        - (c.a - COALESCE(SUM(ABS(lfm_limpia.diferencia)), 0)) AS discrepancia
+FROM productos p
+CROSS JOIN LATERAL (
+    SELECT ai.created_at, item.a
+    FROM ajustes_inventario ai
+    CROSS JOIN LATERAL jsonb_to_recordset(ai.detalles) AS item(sku text, a numeric)
+    WHERE item.sku = p.sku
+      AND item.a IS NOT NULL
+    ORDER BY ai.created_at DESC
+    LIMIT 1
+) c
+LEFT JOIN (
+    SELECT DISTINCT ON (producto_id, creado_en, diferencia)
+           producto_id, creado_en, diferencia
+    FROM lotes_fifo_movimientos
+    WHERE diferencia < 0
+) lfm_limpia
+    ON lfm_limpia.producto_id = p.id
+    AND lfm_limpia.creado_en >= c.created_at
+GROUP BY p.sku, p.nombre, p.stock, c.a, c.created_at
+
+UNION ALL
+
+-- Productos SIN checkpoint (sin ningún ajuste con campo "a")
+SELECT
+    p.sku,
+    p.nombre,
+    FALSE    AS tiene_checkpoint,
+    NULL     AS checkpoint,
+    NULL     AS fecha_checkpoint,
+    NULL     AS vendido_despues,
+    NULL     AS esperado,
+    p.stock::numeric AS actual,
+    NULL     AS discrepancia
+FROM productos p
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM ajustes_inventario ai
+    CROSS JOIN LATERAL jsonb_to_recordset(ai.detalles) AS item(sku text, a numeric)
+    WHERE item.sku = p.sku
+      AND item.a IS NOT NULL
+)
+ORDER BY tiene_checkpoint DESC, sku;
+
 $func$;
