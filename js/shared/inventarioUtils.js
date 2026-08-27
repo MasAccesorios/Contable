@@ -81,7 +81,7 @@ export const InventarioUtils = {
             costoTotalVenta: response.costoTotalVenta || 0, 
             detallesActualizados: Array.isArray(response.detallesActualizados) && response.detallesActualizados.length > 0
                 ? response.detallesActualizados
-                : detallesOriginales,
+                : [...detallesOriginales],
             operacionesDB: [] // Las operaciones físicas ya se realizaron en el servidor
         };
     },
