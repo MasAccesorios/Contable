@@ -608,8 +608,8 @@ export const ComprasModule = {
             }
             
             // Fix backwards compatibility for converted cotizaciones
-            if (factura.contactoId && !factura.proveedorId) {
-                factura.proveedorId = factura.contactoId;
+            if (factura.clienteId && !factura.proveedorId) {
+                factura.proveedorId = factura.clienteId;
             }
             if (!factura.numero) {
                 factura.numero = Math.floor(Math.random() * 9000) + 1000;
