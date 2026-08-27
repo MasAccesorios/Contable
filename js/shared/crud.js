@@ -154,12 +154,13 @@ export const CoreActions = {
                     : (cotizacion.detalles || [])
                 ).map((det, i) => {
                     const cantidad   = parseFloat(det.cantidad) || 0;
-                    const precio     = parseFloat(det.precio || det.precio_unitario) || 0;
-                    const descuento  = parseFloat(det.descuento || det.descuento_porcentaje) || 0;
+                    const precio     = parseFloat(det.precio || det.precio_unitario || cotizacion.detalles[i]?.precio || cotizacion.detalles[i]?.precio_unitario) || 0;
+                    const descuento  = parseFloat(det.descuento || det.descuento_porcentaje || cotizacion.detalles[i]?.descuento || cotizacion.detalles[i]?.descuento_porcentaje) || 0;
                     const base       = cantidad * precio;
                     const calculado  = base - (base * (descuento / 100));
                     // Usar el subtotal almacenado si es válido y > 0; de lo contrario, calcular.
-                    const subtotal   = parseFloat(det.subtotal) > 0 ? parseFloat(det.subtotal) : calculado;
+                    const subtotalOrig = parseFloat(det.subtotal || cotizacion.detalles[i]?.subtotal);
+                    const subtotal   = subtotalOrig > 0 ? subtotalOrig : calculado;
                     return {
                         producto_id: parseInt(det.productoId || det.producto_id, 10) || null,
                         cantidad,
