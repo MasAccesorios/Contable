@@ -1172,38 +1172,33 @@ export const ComprasModule = {
                     factura.total = rawTotal;
 
                     let savedFactura;
-                    if (!factura.numero) {
-                        savedFactura = await DB.saveWithNextNumero('facturas', factura);
-                    } else {
-                        savedFactura = await DB.save('facturas', factura);
-                    }
-                    
-                    factura.id = savedFactura.id;
-                    factura.numero = savedFactura.numero;
-
-                    // INVENTARIO: Generar lotes_fifo para facturas nuevas
                     if (isNew) {
-                        try {
-                            const lotes = arrDetalles.map(d => ({
-                                producto_id: d.productoId,
-                                cantidad_inicial: d.cantidad,
-                                cantidad_actual: d.cantidad,
-                                costo_unitario: d.precio, 
-                                fecha_ingreso: factura.fecha,
-                                referencia: `Factura Compra ${factura.numero}`,
-                                origen_movimiento: 'compra:' + (factura.numero || savedFactura.numero)
-                            }));
-                            
-                            const { error: lotesError } = await supabase.from('lotes_fifo').insert(lotes);
-                            
-                            if (lotesError) throw lotesError;
-                        } catch (invErr) {
-                            console.error("Error crítico al guardar inventario:", invErr);
-                            CoreActions.showWarningModal(`La factura ${factura.numero} se guardó, pero hubo un error al actualizar el inventario (lotes_fifo). Por favor contacta a soporte. Detalle: ${invErr.message}`);
-                            btnGuardar.disabled = false;
-                            btnGuardar.innerHTML = originalText;
-                            return; 
-                        }
+                        // Compra nueva: RPC atómico (cabecera + detalles + inventario en una sola transacción)
+                        const detallesRpc = arrDetalles.map(d => ({
+                            producto_id: parseInt(d.productoId, 10),
+                            cantidad: d.cantidad,
+                            precio_unitario: d.precio,
+                            descuento_porcentaje: d.descuento,
+                            subtotal: (d.cantidad * d.precio) - ((d.cantidad * d.precio) * (d.descuento / 100))
+                        }));
+
+                        const { data: rpcResult, error: rpcErr } = await supabase.rpc('guardar_factura_compra_con_inventario', {
+                            p_header: {
+                                fecha: factura.fecha,
+                                vencimiento: factura.vencimiento,
+                                contacto_id: factura.contacto_id,
+                                total: factura.total,
+                                estado: factura.estado,
+                                observaciones: factura.observaciones
+                            },
+                            p_detalles: detallesRpc
+                        });
+
+                        if (rpcErr) throw new Error("Error al guardar factura de compra: " + rpcErr.message);
+                        savedFactura = rpcResult;
+                    } else {
+                        // Edición de compra existente: solo cabecera + detalles, sin tocar inventario (comportamiento actual)
+                        savedFactura = await DB.save('facturas', factura);
                     }
 
                     // Condicional Contado vs Crédito
