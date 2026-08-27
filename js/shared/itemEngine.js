@@ -261,14 +261,28 @@ export const ItemEngine = {
         return tr;
     },
 
+    formatMoney(val) {
+        return '$' + val.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    },
+
+    reindexRows(tbody) {
+        let count = 0;
+        tbody.querySelectorAll('tr').forEach(tr => {
+            count++;
+            const cell = tr.querySelector('.num-linea');
+            if (cell) cell.textContent = count;
+        });
+        return count;
+    },
+
     calcEngine(options) {
         const {
             tbody,
             element,
-            factura,
-            formatMoney
+            factura
         } = options;
 
+        const fmt_money = this.formatMoney.bind(this);
         let sumSubtotal = 0;
         let sumDescuento = 0;
         let sumImpuestos = 0;
@@ -287,9 +301,7 @@ export const ItemEngine = {
                 const taxAmount = subLine * (taxPct / 100);
 
                 const subtotalEl = tr.querySelector('.calc-subtotal');
-                if (subtotalEl && formatMoney) {
-                    subtotalEl.textContent = formatMoney(subLine);
-                }
+                if (subtotalEl) subtotalEl.textContent = fmt_money(subLine);
 
                 sumSubtotal += baseLine;
                 sumDescuento += discAmount;
@@ -298,17 +310,17 @@ export const ItemEngine = {
 
             const totalFinal = sumSubtotal - sumDescuento + sumImpuestos;
             
-            if (element && formatMoney) {
+            if (element) {
                 const elSubtotal = element.querySelector('#tot-subtotal');
                 const elDescuento = element.querySelector('#tot-descuento');
                 const elImpuestos = element.querySelector('#tot-impuestos');
                 const elTotal = element.querySelector('#tot-total');
 
-                if (elSubtotal) elSubtotal.textContent = formatMoney(sumSubtotal);
-                if (elDescuento) elDescuento.textContent = formatMoney(sumDescuento);
-                if (elImpuestos) elImpuestos.textContent = formatMoney(sumImpuestos);
+                if (elSubtotal) elSubtotal.textContent = fmt_money(sumSubtotal);
+                if (elDescuento) elDescuento.textContent = fmt_money(sumDescuento);
+                if (elImpuestos) elImpuestos.textContent = fmt_money(sumImpuestos);
                 if (elTotal) {
-                    elTotal.textContent = formatMoney(totalFinal);
+                    elTotal.textContent = fmt_money(totalFinal);
                     elTotal.dataset.rawTotal = totalFinal.toString();
                 }
             }

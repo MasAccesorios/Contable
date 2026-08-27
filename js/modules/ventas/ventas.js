@@ -915,22 +915,15 @@ export const FacturasModule = {
 
         // Reindexador de numerales
         const reindexRows = () => {
-            contadorLineas = 0;
-            tbody.querySelectorAll('tr').forEach(tr => {
-                contadorLineas++;
-                tr.querySelector('.num-linea').textContent = contadorLineas;
-            });
+            contadorLineas = ItemEngine.reindexRows(tbody);
         };
 
-        // Motor Matemático (Dynamic Pricing & Totals)
-        const formatMoney = (val) => '$' + val.toLocaleString('es-CO', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-        
+        // Motor Matemático (Dynamic Pricing & Totals) — formatMoney vive en ItemEngine.formatMoney
         const calcEngine = () => {
             ItemEngine.calcEngine({
                 tbody,
                 element,
-                factura,
-                formatMoney
+                factura
             });
         };
 
