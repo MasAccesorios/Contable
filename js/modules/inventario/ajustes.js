@@ -423,13 +423,11 @@ export const AjustesInventarioModule = {
                     const btnGuardar = e.currentTarget;
                     const fecha = element.querySelector('#ajuste-fecha').value;
                     const obs = element.querySelector('#ajuste-observaciones').value;
-                    
-                    if (!fecha) return CoreActions.showWarningModal("La fecha es obligatoria");
 
+                    if (!fecha) return CoreActions.showWarningModal("La fecha es obligatoria");
                     const rows = tbody.querySelectorAll('.item-row');
                     const itemsAjuste = [];
                     let hasErrors = false;
-
                     rows.forEach(r => {
                         const pid = r.querySelector('.input-prod-id').value;
                         const pName = r.querySelector('.input-prod-search').value;
@@ -437,23 +435,20 @@ export const AjustesInventarioModule = {
                         const qty = parseFloat(r.querySelector('.input-cantidad').value);
                         const costoRaw = r.querySelector('.input-costo').value.replace(/[^0-9.-]+/g,"");
                         const costo = parseFloat(costoRaw);
+                        if (!pid) return;
 
-                        if (!pid) return; // Skip empty rows
-                        
                         if (!tipo) { CoreActions.showWarningModal(`Selecciona el tipo de ajuste para ${pName}`); hasErrors = true; return; }
                         if (isNaN(qty) || qty <= 0) { CoreActions.showWarningModal(`Cantidad inválida en ${pName}`); hasErrors = true; return; }
-                        
+
                         if (tipo === 'incremento' && (isNaN(costo) || costo < 0)) {
                             CoreActions.showWarningModal(`Ingresa el costo unitario para el incremento de ${pName}`);
                             hasErrors = true; return;
                         }
-
                         const stockActualTxt = r.querySelector('.stock-actual-lbl').textContent;
                         const stockActual = parseFloat(stockActualTxt) || 0;
                         let stockResultante = stockActual;
                         if (tipo === 'incremento') stockResultante += qty;
                         else if (tipo === 'disminucion') stockResultante -= qty;
-
                         itemsAjuste.push({
                             productoId: pid,
                             producto_id: pid,
@@ -461,103 +456,40 @@ export const AjustesInventarioModule = {
                             tipo: tipo,
                             cantidad: qty,
                             costo_unitario: tipo === 'incremento' ? costo : null,
-                            a: stockResultante // <-- EL CHECKPOINT FÍSICO PARA LA AUDITORÍA
+                            a: stockResultante
                         });
                     });
-
                     if (hasErrors) return;
                     if (itemsAjuste.length === 0) return CoreActions.showWarningModal("Agrega al menos un ítem al ajuste");
-
                     btnGuardar.disabled = true;
                     btnGuardar.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Guardando...`;
-
                     try {
-                        // 1. Obtener Siguiente Número (Si falla, hacemos fallback a un hash)
                         let nextNumero = ajuste.numero;
                         if (nextNumero === 'Auto') {
                             const { data: numData } = await supabase.rpc('get_next_sequence_value', { seq_name: 'ajustes_inventario_seq' });
                             nextNumero = numData || Date.now();
                         }
 
-                        // 2. Procesar Inventario Híbrido
-                        const itemsIncremento = itemsAjuste.filter(i => i.tipo === 'incremento');
-                        const itemsDisminucion = itemsAjuste.filter(i => i.tipo === 'disminucion');
+                        const itemsIncremento = itemsAjuste
+                            .filter(i => i.tipo === 'incremento')
+                            .map(i => ({ producto_id: parseInt(i.producto_id, 10), cantidad: i.cantidad, costo_unitario: i.costo_unitario }));
+                        const itemsDisminucion = itemsAjuste
+                            .filter(i => i.tipo === 'disminucion')
+                            .map(i => ({ producto_id: parseInt(i.producto_id, 10), cantidad: i.cantidad }));
 
-                        let planDisminucion = null;
+                        const { data: result, error: rpcErr } = await supabase.rpc('guardar_ajuste_inventario', {
+                            p_numero: nextNumero,
+                            p_fecha: fecha,
+                            p_observaciones: obs,
+                            p_detalles: itemsAjuste,
+                            p_items_incremento: itemsIncremento,
+                            p_items_disminucion: itemsDisminucion
+                        });
 
-                        // FASE 1: Simulación de salida (READ ONLY)
-                        if (itemsDisminucion.length > 0) {
-                            planDisminucion = await InventarioUtils.calcularSalidaInventario(itemsDisminucion);
-                            if (!planDisminucion.success) throw new Error("Error en Disminución: " + planDisminucion.error);
-                            
-                            // Re-asignamos costos calculados por FIFO a nuestro historial
-                            itemsDisminucion.forEach((item, idx) => {
-                                const actualizado = planDisminucion.detallesActualizados.find(d => String(d.productoId) === String(item.productoId) && d.cantidad === item.cantidad);
-                                if (actualizado) {
-                                    item.costo_unitario = (actualizado.costoTotalCalculado / item.cantidad) || 0;
-                                }
-                            });
-                        }
-
-                        // FASE 2: Guardar documento principal (Ajuste)
-                        const payload = {
-                            numero: nextNumero,
-                            fecha: fecha,
-                            observaciones: obs,
-                            detalles: itemsAjuste
-                        };
-
-                        // Se usa .select().single() para obtener el ID en caso de necesitar rollback
-                        const { data: hdrData, error: hdrErr } = await supabase.from('ajustes_inventario').insert([payload]).select().single();
-                        if (hdrErr) throw new Error("Fallo al guardar el ajuste de inventario: " + hdrErr.message);
-                        const ajusteId = hdrData.id;
-
-                        // FASE 3: Modificar Inventario Físico con Rollback de seguridad
-                        let idsLotesIncrementoInsertados = [];
-
-                        try {
-                            // 3.1 PRIMERO: Inserts de Incrementos (Riesgo bajo, reversión fácil)
-                            if (itemsIncremento.length > 0) {
-                                const lotesInsert = itemsIncremento.map(item => ({
-                                    producto_id: item.productoId,
-                                    cantidad_inicial: item.cantidad,
-                                    cantidad_actual: item.cantidad,
-                                    costo_unitario: item.costo_unitario,
-                                    fecha_ingreso: fecha,
-                                    referencia: `Ajuste de Inventario #${nextNumero}`
-                                }));
-                                
-                                // Usamos select() para obtener los IDs reales en caso de necesitar rollback
-                                const { data: lotesGuardados, error: insErr } = await supabase.from('lotes_fifo').insert(lotesInsert).select();
-                                if (insErr) throw new Error("Fallo al insertar lote de incremento: " + insErr.message);
-                                
-                                idsLotesIncrementoInsertados = lotesGuardados.map(l => l.id);
-                            }
-
-                            // 3.2 SEGUNDO: Disminuciones FIFO (Riesgo alto, toca lotes existentes)
-                            if (itemsDisminucion.length > 0 && planDisminucion) {
-                                const origenDoc = 'ajuste:' + nextNumero;
-                                await InventarioUtils.ejecutarPlanInventario(planDisminucion.operacionesDB, origenDoc);
-                            }
-
-                        } catch (invErr) {
-                            // ROLLBACK COMPENSATORIO TOTAL
-                            console.error("Fallo crítico ajustando inventario físico post-registro. Revirtiendo...", invErr);
-                            
-                            // A. Revertir los incrementos (si llegaron a insertarse)
-                            if (idsLotesIncrementoInsertados.length > 0) {
-                                await supabase.from('lotes_fifo').delete().in('id', idsLotesIncrementoInsertados);
-                            }
-
-                            // B. Revertir la cabecera del ajuste
-                            await supabase.from('ajustes_inventario').delete().eq('id', ajusteId);
-                            
-                            throw new Error("El ajuste falló al mover el inventario físico. Se ha revertido por completo por seguridad. Intente de nuevo.");
-                        }
+                        if (rpcErr) throw new Error("Fallo al guardar el ajuste de inventario: " + rpcErr.message);
 
                         CoreActions.showSuccessModal("Ajuste de inventario guardado correctamente.");
                         window.location.hash = '#/inventario/ajustes';
-
                     } catch (err) {
                         console.error("Error guardando ajuste:", err);
                         CoreActions.showErrorModal(err.message);
