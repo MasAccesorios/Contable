@@ -1028,7 +1028,7 @@ export const ContactosModule = {
 
             try {
                 // Check for duplicates
-                const { data: existing } = await DB.client.from('contactos')
+                const { data: existing } = await supabase.from('contactos')
                     .select('id').eq('identificacion', nuevoContacto.nit).single();
 
                 if (existing) throw new Error('Ya existe un contacto con esta identificación');
