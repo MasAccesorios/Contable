@@ -941,13 +941,8 @@ export const NotasCreditoModule = {
                         // 2. Obtener num NC (si es creación)
                         let ncNumero = isEditMode ? nota.numero : 1;
                         if (!isEditMode) {
-                            const { data: seqData, error: seqError } = await supabase.rpc('execute_sql', { sql_query: "SELECT nextval('notas_credito_seq');" });
-                            if (!seqError && seqData && seqData.length > 0) {
-                                ncNumero = parseInt(seqData[0].nextval);
-                            } else {
-                                const { data: maxNc } = await supabase.from('notas_credito').select('numero').order('numero', { ascending: false }).limit(1);
-                                ncNumero = (maxNc && maxNc.length > 0 && maxNc[0].numero) ? maxNc[0].numero + 1 : 1;
-                            }
+                            const { data: numData } = await supabase.rpc('get_next_sequence_value', { seq_name: 'notas_credito_seq' });
+                            ncNumero = numData || Date.now();
                         }
 
                         let ncId = isEditMode ? nota.id : null;
