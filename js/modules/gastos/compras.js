@@ -893,20 +893,23 @@ export const ComprasModule = {
             // Delegar Eventos Principales al Motor Global (Auto-Pricing y Metadatos)
             ItemEngine.bindLineEvents(tr, () => calcEngine(), productosFactura, { isCompra: true, onCrearProducto: ComprasModule.crearProductoRapido.bind(ComprasModule) });
 
-            if (!isViewOnly) {
-                // Disparadores locales del Math Engine
-                const inpQty = tr.querySelector('.input-qty');
-                const inpPrice = tr.querySelector('.input-price');
-                const inpDisc = tr.querySelector('.input-disc');
-                const inpTax = tr.querySelector('.input-tax');
+            const inpPrice = tr.querySelector('.input-price');
+            
+            import('../../shared/formatters.js').then(fmt => {
+                fmt.applyCurrencyFormatting(inpPrice);
                 
-                import('../../shared/formatters.js').then(fmt => {
-                    fmt.applyCurrencyFormatting(inpPrice);
+                if (!isViewOnly) {
+                    const inpQty = tr.querySelector('.input-qty');
+                    const inpDisc = tr.querySelector('.input-disc');
+                    const inpTax = tr.querySelector('.input-tax');
+                    
                     [inpQty, inpPrice, inpDisc, inpTax].forEach(el => {
                         el.addEventListener('input', () => calcEngine());
                     });
-                });
+                }
+            });
 
+            if (!isViewOnly) {
                 // Eliminar línea
                 tr.querySelector('.btn-eliminar-linea').addEventListener('click', () => {
                     tr.remove();
@@ -1189,6 +1192,7 @@ export const ComprasModule = {
 
                         if (rpcErr) throw new Error("Error al guardar factura de compra: " + rpcErr.message);
                         savedFactura = rpcResult;
+                        factura.id = savedFactura.id;
                     } else {
                         // Edición de compra existente: solo cabecera + detalles, sin tocar inventario (comportamiento actual)
                         savedFactura = await DB.save('facturas', factura);
