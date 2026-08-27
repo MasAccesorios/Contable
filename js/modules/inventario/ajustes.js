@@ -456,6 +456,7 @@ export const AjustesInventarioModule = {
 
                         itemsAjuste.push({
                             productoId: pid,
+                            producto_id: pid,
                             nombre: pName,
                             tipo: tipo,
                             cantidad: qty,
