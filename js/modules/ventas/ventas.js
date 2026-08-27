@@ -1192,6 +1192,7 @@ export const FacturasModule = {
                         return {
                             id: r.dataset.uid,
                             productoId: parseInt(r.querySelector('.input-prod-id').value),
+                            descripcionPersonalizada: r.querySelector('.input-prod-desc')?.value || '',
                             cantidad: parseFloat(r.querySelector('.input-qty').value) || 0,
                             precio: parseP(r.querySelector('.input-price').value),
                             descuento: parseFloat(r.querySelector('.input-disc').value) || 0,
@@ -1280,7 +1281,7 @@ export const FacturasModule = {
                                     precio_unitario: det.precio,
                                     descuento_porcentaje: det.descuento,
                                     subtotal: sub,
-                                    descripcion_personalizada: ''
+                                    descripcion_personalizada: det.descripcionPersonalizada || det.descripcion_personalizada || ''
                                 };
                             }),
                             p_operaciones_fifo: planInventario.operacionesDB.map(op => ({
@@ -1332,7 +1333,7 @@ export const FacturasModule = {
                                 precio_unitario: det.precio,
                                 descuento_porcentaje: det.descuento,
                                 subtotal: sub,
-                                descripcion_personalizada: ''
+                                descripcion_personalizada: det.descripcionPersonalizada || det.descripcion_personalizada || ''
                             };
                         });
 
