@@ -28,6 +28,26 @@ export const UI = {
         return data || [];
     },
 
+    async fetchContactosCombobox(query, tipoFiltro = null) {
+        const { supabase } = await import('../core/supabase.js');
+        let dbQuery = supabase
+            .from('contactos')
+            .select('id, nombre, identificacion, plazos_pago, vendedor_id')
+            .neq('estado', 'inactive')
+            .or(`nombre.ilike.%${query}%,identificacion.ilike.%${query}%`)
+            .limit(20);
+            
+        if (tipoFiltro === 'cliente') dbQuery = dbQuery.eq('es_cliente', true);
+        if (tipoFiltro === 'proveedor') dbQuery = dbQuery.eq('tipo', 'proveedor');
+
+        const { data, error } = await dbQuery;
+        if (error) {
+            console.error('Error fetching contactos combobox:', error);
+            return [];
+        }
+        return data ? data.map(d => ({ ...d, nit: d.identificacion, plazosPago: d.plazos_pago })) : [];
+    },
+
 
     /**
      * @param {Object} options

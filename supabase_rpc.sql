@@ -350,3 +350,122 @@ WHERE NOT EXISTS (
 ORDER BY tiene_checkpoint DESC, sku;
 
 $func$;
+
+
+-- ========================================================
+-- 5. RPC: guardar_factura_compra_con_inventario
+-- Guarda una factura de COMPRA nueva junto con sus detalles
+-- y los lotes_fifo correspondientes, todo en una sola
+-- transacción atómica.
+--
+-- Parámetros:
+--   p_header  jsonb  → campos de cabecera de la factura
+--   p_detalles jsonb → array de líneas de detalle
+--
+-- Devuelve jsonb con { id, numero } para que el frontend
+-- pueda asignar factura.id y factura.numero.
+--
+-- p_header esperado:
+--   {
+--     "fecha":        "2026-08-26",
+--     "vencimiento":  "2026-09-26",   -- opcional
+--     "contacto_id":  123,
+--     "total":        500000,
+--     "estado":       "por_pagar",    -- opcional, default 'por_pagar'
+--     "observaciones": "..."          -- opcional
+--   }
+--
+-- p_detalles esperado (array):
+--   [
+--     {
+--       "producto_id":          5,
+--       "cantidad":             10,
+--       "precio_unitario":      50000,
+--       "descuento_porcentaje": 0,
+--       "subtotal":             500000
+--     },
+--     ...
+--   ]
+-- ========================================================
+CREATE OR REPLACE FUNCTION guardar_factura_compra_con_inventario(
+    p_header   jsonb,
+    p_detalles jsonb
+) RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $func$
+DECLARE
+    v_id      bigint;
+    v_numero  bigint;
+    v_result  jsonb;
+    v_fecha   date;
+BEGIN
+    -- 1. Número de documento (secuencia compartida con ventas/cotizaciones)
+    v_numero := nextval('documentos_numero_seq');
+    v_fecha  := (p_header->>'fecha')::date;
+
+    -- 2. Insertar cabecera en facturas (tipo = 'compra')
+    INSERT INTO facturas (
+        numero,
+        fecha,
+        vencimiento,
+        contacto_id,
+        total,
+        estado,
+        tipo,
+        observaciones
+    ) VALUES (
+        v_numero,
+        v_fecha,
+        NULLIF(p_header->>'vencimiento', '')::date,
+        (p_header->>'contacto_id')::bigint,
+        (p_header->>'total')::numeric,
+        COALESCE(NULLIF(p_header->>'estado', ''), 'por_pagar'),
+        'compra',
+        p_header->>'observaciones'
+    )
+    RETURNING id INTO v_id;
+
+    -- 3. Insertar detalles en factura_detalles
+    INSERT INTO factura_detalles (
+        factura_id,
+        producto_id,
+        cantidad,
+        precio_unitario,
+        descuento_porcentaje,
+        subtotal
+    )
+    SELECT
+        v_id,
+        (det->>'producto_id')::bigint,
+        (det->>'cantidad')::numeric,
+        (det->>'precio_unitario')::numeric,
+        COALESCE((det->>'descuento_porcentaje')::numeric, 0),
+        (det->>'subtotal')::numeric
+    FROM jsonb_array_elements(p_detalles) AS det;
+
+    -- 4. Insertar lotes FIFO (uno por línea de detalle)
+    INSERT INTO lotes_fifo (
+        producto_id,
+        cantidad_inicial,
+        cantidad_actual,
+        costo_unitario,
+        fecha_ingreso,
+        referencia,
+        origen_movimiento
+    )
+    SELECT
+        (det->>'producto_id')::bigint,
+        (det->>'cantidad')::numeric,
+        (det->>'cantidad')::numeric,
+        (det->>'precio_unitario')::numeric,
+        v_fecha,
+        'Factura Compra ' || v_numero,
+        'compra:' || v_numero
+    FROM jsonb_array_elements(p_detalles) AS det;
+
+    -- 5. Devolver id y numero para que el JS los asigne a factura.id / factura.numero
+    v_result := jsonb_build_object('id', v_id, 'numero', v_numero);
+    RETURN v_result;
+END;
+$func$;

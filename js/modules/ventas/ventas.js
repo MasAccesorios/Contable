@@ -1045,15 +1045,7 @@ export const FacturasModule = {
             UI.createAsyncCombobox({
                 inputEl: element.querySelector('#search-cliente'),
                 hiddenIdEl: element.querySelector('#select-cliente'),
-                fetchItems: async (query) => {
-                    const { data } = await supabase.from('contactos')
-                        .select('id, nombre, identificacion, plazos_pago, vendedor_id')
-                        .eq('es_cliente', true)
-                        .neq('estado', 'inactive')
-                        .or(`nombre.ilike.%${query}%,identificacion.ilike.%${query}%`)
-                        .limit(20);
-                    return data ? data.map(d => ({ ...d, nit: d.identificacion, plazosPago: d.plazos_pago })) : [];
-                },
+                fetchItems: (query) => UI.fetchContactosCombobox(query, 'cliente'),
                 displayProp: 'nombre',
                 allowCreate: true,
                 onSelect: (selectedItem) => {

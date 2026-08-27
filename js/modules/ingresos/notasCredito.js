@@ -411,8 +411,13 @@ export const NotasCreditoModule = {
             }
 
             let productosMap = {};
-            const { data: prods } = await supabase.from('productos').select('id, nombre');
-            prods?.forEach(p => productosMap[p.id] = p.nombre);
+            if (detallesNota.length > 0) {
+                const pIds = [...new Set(detallesNota.map(d => parseInt(d.producto_id, 10)).filter(id => !isNaN(id) && id > 0))];
+                if (pIds.length > 0) {
+                    const { data: prods } = await supabase.from('productos').select('id, nombre').in('id', pIds);
+                    prods?.forEach(p => productosMap[p.id] = p.nombre);
+                }
+            }
 
             let headerTitle = id ? (EstadoUtils.estaAnulado(nota.estado) ? 'Nota de Crédito (ANULADA)' : 'Detalle de Nota de Crédito') : 'Nueva Nota de Crédito';
             let headerSubtitle = id ? 'NC-' + (nota.numero || nota.id) : 'Crear documento de devolución';
