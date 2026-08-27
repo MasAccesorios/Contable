@@ -917,7 +917,7 @@ export const NotasCreditoModule = {
                         if (errCartera) throw new Error("Error consultando cartera para validación de saldo: " + errCartera.message);
                         
                         const facturaCartera = cartera?.find(c => c.id === currentFactura.id);
-                        const saldoPendienteActual = facturaCartera ? parseFloat(facturaCartera.saldo_pendiente) : 0;
+                        const saldoPendienteActual = facturaCartera ? parseFloat(facturaCartera.saldo) : 0;
                         const totalAnterior = isEditMode ? parseFloat(nota.total) : 0;
                         const saldoDisponibleReal = saldoPendienteActual + totalAnterior;
                         
