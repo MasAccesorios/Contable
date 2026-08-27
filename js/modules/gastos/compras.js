@@ -1136,6 +1136,7 @@ export const ComprasModule = {
                         return {
                             id: r.dataset.uid,
                             productoId: parseInt(r.querySelector('.input-prod-id').value),
+                            descripcionPersonalizada: r.querySelector('.input-prod-desc')?.value || '',
                             cantidad: parseFloat(r.querySelector('.input-qty').value) || 0,
                             precio: parseP(r.querySelector('.input-price').value),
                             descuento: parseFloat(r.querySelector('.input-disc').value) || 0,
@@ -1167,6 +1168,7 @@ export const ComprasModule = {
                         // Compra nueva: RPC atómico (cabecera + detalles + inventario en una sola transacción)
                         const detallesRpc = arrDetalles.map(d => ({
                             producto_id: parseInt(d.productoId, 10),
+                            descripcion_personalizada: d.descripcionPersonalizada || '',
                             cantidad: d.cantidad,
                             precio_unitario: d.precio,
                             descuento_porcentaje: d.descuento,
