@@ -162,5 +162,160 @@ export const ItemEngine = {
                 }
             });
         });
+    },
+
+    addRow(options) {
+        const {
+            detalle,
+            tbody,
+            isViewOnly,
+            productosFactura,
+            contadorLineas,
+            calcEngine,
+            reindexRows,
+            isCompra = false,
+            onCrearProducto = null,
+        } = options;
+
+        const tr = document.createElement('tr');
+        tr.dataset.uid = detalle.id;
+        tr.style.borderBottom = '1px solid var(--border-color)';
+        tr.innerHTML = `
+            <td class="text-muted text-center num-linea align-top pt-3">${contadorLineas}</td>
+            <td class="align-top">
+                ${this.renderProductSearchBox(detalle, productosFactura, isViewOnly)}
+                <div class="meta-prod ps-1"></div>
+            </td>
+            <td class="align-top">
+                <input type="number" min="0" class="form-control form-control-sm border-0 bg-light input-qty mb-1" value="${detalle.cantidad}" ${isViewOnly ? 'disabled' : ''}>
+                <div class="meta-qty ps-1"></div>
+            </td>
+            <td class="align-top"><input type="text" class="form-control form-control-sm border-0 bg-light input-price" value="${detalle.precio}" placeholder="$" ${isViewOnly ? 'disabled' : ''}></td>
+            <td class="align-top"><input type="number" step="any" min="0" max="100" class="form-control form-control-sm border-0 bg-light input-disc" value="${detalle.descuento}" placeholder="0 %" ${isViewOnly ? 'disabled' : ''}></td>
+            <td class="align-top"><input type="number" step="any" min="0" max="100" class="form-control form-control-sm border-0 bg-light input-tax" value="${detalle.impuesto}" placeholder="%" ${isViewOnly ? 'disabled' : ''}></td>
+            <td class="text-end align-top pt-3">
+                <span class="calc-subtotal fw-bold d-block" style="color: var(--text-main);">$0,00</span>
+                <a href="#" class="toggle-desc-tax d-md-none text-decoration-none mt-2 d-inline-block" style="font-size: var(--fs-xs); color: var(--primary);">+ Editar descuento/impuesto</a>
+            </td>
+            <td class="text-center align-top pt-2">
+                ${!isViewOnly ? `<button class="btn btn-link text-muted p-0 btn-eliminar-linea">
+                    <i class="bi bi-trash"></i>
+                </button>` : ''}
+            </td>
+        `;
+        tbody.appendChild(tr);
+
+        // Toggle Descuento/Impuesto móvil
+        const toggleDesc = tr.querySelector('.toggle-desc-tax');
+        if (toggleDesc) {
+            toggleDesc.addEventListener('click', (e) => {
+                e.preventDefault();
+                tr.classList.toggle('show-discount-tax');
+                toggleDesc.textContent = tr.classList.contains('show-discount-tax') ? '- Ocultar descuento/impuesto' : '+ Editar descuento/impuesto';
+            });
+        }
+
+        // Delegar Eventos Principales al Motor Global (Auto-Pricing y Metadatos)
+        let bindEventsOptions = { isCompra: isCompra };
+        if (onCrearProducto) bindEventsOptions.onCrearProducto = onCrearProducto;
+
+        this.bindLineEvents(tr, () => calcEngine(), productosFactura, bindEventsOptions);
+
+        const inpPrice = tr.querySelector('.input-price');
+        
+        import('./formatters.js').then(fmt => {
+            fmt.applyCurrencyFormatting(inpPrice);
+            
+            if (!isViewOnly) {
+                const inpQty = tr.querySelector('.input-qty');
+                const inpDisc = tr.querySelector('.input-disc');
+                const inpTax = tr.querySelector('.input-tax');
+                
+                [inpQty, inpPrice, inpDisc, inpTax].forEach(el => {
+                    el.addEventListener('input', () => calcEngine());
+                });
+            }
+        });
+
+        if (!isViewOnly) {
+            // Eliminar línea
+            tr.querySelector('.btn-eliminar-linea').addEventListener('click', () => {
+                tr.remove();
+                if (reindexRows) reindexRows();
+                calcEngine();
+            });
+        }
+
+        // Render inicial si había producto seleccionado (Edición)
+        if (detalle.productoId) {
+            // Forzar re-cálculo visual inicial si es necesario
+            const metaProd = tr.querySelector('.meta-prod');
+            const metaQty = tr.querySelector('.meta-qty');
+            const prod = productosFactura.find(p => p.id === detalle.productoId);
+            if (prod) {
+                if (metaProd) metaProd.innerHTML = `<span style="color: var(--text-muted); font-size: var(--fs-xs);">${prod.sku || 'S/N'}</span>`;
+                if (metaQty) metaQty.innerHTML = `<span style="color: var(--text-muted); font-size: var(--fs-xs);">Disp: ${prod.stockActual || prod.cantidad || 0}</span>`;
+            }
+        }
+        
+        return tr;
+    },
+
+    calcEngine(options) {
+        const {
+            tbody,
+            element,
+            factura,
+            formatMoney
+        } = options;
+
+        let sumSubtotal = 0;
+        let sumDescuento = 0;
+        let sumImpuestos = 0;
+        const formRows = Array.from(tbody.querySelectorAll('tr'));
+        
+        import('./formatters.js').then(fmt => {
+            formRows.forEach(tr => {
+                const qty = parseFloat(tr.querySelector('.input-qty').value || 0);
+                const price = fmt.parseCurrencyValue(tr.querySelector('.input-price').value);
+                const discPct = parseFloat(tr.querySelector('.input-disc').value || 0);
+                const taxPct = parseFloat(tr.querySelector('.input-tax').value || 0);
+
+                const baseLine = qty * price;
+                const discAmount = baseLine * (discPct / 100);
+                const subLine = baseLine - discAmount;
+                const taxAmount = subLine * (taxPct / 100);
+
+                const subtotalEl = tr.querySelector('.calc-subtotal');
+                if (subtotalEl && formatMoney) {
+                    subtotalEl.textContent = formatMoney(subLine);
+                }
+
+                sumSubtotal += baseLine;
+                sumDescuento += discAmount;
+                sumImpuestos += taxAmount;
+            });
+
+            const totalFinal = sumSubtotal - sumDescuento + sumImpuestos;
+            
+            if (element && formatMoney) {
+                const elSubtotal = element.querySelector('#tot-subtotal');
+                const elDescuento = element.querySelector('#tot-descuento');
+                const elImpuestos = element.querySelector('#tot-impuestos');
+                const elTotal = element.querySelector('#tot-total');
+
+                if (elSubtotal) elSubtotal.textContent = formatMoney(sumSubtotal);
+                if (elDescuento) elDescuento.textContent = formatMoney(sumDescuento);
+                if (elImpuestos) elImpuestos.textContent = formatMoney(sumImpuestos);
+                if (elTotal) {
+                    elTotal.textContent = formatMoney(totalFinal);
+                    elTotal.dataset.rawTotal = totalFinal.toString();
+                }
+            }
+            
+            if (factura) {
+                factura.total = totalFinal; // Mantener en estado global para guardado rápido
+            }
+        });
     }
 };
