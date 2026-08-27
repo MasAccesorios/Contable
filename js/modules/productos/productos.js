@@ -717,7 +717,7 @@ export const ProductosModule = {
             e.preventDefault();
             const alertEl = element.querySelector('#lote-alert');
             
-            const qty = parseInt(element.querySelector('#lote-cantidad').value) || 0;
+            const qty = parseFloat(element.querySelector('#lote-cantidad').value) || 0;
             
             let lCosto = 0;
             try {
