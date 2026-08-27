@@ -916,7 +916,7 @@ export const NotasCreditoModule = {
                         const { data: cartera, error: errCartera } = await supabase.rpc('get_cartera_con_saldos', { p_tipo_cartera: 'cxc' });
                         if (errCartera) throw new Error("Error consultando cartera para validación de saldo: " + errCartera.message);
                         
-                        const facturaCartera = cartera?.find(c => c.id === currentFactura.id);
+                        const facturaCartera = cartera?.find(c => String(c.id) === String(currentFactura.id));
                         const saldoPendienteActual = facturaCartera ? parseFloat(facturaCartera.saldo) : 0;
                         const totalAnterior = isEditMode ? parseFloat(nota.total) : 0;
                         const saldoDisponibleReal = saldoPendienteActual + totalAnterior;
