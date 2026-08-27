@@ -166,7 +166,7 @@ export const CoreActions = {
                         precio_unitario: precio,
                         descuento_porcentaje: descuento,
                         subtotal,
-                        descripcion_personalizada: det.descripcion_personalizada || cotizacion.detalles[i]?.descripcion_personalizada || cotizacion.detalles[i]?.observaciones || cotizacion.detalles[i]?.comentario || ''
+                        descripcion_personalizada: det.descripcion_personalizada || cotizacion.detalles[i]?.descripcion_personalizada || cotizacion.detalles[i]?.descripcionPersonalizada || cotizacion.detalles[i]?.observaciones || cotizacion.detalles[i]?.comentario || ''
                     };
                 }),
                 p_operaciones_fifo: (planInventario.operacionesDB || []).map(op => ({
