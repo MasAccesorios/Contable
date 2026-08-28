@@ -662,9 +662,14 @@ export const ProductosModule = {
                         <div class="card-body p-4">
                             <div class="d-flex justify-content-between align-items-center mb-4">
                                 <h5 class="fw-bold mb-0">Capas de Inventario (Lotes FIFO)</h5>
-                                <button id="btn-volver-prod" class="btn btn-sm btn-outline-secondary">
-                                    <i class="bi bi-arrow-left me-1"></i>Volver al Listado
-                                </button>
+                                <div>
+                                    <button id="btn-kardex-prod" class="btn btn-sm btn-outline-primary me-2">
+                                        <i class="bi bi-card-list me-1"></i>Kardex
+                                    </button>
+                                    <button id="btn-volver-prod" class="btn btn-sm btn-outline-secondary">
+                                        <i class="bi bi-arrow-left me-1"></i>Volver al Listado
+                                    </button>
+                                </div>
                             </div>
                             
                             <!-- NUEVO BANNER STOCK TOTAL -->
@@ -704,6 +709,43 @@ export const ProductosModule = {
                     </div>
                 </div>` : ''}
             </div>
+
+            <!-- MODAL KARDEX -->
+            <div class="modal fade" id="modalKardexProducto" tabindex="-1" aria-hidden="true" data-bs-theme="dark">
+                <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+                    <div class="modal-content" style="background-color: var(--bg-main); border: 1px solid var(--border-color);">
+                        <div class="modal-header border-bottom">
+                            <h5 class="modal-title fw-bold" style="color: var(--text-main);">
+                                <i class="bi bi-card-list me-2"></i>Kardex de Producto: ${escapeHtml(producto.nombre)}
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0 text-center">
+                                    <thead style="background-color: rgba(0,0,0,0.02); border-bottom: 2px solid var(--border-color);">
+                                        <tr style="color: var(--text-muted); font-size: 0.85rem;" class="text-uppercase font-monospace">
+                                            <th class="py-3 ps-4 text-start">Fecha</th>
+                                            <th class="py-3">Tipo</th>
+                                            <th class="py-3 text-end">Cant. Anterior</th>
+                                            <th class="py-3 text-end">Diferencia</th>
+                                            <th class="py-3 text-end">Cant. Nueva</th>
+                                            <th class="py-3">Origen</th>
+                                            <th class="py-3 pe-4">Referencia</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tbody-kardex-modal">
+                                        <tr><td colspan="7" class="py-4 text-muted"><span class="spinner-border spinner-border-sm me-2"></span>Cargando kardex...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="modal-footer border-top">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         `;
 
         import('../../shared/formatters.js').then(fmt => {
@@ -711,6 +753,64 @@ export const ProductosModule = {
         });
 
         element.querySelector('#btn-volver-prod')?.addEventListener('click', () => this.renderGrid(element));
+
+        element.querySelector('#btn-kardex-prod')?.addEventListener('click', async () => {
+            const modalEl = element.querySelector('#modalKardexProducto');
+            const modal = new bootstrap.Modal(modalEl);
+            modal.show();
+
+            const tbody = modalEl.querySelector('#tbody-kardex-modal');
+            tbody.innerHTML = '<tr><td colspan="7" class="py-4 text-muted"><span class="spinner-border spinner-border-sm me-2"></span>Cargando movimientos...</td></tr>';
+            
+            const { data, error } = await supabase.rpc('get_kardex_producto', { p_producto_id: id });
+            
+            if (error) {
+                console.error("Error cargando kardex:", error);
+                tbody.innerHTML = '<tr><td colspan="7" class="py-4 text-danger">Error al cargar el kardex.</td></tr>';
+                return;
+            }
+
+            if (!data || data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="py-4 text-muted">Sin movimientos registrados</td></tr>';
+                return;
+            }
+
+            let html = '';
+            data.forEach(mov => {
+                const dateObj = new Date(mov.creado_en);
+                const day = String(dateObj.getDate()).padStart(2, '0');
+                const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+                const year = dateObj.getFullYear();
+                const hours = String(dateObj.getHours()).padStart(2, '0');
+                const minutes = String(dateObj.getMinutes()).padStart(2, '0');
+                const dateParts = `${day}/${month}/${year} ${hours}:${minutes}`;
+                
+                const dif = parseFloat(mov.diferencia) || 0;
+                let difColor = '';
+                let difSign = '';
+                if (dif > 0) {
+                    difColor = 'text-success fw-bold';
+                    difSign = '+';
+                } else if (dif < 0) {
+                    difColor = 'text-danger fw-bold';
+                }
+
+                const formatNum = (num) => Number(num || 0).toLocaleString('es-CO');
+
+                html += `
+                    <tr style="border-bottom: 1px solid var(--border-color); font-size: var(--fs-base); color: var(--text-body);">
+                        <td class="py-3 ps-4 text-start">${dateParts}</td>
+                        <td class="py-3"><span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary-subtle px-2 py-1 text-uppercase">${escapeHtml(mov.tipo_operacion || '')}</span></td>
+                        <td class="py-3 text-end">${formatNum(mov.cantidad_anterior)}</td>
+                        <td class="py-3 text-end ${difColor}">${difSign}${formatNum(dif)}</td>
+                        <td class="py-3 fw-medium text-end" style="color: var(--text-main);">${formatNum(mov.cantidad_nueva)}</td>
+                        <td class="py-3 text-muted small">${escapeHtml(mov.origen_documento || '-')}</td>
+                        <td class="py-3 pe-4 text-muted small">${escapeHtml(mov.referencia_lote || '-')}</td>
+                    </tr>
+                `;
+            });
+            tbody.innerHTML = html;
+        });
         
         // Manejador del submit de nuevo lote
         element.querySelector('#form-nuevo-lote')?.addEventListener('submit', async (e) => {
