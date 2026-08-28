@@ -398,21 +398,23 @@ BEGIN
         LIMIT 1;
 
         IF v_lote_id IS NOT NULL THEN
+            PERFORM set_config('kardex.tipo', 'ajuste_edicion', true);
+            PERFORM set_config('kardex.origen', p_origen_movimiento, true);
             UPDATE lotes_fifo SET
                 cantidad_actual = v_item.cantidad_nueva,
                 cantidad_inicial = v_item.cantidad_nueva,
                 costo_unitario = v_costo_unitario
             WHERE id = v_lote_id;
-
-            INSERT INTO lotes_fifo_movimientos (lote_id, producto_id, tipo_operacion, cantidad_anterior, cantidad_nueva, diferencia, origen_documento, creado_en)
-            VALUES (v_lote_id, v_producto_id, 'ajuste_edicion', v_cantidad_anterior, v_item.cantidad_nueva, v_item.cantidad_nueva - v_cantidad_anterior, p_origen_movimiento, NOW());
+            PERFORM set_config('kardex.tipo', '', true);
+            PERFORM set_config('kardex.origen', '', true);
         ELSE
+            PERFORM set_config('kardex.tipo', 'ajuste_edicion', true);
+            PERFORM set_config('kardex.origen', p_origen_movimiento, true);
             INSERT INTO lotes_fifo (producto_id, fecha_ingreso, cantidad_inicial, cantidad_actual, costo_unitario, origen_movimiento, referencia)
             VALUES (v_producto_id, CURRENT_DATE, v_item.cantidad_nueva, v_item.cantidad_nueva, v_costo_unitario, v_origen_lote, 'Edicion Factura Compra ' || p_factura_id)
             RETURNING id INTO v_lote_id;
-
-            INSERT INTO lotes_fifo_movimientos (lote_id, producto_id, tipo_operacion, cantidad_anterior, cantidad_nueva, diferencia, origen_documento, creado_en)
-            VALUES (v_lote_id, v_producto_id, 'ajuste_edicion', 0, v_item.cantidad_nueva, v_item.cantidad_nueva, p_origen_movimiento, NOW());
+            PERFORM set_config('kardex.tipo', '', true);
+            PERFORM set_config('kardex.origen', '', true);
         END IF;
     END LOOP;
 
@@ -540,20 +542,22 @@ BEGIN
                 IF v_qty_restante <= 0 THEN EXIT; END IF;
                 v_a_operar := LEAST(v_lote.cantidad_actual, v_qty_restante);
 
+                PERFORM set_config('kardex.tipo', 'salida', true);
+                PERFORM set_config('kardex.origen', p_origen_movimiento, true);
                 UPDATE lotes_fifo SET cantidad_actual = cantidad_actual - v_a_operar WHERE id = v_lote.id;
-
-                INSERT INTO lotes_fifo_movimientos (lote_id, producto_id, tipo_operacion, cantidad_anterior, cantidad_nueva, diferencia, origen_documento, creado_en)
-                VALUES (v_lote.id, v_producto_id, 'salida', v_lote.cantidad_actual, (v_lote.cantidad_actual - v_a_operar), -v_a_operar, p_origen_movimiento, NOW());
+                PERFORM set_config('kardex.tipo', '', true);
+                PERFORM set_config('kardex.origen', '', true);
 
                 v_qty_restante := v_qty_restante - v_a_operar;
             END LOOP;
 
             IF v_qty_restante > 0 AND p_permitir_negativos THEN
+                PERFORM set_config('kardex.tipo', 'salida_negativa', true);
+                PERFORM set_config('kardex.origen', p_origen_movimiento, true);
                 INSERT INTO lotes_fifo (producto_id, fecha_ingreso, cantidad_inicial, cantidad_actual, costo_unitario, origen_movimiento)
                 VALUES (v_producto_operar, CURRENT_DATE, 0, -v_qty_restante, v_costo_unitario, p_origen_movimiento) RETURNING id INTO v_nuevo_lote_id;
-
-                INSERT INTO lotes_fifo_movimientos (lote_id, producto_id, tipo_operacion, cantidad_anterior, cantidad_nueva, diferencia, origen_documento, creado_en)
-                VALUES (v_nuevo_lote_id, v_producto_id, 'salida_negativa', 0, -v_qty_restante, -v_qty_restante, p_origen_movimiento, NOW());
+                PERFORM set_config('kardex.tipo', '', true);
+                PERFORM set_config('kardex.origen', '', true);
             END IF;
 
         ELSE
@@ -563,20 +567,22 @@ BEGIN
                 v_espacio := v_lote.cantidad_inicial - v_lote.cantidad_actual;
                 v_a_operar := LEAST(v_espacio, v_qty_restante);
 
+                PERFORM set_config('kardex.tipo', 'reversion_venta', true);
+                PERFORM set_config('kardex.origen', p_origen_movimiento, true);
                 UPDATE lotes_fifo SET cantidad_actual = cantidad_actual + v_a_operar WHERE id = v_lote.id;
-
-                INSERT INTO lotes_fifo_movimientos (lote_id, producto_id, tipo_operacion, cantidad_anterior, cantidad_nueva, diferencia, origen_documento, creado_en)
-                VALUES (v_lote.id, v_producto_id, 'reversion_venta', v_lote.cantidad_actual, (v_lote.cantidad_actual + v_a_operar), v_a_operar, p_origen_movimiento, NOW());
+                PERFORM set_config('kardex.tipo', '', true);
+                PERFORM set_config('kardex.origen', '', true);
 
                 v_qty_restante := v_qty_restante - v_a_operar;
             END LOOP;
 
             IF v_qty_restante > 0 THEN
+                PERFORM set_config('kardex.tipo', 'reversion_venta', true);
+                PERFORM set_config('kardex.origen', p_origen_movimiento, true);
                 INSERT INTO lotes_fifo (producto_id, fecha_ingreso, cantidad_inicial, cantidad_actual, costo_unitario, origen_movimiento)
                 VALUES (v_producto_operar, CURRENT_DATE, v_qty_restante, v_qty_restante, v_costo_unitario, p_origen_movimiento) RETURNING id INTO v_nuevo_lote_id;
-
-                INSERT INTO lotes_fifo_movimientos (lote_id, producto_id, tipo_operacion, cantidad_anterior, cantidad_nueva, diferencia, origen_documento, creado_en)
-                VALUES (v_nuevo_lote_id, v_producto_id, 'reversion_venta', 0, v_qty_restante, v_qty_restante, p_origen_movimiento, NOW());
+                PERFORM set_config('kardex.tipo', '', true);
+                PERFORM set_config('kardex.origen', '', true);
             END IF;
         END IF;
     END LOOP;
@@ -740,15 +746,29 @@ CREATE OR REPLACE FUNCTION public.fn_log_movimiento_lote()
  RETURNS trigger
  LANGUAGE plpgsql
 AS $function$
+DECLARE
+    v_tipo text;
+    v_origen text;
 BEGIN
+    v_tipo := current_setting('kardex.tipo', true);
+    v_origen := current_setting('kardex.origen', true);
+    
+    IF v_tipo IS NULL OR v_tipo = '' THEN
+        v_tipo := LOWER(TG_OP);
+    END IF;
+    
+    IF v_origen IS NULL OR v_origen = '' THEN
+        v_origen := COALESCE(NEW.origen_movimiento, 'desconocido');
+    END IF;
+
     IF TG_OP = 'INSERT' THEN
         INSERT INTO lotes_fifo_movimientos (lote_id, producto_id, tipo_operacion, cantidad_anterior, cantidad_nueva, diferencia, origen_documento, referencia_lote)
-        VALUES (NEW.id, NEW.producto_id, 'insert', NULL, NEW.cantidad_actual, NEW.cantidad_actual, NEW.origen_movimiento, NEW.referencia);
+        VALUES (NEW.id, NEW.producto_id, v_tipo, NULL, NEW.cantidad_actual, NEW.cantidad_actual, v_origen, NEW.referencia);
 
     ELSIF TG_OP = 'UPDATE' THEN
         IF NEW.cantidad_actual IS DISTINCT FROM OLD.cantidad_actual THEN
             INSERT INTO lotes_fifo_movimientos (lote_id, producto_id, tipo_operacion, cantidad_anterior, cantidad_nueva, diferencia, origen_documento, referencia_lote)
-            VALUES (NEW.id, NEW.producto_id, 'update', OLD.cantidad_actual, NEW.cantidad_actual, NEW.cantidad_actual - OLD.cantidad_actual, NEW.origen_movimiento, NEW.referencia);
+            VALUES (NEW.id, NEW.producto_id, v_tipo, OLD.cantidad_actual, NEW.cantidad_actual, NEW.cantidad_actual - OLD.cantidad_actual, v_origen, NEW.referencia);
         END IF;
 
     ELSIF TG_OP = 'DELETE' THEN
@@ -2142,16 +2162,12 @@ BEGIN
             IF v_qty_restante <= 0 THEN EXIT; END IF;
             v_a_operar := LEAST(v_lote.cantidad_actual, v_qty_restante);
 
+            PERFORM set_config('kardex.tipo', 'salida', true);
+            PERFORM set_config('kardex.origen', v_origen, true);
             UPDATE lotes_fifo SET cantidad_actual = cantidad_actual - v_a_operar
             WHERE id = v_lote.id;
-
-            INSERT INTO lotes_fifo_movimientos (
-                lote_id, producto_id, tipo_operacion, cantidad_anterior,
-                cantidad_nueva, diferencia, origen_documento, creado_en
-            ) VALUES (
-                v_lote.id, v_producto_id, 'salida', v_lote.cantidad_actual,
-                v_lote.cantidad_actual - v_a_operar, -v_a_operar, v_origen, NOW()
-            );
+            PERFORM set_config('kardex.tipo', '', true);
+            PERFORM set_config('kardex.origen', '', true);
 
             v_qty_restante := v_qty_restante - v_a_operar;
         END LOOP;
@@ -2407,21 +2423,23 @@ BEGIN
             IF v_qty_restante <= 0 THEN EXIT; END IF;
             v_a_operar := LEAST(v_lote.cantidad_actual, v_qty_restante);
 
+            PERFORM set_config('kardex.tipo', 'salida', true);
+            PERFORM set_config('kardex.origen', p_origen_movimiento, true);
             UPDATE lotes_fifo SET cantidad_actual = cantidad_actual - v_a_operar WHERE id = v_lote.id;
-
-            INSERT INTO lotes_fifo_movimientos (lote_id, producto_id, tipo_operacion, cantidad_anterior, cantidad_nueva, diferencia, origen_documento, creado_en)
-            VALUES (v_lote.id, v_producto_id, 'salida', v_lote.cantidad_actual, (v_lote.cantidad_actual - v_a_operar), -v_a_operar, p_origen_movimiento, NOW());
+            PERFORM set_config('kardex.tipo', '', true);
+            PERFORM set_config('kardex.origen', '', true);
 
             v_costo_total_venta := v_costo_total_venta + (v_a_operar * v_lote.costo_unitario);
             v_qty_restante := v_qty_restante - v_a_operar;
         END LOOP;
 
         IF v_qty_restante > 0 AND p_permitir_negativos THEN
+            PERFORM set_config('kardex.tipo', 'salida_negativa', true);
+            PERFORM set_config('kardex.origen', p_origen_movimiento, true);
             INSERT INTO lotes_fifo (producto_id, fecha_ingreso, cantidad_inicial, cantidad_actual, costo_unitario, origen_movimiento)
             VALUES (v_producto_operar, CURRENT_DATE, 0, -v_qty_restante, v_costo_unitario, p_origen_movimiento) RETURNING id INTO v_nuevo_lote_id;
-
-            INSERT INTO lotes_fifo_movimientos (lote_id, producto_id, tipo_operacion, cantidad_anterior, cantidad_nueva, diferencia, origen_documento, creado_en)
-            VALUES (v_nuevo_lote_id, v_producto_id, 'salida_negativa', 0, -v_qty_restante, -v_qty_restante, p_origen_movimiento, NOW());
+            PERFORM set_config('kardex.tipo', '', true);
+            PERFORM set_config('kardex.origen', '', true);
 
             v_costo_total_venta := v_costo_total_venta + (v_qty_restante * v_costo_unitario);
         END IF;
@@ -2886,3 +2904,37 @@ begin
 end;
 $function$;
 
+
+
+CREATE OR REPLACE FUNCTION public.get_kardex_producto(p_producto_id bigint)
+ RETURNS TABLE(movimiento_id bigint, lote_id bigint, tipo_operacion text, cantidad_anterior numeric, cantidad_nueva numeric, diferencia numeric, origen_documento text, referencia_lote text, creado_en timestamp with time zone)
+ LANGUAGE sql
+ SECURITY DEFINER
+AS $function$
+    WITH movimientos AS (
+        SELECT 
+            m.id as movimiento_id,
+            m.lote_id,
+            m.tipo_operacion,
+            m.diferencia,
+            m.origen_documento,
+            m.referencia_lote,
+            m.creado_en
+        FROM lotes_fifo_movimientos m
+        WHERE m.producto_id = p_producto_id
+    ),
+    saldos AS (
+        SELECT 
+            movimiento_id,
+            lote_id,
+            tipo_operacion,
+            COALESCE(SUM(diferencia) OVER (ORDER BY creado_en ASC, movimiento_id ASC ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING), 0) AS cantidad_anterior,
+            SUM(diferencia) OVER (ORDER BY creado_en ASC, movimiento_id ASC) AS cantidad_nueva,
+            diferencia,
+            origen_documento,
+            referencia_lote,
+            creado_en
+        FROM movimientos
+    )
+    SELECT * FROM saldos ORDER BY creado_en DESC, movimiento_id DESC;
+$function$;
