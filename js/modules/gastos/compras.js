@@ -1092,8 +1092,31 @@ export const ComprasModule = {
                         savedFactura = rpcResult;
                         factura.id = savedFactura.id;
                     } else {
-                        // Edición de compra existente: solo cabecera + detalles, sin tocar inventario (comportamiento actual)
-                        savedFactura = await DB.save('facturas', factura);
+                        // Edición de compra existente: RPC atómico (cabecera + detalles + inventario en una sola transacción)
+                        const detallesRpc = arrDetalles.map(d => ({
+                            producto_id: parseInt(d.productoId, 10),
+                            descripcion_personalizada: d.descripcionPersonalizada || '',
+                            cantidad: d.cantidad,
+                            precio_unitario: d.precio,
+                            descuento_porcentaje: d.descuento,
+                            subtotal: (d.cantidad * d.precio) - ((d.cantidad * d.precio) * (d.descuento / 100))
+                        }));
+
+                        const { data: rpcResult, error: rpcErr } = await supabase.rpc('editar_factura_compra_con_inventario', {
+                            p_factura_id: factura.id,
+                            p_factura_header: {
+                                total: factura.total,
+                                total_costo: factura.total_costo,
+                                vencimiento: factura.vencimiento,
+                                observaciones: factura.observaciones,
+                                contacto_id: factura.contacto_id
+                            },
+                            p_nuevos_detalles: detallesRpc,
+                            p_origen_movimiento: 'Edición Factura Compra ' + factura.numero
+                        });
+
+                        if (rpcErr) throw new Error("Error al editar factura de compra: " + rpcErr.message);
+                        savedFactura = rpcResult;
                     }
 
                     // Condicional Contado vs Crédito
