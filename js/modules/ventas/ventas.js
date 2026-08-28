@@ -630,12 +630,41 @@ export const FacturasModule = {
         const cuentasMap = {};
         dbCuentas.forEach(c => cuentasMap[c.id] = c.nombre);
 
+        const estadoLabel = factura.estado || 'por_pagar';
+        let labelEstado = '';
+        let badgeClass = '';
+        let isVencida = false;
+        
+        if (estadoLabel === 'por_pagar' && factura.vencimiento) {
+            const today = new Date();
+            today.setHours(0,0,0,0);
+            const expDate = new Date(factura.vencimiento);
+            isVencida = expDate < today;
+        }
+        
+        if (estadoLabel === 'anulada' || estadoLabel === 'voided' || estadoLabel === 'void') {
+            labelEstado = 'Anulada';
+            badgeClass = 'bg-secondary text-secondary bg-opacity-10 border border-secondary-subtle';
+        } else if (factura.saldoPendiente <= 0 && factura.total > 0) {
+            labelEstado = 'Cobrada';
+            badgeClass = 'bg-primary text-primary bg-opacity-10 border border-primary-subtle';
+        } else if (isVencida) {
+            labelEstado = 'Vencida';
+            badgeClass = 'bg-danger text-danger bg-opacity-10 border border-danger-subtle';
+        } else {
+            labelEstado = 'Por cobrar';
+            badgeClass = 'bg-warning text-warning-emphasis bg-opacity-10 border border-warning-subtle';
+        }
+
         element.innerHTML = `
             <div class=\"dash-layout p-4\" style=\"max-width: 1100px; margin: 0 auto;\">
                 <div class="d-flex justify-content-between align-items-start mb-4">
                     <div>
                         ${headerHtml}
-                        <h2 class="h3 fw-bold mb-0" style="color: var(--text-main);">${id ? 'Factura No. ' + factura.numero : 'Nueva factura'}</h2>
+                        <div class="d-flex align-items-center gap-2">
+                            <h2 class="h3 fw-bold mb-0" style="color: var(--text-main);">${id ? 'Factura No. ' + factura.numero : 'Nueva factura'}</h2>
+                            ${id ? `<span class="badge ${badgeClass} rounded-pill fw-medium" style="font-size: 11px; padding: 5px 10px;">${labelEstado}</span>` : ''}
+                        </div>
                     </div>
                     <div class="d-flex align-items-center gap-2">
                         ${isViewOnly && id && factura.estado !== 'pagada' && !EstadoUtils.estaAnulado(factura.estado) ? 

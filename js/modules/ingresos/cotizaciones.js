@@ -484,12 +484,19 @@ export const CotizacionesModule = {
         const clienteActual = clientes.find(c => c.id === cotizacion.clienteId);
         const clienteNombreActual = clienteActual ? clienteActual.nombre : '';
 
+        const isFacturada = cotizacion.convertidoAFactura;
+        const badgeClass = isFacturada ? 'bg-success text-success bg-opacity-10 border border-success-subtle' : 'bg-warning text-warning-emphasis bg-opacity-10 border border-warning-subtle';
+        const labelEstado = isFacturada ? 'Facturada' : 'Sin facturar';
+
         element.innerHTML = `
             <div class=\"dash-layout p-4\" style=\"max-width: 1100px; margin: 0 auto;\">
                 <div class="d-flex justify-content-between align-items-start mb-4">
                     <div>
                         ${headerHtml}
-                        <h2 class="h3 fw-bold mb-0" style="color: var(--text-main);">${id ? 'Cotización No. ' + cotizacion.numero : 'Nueva cotización'}</h2>
+                        <div class="d-flex align-items-center gap-2">
+                            <h2 class="h3 fw-bold mb-0" style="color: var(--text-main);">${id ? 'Cotización No. ' + cotizacion.numero : 'Nueva cotización'}</h2>
+                            ${id ? `<span class="badge ${badgeClass} rounded-pill fw-medium" style="font-size: var(--fs-xs); padding: 5px 10px;">${labelEstado}</span>` : ''}
+                        </div>
                     </div>
                     ${actionsHtml}
                 </div>
