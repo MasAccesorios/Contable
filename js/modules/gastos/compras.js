@@ -526,28 +526,30 @@ export const ComprasModule = {
                         });
                     }
 
-                    menu.querySelector('.btn-delete-row').addEventListener('click', async (ev) => {
-                        ev.preventDefault();
-                        if (confirm('¿Estás seguro de anular esta factura de compra? Se revertirá el inventario ingresado.')) {
-                            menu.remove();
-                            
-                            try {
-                                const { anularFacturaCompra } = await import('../../shared/anularCompraUtils.js');
-                                const result = await anularFacturaCompra(id, { DB, EstadoUtils, InventarioUtils, supabase, CoreActions });
-                                
-                                if (result.alreadyAnnulled) {
-                                    CoreActions.showWarningModal("Esta factura ya se encuentra anulada.");
-                                    return;
+                    if (!isAnulada) {
+                        menu.querySelector('.btn-delete-row').addEventListener('click', async (ev) => {
+                            ev.preventDefault();
+                            if (confirm('¿Estás seguro de anular esta factura de compra? Se revertirá el inventario ingresado.')) {
+                                menu.remove();
+
+                                try {
+                                    const { anularFacturaCompra } = await import('../../shared/anularCompraUtils.js');
+                                    const result = await anularFacturaCompra(id, { DB, EstadoUtils, InventarioUtils, supabase, CoreActions });
+
+                                    if (result.alreadyAnnulled) {
+                                        CoreActions.showWarningModal("Esta factura ya se encuentra anulada.");
+                                        return;
+                                    }
+
+                                    CoreActions.showSuccessModal('Factura de compra anulada e inventario revertido con éxito.');
+                                    await renderGrid();
+                                } catch (error) {
+                                    console.error("Error al anular factura de compra:", error);
+                                    CoreActions.showWarningModal("Error crítico al anular: " + error.message);
                                 }
-                                
-                                CoreActions.showSuccessModal('Factura de compra anulada e inventario revertido con éxito.');
-                                await renderGrid();
-                            } catch (error) {
-                                console.error("Error al anular factura de compra:", error);
-                                CoreActions.showWarningModal("Error crítico al anular: " + error.message);
                             }
-                        }
-                    });
+                        });
+                    }
                 });
             });
 
