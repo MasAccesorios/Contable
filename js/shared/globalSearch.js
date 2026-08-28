@@ -6,6 +6,8 @@ const MAX_STORED = 5;
 const MAX_SHOWN = 5;
 
 export const GlobalSearch = {
+    currentSearchToken: 0,
+
     init() {
         const input = document.getElementById('global-search');
         if (!input) return;
@@ -41,7 +43,7 @@ export const GlobalSearch = {
 
             debounceTimer = setTimeout(() => {
                 this.performSearch(query, input);
-            }, 300);
+            }, 400);
         });
 
         // Event listener to close dropdown when clicking outside
@@ -142,6 +144,9 @@ export const GlobalSearch = {
     },
 
     async performSearch(query, input, autoNavigate = false) {
+        const searchToken = Date.now();
+        this.currentSearchToken = searchToken;
+
         this.renderDropdown(input, '<div class="p-3 text-center text-muted small"><div class="spinner-border spinner-border-sm me-2" role="status"></div> Buscando...</div>');
 
         const promises = [];
@@ -191,6 +196,10 @@ export const GlobalSearch = {
 
         const results = await Promise.all(promises);
         
+        if (this.currentSearchToken !== searchToken) {
+            return;
+        }
+
         if (autoNavigate) {
             let totalCount = 0;
             let singleResult = null;

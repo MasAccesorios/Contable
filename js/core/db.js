@@ -348,6 +348,22 @@ const DB = {
     async getPage(storeName, page = 1, limit = 50, sortColumn = 'numero', sortDirection = 'desc', searchQuery = '', filterCriteria = 'todos') {
         const table = storeName === 'pagos' ? 'pagos_ingresos' : storeName;
         try {
+            if (table === 'productos') {
+                const { data: rpcData, error: rpcError } = await supabase.rpc('get_productos_page', {
+                    p_page: page,
+                    p_limit: limit,
+                    p_sort_column: sortColumn,
+                    p_sort_direction: sortDirection,
+                    p_search_query: searchQuery || '',
+                    p_filter_criteria: filterCriteria || 'todos'
+                });
+                if (rpcError) throw rpcError;
+                return {
+                    data: (rpcData?.[0]?.data || []).map(item => this._mapToFrontend(storeName, item)),
+                    count: parseInt(rpcData?.[0]?.total_count) || 0
+                };
+            }
+
             let cols = '*';
             if (table === 'facturas') {
                 cols = 'id, numero, fecha, vencimiento, contacto_id, total, total_costo, tipo, estado, observaciones, saldo_original, created_at';
@@ -361,9 +377,7 @@ const DB = {
             if (searchQuery) {
                 const sq = `%${searchQuery}%`;
                 
-                if (table === 'productos') {
-                    query = query.or(`nombre.ilike.${sq},sku.ilike.${sq}`);
-                } else if (filterCriteria === 'numero') {
+                if (filterCriteria === 'numero') {
                     const num = parseInt(searchQuery.replace(/\D/g, ''), 10);
                     if (!isNaN(num)) query = query.eq('numero', num);
                 } else if (filterCriteria === 'fecha') {
