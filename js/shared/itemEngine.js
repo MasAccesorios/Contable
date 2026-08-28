@@ -190,7 +190,7 @@ export const ItemEngine = {
                 <input type="number" min="0" class="form-control form-control-sm border-0 bg-light input-qty mb-1" value="${detalle.cantidad}" ${isViewOnly ? 'disabled' : ''}>
                 <div class="meta-qty ps-1"></div>
             </td>
-            <td class="align-top"><input type="text" class="form-control form-control-sm border-0 bg-light input-price" value="${detalle.precio}" placeholder="$" ${isViewOnly ? 'disabled' : ''}></td>
+            <td class="align-top"><input type="text" class="form-control form-control-sm border-0 bg-light input-price" value="${Number(detalle.precio || 0).toString().replace('.', ',')}" placeholder="$" ${isViewOnly ? 'disabled' : ''}></td>
             <td class="align-top"><input type="number" step="any" min="0" max="100" class="form-control form-control-sm border-0 bg-light input-disc" value="${detalle.descuento}" placeholder="0 %" ${isViewOnly ? 'disabled' : ''}></td>
             <td class="align-top"><input type="number" step="any" min="0" max="100" class="form-control form-control-sm border-0 bg-light input-tax" value="${detalle.impuesto}" placeholder="%" ${isViewOnly ? 'disabled' : ''}></td>
             <td class="text-end align-top pt-3">
