@@ -803,7 +803,7 @@ export const ProductosModule = {
                         <td class="py-3"><span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary-subtle px-2 py-1 text-uppercase">${escapeHtml(mov.tipo_operacion || '')}</span></td>
                         <td class="py-3 text-end">${formatNum(mov.cantidad_anterior)}</td>
                         <td class="py-3 text-end ${difColor}">${difSign}${formatNum(dif)}</td>
-                        <td class="py-3 fw-medium text-end" style="color: var(--text-main);">${formatNum(mov.cantidad_nueva)}</td>
+                        <td class="py-3 fw-medium text-end" style="color: #ffc107;">${formatNum(mov.cantidad_nueva)}</td>
                         <td class="py-3 text-muted small">${escapeHtml(mov.origen_documento || '-')}</td>
                         <td class="py-3 pe-4 text-muted small">${escapeHtml(mov.referencia_lote || '-')}</td>
                     </tr>
