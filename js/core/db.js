@@ -527,7 +527,7 @@ const DB = {
                     precio_unitario: parseFloat(d.precio) || 0,
                     descuento_porcentaje: parseFloat(d.descuento) || 0,
                     subtotal: parseFloat(d.subtotal) || 0,
-                    descripcion_personalizada: d.descripcion_personalizada || ''
+                    descripcion_personalizada: d.descripcion_personalizada || d.descripcionPersonalizada || ''
                 }));
 
                 const { data: result, error } = await supabase.rpc('save_document_with_details', {
