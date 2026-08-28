@@ -88,7 +88,7 @@ export const ItemEngine = {
                     inputSearch.dataset.lastSku = p.sku || p.reference;
                     
                     // Inyección estricta de Precios e Impuestos
-                    if (inpPrice) inpPrice.value = Number(precioReal || 0).toLocaleString('es-CO', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                    if (inpPrice) inpPrice.value = Number(precioReal || 0).toString().replace('.', ',');
                     if (inpTax) inpTax.value = p.impuesto || p.tax || 0;
                     if (inpQty && parseFloat(inpQty.value || 0) === 0) inpQty.value = 1;
 
