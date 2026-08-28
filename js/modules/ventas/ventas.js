@@ -1266,7 +1266,6 @@ export const FacturasModule = {
                             };
                         });
 
-                        console.log('DEBUG detallesPayload:', JSON.stringify(detallesPayload));
                         // Primer intento sin permitir negativos
                         let { data: updateRes, error: updateErr } = await supabase.rpc('editar_factura_inventario_fifo', {
                             p_factura_id: parseInt(id, 10),
