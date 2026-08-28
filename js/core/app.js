@@ -62,7 +62,11 @@ const routes = {
     'tesoreria': () => import('../modules/bancos/bancos.js')
 };
 
+let currentNavId = 0;
+
 async function router() {
+    const myNavId = ++currentNavId;
+
     // Cerrar sidebar en móviles automáticamente ante cualquier cambio de ruta
     const sidebar = document.getElementById('sidebar');
     if (sidebar && window.innerWidth <= 768) {
@@ -120,6 +124,7 @@ async function router() {
     if (matchRoute) {
         try {
             const module = await matchRoute();
+            if (myNavId !== currentNavId) return; // Una navegación más reciente ya tomó el control, abortar esta
             
             let initFn = null;
             if (typeof module.init === 'function') {
@@ -143,9 +148,11 @@ async function router() {
                 
                 // 2. Clonar nodo para purgar event listeners acumulados del módulo anterior (memory leak fix)
                 const newAppEl = appEl.cloneNode(false);
+                if (myNavId !== currentNavId) return; // Una navegación más reciente ya tomó el control, abortar esta
                 appEl.parentNode.replaceChild(newAppEl, appEl);
 
                 await initFn(newAppEl);
+                if (myNavId !== currentNavId) return; // Una navegación más reciente ya tomó el control, abortar esta
             } else {
                 renderPlaceholder(appEl, routePath, "El módulo se cargó correctamente, pero no expone un método init().");
             }
