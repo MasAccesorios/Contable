@@ -756,7 +756,7 @@ export const ProductosModule = {
 
         element.querySelector('#btn-kardex-prod')?.addEventListener('click', async () => {
             const modalEl = element.querySelector('#modalKardexProducto');
-            const modal = new bootstrap.Modal(modalEl);
+            const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
             modal.show();
 
             const tbody = modalEl.querySelector('#tbody-kardex-modal');
