@@ -297,6 +297,13 @@ export default {
             try {
                 // Registrar cada pago de forma iterativa y limpia
                 const grupoPagoId = 'pago_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
+                
+                let nextNumero = null;
+                const { data: numData, error: numError } = await supabase.rpc('get_next_numero_recibo');
+                if (!numError && numData) {
+                    nextNumero = numData;
+                }
+
                 for (const abono of abonos) {
                     // Inferir tipo de pago desde la factura
                     const facturaParaTipo = this.facturasData.find(f => String(f.id) === String(abono.factura_id));
@@ -304,6 +311,7 @@ export default {
 
                     const transaccion = {
                         id: 'trx_' + Date.now() + '_' + Math.floor(Math.random() * 10000),
+                        numero_recibo: nextNumero,
                         factura_id: parseInt(abono.factura_id, 10),
                         contacto_id: parseInt(this.clienteId, 10),
                         grupo_pago_id: grupoPagoId,

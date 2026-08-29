@@ -54,7 +54,7 @@ export const PagosRealizadosModule = {
             const t = await this._cargarComprobanteAgrupado(id);
             if (t) {
                 const { PrintManager } = await import('../../shared/printManager.js');
-                const idVisual = t.grupo_pago_id || t.numero || t.id;
+                const idVisual = t.grupo_pago_id ? (t.numero_recibo ? String(t.numero_recibo).padStart(4, '0') : t.grupo_pago_id) : (t.numero || t.id);
                 PrintManager._renderPreviewShell(this.getComprobanteHTML(t, true), { mode: mode === 'vista-previa' ? 'preview' : 'print', title: 'Comprobante de Egreso', fileName: `comprobante_egreso_${idVisual}.png`, printClass: 'formato-media-carta' });
             }
             return;
@@ -255,7 +255,7 @@ export const PagosRealizadosModule = {
                         <div class="text-end">
                             <h2 style="font-size: 20px; font-weight: 800; color: #0f172a; margin: 0 0 6px 0; letter-spacing: -0.5px;">COMPROBANTE DE EGRESO</h2>
                             <div class="d-flex align-items-center justify-content-end gap-3">
-                                <span style="font-size: 13px; color: #64748b; font-weight: 500;">Nº <span style="color: #0f172a; font-weight: 700;">${t.grupo_pago_id || t.numero || t.id}</span></span>
+                                <span style="font-size: 13px; color: #64748b; font-weight: 500;">Nº <span style="color: #0f172a; font-weight: 700;">${t.grupo_pago_id ? (t.numero_recibo ? String(t.numero_recibo).padStart(4, '0') : t.grupo_pago_id) : (t.numero || t.id)}</span></span>
                                 <span class="mas-receipt-status-badge">Pagado</span>
                             </div>
                         </div>
