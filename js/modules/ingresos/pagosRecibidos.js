@@ -35,12 +35,26 @@ export const PagosRecibidosModule = {
         }
     },
     
+    async _cargarComprobanteAgrupado(id) {
+        const { data: t } = await supabase.from('pagos_ingresos').select('*, contactos(*), cuentas_bancarias(*), facturas(*, contactos(*))').eq('id', id).single();
+        if (!t) return null;
+        if (t.grupo_pago_id) {
+            const { data: grupo } = await supabase.from('pagos_ingresos').select('*, contactos(*), facturas(*, contactos(*))').eq('grupo_pago_id', t.grupo_pago_id);
+            if (grupo && grupo.length > 1) {
+                t.itemsGrupo = grupo;
+                t.monto = grupo.reduce((sum, p) => sum + Number(p.monto), 0);
+            }
+        }
+        return t;
+    },
+
     async mostrarDetalle(id, mode = 'preview') {
         if (mode === 'print' || mode === 'vista-previa') {
-            const { data: t } = await supabase.from('pagos_ingresos').select('*, contactos(*), cuentas_bancarias(*), facturas(*, contactos(*))').eq('id', id).single();
+            const t = await this._cargarComprobanteAgrupado(id);
             if (t) {
                 const { PrintManager } = await import('../../shared/printManager.js');
-                PrintManager._renderPreviewShell(this.getComprobanteHTML(t, true), { mode: mode === 'vista-previa' ? 'preview' : 'print', title: 'Comprobante de Ingreso', fileName: `comprobante_ingreso_${t.numero || t.id}.png`, printClass: 'formato-media-carta' });
+                const idVisual = t.grupo_pago_id || t.numero || t.id;
+                PrintManager._renderPreviewShell(this.getComprobanteHTML(t, true), { mode: mode === 'vista-previa' ? 'preview' : 'print', title: 'Comprobante de Ingreso', fileName: `comprobante_ingreso_${idVisual}.png`, printClass: 'formato-media-carta' });
             }
             return;
         }
@@ -48,7 +62,7 @@ export const PagosRecibidosModule = {
         this.state.isLoading = true;
         this.renderGrid();
         try {
-            const { data: t } = await supabase.from('pagos_ingresos').select('*, contactos(*), cuentas_bancarias(*), facturas(*, contactos(*))').eq('id', id).single();
+            const t = await this._cargarComprobanteAgrupado(id);
             if (t) {
                 this.state.currentComprobanteData = t;
                 this.state.view = 'detalle';
@@ -240,7 +254,7 @@ export const PagosRecibidosModule = {
                         <div class="text-end">
                             <h2 style="font-size: 20px; font-weight: 800; color: #0f172a; margin: 0 0 6px 0; letter-spacing: -0.5px;">RECIBO DE CAJA</h2>
                             <div class="d-flex align-items-center justify-content-end gap-3">
-                                <span style="font-size: 13px; color: #64748b; font-weight: 500;">Nº <span style="color: #0f172a; font-weight: 700;">${t.numero || t.id}</span></span>
+                                <span style="font-size: 13px; color: #64748b; font-weight: 500;">Nº <span style="color: #0f172a; font-weight: 700;">${t.grupo_pago_id || t.numero || t.id}</span></span>
                                 <span class="mas-receipt-status-badge">Recibido</span>
                             </div>
                         </div>
@@ -289,6 +303,21 @@ export const PagosRecibidosModule = {
                                 </tr>
                             </thead>
                             <tbody>
+                                ${t.itemsGrupo ? t.itemsGrupo.map(p => `
+                                <tr>
+                                    <td class="text-start">
+                                        <div style="font-weight: 600; color: #0f172a;">${p.categoria || 'Abono / Pago de factura'}</div>
+                                    </td>
+                                    <td class="text-center">
+                                        ${p.factura_id ? 
+                                            `<span style="background: #f1f5f9; padding: 2px 6px; border-radius: 6px; font-size: 11px; font-weight: 600; color: #475569;"># ${p.facturas?.numero || p.factura_id}</span>` 
+                                            : '<span style="color: #94a3b8; font-size: 12px;">N/A</span>'}
+                                    </td>
+                                    <td class="text-end" style="font-weight: 600; color: #0f172a;">
+                                        $${Number(p.monto).toLocaleString('es-CO')}
+                                    </td>
+                                </tr>
+                                `).join('') : `
                                 <tr>
                                     <td class="text-start">
                                         <div style="font-weight: 600; color: #0f172a;">${t.categoria || 'Abono / Pago de factura'}</div>
@@ -302,6 +331,7 @@ export const PagosRecibidosModule = {
                                         $${Number(t.monto).toLocaleString('es-CO')}
                                     </td>
                                 </tr>
+                                `}
                             </tbody>
                         </table>
                     </div>
