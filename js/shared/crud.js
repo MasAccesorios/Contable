@@ -1,4 +1,4 @@
-// js/utils/core-actions.js
+// js/shared/crud.js
 import DB, { getLocalDate } from '../core/db.js';
 import { InventarioUtils } from './inventarioUtils.js';
 import { supabase } from '../core/supabase.js';
