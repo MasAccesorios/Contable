@@ -1,8 +1,5 @@
 
-import { supabase } from '../../../core/supabase.js';
 import { CoreActions } from '../../../shared/crud.js';
-import { AbonoModal } from '../../../shared/abonoModal.js';
-import { anularTransaccion } from '../../../shared/transaccionesUtils.js';
 import { PagosRealizadosData } from './pagosRealizados.data.js';
 import { PagosRealizadosTemplates } from './pagosRealizados.templates.js';
 import { PagosRealizadosEvents } from './pagosRealizados.events.js';
