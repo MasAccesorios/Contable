@@ -318,7 +318,8 @@ export default {
                         tipo: tipoPago,
                         monto: parseFloat(abono.monto),
                         fecha: fecha,
-                        cuenta_id: parseInt(cuentaId, 10)
+                        cuenta_id: parseInt(cuentaId, 10),
+                        metodo_pago: metodo
                     };
                     await DB.save('transacciones', transaccion);
                     

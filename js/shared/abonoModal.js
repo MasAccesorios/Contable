@@ -214,7 +214,8 @@ export const AbonoModal = {
                     tipo: tipoPago,
                     monto: montoAbono,
                     fecha: fecha,
-                    cuenta_id: cuentaId
+                    cuenta_id: cuentaId,
+                    metodo_pago: metodoPago
                 };
                 
                 await DB.save('transacciones', transaccion);
