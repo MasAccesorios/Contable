@@ -10,6 +10,13 @@ export const PagosRealizadosEvents = {
                 window.location.hash = '#/gastos/pagos/nuevo';
             });
         }
+        
+        const btnNuevoEgresoAgrupado = this.element.querySelector('#btn-nuevo-egreso-agrupado');
+        if (btnNuevoEgresoAgrupado) {
+            btnNuevoEgresoAgrupado.addEventListener('click', () => {
+                window.location.hash = '#/gastos/pagos/nuevo';
+            });
+        }
 
         const inputSearch = this.element.querySelector('#search-pagos');
         const clearBtn = this.element.querySelector('#clearSearchBtn');

@@ -284,6 +284,9 @@ export const PagosRealizadosTemplates = {
                         <a href="#" onclick="event.preventDefault(); window.history.length > 2 ? window.history.back() : window.location.hash = '#/dashboard';" class="btn btn-light bg-white border me-2" style="font-weight: var(--weight-medium); font-size: var(--fs-md); color: var(--text-body);">
                             <i class="bi bi-arrow-left me-1"></i> Volver
                         </a>
+                        <button id="btn-nuevo-egreso-agrupado" class="btn btn-outline-primary bg-white border me-2" style="font-weight: var(--weight-medium); font-size: var(--fs-md);">
+                            <i class="bi bi-collection me-1"></i> Pago agrupado
+                        </button>
                         <button id="btn-nuevo-egreso" class="btn btn-primary-action">
                             <i class="bi bi-plus-lg me-1"></i> Registrar Egreso
                         </button>

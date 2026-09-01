@@ -49,6 +49,7 @@ const routes = {
     'ingresos/notas-credito': () => import('../modules/ingresos/notasCredito.js'),
     'ingresos/pagos-recibidos': () => import('../modules/ingresos/pagosRecibidos.js'),
     'ingresos/pagos/nuevo': () => import('../modules/ingresos/pagos_nuevo.js'),
+    'gastos/pagos/nuevo': () => import('../modules/gastos/pagos_nuevo.js'),
     'gastos/pagos-realizados': () => import('../modules/gastos/pagosRealizados/pagosRealizados.js'),
     'cartera': () => import('../modules/cartera/cartera.js'),
     'bancos/conciliacion': () => import('../modules/bancos/conciliacion.js'),
