@@ -1676,14 +1676,15 @@ CREATE OR REPLACE FUNCTION public.get_pagos_kpis(p_tipo text)
 AS $function$
 DECLARE
     v_total numeric := 0;
+    v_hoy_bogota date := (now() AT TIME ZONE 'America/Bogota')::date;
 BEGIN
     SELECT COALESCE(SUM(monto), 0)
     INTO v_total
     FROM pagos_ingresos
     WHERE tipo = p_tipo 
       AND estado != 'anulado'
-      AND EXTRACT(YEAR FROM fecha) = EXTRACT(YEAR FROM CURRENT_DATE)
-      AND EXTRACT(MONTH FROM fecha) = EXTRACT(MONTH FROM CURRENT_DATE);
+      AND EXTRACT(YEAR FROM fecha) = EXTRACT(YEAR FROM v_hoy_bogota)
+      AND EXTRACT(MONTH FROM fecha) = EXTRACT(MONTH FROM v_hoy_bogota);
     RETURN json_build_object('total', v_total);
 END;
 $function$;
