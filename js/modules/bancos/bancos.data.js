@@ -2,8 +2,8 @@ import DB from '../../core/db.js';
 import { supabase } from '../../core/supabase.js';
 
 export const TesoreriaData = {
-    async loadData() {
-        const { data: dataGrafica, error: errGrafica } = await supabase.rpc('get_ingresos_egresos_por_mes', { meses: 6 });
+    async loadData(meses = 6) {
+        const { data: dataGrafica, error: errGrafica } = await supabase.rpc('get_ingresos_egresos_por_mes', { meses: meses });
         if (errGrafica) console.error('Error cargando gráfica:', errGrafica);
         this.state.datosGrafica = dataGrafica || [];
         

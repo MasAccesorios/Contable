@@ -128,9 +128,10 @@ export const TesoreriaEvents = {
             }
         });
 
-        el.querySelector('#select-chart-rango')?.addEventListener('change', (e) => {
+        el.querySelector('#select-chart-rango')?.addEventListener('change', async (e) => {
             const meses = parseInt(e.target.value, 10);
-            this.renderChart(meses);
+            await this.loadData(meses);
+            this.renderChart();
         });
 
         el.querySelector('#form-transferir')?.addEventListener('submit', async (e) => {
