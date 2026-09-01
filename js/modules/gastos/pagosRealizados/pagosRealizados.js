@@ -1,8 +1,9 @@
 
-import { supabase } from '../../core/supabase.js';
-import { CoreActions } from '../../shared/crud.js';
-import { AbonoModal } from '../../shared/abonoModal.js';
-import { anularTransaccion } from '../../shared/transaccionesUtils.js';
+import { supabase } from '../../../core/supabase.js';
+import { CoreActions } from '../../../shared/crud.js';
+import { AbonoModal } from '../../../shared/abonoModal.js';
+import { anularTransaccion } from '../../../shared/transaccionesUtils.js';
+import { PagosRealizadosData } from './pagosRealizados.data.js';
 
 export const PagosRealizadosModule = {
     state: {
@@ -25,35 +26,11 @@ export const PagosRealizadosModule = {
         await this.cargarPagos();
     },
 
-    async calcularKPIs() {
-        try {
-            const { data, error } = await supabase.rpc('get_pagos_kpis', { p_tipo: 'out' });
-            if (!error && data) {
-                this.state.kpis = { total: parseFloat(data.total) || 0 };
-            }
-        } catch (e) {
-            console.error('Error calculando KPIs:', e);
-        }
-    },
-
-    async _cargarComprobanteAgrupado(id) {
-        const { data: t } = await supabase.from('pagos_ingresos').select('*, contactos(*), cuentas_bancarias(*), facturas(*, contactos(*))').eq('id', id).single();
-        if (!t) return null;
-        if (t.grupo_pago_id) {
-            const { data: grupo } = await supabase.from('pagos_ingresos').select('*, contactos(*), facturas(*, contactos(*))').eq('grupo_pago_id', t.grupo_pago_id);
-            if (grupo && grupo.length > 1) {
-                t.itemsGrupo = grupo;
-                t.monto = grupo.reduce((sum, p) => sum + Number(p.monto), 0);
-            }
-        }
-        return t;
-    },
-
     async mostrarDetalle(id, mode = 'preview') {
         if (mode === 'print' || mode === 'vista-previa') {
             const t = await this._cargarComprobanteAgrupado(id);
             if (t) {
-                const { PrintManager } = await import('../../shared/printManager.js');
+                const { PrintManager } = await import('../../../shared/printManager.js');
                 const idVisual = t.grupo_pago_id ? (t.numero_recibo ? String(t.numero_recibo).padStart(4, '0') : t.grupo_pago_id) : (t.numero || t.id);
                 PrintManager._renderPreviewShell(this.getComprobanteHTML(t, true), { mode: mode === 'vista-previa' ? 'preview' : 'print', title: 'Comprobante de Egreso', fileName: `comprobante_egreso_${idVisual}.png`, printClass: 'formato-media-carta' });
             }
@@ -74,31 +51,6 @@ export const PagosRealizadosModule = {
         } finally {
             this.state.isLoading = false;
             this.render();
-        }
-    },
-
-    async cargarPagos() {
-        this.state.isLoading = true;
-        this.renderGrid();
-
-        try {
-            const { data, error } = await supabase.rpc('get_pagos_lista', {
-                p_tipo: 'out',
-                p_page: this.state.currentPage,
-                p_limit: this.state.itemsPerPage,
-                p_search: this.state.searchQuery
-            });
-
-            if (error) throw error;
-
-            this.state.pagos = data || [];
-            this.state.totalItems = this.state.pagos.length > 0 ? Number(this.state.pagos[0].total_count) : 0;
-        } catch (error) {
-            console.error('Error cargando pagos realizados:', error);
-            CoreActions.showWarningModal('Error al cargar la lista de pagos: ' + (error.message || error));
-        } finally {
-            this.state.isLoading = false;
-            this.renderGrid();
         }
     },
 
@@ -360,31 +312,6 @@ export const PagosRealizadosModule = {
                         </div>
                     </div>
                 </div>
-            </div>
-        `;
-    },
-
-    renderComprobanteWrapper() {
-        const t = this.state.currentComprobanteData;
-        this.element.innerHTML = `
-            <div class="py-4 px-4" style="font-family: 'Inter', sans-serif; background-color: var(--bg-main); min-height: 100vh;">
-                <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom" style="max-width: 750px; margin: 0 auto;">
-                    <button class="btn btn-link text-decoration-none text-muted p-0 d-flex align-items-center gap-2 fw-medium" id="btn-volver-pagos">
-                        <i class="bi bi-arrow-left"></i> Volver a Pagos Realizados
-                    </button>
-                    <div class="d-flex gap-2">
-                        <button class="btn btn-outline-info text-info border-info bg-info bg-opacity-10 fw-medium px-4" id="btn-imprimir-comprobante" data-id="${t.id}">
-                            <i class="bi bi-printer me-2"></i> Imprimir
-                        </button>
-                        <button class="btn fw-medium px-4 text-white" style="background-color: var(--primary); border-color: var(--primary);" id="btn-editar-comprobante" data-id="${t.id}">
-                            <i class="bi bi-pencil me-2"></i> Editar
-                        </button>
-                    </div>
-                </div>
-                <div class="mb-4" style="max-width: 750px; margin: 0 auto;">
-                    <h2 class="h3 fw-bold m-0" style="color: var(--text-main);">Pago Realizado</h2>
-                </div>
-                ${this.getComprobanteHTML(t)}
             </div>
         `;
     },
@@ -669,7 +596,7 @@ export const PagosRealizadosModule = {
         if (btnEditarComprobante) {
             btnEditarComprobante.addEventListener('click', (e) => {
                 const id = e.currentTarget.dataset.id;
-                import('../../shared/transaccionModal.js').then(async m => {
+                import('../../../shared/transaccionModal.js').then(async m => {
                     const { data } = await supabase.from('pagos_ingresos').select('*').eq('id', id).single();
                     if (data) {
                         m.mostrarDetalleTransaccion(data, () => {
@@ -816,7 +743,7 @@ export const PagosRealizadosModule = {
                         ev.preventDefault();
                         ev.stopPropagation();
                         window.cleanupFloatingElements();
-                        import('../../shared/transaccionModal.js').then(m => {
+                        import('../../../shared/transaccionModal.js').then(m => {
                             supabase.from('pagos_ingresos').select('*').eq('id', id).single().then(({ data }) => {
                                 if (data) {
                                     m.mostrarDetalleTransaccion(data, () => this.cargarPagos());
@@ -884,3 +811,5 @@ export const PagosRealizadosModule = {
         });
     }
 };
+
+Object.assign(PagosRealizadosModule, PagosRealizadosData);
