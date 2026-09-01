@@ -990,6 +990,7 @@ CREATE OR REPLACE FUNCTION public.get_cotizaciones_kpis()
  LANGUAGE plpgsql
 AS $function$
 DECLARE
+    v_hoy_bogota date := (now() AT TIME ZONE 'America/Bogota')::date;
     v_total_cotizado numeric := 0;
     v_total_aprobado numeric := 0;
     v_total_pendiente numeric := 0;
@@ -1003,8 +1004,8 @@ BEGIN
         v_total_aprobado, 
         v_total_pendiente
     FROM cotizaciones c
-    WHERE EXTRACT(YEAR FROM c.fecha::date) = EXTRACT(YEAR FROM CURRENT_DATE)
-      AND EXTRACT(MONTH FROM c.fecha::date) = EXTRACT(MONTH FROM CURRENT_DATE);
+    WHERE EXTRACT(YEAR FROM c.fecha::date) = EXTRACT(YEAR FROM v_hoy_bogota)
+      AND EXTRACT(MONTH FROM c.fecha::date) = EXTRACT(MONTH FROM v_hoy_bogota);
     RETURN json_build_object(
         'totalCotizado', v_total_cotizado,
         'totalAprobado', v_total_aprobado,
@@ -1084,6 +1085,7 @@ CREATE OR REPLACE FUNCTION public.get_crud_kpis_mes(p_tipo text)
  LANGUAGE plpgsql
 AS $function$
 DECLARE
+    v_hoy_bogota date := (now() AT TIME ZONE 'America/Bogota')::date;
     v_total numeric := 0;
     v_aplicados numeric := 0;
     v_directos numeric := 0;
@@ -1096,8 +1098,8 @@ BEGIN
     FROM pagos_ingresos
     WHERE tipo = p_tipo 
       AND estado != 'anulado'
-      AND EXTRACT(YEAR FROM fecha::date) = EXTRACT(YEAR FROM CURRENT_DATE)
-      AND EXTRACT(MONTH FROM fecha::date) = EXTRACT(MONTH FROM CURRENT_DATE);
+      AND EXTRACT(YEAR FROM fecha::date) = EXTRACT(YEAR FROM v_hoy_bogota)
+      AND EXTRACT(MONTH FROM fecha::date) = EXTRACT(MONTH FROM v_hoy_bogota);
     RETURN json_build_object(
         'total', v_total, 
         'aplicados', v_aplicados, 
@@ -1340,6 +1342,7 @@ CREATE OR REPLACE FUNCTION public.get_facturas_kpis(p_tipo text)
  LANGUAGE plpgsql
 AS $function$
 DECLARE
+    v_hoy_bogota date := (now() AT TIME ZONE 'America/Bogota')::date;
     v_total_facturado numeric := 0;
     v_total_cobrado numeric := 0;
     v_total_pendiente numeric := 0;
@@ -1368,8 +1371,8 @@ BEGIN
         FROM facturas f
         WHERE f.tipo = p_tipo
           AND f.estado NOT IN ('anulada', 'void', 'voided')
-          AND EXTRACT(YEAR FROM f.fecha::date) = EXTRACT(YEAR FROM CURRENT_DATE)
-          AND EXTRACT(MONTH FROM f.fecha::date) = EXTRACT(MONTH FROM CURRENT_DATE)
+          AND EXTRACT(YEAR FROM f.fecha::date) = EXTRACT(YEAR FROM v_hoy_bogota)
+          AND EXTRACT(MONTH FROM f.fecha::date) = EXTRACT(MONTH FROM v_hoy_bogota)
     ),
     calc_totales AS (
         SELECT 
@@ -1595,6 +1598,7 @@ CREATE OR REPLACE FUNCTION public.get_notas_credito_kpis()
  LANGUAGE plpgsql
 AS $function$
 DECLARE
+    v_hoy_bogota date := (now() AT TIME ZONE 'America/Bogota')::date;
     v_total_anulada numeric := 0;
     v_total_aplicadas numeric := 0;
     v_total_pendientes numeric := 0;
@@ -1608,8 +1612,8 @@ BEGIN
         v_total_aplicadas, 
         v_total_pendientes
     FROM notas_credito
-    WHERE EXTRACT(YEAR FROM fecha::date) = EXTRACT(YEAR FROM CURRENT_DATE)
-      AND EXTRACT(MONTH FROM fecha::date) = EXTRACT(MONTH FROM CURRENT_DATE);
+    WHERE EXTRACT(YEAR FROM fecha::date) = EXTRACT(YEAR FROM v_hoy_bogota)
+      AND EXTRACT(MONTH FROM fecha::date) = EXTRACT(MONTH FROM v_hoy_bogota);
 
     RETURN json_build_object(
         'totalAnulada', v_total_anulada,
