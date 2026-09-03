@@ -41,10 +41,10 @@ export class CrudFinanciero {
             <div class="dash-layout p-4">
                 <div class="d-flex justify-content-between flex-wrap align-items-center pt-3 pb-2 mb-3 border-bottom">
                     <div class="d-flex align-items-center">
-                        <a href="#" onclick="event.preventDefault(); window.history.length > 2 ? window.history.back() : window.location.hash = '#/dashboard';" class="btn btn-light bg-white border me-3" style="font-weight: var(--weight-medium); font-size: 14px; color: var(--text-body);">
+                        <a href="#" onclick="event.preventDefault(); window.history.length > 2 ? window.history.back() : window.location.hash = '#/dashboard';" class="btn btn-light bg-white border me-3" style="font-weight: var(--weight-medium); font-size: var(--fs-md); color: var(--text-body);">
                             <i class="bi bi-arrow-left me-1"></i> Volver
                         </a>
-                        <h1 class="h2 mb-0">${this.config.titulo}</h1>
+                        <h1 class="h3 mb-0">${this.config.titulo}</h1>
                     </div>
                 </div>
 
@@ -54,25 +54,25 @@ export class CrudFinanciero {
                         <div class="dash-icon-box variant-blue me-3">
                             <i class="bi bi-receipt"></i>
                         </div>
-                        <h5 class="mb-0" style="color: var(--text-main); font-size: 1.1rem; font-weight: 700;">${this.config.btnNuevoText}</h5>
+                        <h5 class="mb-0" style="color: var(--text-main); font-size: var(--fs-lg); font-weight: 700;">${this.config.btnNuevoText}</h5>
                     </div>
                     <div>
                         <form id="${this.config.formId}">
                             <!-- Fila 1 -->
                             <div class="form-fintech-row-1">
                                 <div>
-                                    <label class="form-label text-muted small fw-semibold mb-1">Fecha *</label>
+                                    <label class="form-label text-muted fw-semibold mb-1" style="font-size: var(--fs-sm);">Fecha *</label>
                                     <input type="date" class="form-control" id="transaccion-fecha" required>
                                 </div>
                                 <div>
-                                    <label class="form-label text-muted small fw-semibold mb-1">Proveedor (Opcional)</label>
+                                    <label class="form-label text-muted fw-semibold mb-1" style="font-size: var(--fs-sm);">Proveedor (Opcional)</label>
                                     <div class="custom-combobox" id="combo-proveedor-container">
                                         <input type="text" class="form-control" id="search-proveedor" placeholder="Buscar proveedor..." autocomplete="off">
                                         <input type="hidden" id="select-proveedor-id">
                                     </div>
                                 </div>
                                 <div>
-                                    <label class="form-label text-muted small fw-semibold mb-1">Monto ($) *</label>
+                                    <label class="form-label text-muted fw-semibold mb-1" style="font-size: var(--fs-sm);">Monto ($) *</label>
                                     <input type="text" class="form-control" id="transaccion-monto" required>
                                 </div>
                             </div>
@@ -80,21 +80,21 @@ export class CrudFinanciero {
                             <!-- Fila 2 -->
                             <div class="form-fintech-row-2">
                                 <div>
-                                    <label class="form-label text-muted small fw-semibold mb-1">Categoría *</label>
+                                    <label class="form-label text-muted fw-semibold mb-1" style="font-size: var(--fs-sm);">Categoría *</label>
                                     <select class="form-select" id="transaccion-categoria" required>
                                         <option value="">Seleccione...</option>
                                         ${this.categorias.map(c => `<option value="${c.nombre}">${c.nombre}</option>`).join('')}
                                     </select>
                                 </div>
                                 <div>
-                                    <label class="form-label text-muted small fw-semibold mb-1">Cuenta Bancaria *</label>
+                                    <label class="form-label text-muted fw-semibold mb-1" style="font-size: var(--fs-sm);">Cuenta Bancaria *</label>
                                     <div class="custom-combobox" id="combo-cuenta-container">
                                         <input type="text" class="form-control" id="transaccion-cuenta" placeholder="Buscar cuenta..." required autocomplete="off">
                                         <input type="hidden" id="transaccion-cuenta-id" required>
                                     </div>
                                 </div>
                                 <div>
-                                    <label class="form-label text-muted small fw-semibold mb-1">Referencia (Opcional)</label>
+                                    <label class="form-label text-muted fw-semibold mb-1" style="font-size: var(--fs-sm);">Referencia (Opcional)</label>
                                     <input type="text" class="form-control" id="transaccion-referencia" placeholder="Nro Factura / Recibo">
                                 </div>
                             </div>
@@ -102,7 +102,7 @@ export class CrudFinanciero {
                             <!-- Fila 3 -->
                             <div class="form-fintech-row-3">
                                 <div>
-                                    <label class="form-label text-muted small fw-semibold mb-1">Descripción *</label>
+                                    <label class="form-label text-muted fw-semibold mb-1" style="font-size: var(--fs-sm);">Descripción *</label>
                                     <input type="text" class="form-control" id="transaccion-descripcion" placeholder="Ej. Pago servicio de internet" required minlength="3">
                                 </div>
                                 <div class="d-flex flex-column gap-2">
@@ -120,7 +120,7 @@ export class CrudFinanciero {
 
                 <!-- Panel Inferior: Gestión y Listado -->
                 
-                <h5 class="mb-4 mt-2 text-secondary"><i class="bi bi-list-ul me-2"></i>${this.config.panelHistorialText}</h5>
+                <h5 class="mb-4 mt-2 text-secondary" style="font-size: var(--fs-lg);"><i class="bi bi-list-ul me-2"></i>${this.config.panelHistorialText}</h5>
 
                 <!-- KPI CARDS DINÁMICAS -->
                 <div class="row g-3 mb-4" id="kpi-cards-container">
@@ -182,8 +182,8 @@ export class CrudFinanciero {
 
                         <!-- Tabla -->
                         <div class="table-responsive mt-3 px-4 pb-4">
-                            <table class="table table-hover align-middle border-0" style="font-size: 0.875rem;">
-                                <thead class="table-light text-muted small text-uppercase border-bottom">
+                            <table class="table table-hover align-middle border-0" style="font-size: var(--fs-base);">
+                                <thead class="table-light text-muted text-uppercase border-bottom">
                                     <tr class="small text-uppercase fw-semibold text-secondary" style="letter-spacing: 0.5px; white-space: nowrap;">
                                         <th class="border-0 py-2">Fecha</th>
                                         <th class="border-0 py-2">Categoría</th>
@@ -472,7 +472,7 @@ export class CrudFinanciero {
                         <button class="btn btn-sm btn-link p-0 text-muted mx-1 btn-opciones-registro" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Más opciones" style="color: var(--text-muted) !important; transition: opacity 0.2s;" onmouseover="this.style.opacity=0.7" onmouseout="this.style.opacity=1">
                             <i class="bi bi-three-dots-vertical fs-6"></i>
                         </button>
-                        <ul class="dropdown-menu dropdown-menu-end shadow border-0" style="font-size: 13px;">
+                        <ul class="dropdown-menu dropdown-menu-end shadow border-0" style="font-size: var(--fs-base);">
                             <li><a class="dropdown-item text-primary btn-editar-registro" href="javascript:void(0)" data-id="${g.id}">Editar</a></li>
                             <li><a class="dropdown-item text-danger btn-eliminar-registro" href="javascript:void(0)" data-id="${g.id}">Eliminar</a></li>
                         </ul>
@@ -514,7 +514,7 @@ export class CrudFinanciero {
         // 3. Render Paginación UI
         if (pagContainer) {
             pagContainer.innerHTML = `
-                <div class="d-flex align-items-center gap-3" style="font-size: 13px; color: var(--text-body);">
+                <div class="d-flex align-items-center gap-3" style="font-size: var(--fs-base); color: var(--text-body);">
                     <span>Resultados por página:</span>
                     <select class="form-select form-select-sm text-muted select-per-page" style="width: 70px;">
                         <option value="10" ${this.itemsPerPage===10?'selected':''}>10</option>
@@ -523,7 +523,7 @@ export class CrudFinanciero {
                     </select>
                     <span class="text-muted border-start ps-3">${totalItems > 0 ? from + 1 : 0}-${Math.min(from + this.itemsPerPage, totalItems)} de ${totalItems}</span>
                 </div>
-                <div class="d-flex align-items-center gap-2" style="font-size: 13px; color: var(--text-body);">
+                <div class="d-flex align-items-center gap-2" style="font-size: var(--fs-base); color: var(--text-body);">
                     <span>Página</span>
                     <input type="number" class="form-control form-control-sm text-center text-muted input-page" value="${this.currentPage}" min="1" max="${totalPages}" style="width: 50px;">
                     <span>de ${totalPages}</span>
@@ -627,39 +627,39 @@ export class CrudFinanciero {
                             <img src="LogoMas.png" alt="MAS Accesorios" style="max-height: 45px;">
                         </div>
                         <div class="text-end">
-                            <div class="text-muted fw-medium mb-1" style="font-size: 13px;">Detalle del ${esIngreso ? 'ingreso' : 'gasto'}</div>
+                            <div class="text-muted fw-medium mb-1" style="font-size: var(--fs-base);">Detalle del ${esIngreso ? 'ingreso' : 'gasto'}</div>
                             <span class="badge bg-light text-dark border">${escapeHtml(registro.categoria)}</span>
                         </div>
                     </div>
 
                     <div class="text-center my-4">
-                        <div class="fw-bold ${this.config.colorMonto}" style="font-size: 2.2rem;">${montoFormateado}</div>
+                        <div class="fw-bold ${this.config.colorMonto}" style="font-size: var(--fs-xxl);">${montoFormateado}</div>
                     </div>
 
                     <div class="row gy-3">
                         <div class="col-6">
-                            <label class="form-label text-muted fw-semibold m-0" style="font-size: 12px;">Fecha</label>
-                            <div class="fw-medium text-dark" style="font-size: 14px;">${registro.fecha}</div>
+                            <label class="form-label text-muted fw-semibold m-0" style="font-size: var(--fs-sm);">Fecha</label>
+                            <div class="fw-medium text-dark" style="font-size: var(--fs-md);">${registro.fecha}</div>
                         </div>
                         <div class="col-6">
-                            <label class="form-label text-muted fw-semibold m-0" style="font-size: 12px;">Estado</label>
-                            <div class="fw-medium text-dark" style="font-size: 14px;">${escapeHtml(registro.estado || '-')}</div>
+                            <label class="form-label text-muted fw-semibold m-0" style="font-size: var(--fs-sm);">Estado</label>
+                            <div class="fw-medium text-dark" style="font-size: var(--fs-md);">${escapeHtml(registro.estado || '-')}</div>
                         </div>
                         <div class="col-6">
-                            <label class="form-label text-muted fw-semibold m-0" style="font-size: 12px;">${esIngreso ? 'Proveedor' : 'Beneficiario'}</label>
-                            <div class="fw-medium text-dark" style="font-size: 14px;">${escapeHtml(proveedorNombre)}</div>
+                            <label class="form-label text-muted fw-semibold m-0" style="font-size: var(--fs-sm);">${esIngreso ? 'Proveedor' : 'Beneficiario'}</label>
+                            <div class="fw-medium text-dark" style="font-size: var(--fs-md);">${escapeHtml(proveedorNombre)}</div>
                         </div>
                         <div class="col-6">
-                            <label class="form-label text-muted fw-semibold m-0" style="font-size: 12px;">Cuenta</label>
-                            <div class="fw-medium text-dark" style="font-size: 14px;">${escapeHtml(cuentaNombre)}</div>
+                            <label class="form-label text-muted fw-semibold m-0" style="font-size: var(--fs-sm);">Cuenta</label>
+                            <div class="fw-medium text-dark" style="font-size: var(--fs-md);">${escapeHtml(cuentaNombre)}</div>
                         </div>
                         <div class="col-6">
-                            <label class="form-label text-muted fw-semibold m-0" style="font-size: 12px;">Referencia</label>
-                            <div class="fw-medium text-dark" style="font-size: 14px;">${registro.referencia || '-'}</div>
+                            <label class="form-label text-muted fw-semibold m-0" style="font-size: var(--fs-sm);">Referencia</label>
+                            <div class="fw-medium text-dark" style="font-size: var(--fs-md);">${registro.referencia || '-'}</div>
                         </div>
                         <div class="col-12">
-                            <label class="form-label text-muted fw-semibold m-0" style="font-size: 12px;">Descripción</label>
-                            <div class="fw-medium text-dark" style="font-size: 14px;">${escapeHtml(registro.descripcion)}</div>
+                            <label class="form-label text-muted fw-semibold m-0" style="font-size: var(--fs-sm);">Descripción</label>
+                            <div class="fw-medium text-dark" style="font-size: var(--fs-md);">${escapeHtml(registro.descripcion)}</div>
                         </div>
                     </div>
                 </div>
