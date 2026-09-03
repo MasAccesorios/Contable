@@ -54,7 +54,7 @@ export class CrudFinanciero {
                         <div class="dash-icon-box variant-blue me-3">
                             <i class="bi bi-receipt"></i>
                         </div>
-                        <h5 class="mb-0" style="color: #0f172a; font-size: 1.1rem; font-weight: 700;">${this.config.btnNuevoText}</h5>
+                        <h5 class="mb-0" style="color: var(--text-main); font-size: 1.1rem; font-weight: 700;">${this.config.btnNuevoText}</h5>
                     </div>
                     <div>
                         <form id="${this.config.formId}">
@@ -459,7 +459,7 @@ export class CrudFinanciero {
                 ? (this.cuentasActivas || []).find(c => String(c.id) === String(g.cuentaId))?.nombre || g.cuentaId
                 : '-';
             return `
-            <tr class="fila-detalle-registro" data-id="${g.id}" style="border-bottom: 1px solid #f1f5f9; cursor: pointer;">
+            <tr class="fila-detalle-registro" data-id="${g.id}" style="border-bottom: 1px solid var(--border-color); cursor: pointer;">
                 <td class="py-1 text-muted" style="white-space: nowrap;">${g.fecha}</td>
                 <td class="py-1" style="white-space: nowrap;"><span class="badge bg-light text-dark border">${g.categoria}</span></td>
                 <td class="py-1" style="white-space: nowrap;">${escapeHtml(g.descripcion)}</td>
@@ -469,7 +469,7 @@ export class CrudFinanciero {
                 <td class="py-1 text-end fw-bold ${this.config.colorMonto}" style="white-space: nowrap;">${this.config.prefijoMonto}$${g.monto.toLocaleString()}</td>
                 <td class="py-1 text-center" style="white-space: nowrap;">
                     <div class="dropdown">
-                        <button class="btn btn-sm btn-link p-0 text-muted mx-1 btn-opciones-registro" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Más opciones" style="color: #6c757d !important; transition: opacity 0.2s;" onmouseover="this.style.opacity=0.7" onmouseout="this.style.opacity=1">
+                        <button class="btn btn-sm btn-link p-0 text-muted mx-1 btn-opciones-registro" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Más opciones" style="color: var(--text-muted) !important; transition: opacity 0.2s;" onmouseover="this.style.opacity=0.7" onmouseout="this.style.opacity=1">
                             <i class="bi bi-three-dots-vertical fs-6"></i>
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end shadow border-0" style="font-size: 13px;">
@@ -614,13 +614,13 @@ export class CrudFinanciero {
         const montoFormateado = `${this.config.prefijoMonto}$${Number(registro.monto).toLocaleString('es-CO', {minimumFractionDigits: 2})}`;
 
         element.innerHTML = `
-        <div class="py-4 px-4" style="font-family: 'Inter', sans-serif; background-color: #f8f9fa; min-height: 100vh;">
+        <div class="py-4 px-4" style="font-family: 'Inter', sans-serif; background-color: var(--bg-main); min-height: 100vh;">
             <div class="mb-4 pb-3 border-bottom" style="max-width: 750px; margin: 0 auto;">
                 <button class="btn btn-link text-decoration-none text-muted p-0 d-flex align-items-center gap-2 fw-medium" id="btn-volver-detalle-registro">
                     <i class="bi bi-arrow-left"></i> Volver a ${this.config.panelHistorialText}
                 </button>
             </div>
-            <div class="card border-light-subtle rounded-4 shadow-sm" style="max-width: 750px; margin: 0 auto; background: #fff;">
+            <div class="card rounded-4 shadow-sm" style="max-width: 750px; margin: 0 auto; background: var(--surface); border: 1px solid var(--border-color);">
                 <div class="card-body p-4">
                     <div class="d-flex justify-content-between align-items-start mb-3 pb-2 border-bottom">
                         <div>
