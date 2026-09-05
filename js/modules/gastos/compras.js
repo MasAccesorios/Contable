@@ -1277,8 +1277,24 @@ export const ComprasModule = {
                     const precio = fmt.parseCurrencyValue(inputPrecio.value);
                     
                     if (!nombre) throw new Error("El nombre es obligatorio");
-                    
+
                     const { supabase } = await import('../../core/supabase.js');
+
+                    // Validar SKU duplicado solo si se ingresó un SKU
+                    if (sku) {
+                        const { data: existente } = await supabase
+                            .from('productos')
+                            .select('id')
+                            .eq('sku', sku)
+                            .maybeSingle();
+                        if (existente) {
+                            alert("Ya existe un producto con el SKU '" + sku + "'");
+                            btn.disabled = false;
+                            btn.innerHTML = 'Guardar y Seleccionar';
+                            return;
+                        }
+                    }
+
                     const { data, error } = await supabase.from('productos').insert([{
                         nombre:      nombre,
                         sku:         sku,
