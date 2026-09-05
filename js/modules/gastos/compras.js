@@ -1193,11 +1193,24 @@ export const ComprasModule = {
                                     <input type="text" id="cp-sku" class="form-control">
                                 </div>
                                 <div class="col-6">
-                                    <label class="form-label text-muted small">Precio de venta futuro</label>
+                                    <label class="form-label text-muted small">Costo inicial</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">$</span>
+                                        <input type="text" id="cp-costo" class="form-control text-end" value="0">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-6">
+                                    <label class="form-label text-muted small">Precio de venta</label>
                                     <div class="input-group">
                                         <span class="input-group-text">$</span>
                                         <input type="text" id="cp-precio" class="form-control text-end" value="0">
                                     </div>
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label text-muted small">Utilidad</label>
+                                    <input type="text" id="cp-utilidad" class="form-control text-end bg-light" readonly disabled value="—">
                                 </div>
                             </div>
                         </div>
@@ -1212,15 +1225,44 @@ export const ComprasModule = {
         
         document.body.insertAdjacentHTML('beforeend', html);
         
-        // Aplicar formato de moneda
+        // Aplicar formato de moneda y lógica de utilidad
         import('../../shared/formatters.js').then(fmt => {
+            const inputCosto  = document.getElementById('cp-costo');
             const inputPrecio = document.getElementById('cp-precio');
+            const inputUtil   = document.getElementById('cp-utilidad');
+
+            const recalcUtilidad = () => {
+                const costo  = fmt.parseCurrencyValue(inputCosto.value)  || 0;
+                const precio = fmt.parseCurrencyValue(inputPrecio.value) || 0;
+                if (costo <= 0) {
+                    inputUtil.value = '—';
+                    return;
+                }
+                const pct = ((precio - costo) / costo) * 100;
+                const abs = precio - costo;
+                inputUtil.value = `${pct.toFixed(1)}% ($${abs.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`;
+            };
+
+            // Formato y recálculo para cp-costo
+            inputCosto.addEventListener('input', (e) => {
+                fmt.applyCurrencyFormatting(e.target);
+                recalcUtilidad();
+            });
+            inputCosto.addEventListener('blur', (e) => {
+                if (e.target.value === '') e.target.value = '0';
+                fmt.applyCurrencyFormatting(e.target);
+                recalcUtilidad();
+            });
+
+            // Formato y recálculo para cp-precio
             inputPrecio.addEventListener('input', (e) => {
                 fmt.applyCurrencyFormatting(e.target);
+                recalcUtilidad();
             });
             inputPrecio.addEventListener('blur', (e) => {
                 if (e.target.value === '') e.target.value = '0';
                 fmt.applyCurrencyFormatting(e.target);
+                recalcUtilidad();
             });
             
             document.getElementById('cp-guardar').addEventListener('click', async (e) => {
@@ -1230,30 +1272,30 @@ export const ComprasModule = {
                 
                 try {
                     const nombre = document.getElementById('cp-nombre').value;
-                    const sku = document.getElementById('cp-sku').value;
+                    const sku    = document.getElementById('cp-sku').value;
+                    const costo  = fmt.parseCurrencyValue(inputCosto.value);
                     const precio = fmt.parseCurrencyValue(inputPrecio.value);
                     
                     if (!nombre) throw new Error("El nombre es obligatorio");
                     
                     const { supabase } = await import('../../core/supabase.js');
                     const { data, error } = await supabase.from('productos').insert([{
-                        nombre: nombre,
-                        sku: sku,
+                        nombre:      nombre,
+                        sku:         sku,
+                        costo_base:  costo,
                         precio_venta: precio,
-                        estado: 'active'
+                        estado:      'active'
                     }]).select().single();
                     
                     if (error) throw error;
-                    
 
-                    
                     // Cerrar modal
                     document.getElementById(modalId).remove();
                     
                     // Inyectar en la fila
                     if (trElement) {
                         const inpSearch = trElement.querySelector('.input-prod-search');
-                        const inpId = trElement.querySelector('.input-prod-id');
+                        const inpId     = trElement.querySelector('.input-prod-id');
                         
                         inpSearch.value = `[${data.sku || 'S/N'}] - ${data.nombre}`;
                         inpId.value = data.id;
