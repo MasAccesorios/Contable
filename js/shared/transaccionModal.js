@@ -126,8 +126,8 @@ export async function mostrarDetalleTransaccion(t, onSuccess) {
         ['edit-trans-fecha','edit-trans-cuenta','edit-trans-categoria','edit-trans-observaciones'].forEach(idCampo => {
             document.getElementById(idCampo).disabled = false;
         });
+        document.getElementById('edit-trans-monto').disabled = false;
         if (!isGroup) {
-            document.getElementById('edit-trans-monto').disabled = false;
             const facInput = document.getElementById('edit-trans-factura-id');
             if (facInput) facInput.disabled = false;
         }
@@ -155,14 +155,12 @@ export async function mostrarDetalleTransaccion(t, onSuccess) {
             };
             
             let oldFacturaId = t.factura_id;
-            let newFacturaId = null;
+            let newFacturaId = oldFacturaId;
             let oldMonto = Number(t.monto);
-            let newMonto = oldMonto;
+            let newMonto = parseCurrencyValue(document.getElementById('edit-trans-monto').value);
+            updatePayload.monto = newMonto;
 
             if (!isGroup) {
-                newMonto = parseCurrencyValue(document.getElementById('edit-trans-monto').value);
-                updatePayload.monto = newMonto;
-                
                 const facVal = document.getElementById('edit-trans-factura-id').value;
                 newFacturaId = null;
                 if (facVal) {
@@ -177,7 +175,7 @@ export async function mostrarDetalleTransaccion(t, onSuccess) {
             
             let estadosFacturas = [];
             // Recalcular facturas si hubo cambios en monto o reasignacion
-            if (!isGroup && (oldFacturaId !== newFacturaId || oldMonto !== newMonto)) {
+            if (oldFacturaId !== newFacturaId || oldMonto !== newMonto) {
                 const facturaIdsAfectadas = [...new Set([oldFacturaId, newFacturaId].filter(Boolean))];
                 if (facturaIdsAfectadas.length > 0) {
                     const { data: transaccionesF } = await supabase.from('pagos_ingresos').select('*').in('factura_id', facturaIdsAfectadas);
@@ -188,7 +186,9 @@ export async function mostrarDetalleTransaccion(t, onSuccess) {
                         for (let f of facturasF) {
                             f.estado = 'pendiente';
                             const txM = transaccionesF.filter(tx => tx.factura_id === f.id).map(tx => ({
-                                ...tx, tipo: tx.tipo === 'in' ? 'ingreso' : 'egreso'
+                                ...tx,
+                                monto: tx.id === t.id ? newMonto : tx.monto,
+                                tipo: tx.tipo === 'in' ? 'ingreso' : 'egreso'
                             }));
                             const metricas = calcularEstadoFactura(f, txM);
                             estadosFacturas.push({ id: f.id, estado: metricas.estado });
