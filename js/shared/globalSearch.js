@@ -156,6 +156,7 @@ export const GlobalSearch = {
         promises.push(
             supabase.from('contactos')
                 .select('id, nombre, identificacion')
+                .neq('estado', 'inactive')
                 .or(`nombre.ilike.%${query}%,identificacion.ilike.%${query}%`)
                 .limit(5)
                 .then(res => ({ type: 'contactos', data: res.data || [] }))
