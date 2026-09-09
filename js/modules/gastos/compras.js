@@ -650,7 +650,7 @@ export const ComprasModule = {
         const contactos = contactosData || [];
 
         const dbCuentas = await DB.getAll('cuentas_bancarias') || [];
-        const cuentasActivas = dbCuentas.filter(c => c.estado === 'activo');
+        const cuentasActivas = dbCuentas.filter(c => c.estado === 'active' || c.estado === 'activo');
 
         element.innerHTML = `
             <div class="module-container p-4" style="max-width: 1100px; margin: 0 auto;">
