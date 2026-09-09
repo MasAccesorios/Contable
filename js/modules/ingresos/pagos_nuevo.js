@@ -202,7 +202,7 @@ export default {
                             `}
                             <div class="d-flex justify-content-between pt-3" style="border-top: 1px solid var(--border-color);">
                                 <span class="text-muted">Deuda Total:</span>
-                                <span class="fw-bold text-danger fs-5">${this.formatCurrency(this.deudaTotal)}</span>
+                                <span class="fw-bold text-danger fs-5" id="display-deuda-total">${this.formatCurrency(this.deudaTotal)}</span>
                             </div>
                         </div>
 
@@ -316,6 +316,7 @@ export default {
         // Sumar dinámicamente
         const updateSum = () => {
             let sum = 0;
+            let deudaTotalLive = 0;
             inputs.forEach(input => {
                 let val = parseCurrencyValue(input.value);
                 let max = parseFloat(input.getAttribute('data-saldo')) || 0;
@@ -330,17 +331,21 @@ export default {
                 if (val < 0) { val = 0; input.value = 0; }
 
                 // Saldo pendiente en vivo: lo que quedaría debiendo con este valor
+                const saldoLive = Math.max(0, max - val);
                 const filaTr = input.closest('tr');
                 const celdaSaldo = filaTr ? filaTr.querySelector('.td-saldo-pendiente') : null;
                 if (celdaSaldo) {
-                    const saldoLive = Math.max(0, max - val);
                     celdaSaldo.textContent = this.formatCurrency(saldoLive);
                 }
+                deudaTotalLive += saldoLive;
                 
                 sum += val;
             });
             display.innerText = this.formatCurrency(sum);
             btnRegistrar.disabled = sum <= 0;
+
+            const deudaDisplay = document.getElementById('display-deuda-total');
+            if (deudaDisplay) deudaDisplay.textContent = this.formatCurrency(deudaTotalLive);
         };
 
         const self = this;
