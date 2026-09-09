@@ -1,6 +1,5 @@
 import { supabase } from '../../core/supabase.js';
 import { CoreActions } from '../../shared/crud.js';
-import { AbonoModal } from '../../shared/abonoModal.js';
 import { anularTransaccion } from '../../shared/transaccionesUtils.js';
 
 export const PagosRecibidosModule = {
@@ -532,7 +531,7 @@ export const PagosRecibidosModule = {
                                 ${formatMoney(pago.monto)}
                             </td>
                             <td class="py-3 text-end pe-3 position-relative">
-                                <button class="btn btn-sm btn-link text-muted p-0 border-0 btn-menu-row" data-id="${pago.id}" data-conciliado="${pago.estado_conciliacion}" data-factura="${pago.factura_id || ''}"
+                                <button class="btn btn-sm btn-link text-muted p-0 border-0 btn-menu-row" data-id="${pago.id}" data-conciliado="${pago.estado_conciliacion}"
                                     data-grupo="${pago.grupo_pago_id || ''}" data-anulado="${pago.estado_transaccion === 'anulado'}" style="text-decoration: none; font-size: var(--fs-lg);"><i class="bi bi-three-dots-vertical"></i></button>
                             </td>
                         </tr>
@@ -587,27 +586,16 @@ export const PagosRecibidosModule = {
         }
 
         const inputSearch = this.element.querySelector('#search-pagos');
-        const clearBtn = this.element.querySelector('#clearSearchBtn');
         let searchTimeout;
         if (inputSearch) {
             inputSearch.addEventListener('input', (e) => {
                 const val = e.target.value;
-                if (clearBtn) clearBtn.style.display = val ? '' : 'none';
                 clearTimeout(searchTimeout);
                 searchTimeout = setTimeout(() => {
                     this.state.searchQuery = val.trim();
                     this.state.currentPage = 1;
                     this.cargarPagos();
                 }, 400);
-            });
-        }
-        if (clearBtn) {
-            clearBtn.addEventListener('click', () => {
-                if (inputSearch) inputSearch.value = '';
-                clearBtn.style.display = 'none';
-                this.state.searchQuery = '';
-                this.state.currentPage = 1;
-                this.cargarPagos();
             });
         }
     },
@@ -669,18 +657,6 @@ export const PagosRecibidosModule = {
             });
         }
 
-        const inputPage = gridContainer.querySelector('#input-page');
-        if (inputPage) {
-            inputPage.addEventListener('change', (e) => {
-                let p = parseInt(e.target.value, 10);
-                const max = Math.ceil(this.state.totalItems / this.state.itemsPerPage) || 1;
-                if (p < 1) p = 1;
-                if (p > max) p = max;
-                this.state.currentPage = p;
-                this.cargarPagos();
-            });
-        }
-
         const btnPrev = gridContainer.querySelector('#btn-prev');
         if (btnPrev) {
             btnPrev.addEventListener('click', () => {
@@ -699,13 +675,6 @@ export const PagosRecibidosModule = {
                     this.state.currentPage++;
                     this.cargarPagos();
                 }
-            });
-        }
-        
-        const btnRefresh = gridContainer.querySelector('#btn-refresh');
-        if (btnRefresh) {
-            btnRefresh.addEventListener('click', () => {
-                this.cargarPagos();
             });
         }
 

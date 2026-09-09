@@ -46,8 +46,6 @@ export default {
     async loadData(element) {
         try {
             const cuentas = await DB.getAll('cuentas_bancarias') || [];
-            const contactos = await DB.getAll('contactos') || [];
-            this.contactos = contactos;
             let cliente = null;
             let facturasPendientesRPC = [];
 
@@ -66,7 +64,6 @@ export default {
                     this.metodoOriginal = primerPago.metodo_pago;
                     this.categoriaOriginal = primerPago.categoria;
                     this.observacionesOriginal = primerPago.observaciones;
-                    this.numeroReciboOriginal = primerPago.numero_recibo;
                     if (!this.clienteId && primerPago.contacto_id) {
                         this.clienteId = primerPago.contacto_id;
                     }
@@ -136,7 +133,7 @@ export default {
 
             this.deudaTotal = this.facturasData.reduce((sum, f) => sum + f.saldo, 0);
 
-            this.renderUI(element, cliente, contactos, cuentas);
+            this.renderUI(element, cliente, cuentas);
             this.attachEvents(element);
 
         } catch (error) {
@@ -145,7 +142,7 @@ export default {
         }
     },
 
-    renderUI(element, cliente, contactos, cuentas) {
+    renderUI(element, cliente, cuentas) {
         const cuentaSeleccionada = this.grupoId ? this.cuentaOriginal : null;
         const cuentasOptions = cuentas.map(c => `
             <option value="${c.id}" ${cuentaSeleccionada && String(cuentaSeleccionada) === String(c.id) ? 'selected' : ''}>

@@ -25,7 +25,7 @@ export async function mostrarDetalleTransaccion(t, onSuccess) {
         if (facturaIds.length > 0) {
             const { data: fgData } = await supabase
                 .from('facturas')
-                .select('id, numero, total, saldo_original')
+                .select('id, numero, total')
                 .in('id', facturaIds);
             facturasDelGrupo = fgData || [];
         }
@@ -85,7 +85,7 @@ export async function mostrarDetalleTransaccion(t, onSuccess) {
                 </div>
             </div>
             <div class="offcanvas-body">
-                <form id="form-editar-trans">
+                <div>
                     <!-- Resumen monto total -->
                     <div class="mb-4 p-3 rounded-3" style="background: #f8fafc; border: 1px solid #e2e8f0;">
                         <div class="text-muted small mb-1">Total abonado en este pago</div>
@@ -136,7 +136,7 @@ export async function mostrarDetalleTransaccion(t, onSuccess) {
                             </table>
                         </div>
                     </div>
-                </form>
+                </div>
             </div>
         </div>`;
 
@@ -243,88 +243,90 @@ export async function mostrarDetalleTransaccion(t, onSuccess) {
     });
 
     // ── Submit handler (solo individual) ─────────────────────────────────────
-    document.getElementById('form-editar-trans').addEventListener('submit', async (ev) => {
-        ev.preventDefault();
-        if (isGroup) return;
+    const formEditar = document.getElementById('form-editar-trans');
+    if (formEditar) {
+        formEditar.addEventListener('submit', async (ev) => {
+            ev.preventDefault();
 
-        const btnSubmit = document.getElementById('btn-guardar-trans-edit');
-        if (btnSubmit && btnSubmit.disabled) return;
-        if (btnSubmit) {
-            btnSubmit.disabled = true;
-            btnSubmit.dataset.originalText = btnSubmit.innerHTML;
-            btnSubmit.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Guardando...';
-        }
-
-        try {
-            const updatePayload = {
-                fecha:        document.getElementById('edit-trans-fecha').value,
-                cuenta_id:    parseInt(document.getElementById('edit-trans-cuenta').value, 10),
-                categoria:    document.getElementById('edit-trans-categoria').value || null,
-                observaciones: document.getElementById('edit-trans-observaciones').value
-            };
-
-            let oldFacturaId = t.factura_id;
-            let newFacturaId = oldFacturaId;
-            let oldMonto = Number(t.monto);
-            let newMonto = parseCurrencyValue(document.getElementById('edit-trans-monto').value);
-            updatePayload.monto = newMonto;
-
-            const facVal = document.getElementById('edit-trans-factura-id').value;
-            newFacturaId = null;
-            if (facVal) {
-                const { data: fExist } = await supabase.from('facturas').select('id').eq('numero', parseInt(facVal, 10)).single();
-                if (!fExist) {
-                    throw new Error(`No existe ninguna factura con el n\u00famero ${facVal}.`);
-                }
-                newFacturaId = fExist.id;
+            const btnSubmit = document.getElementById('btn-guardar-trans-edit');
+            if (btnSubmit && btnSubmit.disabled) return;
+            if (btnSubmit) {
+                btnSubmit.disabled = true;
+                btnSubmit.dataset.originalText = btnSubmit.innerHTML;
+                btnSubmit.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Guardando...';
             }
-            updatePayload.factura_id = newFacturaId;
 
-            let estadosFacturas = [];
-            if (oldFacturaId !== newFacturaId || oldMonto !== newMonto) {
-                const facturaIdsAfectadas = [...new Set([oldFacturaId, newFacturaId].filter(Boolean))];
-                if (facturaIdsAfectadas.length > 0) {
-                    const { data: transaccionesF } = await supabase.from('pagos_ingresos').select('*').in('factura_id', facturaIdsAfectadas);
-                    const { data: facturasF } = await supabase.from('facturas').select('*').in('id', facturaIdsAfectadas);
+            try {
+                const updatePayload = {
+                    fecha:        document.getElementById('edit-trans-fecha').value,
+                    cuenta_id:    parseInt(document.getElementById('edit-trans-cuenta').value, 10),
+                    categoria:    document.getElementById('edit-trans-categoria').value || null,
+                    observaciones: document.getElementById('edit-trans-observaciones').value
+                };
 
-                    if (facturasF && transaccionesF) {
-                        const { calcularEstadoFactura } = await import('./carteraUtils.js');
-                        for (let f of facturasF) {
-                            f.estado = 'pendiente';
-                            const txM = transaccionesF.filter(tx => tx.factura_id === f.id).map(tx => ({
-                                ...tx,
-                                monto: tx.id === t.id ? newMonto : tx.monto,
-                                tipo:  tx.tipo === 'in' ? 'ingreso' : 'egreso'
-                            }));
-                            const metricas = calcularEstadoFactura(f, txM);
-                            estadosFacturas.push({ id: f.id, estado: metricas.estado });
+                let oldFacturaId = t.factura_id;
+                let newFacturaId = null;
+                let oldMonto = Number(t.monto);
+                let newMonto = parseCurrencyValue(document.getElementById('edit-trans-monto').value);
+                updatePayload.monto = newMonto;
+
+                const facVal = document.getElementById('edit-trans-factura-id').value;
+                newFacturaId = null;
+                if (facVal) {
+                    const { data: fExist } = await supabase.from('facturas').select('id').eq('numero', parseInt(facVal, 10)).single();
+                    if (!fExist) {
+                        throw new Error(`No existe ninguna factura con el número ${facVal}.`);
+                    }
+                    newFacturaId = fExist.id;
+                }
+                updatePayload.factura_id = newFacturaId;
+
+                let estadosFacturas = [];
+                if (oldFacturaId !== newFacturaId || oldMonto !== newMonto) {
+                    const facturaIdsAfectadas = [...new Set([oldFacturaId, newFacturaId].filter(Boolean))];
+                    if (facturaIdsAfectadas.length > 0) {
+                        const { data: transaccionesF } = await supabase.from('pagos_ingresos').select('*').in('factura_id', facturaIdsAfectadas);
+                        const { data: facturasF } = await supabase.from('facturas').select('*').in('id', facturaIdsAfectadas);
+
+                        if (facturasF && transaccionesF) {
+                            const { calcularEstadoFactura } = await import('./carteraUtils.js');
+                            for (let f of facturasF) {
+                                f.estado = 'pendiente';
+                                const txM = transaccionesF.filter(tx => tx.factura_id === f.id).map(tx => ({
+                                    ...tx,
+                                    monto: tx.id === t.id ? newMonto : tx.monto,
+                                    tipo:  tx.tipo === 'in' ? 'ingreso' : 'egreso'
+                                }));
+                                const metricas = calcularEstadoFactura(f, txM);
+                                estadosFacturas.push({ id: f.id, estado: metricas.estado });
+                            }
                         }
                     }
                 }
+
+                const { error } = await supabase.rpc('editar_transaccion_y_actualizar_facturas', {
+                    p_es_grupo:       false,
+                    p_pago_id:        t.id,
+                    p_grupo_pago_id:  null,
+                    p_update_payload: updatePayload,
+                    p_estados_facturas: estadosFacturas
+                });
+                if (error) throw error;
+
+                document.activeElement?.blur();
+                uiEl.addEventListener('hidden.bs.modal', () => {
+                    if (onSuccess) onSuccess();
+                }, { once: true });
+                uiInstance.hide();
+
+            } catch (err) {
+                alert('Error al guardar: ' + (err?.message || JSON.stringify(err)));
+            } finally {
+                if (btnSubmit) {
+                    btnSubmit.disabled = false;
+                    btnSubmit.innerHTML = btnSubmit.dataset.originalText;
+                }
             }
-
-            const { error } = await supabase.rpc('editar_transaccion_y_actualizar_facturas', {
-                p_es_grupo:       false,
-                p_pago_id:        t.id,
-                p_grupo_pago_id:  null,
-                p_update_payload: updatePayload,
-                p_estados_facturas: estadosFacturas
-            });
-            if (error) throw error;
-
-            document.activeElement?.blur();
-            uiEl.addEventListener('hidden.bs.modal', () => {
-                if (onSuccess) onSuccess();
-            }, { once: true });
-            uiInstance.hide();
-
-        } catch (err) {
-            alert('Error al guardar: ' + (err?.message || JSON.stringify(err)));
-        } finally {
-            if (btnSubmit) {
-                btnSubmit.disabled = false;
-                btnSubmit.innerHTML = btnSubmit.dataset.originalText;
-            }
-        }
-    });
+        });
+    }
 }
