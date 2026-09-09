@@ -1,5 +1,6 @@
 import { supabase } from '../core/supabase.js';
 import DB from '../core/db.js';
+import { escapeHtml } from '../shared/formatters.js';
 
 export async function init(container = null) {
     if (!container) container = document.getElementById('view-viewport');
@@ -299,8 +300,8 @@ async function check9() {
                                 <tbody>
                                     ${conDiscrepancia.map(d => `
                                         <tr>
-                                            <td>${d.sku}</td>
-                                            <td>${d.nombre}</td>
+                                            <td>${escapeHtml(d.sku)}</td>
+                                            <td>${escapeHtml(d.nombre)}</td>
                                             <td>${d.checkpoint}</td>
                                             <td>${new Date(d.fecha_checkpoint).toLocaleDateString()}</td>
                                             <td>${d.vendido_despues}</td>
@@ -328,7 +329,7 @@ async function check9() {
                             <table class="table table-sm table-bordered mb-0 bg-white" style="font-size: var(--fs-sm);">
                                 <thead><tr><th>SKU</th><th>Nombre</th><th>Checkpoint</th><th>Actual</th></tr></thead>
                                 <tbody>
-                                    ${sinDiscrepancia.map(d => `<tr><td>${d.sku}</td><td>${d.nombre}</td><td>${d.checkpoint}</td><td>${d.actual}</td></tr>`).join('')}
+                                    ${sinDiscrepancia.map(d => `<tr><td>${escapeHtml(d.sku)}</td><td>${escapeHtml(d.nombre)}</td><td>${d.checkpoint}</td><td>${d.actual}</td></tr>`).join('')}
                                 </tbody>
                             </table>
                         </div>
@@ -349,7 +350,7 @@ async function check9() {
                             <table class="table table-sm table-bordered mb-0 bg-white" style="font-size: var(--fs-sm);">
                                 <thead><tr><th>SKU</th><th>Nombre</th><th>Actual</th></tr></thead>
                                 <tbody>
-                                    ${sinCheckpoint.map(d => `<tr><td>${d.sku}</td><td>${d.nombre}</td><td>${d.actual}</td></tr>`).join('')}
+                                    ${sinCheckpoint.map(d => `<tr><td>${escapeHtml(d.sku)}</td><td>${escapeHtml(d.nombre)}</td><td>${d.actual}</td></tr>`).join('')}
                                 </tbody>
                             </table>
                         </div>

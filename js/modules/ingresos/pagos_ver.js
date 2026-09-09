@@ -1,6 +1,7 @@
 import DB from '../../core/db.js';
 import { CoreActions } from '../../shared/crud.js';
 import { TesoreriaModule } from '../tesoreria.js';
+import { escapeHtml } from '../../shared/formatters.js';
 
 export const PagosVerModule = {
     state: {
@@ -146,7 +147,7 @@ export const PagosVerModule = {
                             <div class="row">
                                 <div class="col-md-6 mb-4 mb-md-0">
                                     <span class="text-muted d-block mb-2" style="font-size: var(--fs-base);">Cliente</span>
-                                    <a href="#" class="text-decoration-none" style="color: var(--primary); font-size: var(--fs-base);">${clienteNombre}</a>
+                                    <a href="#" class="text-decoration-none" style="color: var(--primary); font-size: var(--fs-base);">${escapeHtml(clienteNombre)}</a>
                                 </div>
                                 <div class="col-md-6">
                                     <span class="text-muted d-block mb-2" style="font-size: var(--fs-base);">Fecha de creación</span>

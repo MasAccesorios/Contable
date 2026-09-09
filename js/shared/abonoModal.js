@@ -1,7 +1,7 @@
 // js/shared/abonoModal.js
 import DB, { getLocalDate, mapPagoATransaccion } from './../core/db.js';
 import { supabase } from './../core/supabase.js';
-import { applyCurrencyFormatting, parseCurrencyValue } from './formatters.js';
+import { applyCurrencyFormatting, parseCurrencyValue, escapeHtml } from './formatters.js';
 import { CoreActions } from './crud.js';
 import { calcularEstadoFactura } from './carteraUtils.js';
 
@@ -73,7 +73,7 @@ export const AbonoModal = {
                     </div>
                     <div class="modal-body pt-3 pb-4 px-4">
                         <div class="mb-4" style="font-size: 15px; color: #4b5563;">
-                            <div class="mb-2"><span class="fw-bold" style="color: #374151;">Contacto:</span> ${clienteNombre}</div>
+                            <div class="mb-2"><span class="fw-bold" style="color: #374151;">Contacto:</span> ${escapeHtml(clienteNombre)}</div>
                             <div class="mb-2"><span class="fw-bold" style="color: #374151;">Número de venta:</span> ${numDoc}</div>
                             <div class="mt-3"><span class="fw-bold text-dark" style="font-size: 16px;">Valor por cobrar: <span style="color: #4b5563;">${formatMoney(this.currentSaldo)}</span></span></div>
                         </div>
@@ -131,7 +131,7 @@ export const AbonoModal = {
         const dbCuentas = await DB.getAll('cuentas_bancarias') || [];
         const cuentasActivas = dbCuentas.filter(c => c.estado === 'active' || c.activo === true);
         const selectCuenta = document.getElementById('abono-cuenta-shared');
-        selectCuenta.innerHTML = cuentasActivas.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
+        selectCuenta.innerHTML = cuentasActivas.map(c => `<option value="${c.id}">${escapeHtml(c.nombre)}</option>`).join('');
 
         // Prellenar datos
         const montoInput = document.getElementById('abono-monto-shared');

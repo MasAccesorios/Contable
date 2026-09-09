@@ -1,5 +1,6 @@
 import DB, { getLocalDate } from '../../core/db.js';
 import { supabase } from '../../core/supabase.js';
+import { escapeHtml } from '../../shared/formatters.js';
 
 export const ValorizacionModule = {
     state: {
@@ -256,8 +257,8 @@ export const ValorizacionModule = {
 
                 html += `
                     <tr style="border-bottom: 1px solid var(--border-color); font-size: var(--fs-base); color: var(--text-body);">
-                        <td class="py-3 ps-4 text-truncate" style="color: var(--text-main); font-weight: var(--weight-medium); max-width: 300px;" title="${item.nombre}">${item.nombre}</td>
-                        <td class="py-3">${item.sku || ''}</td>
+                        <td class="py-3 ps-4 text-truncate" style="color: var(--text-main); font-weight: var(--weight-medium); max-width: 300px;" title="${escapeHtml(item.nombre)}">${escapeHtml(item.nombre)}</td>
+                        <td class="py-3">${escapeHtml(item.sku || '')}</td>
                         <td class="py-3 text-end">${stockBadge}</td>
                         <td class="py-3 text-end text-muted">${formatMoney(item.costo_promedio)}</td>
                         <td class="py-3 text-end pe-4" style="font-weight: ${isZero ? 'normal' : '600'}; color: ${isZero ? '#94a3b8' : 'var(--text-main)'};">${formatMoney(item.valor_total)}</td>

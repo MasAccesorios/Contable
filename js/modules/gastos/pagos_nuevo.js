@@ -1,7 +1,7 @@
 import DB, { getLocalDate } from '../../core/db.js';
 import { CoreActions } from '../../shared/crud.js';
 import { supabase } from '../../core/supabase.js';
-import { applyCurrencyFormatting, parseCurrencyValue } from '../../shared/formatters.js';
+import { applyCurrencyFormatting, parseCurrencyValue, escapeHtml } from '../../shared/formatters.js';
 import { UI } from '../../shared/combobox.js';
 
 export default {
@@ -71,7 +71,7 @@ export default {
                     <div class="py-5 px-4 text-center">
                         <div class="bg-white p-5 shadow-sm rounded border">
                             <h4 class="text-success mb-3"><i class="bi bi-check-circle-fill"></i> Proveedor al día</h4>
-                            <p>El proveedor <strong>${proveedor ? proveedor.nombre : this.proveedorId}</strong> no tiene facturas con saldo pendiente.</p>
+                            <p>El proveedor <strong>${proveedor ? escapeHtml(proveedor.nombre) : this.proveedorId}</strong> no tiene facturas con saldo pendiente.</p>
                             <button onclick="window.location.hash='#/gastos/pagos'" class="btn btn-outline-secondary mt-3">Volver a Pagos</button>
                         </div>
                     </div>
@@ -91,7 +91,7 @@ export default {
     },
 
     renderUI(element, proveedor, contactos, cuentas) {
-        const cuentasOptions = cuentas.map(c => `<option value="${c.id}">${c.nombre} (${c.tipo})</option>`).join('');
+        const cuentasOptions = cuentas.map(c => `<option value="${c.id}">${escapeHtml(c.nombre)} (${c.tipo})</option>`).join('');
         const facturasRows = this.facturasData.map(f => `
             <tr style="border-bottom: 1px solid var(--border-color); font-size: var(--fs-base); color: var(--text-body);">
                 <td class="align-middle fw-bold" style="color: var(--text-main);">#${f.numero}</td>
@@ -123,7 +123,7 @@ export default {
                     <div class="col-lg-4">
                         <div class="ds-table-container p-4 mb-4">
                             <h6 class="ds-kpi-label mb-1">Proveedor</h6>
-                            ${proveedor ? `<h4 class="fw-bold mb-3" style="color: var(--text-main);">${proveedor.nombre}</h4>` : `
+                            ${proveedor ? `<h4 class="fw-bold mb-3" style="color: var(--text-main);">${escapeHtml(proveedor.nombre)}</h4>` : `
                             <div class="custom-combobox position-relative mb-3" id="combo-proveedor-container">
                                 <input type="text" class="form-control" id="pago-proveedor-search" placeholder="Buscar proveedor por nombre o NIT..." autocomplete="off">
                                 <input type="hidden" id="pago-proveedor-id">

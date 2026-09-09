@@ -3,6 +3,7 @@ import { CoreActions } from '../../shared/crud.js';
 import { obtenerCarteraFiltrada, calcularDiasVencida } from '../../shared/carteraUtils.js';
 import { supabase } from '../../core/supabase.js';
 import { AbonoModal } from '../../shared/abonoModal.js';
+import { escapeHtml } from '../../shared/formatters.js';
 
 export default {
     async init(element) {
@@ -157,7 +158,7 @@ export default {
                                         <td class="ps-3 py-1"><input type="checkbox" class="form-check-input"></td>
                                         <td class="text-primary fw-medium py-1" style="cursor: pointer; white-space: nowrap;">${f.numero || f.id}</td>
                                         <td class="text-muted py-1" style="white-space: nowrap;">Factura de venta</td>
-                                        <td class="text-dark py-1" style="white-space: nowrap;">${cliente.nombre}</td>
+                                        <td class="text-dark py-1" style="white-space: nowrap;">${escapeHtml(cliente.nombre)}</td>
                                         <td class="text-muted py-1" style="white-space: nowrap;">${f.fecha || '---'}</td>
                                         <td class="${isVencida ? 'text-danger fw-semibold' : 'text-muted'} py-1" style="white-space: nowrap;">${vencimientoReal || '---'}</td>
                                         <td class="py-1" style="white-space: nowrap;">

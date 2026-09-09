@@ -1,6 +1,7 @@
 import { supabase } from '../../core/supabase.js';
 import { CoreActions } from '../../shared/crud.js';
 import DB from '../../core/db.js';
+import { escapeHtml } from '../../shared/formatters.js';
 
 export const VendedoresModule = {
     async init(element) {
@@ -87,7 +88,7 @@ export const VendedoresModule = {
                             <tbody>
                                 ${vendedores.length > 0 ? vendedores.map(v => `
                                     <tr style="border-bottom: 1px solid var(--border-color); font-size: var(--fs-base); color: var(--text-body); cursor:pointer;" onclick="if(!event.target.closest('button')) window.location.hash='#/vendedores/ver/${v.id}'">
-                                        <td class="py-3 fw-medium" style="color: var(--text-main);">${v.nombre}</td>
+                                        <td class="py-3 fw-medium" style="color: var(--text-main);">${escapeHtml(v.nombre)}</td>
                                         <td class="py-3 text-center">${Number(v.porcentaje_comision)}%</td>
                                         <td class="py-3 text-end">$${Number(v.total_vendido).toLocaleString()}</td>
                                         <td class="py-3 text-end text-warning fw-medium">$${Number(v.comision_pendiente).toLocaleString()}</td>
@@ -98,7 +99,7 @@ export const VendedoresModule = {
                                             </span>
                                         </td>
                                         <td class="py-3 text-end">
-                                            <button class="btn btn-sm btn-link text-dark p-0 btn-editar-vendedor" data-id="${v.id}" data-nombre="${v.nombre}" data-telefono="${v.telefono || ''}" data-porcentaje="${v.porcentaje_comision}" data-estado="${v.estado}" title="Editar">
+                                            <button class="btn btn-sm btn-link text-dark p-0 btn-editar-vendedor" data-id="${v.id}" data-nombre="${escapeHtml(v.nombre)}" data-telefono="${escapeHtml(v.telefono || '')}" data-porcentaje="${v.porcentaje_comision}" data-estado="${v.estado}" title="Editar">
                                                 <i class="bi bi-pencil"></i>
                                             </button>
                                         </td>
@@ -142,12 +143,12 @@ export const VendedoresModule = {
 
                     <div class="mb-3">
                         <label class="form-label text-muted" style="font-size: 13px;">Nombre</label>
-                        <input type="text" id="vend-nombre" class="form-control" value="${vendedor?.nombre || ''}">
+                        <input type="text" id="vend-nombre" class="form-control" value="${escapeHtml(vendedor?.nombre || '')}">
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label text-muted" style="font-size: 13px;">Teléfono (opcional)</label>
-                        <input type="text" id="vend-telefono" class="form-control" value="${vendedor?.telefono || ''}">
+                        <input type="text" id="vend-telefono" class="form-control" value="${escapeHtml(vendedor?.telefono || '')}">
                     </div>
 
                     <div class="mb-3">
@@ -243,7 +244,7 @@ export const VendedoresModule = {
                 <a href="#/vendedores" class="text-decoration-none text-muted d-inline-flex align-items-center gap-1 mb-3" style="font-size: var(--fs-md);">
                     <i class="bi bi-arrow-left"></i> Volver a Vendedores
                 </a>
-                <h2 class="h3 fw-bold mb-1" style="color: var(--text-main);">${vendedor?.nombre || 'Vendedor'}</h2>
+                <h2 class="h3 fw-bold mb-1" style="color: var(--text-main);">${escapeHtml(vendedor?.nombre || 'Vendedor')}</h2>
                 <p class="text-muted mb-4" style="font-size: var(--fs-md);">Comisión: ${Number(vendedor?.porcentaje_comision || 0)}% sobre el valor total de cada venta pagada.</p>
 
                 <div class="ds-table-container mb-4">
@@ -299,7 +300,7 @@ export const VendedoresModule = {
                     <div class="mb-4">
                         <label class="form-label text-muted" style="font-size: 13px;">Cuenta desde la que se paga</label>
                         <select id="pago-cuenta" class="form-select">
-                            ${cuentas.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('')}
+                            ${cuentas.map(c => `<option value="${c.id}">${escapeHtml(c.nombre)}</option>`).join('')}
                         </select>
                     </div>
 

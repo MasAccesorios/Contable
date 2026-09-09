@@ -1,5 +1,6 @@
 import DB, { getLocalDate } from '../../core/db.js';
 import { supabase } from '../../core/supabase.js';
+import { escapeHtml } from '../../shared/formatters.js';
 
 export const ConciliacionModule = {
     state: {
@@ -121,7 +122,7 @@ export const ConciliacionModule = {
 
     renderBase() {
         let opcionesCuentas = this.state.cuentas.map(c => 
-            `<option value="${c.id}" ${String(c.id) === String(this.state.bancoId) ? 'selected' : ''}>${c.nombre}</option>`
+            `<option value="${c.id}" ${String(c.id) === String(this.state.bancoId) ? 'selected' : ''}>${escapeHtml(c.nombre)}</option>`
         ).join('');
 
         this.element.innerHTML = `
@@ -297,7 +298,7 @@ export const ConciliacionModule = {
             html += `
                 <tr style="font-size: var(--fs-base); color: var(--text-body);">
                     <td class="py-3 ps-4" style="white-space: nowrap;">${(m.fecha || '').substring(0, 10)}</td>
-                    <td class="py-3 fw-medium" style="color: var(--text-main); white-space: nowrap;">${m.detalle || m.referencia || m.descripcion || '-'}</td>
+                    <td class="py-3 fw-medium" style="color: var(--text-main); white-space: nowrap;">${escapeHtml(m.detalle || m.referencia || m.descripcion || '-')}</td>
                     <td class="py-3" style="white-space: nowrap;">
                         <span class="badge" style="background-color: ${badgeBg}; color: ${badgeColor}; font-weight: 500;">
                             ${m.tipo.toUpperCase()}
@@ -398,7 +399,7 @@ export const ConciliacionModule = {
                 htmlRows += `
                     <tr style="font-size: var(--fs-base); color: var(--text-body);">
                         <td class="py-3 ps-4" style="white-space: nowrap;">${(m.fecha || '').substring(0, 10)}</td>
-                        <td class="py-3 fw-medium" style="color: var(--text-main);">${m.detalle || m.referencia || '-'}</td>
+                        <td class="py-3 fw-medium" style="color: var(--text-main);">${escapeHtml(m.detalle || m.referencia || '-')}</td>
                         <td class="py-3" style="white-space: nowrap;">
                             <span class="badge" style="background-color: ${badgeBg}; color: ${badgeColor}; font-weight: 500;">
                                 ${m.tipo.toUpperCase()}

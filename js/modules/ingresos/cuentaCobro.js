@@ -3,7 +3,7 @@ import { getLocalDate } from '../../core/db.js';
 import { CoreActions } from '../../shared/crud.js';
 import { PrintManager } from '../../shared/printManager.js';
 import { ItemEngine } from '../../shared/itemEngine.js';
-import { applyCurrencyFormatting, parseCurrencyValue } from '../../shared/formatters.js';
+import { applyCurrencyFormatting, parseCurrencyValue, escapeHtml } from '../../shared/formatters.js';
 
 export const CuentaCobroModule = {
     async init(element) {
@@ -51,7 +51,7 @@ export const CuentaCobroModule = {
                 <td style="padding: 12px 16px; font-weight: 500;">No. ${c.numero}</td>
                 <td style="padding: 12px 16px;">${c.fecha}</td>
                 <td style="padding: 12px 16px;">
-                    <div style="font-weight: 500; color: var(--text-main);">${c.cliente_razon_social}</div>
+                    <div style="font-weight: 500; color: var(--text-main);">${escapeHtml(c.cliente_razon_social)}</div>
                 </td>
                 <td style="padding: 12px 16px; text-align: right; font-weight: 600;">${formatMoney(c.total)}</td>
                 <td style="padding: 12px 16px; text-align: center;">
@@ -236,7 +236,7 @@ export const CuentaCobroModule = {
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label class="form-label text-muted small fw-medium">Razón Social *</label>
-                                <input type="text" id="cc-razon-social" class="form-control" value="${doc.cliente_razon_social || ''}" required ${isViewOnly ? 'disabled' : ''}>
+                                <input type="text" id="cc-razon-social" class="form-control" value="${escapeHtml(doc.cliente_razon_social || '')}" required ${isViewOnly ? 'disabled' : ''}>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label text-muted small fw-medium">NIT / CC</label>

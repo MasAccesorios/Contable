@@ -1,5 +1,6 @@
 import { supabase } from '../../core/supabase.js';
 import { getLocalDate } from '../../core/db.js';
+import { escapeHtml } from '../../shared/formatters.js';
 
 export const TesoreriaEvents = {
     bindEvents() {
@@ -49,7 +50,7 @@ export const TesoreriaEvents = {
             
             // 2. Construir el HTML de los options
             const cuentasOptions = (this.state.cuentasActivas || [])
-                .map(c => `<option value="${c.id}">${c.nombre}</option>`)
+                .map(c => `<option value="${c.id}">${escapeHtml(c.nombre)}</option>`)
                 .join('');
             
             // 3. Inyectar dinámicamente preservando los placeholders originales

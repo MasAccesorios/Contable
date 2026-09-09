@@ -1,3 +1,5 @@
+import { escapeHtml } from '../../shared/formatters.js';
+
 export const TesoreriaTemplates = {
     renderResumen() {
         const formatMoney = val => '$' + (val || 0).toLocaleString('es-CO', {minimumFractionDigits: 2});
@@ -68,7 +70,7 @@ export const TesoreriaTemplates = {
                         <div class="bg-light rounded-circle p-2 me-3 d-flex align-items-center justify-content-center text-muted" style="width: 32px; height: 32px; border: 1px solid #e2e8f0; flex-shrink: 0;">
                             <i class="bi ${icon}" style="font-size: var(--fs-md);"></i>
                         </div>
-                        <span style="color: var(--text-main); font-weight: 500;">${c.nombre}</span>
+                        <span style="color: var(--text-main); font-weight: 500;">${escapeHtml(c.nombre)}</span>
                         ${badge}
                     </td>
                     <td class=\"py-2\" style="white-space: nowrap;"><span class="badge ${tipoBadgeColor} bg-opacity-10 border border-${isEfectivo?'success':'primary'}-subtle rounded-pill fw-medium" style="font-size: var(--fs-sm); padding: 5px 10px;">${c.tipo}</span></td>
@@ -84,7 +86,7 @@ export const TesoreriaTemplates = {
                                     <i class="bi bi-three-dots-vertical"></i>
                                 </button>
                                 <ul class="dropdown-menu dropdown-menu-end shadow border-0" style="font-size: var(--fs-base);">
-                                    <li><a class="dropdown-item btn-editar-cuenta" href="javascript:void(0)" data-id="${c.id}" data-nombre="${c.nombre}" data-tipo="${c.tipo}" data-numero="${c.numero || ''}">Editar</a></li>
+                                    <li><a class="dropdown-item btn-editar-cuenta" href="javascript:void(0)" data-id="${c.id}" data-nombre="${escapeHtml(c.nombre)}" data-tipo="${c.tipo}" data-numero="${c.numero || ''}">Editar</a></li>
                                     <li><a class="dropdown-item ${actionBtnColor} btn-toggle-estado" href="javascript:void(0)" data-id="${c.id}" data-estado="${c.estado || 'activo'}">${actionBtnTitle}</a></li>
                                 </ul>
                             </div>

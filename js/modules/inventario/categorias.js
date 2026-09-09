@@ -1,4 +1,5 @@
 import { supabase } from '../../core/supabase.js';
+import { escapeHtml } from '../../shared/formatters.js';
 
 export const CategoriasModule = {
     async init(element) {
@@ -96,7 +97,7 @@ export const CategoriasModule = {
                             <tbody>
                                 ${categorias.length > 0 ? categorias.map(c => `
                                     <tr style="border-bottom: 1px solid var(--border-color); font-size: var(--fs-base); color: var(--text-body);">
-                                        <td class="py-3 fw-medium" style="color: var(--text-main); white-space: nowrap;">${c.nombre}</td>
+                                        <td class="py-3 fw-medium" style="color: var(--text-main); white-space: nowrap;">${escapeHtml(c.nombre)}</td>
                                         <td class="py-3 text-center" style="white-space: nowrap;"><span class="badge bg-light text-dark border border-secondary-subtle px-2 py-1 rounded-pill">${c.tipo_flujo || 'N/A'}</span></td>
                                         <td class="py-3 text-center" style="white-space: nowrap;">
                                             <span class="badge ${c.estado === 'activa' ? 'bg-success text-success bg-opacity-10 border border-success-subtle' : 'bg-secondary text-secondary bg-opacity-10 border border-secondary-subtle'} rounded-pill fw-medium" style="font-size: var(--fs-xs); padding: 5px 10px;">

@@ -38,7 +38,7 @@ export const AjustesInventarioModule = {
                     <tr style="cursor: pointer; transition: background-color 0.2s;" onclick="if(!event.target.closest('button')) window.location.hash = '#/inventario/ajustes/ver/${a.id}'" class="hover-bg-light">
                         <td class="py-3 fw-medium">#${a.numero}</td>
                         <td class="py-3">${a.fecha || ''}</td>
-                        <td class="py-3 text-truncate" style="max-width: 300px;">${a.observaciones || 'Sin observaciones'}</td>
+                        <td class="py-3 text-truncate" style="max-width: 300px;">${escapeHtml(a.observaciones || 'Sin observaciones')}</td>
                         <td class="py-3 text-end" style="position: relative;">
                             <button class="btn btn-link text-muted p-0 btn-menu-row" data-id="${a.id}">
                                 <i class="bi bi-three-dots-vertical"></i>
@@ -274,7 +274,7 @@ export const AjustesInventarioModule = {
                             fetchItems: (query) => UI.fetchProductosCombobox(query),
                             displayProp: 'nombre',
                             renderItem: (p) => {
-                                return `<strong style="color: var(--text-main);">[${p.sku || p.reference || 'S/N'}]</strong> - ${p.nombre || p.name}`;
+                                return `<strong style="color: var(--text-main);">[${escapeHtml(p.sku || p.reference || 'S/N')}]</strong> - ${escapeHtml(p.nombre || p.name)}`;
                             },
                             allowCreate: false,
                             onSelect: async (p) => {

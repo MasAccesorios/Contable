@@ -2,6 +2,7 @@ import DB, { getLocalDate } from '../core/db.js';
 import { supabase } from '../core/supabase.js';
 import { CoreActions } from '../shared/crud.js';
 import { PrintManager } from '../shared/printManager.js';
+import { escapeHtml } from '../shared/formatters.js';
 
 export default {
     async init(element) {
@@ -268,7 +269,7 @@ export default {
                                 <div class="card border-0 shadow-sm h-100" style="border-radius: 8px;">
                                     <div class="card-body d-flex justify-content-between align-items-center p-3">
                                         <div>
-                                            <h6 class="mb-1 text-dark fw-bold" style="font-size: var(--fs-md);">${c.nombre}</h6>
+                                            <h6 class="mb-1 text-dark fw-bold" style="font-size: var(--fs-md);">${escapeHtml(c.nombre)}</h6>
                                             <div class="text-danger fw-bold" style="font-size: var(--fs-md);">$${c.total.toLocaleString('es-CO', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
                                         </div>
                                         <button class="btn btn-sm btn-outline-success d-flex align-items-center btn-wpp-estado" data-id="${c.id}" style="border-radius: 6px;">

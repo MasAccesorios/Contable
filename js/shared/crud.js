@@ -3,6 +3,7 @@ import DB, { getLocalDate } from '../core/db.js';
 import { InventarioUtils } from './inventarioUtils.js';
 import { supabase } from '../core/supabase.js';
 import { numeroALetras } from './numeroALetras.js';
+import { escapeHtml } from './formatters.js';
 export const CoreActions = {
     /**
      * Renderiza la barra de navegación superior de un documento
@@ -466,8 +467,8 @@ export const CoreActions = {
 
                 <div style="margin-bottom: 25px; font-size: 13px; color: #4b5563;">
                     <strong>Fecha de Emisión:</strong> ${documentData.fecha}<br>
-                    <strong>Cliente:</strong> ${documentData.clienteNombre || 'Cliente Contado'}<br>
-                    <strong>Forma de Pago:</strong> ${documentData.formaPago || 'Consignación'}
+                    <strong>Cliente:</strong> ${escapeHtml(documentData.clienteNombre || 'Cliente Contado')}<br>
+                    <strong>Forma de Pago:</strong> ${escapeHtml(documentData.formaPago || 'Consignación')}
                 </div>
                 
                 <table class="print-table">

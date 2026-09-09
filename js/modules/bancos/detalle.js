@@ -4,6 +4,7 @@ import { CoreActions } from '../../shared/crud.js';
 import { supabase } from '../../core/supabase.js';
 import { agruparTransaccionesPorPago, anularTransaccion } from '../../shared/transaccionesUtils.js';
 import { mostrarDetalleTransaccion } from '../../shared/transaccionModal.js';
+import { escapeHtml } from '../../shared/formatters.js';
 
 export const DetalleBancoModule = {
     state: {
@@ -153,7 +154,7 @@ export const DetalleBancoModule = {
                     <div class="d-flex justify-content-between align-items-start mb-4">
                         <div>
                             ${headerHtml}
-                            <h2 class="h3 fw-bold mb-1" style="color: var(--text-main);">${c ? c.nombre : 'Cargando...'}</h2>
+                            <h2 class="h3 fw-bold mb-1" style="color: var(--text-main);">${c ? escapeHtml(c.nombre) : 'Cargando...'}</h2>
                             ${c ? `<p class="text-muted mb-0" style="font-size: var(--fs-md);">Tipo: ${c.tipo} &nbsp;|&nbsp; Número: ${c.numero}</p>` : ''}
                         </div>
                     </div>

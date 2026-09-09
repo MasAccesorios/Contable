@@ -1,7 +1,7 @@
 import DB, { getLocalDate } from '../../core/db.js';
 import { CoreActions } from '../../shared/crud.js';
 import { supabase } from '../../core/supabase.js';
-import { applyCurrencyFormatting, parseCurrencyValue } from '../../shared/formatters.js';
+import { applyCurrencyFormatting, parseCurrencyValue, escapeHtml } from '../../shared/formatters.js';
 import { UI } from '../../shared/combobox.js';
 
 export default {
@@ -123,7 +123,7 @@ export default {
                     <div class="py-5 px-4 text-center">
                         <div class="bg-white p-5 shadow-sm rounded border">
                             <h4 class="text-success mb-3"><i class="bi bi-check-circle-fill"></i> Cliente al día</h4>
-                            <p>El cliente <strong>${cliente ? cliente.nombre : this.clienteId}</strong> no tiene facturas con saldo pendiente.</p>
+                            <p>El cliente <strong>${cliente ? escapeHtml(cliente.nombre) : this.clienteId}</strong> no tiene facturas con saldo pendiente.</p>
                             <button onclick="window.location.hash='#/cartera'" class="btn btn-outline-secondary mt-3">Volver a Cartera</button>
                         </div>
                     </div>
@@ -146,7 +146,7 @@ export default {
         const cuentaSeleccionada = this.grupoId ? this.cuentaOriginal : null;
         const cuentasOptions = cuentas.map(c => `
             <option value="${c.id}" ${cuentaSeleccionada && String(cuentaSeleccionada) === String(c.id) ? 'selected' : ''}>
-                ${c.nombre} (${c.tipo})
+                ${escapeHtml(c.nombre)} (${c.tipo})
             </option>
         `).join('');
 
@@ -191,7 +191,7 @@ export default {
                     <div class="col-lg-4">
                         <div class="ds-table-container p-4 mb-4">
                             <h6 class="ds-kpi-label mb-1">Cliente</h6>
-                            ${cliente ? `<h4 class="fw-bold mb-3" style="color: var(--text-main);">${cliente.nombre}</h4>` : `
+                            ${cliente ? `<h4 class="fw-bold mb-3" style="color: var(--text-main);">${escapeHtml(cliente.nombre)}</h4>` : `
                             <div class="custom-combobox position-relative mb-3" id="combo-cliente-container">
                                 <input type="text" class="form-control" id="pago-cliente-search" placeholder="Buscar cliente por nombre o NIT..." autocomplete="off">
                                 <input type="hidden" id="pago-cliente-id">
