@@ -1,3 +1,5 @@
+import { escapeHtml } from './formatters.js';
+
 /**
  * MOTOR COMPARTIDO DE LÍNEAS DE INVENTARIO (COTIZACIONES Y FACTURAS)
  * Centraliza la inyección de precios, stock y autocompletado.
@@ -6,15 +8,15 @@ export const ItemEngine = {
     renderProductSearchBox(detalle, productos, isViewOnly = false) {
         // Encontrar producto inicial si existe
         const prod = productos.find(p => String(p.id) === String(detalle.productoId));
-        const initialText = prod ? `[${prod.sku || 'S/N'}] - ${prod.nombre}` : '';
+        const initialText = prod ? `[${escapeHtml(prod.sku) || 'S/N'}] - ${escapeHtml(prod.nombre)}` : '';
         
         return `
             <div class="position-relative">
-                <input type="hidden" class="input-prod-id" value="${detalle.productoId || ''}">
+                <input type="hidden" class="input-prod-id" value="${escapeHtml(detalle.productoId) || ''}">
                 <input type="text" class="form-control form-control-sm text-muted border-0 bg-light input-prod-search mb-1" 
                        placeholder="Escriba código o nombre..." autocomplete="off" value="${initialText}" ${isViewOnly ? 'disabled' : ''}>
                 <input type="text" class="form-control form-control-sm border-0 bg-light mt-1 input-prod-desc" 
-                       placeholder="" value="${detalle.descripcion_personalizada || ''}" ${isViewOnly ? 'disabled' : ''}>
+                       placeholder="" value="${escapeHtml(detalle.descripcion_personalizada) || ''}" ${isViewOnly ? 'disabled' : ''}>
                 <div class="search-results-dropdown position-absolute w-100 bg-white shadow-sm" 
                      style="display: none; z-index: 1050; max-height: 250px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 4px; top: 100%;">
                 </div>
@@ -59,7 +61,7 @@ export const ItemEngine = {
                 fetchItems: (query) => UI.fetchProductosCombobox(query),
                 displayProp: 'nombre',
                 renderItem: (p) => {
-                    return `<strong style="color: var(--text-main);">[${p.sku || p.reference || 'S/N'}]</strong> - ${p.nombre || p.name}`;
+                    return `<strong style="color: var(--text-main);">[${escapeHtml(p.sku || p.reference) || 'S/N'}]</strong> - ${escapeHtml(p.nombre || p.name)}`;
                 },
                 allowCreate: !!options.onCrearProducto,
                 onCreate: (query) => {
@@ -84,7 +86,7 @@ export const ItemEngine = {
                         }
                     }
                     
-                    inputSearch.value = `[${p.sku || p.reference || 'S/N'}] - ${p.nombre || p.name}`;
+                    inputSearch.value = `[${escapeHtml(p.sku || p.reference) || 'S/N'}] - ${escapeHtml(p.nombre || p.name)}`;
                     inputSearch.dataset.lastSku = p.sku || p.reference;
                     
                     // Inyección estricta de Precios e Impuestos
@@ -95,7 +97,7 @@ export const ItemEngine = {
                     // Renderizado de Información Secundaria Inferior
                     if (metaProd) metaProd.innerHTML = `
                         <span style="color: var(--text-muted); font-size: 11px; display: inline-block; margin-top: 4px;">
-                            ${p.sku || p.reference || 'S/N'}
+                            ${escapeHtml(p.sku || p.reference) || 'S/N'}
                         </span>
                     `;
                     const stockVal = p.stockActual || p.inventory || p.cantidad || 0;
@@ -253,7 +255,7 @@ export const ItemEngine = {
             const metaQty = tr.querySelector('.meta-qty');
             const prod = productosFactura.find(p => p.id === detalle.productoId);
             if (prod) {
-                if (metaProd) metaProd.innerHTML = `<span style="color: var(--text-muted); font-size: var(--fs-xs);">${prod.sku || 'S/N'}</span>`;
+                if (metaProd) metaProd.innerHTML = `<span style="color: var(--text-muted); font-size: var(--fs-xs);">${escapeHtml(prod.sku) || 'S/N'}</span>`;
                 if (metaQty) metaQty.innerHTML = `<span style="color: var(--text-muted); font-size: var(--fs-xs);">Disp: ${prod.stockActual || prod.cantidad || 0}</span>`;
             }
         }

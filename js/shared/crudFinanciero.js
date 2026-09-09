@@ -83,7 +83,7 @@ export class CrudFinanciero {
                                     <label class="form-label text-muted fw-semibold mb-1" style="font-size: var(--fs-sm);">Categoría *</label>
                                     <select class="form-select" id="transaccion-categoria" required>
                                         <option value="">Seleccione...</option>
-                                        ${this.categorias.map(c => `<option value="${c.nombre}">${c.nombre}</option>`).join('')}
+                                        ${this.categorias.map(c => `<option value="${escapeHtml(c.nombre)}">${escapeHtml(c.nombre)}</option>`).join('')}
                                     </select>
                                 </div>
                                 <div>
@@ -166,7 +166,7 @@ export class CrudFinanciero {
                             <div class="col-md-3">
                                 <select class="form-select form-select-sm" id="filtro-categoria">
                                     <option value="todas">Todas las categorías</option>
-                                    ${this.categorias.map(c => `<option value="${c.nombre}">${c.nombre}</option>`).join('')}
+                                    ${this.categorias.map(c => `<option value="${escapeHtml(c.nombre)}">${escapeHtml(c.nombre)}</option>`).join('')}
                                 </select>
                             </div>
                             <div class="col-md-2">
@@ -461,11 +461,11 @@ export class CrudFinanciero {
             return `
             <tr class="fila-detalle-registro" data-id="${g.id}" style="border-bottom: 1px solid var(--border-color); cursor: pointer;">
                 <td class="py-1 text-muted" style="white-space: nowrap;">${g.fecha}</td>
-                <td class="py-1" style="white-space: nowrap;"><span class="badge bg-light text-dark border">${g.categoria}</span></td>
+                <td class="py-1" style="white-space: nowrap;"><span class="badge bg-light text-dark border">${escapeHtml(g.categoria)}</span></td>
                 <td class="py-1" style="white-space: nowrap;">${escapeHtml(g.descripcion)}</td>
                 <td class="py-1 text-muted" style="white-space: nowrap;">${proveedorNombre}</td>
                 <td class="py-1 text-muted" style="white-space: nowrap;">${cuentaNombre}</td>
-                <td class="py-1 text-muted" style="white-space: nowrap;">${g.referencia || '-'}</td>
+                <td class="py-1 text-muted" style="white-space: nowrap;">${escapeHtml(g.referencia) || '-'}</td>
                 <td class="py-1 text-end fw-bold ${this.config.colorMonto}" style="white-space: nowrap;">${this.config.prefijoMonto}$${g.monto.toLocaleString()}</td>
                 <td class="py-1 text-center" style="white-space: nowrap;">
                     <div class="dropdown">
@@ -655,7 +655,7 @@ export class CrudFinanciero {
                         </div>
                         <div class="col-6">
                             <label class="form-label text-muted fw-semibold m-0" style="font-size: var(--fs-sm);">Referencia</label>
-                            <div class="fw-medium text-dark" style="font-size: var(--fs-md);">${registro.referencia || '-'}</div>
+                            <div class="fw-medium text-dark" style="font-size: var(--fs-md);">${escapeHtml(registro.referencia) || '-'}</div>
                         </div>
                         <div class="col-12">
                             <label class="form-label text-muted fw-semibold m-0" style="font-size: var(--fs-sm);">Descripción</label>

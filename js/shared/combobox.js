@@ -1,3 +1,5 @@
+import { escapeHtml } from './formatters.js';
+
 export const UI = {
     async fetchProductosCombobox(query) {
         const { supabase } = await import('../core/supabase.js');
@@ -118,7 +120,7 @@ export const UI = {
             if (filtered.length > 0) {
                 html += filtered.map(item => `
                     <div class="combobox-item p-2" style="cursor: pointer; border-bottom: 1px solid #f0f0f0; font-size: 13px;" data-id="${item.id}">
-                        ${item[displayProp]}
+                        ${escapeHtml(item[displayProp])}
                     </div>
                 `).join('');
             } else {
@@ -285,7 +287,7 @@ export const UI = {
                         itemsMap[item.id] = item;
                         return `
                         <div class="combobox-item p-2" style="cursor: pointer; border-bottom: 1px solid #f0f0f0; font-size: 13px;" data-id="${item.id}">
-                            ${renderItem ? renderItem(item) : item[displayProp]}
+                            ${renderItem ? renderItem(item) : escapeHtml(item[displayProp])}
                         </div>
                         `;
                     }).join('');

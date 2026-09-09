@@ -2,6 +2,7 @@ import DB, { getLocalDate } from '../core/db.js';
 import { supabase } from '../core/supabase.js';
 import { numeroALetras } from './numeroALetras.js';
 import { CoreActions } from './crud.js';
+import { escapeHtml } from './formatters.js';
 /**
  * GESTOR DE IMPRESIÓN DINÁMICA (MEDIA HOJA / HOJA COMPLETA)
  * Genera un contenedor temporal formateado para imprimir un documento.
@@ -196,8 +197,8 @@ export const PrintManager = {
             return `
                 <tr style="border-bottom: 1px solid #dee2e6; font-size: 14px; color: #495057;">
                     <td style="padding: 8px 4px;">
-                        <div style="font-weight: 600; color: #212529;">${det.nombre || 'Ítem sin nombre'}</div>
-                        ${det.sku ? `<div style="font-size: 12px; color: #6c757d; margin-top: 3px;">SKU: ${det.sku}</div>` : ''}
+                        <div style="font-weight: 600; color: #212529;">${escapeHtml(det.nombre) || 'Ítem sin nombre'}</div>
+                        ${det.sku ? `<div style="font-size: 12px; color: #6c757d; margin-top: 3px;">SKU: ${escapeHtml(det.sku)}</div>` : ''}
                     </td>
                     <td style="padding: 8px 4px; text-align: center;">${det.cantidad}</td>
                     <td style="padding: 8px 4px; text-align: right;">${formatMoney(det.precio_unitario)}</td>
@@ -233,7 +234,7 @@ export const PrintManager = {
                     </div>
                     <div style="padding: 10px; font-size: 14px; color: #495057;">
                         <table style="width: 100%; border-collapse: collapse;">
-                            <tr><td style="padding-bottom: 5px; width: 30%; white-space: nowrap;"><strong>Razón Social:</strong></td><td style="padding-bottom: 5px; padding-left: 5px;">${doc.cliente_razon_social || ''}</td></tr>
+                            <tr><td style="padding-bottom: 5px; width: 30%; white-space: nowrap;"><strong>Razón Social:</strong></td><td style="padding-bottom: 5px; padding-left: 5px;">${escapeHtml(doc.cliente_razon_social) || ''}</td></tr>
                             <tr><td style="padding-bottom: 5px;"><strong>NIT:</strong></td><td style="padding-bottom: 5px;">${doc.cliente_nit || ''}</td></tr>
                             <tr><td style="padding-bottom: 5px;"><strong>Dirección:</strong></td><td style="padding-bottom: 5px;">${doc.cliente_direccion || ''}</td></tr>
                             <tr><td style="padding-bottom: 5px;"><strong>Ciudad:</strong></td><td style="padding-bottom: 5px;">${doc.cliente_ciudad || ''}</td></tr>
@@ -312,7 +313,7 @@ export const PrintManager = {
                 <div style="text-align: center; width: 40%;">
                     <div style="border-bottom: 1px solid #ced4da; margin-bottom: 8px;"></div>
                     <strong style="font-size: 11px; color: #212529;">ACEPTADA, FIRMA Y/O SELLO Y FECHA</strong><br>
-                    <span style="font-size: 10px; color: #6c757d; text-transform: uppercase;">${doc.cliente_razon_social || ''}</span>
+                    <span style="font-size: 10px; color: #6c757d; text-transform: uppercase;">${escapeHtml(doc.cliente_razon_social) || ''}</span>
                 </div>
             </div>
         `;
@@ -346,9 +347,9 @@ export const PrintManager = {
             const subtotal = (det.cantidad || 0) * (det.precio || 0);
             return `
                 <tr style="border-bottom: 1px solid #dee2e6; font-size: 11px; color: #495057;">
-                    <td style="padding: 5px 4px; word-break: break-word; overflow-wrap: break-word;">${prod.sku || 'N/A'}</td>
+                    <td style="padding: 5px 4px; word-break: break-word; overflow-wrap: break-word;">${escapeHtml(prod.sku) || 'N/A'}</td>
                     <td style="padding: 5px 4px; word-break: break-word; overflow-wrap: break-word;">
-                        <div style="font-weight: 400; color: #212529; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${prod.nombre || 'Ítem sin nombre'}${det.descripcion_personalizada ? ' — ' + det.descripcion_personalizada : ''}</div>
+                        <div style="font-weight: 400; color: #212529; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(prod.nombre) || 'Ítem sin nombre'}${det.descripcion_personalizada ? ' — ' + escapeHtml(det.descripcion_personalizada) : ''}</div>
                     </td>
                     <td style="padding: 5px 4px; text-align: right; white-space: nowrap;">${formatMoney(det.precio)}</td>
                     <td style="padding: 5px 4px; text-align: center;">${det.cantidad}</td>
@@ -373,12 +374,12 @@ export const PrintManager = {
             <!-- INFO CLIENTE Y DOC -->
             <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
                 <div style="background-color: #f8f9fa; padding: 10px; width: 48%; border-radius: 6px; box-sizing: border-box;">
-                    <p style="margin: 0 0 10px 0; font-weight: bold; font-size: 14px; color: #212529;">${cliente.nombre || 'Sin cliente'}</p>
+                    <p style="margin: 0 0 10px 0; font-weight: bold; font-size: 14px; color: #212529;">${escapeHtml(cliente.nombre) || 'Sin cliente'}</p>
                     <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 5px;">
-                        <strong style="color: #495057;">CC/NIT</strong><span>${cliente.identificacion || ''}</span>
+                        <strong style="color: #495057;">CC/NIT</strong><span>${escapeHtml(cliente.identificacion) || ''}</span>
                     </div>
                     <div style="display: flex; justify-content: space-between; font-size: 12px;">
-                        <strong style="color: #495057;">TEL</strong><span>${cliente.telefono || ''}</span>
+                        <strong style="color: #495057;">TEL</strong><span>${escapeHtml(cliente.telefono) || ''}</span>
                     </div>
                 </div>
                 <div style="width: 48%; padding-top: 10px;">
@@ -427,7 +428,7 @@ export const PrintManager = {
                 <div style="display: flex; justify-content: space-between; margin-top: 8px;">
                     <div style="width: 50%;">
                         <h5 style="color: #6c757d; font-size: 14px; margin: 0 0 8px 0;">Observaciones</h5>
-                        <p style="font-size: 12px; color: #495057; margin: 0;">${doc.notas || ''}</p>
+                        <p style="font-size: 12px; color: #495057; margin: 0;">${escapeHtml(doc.notas) || ''}</p>
                     </div>
                     <div style="width: 38%;">
                         <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 4px;">
@@ -526,7 +527,7 @@ export const PrintManager = {
             <!-- BLOQUE CLIENTE Y TOTAL -->
             <div style="display: flex; justify-content: space-between; margin-bottom: 30px;">
                 <div style="width: 50%;">
-                    <p style="margin: 0 0 5px 0; font-weight: bold; font-size: 18px; color: #212529;">${cliente.nombre || 'Sin cliente'}</p>
+                    <p style="margin: 0 0 5px 0; font-weight: bold; font-size: 18px; color: #212529;">${escapeHtml(cliente.nombre) || 'Sin cliente'}</p>
                 </div>
                 <div style="background-color: #fdf3f2; padding: 15px 25px; border-radius: 8px; border-left: 4px solid #f06548; text-align: right;">
                     <p style="margin: 0 0 5px 0; font-size: 13px; color: #e85335; font-weight: 600; text-transform: uppercase;">Total Pendiente</p>

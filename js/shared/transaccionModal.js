@@ -1,6 +1,6 @@
 import DB from '../core/db.js';
 import { supabase } from '../core/supabase.js';
-import { applyCurrencyFormatting, parseCurrencyValue } from './formatters.js';
+import { applyCurrencyFormatting, parseCurrencyValue, escapeHtml } from './formatters.js';
 
 export async function mostrarDetalleTransaccion(t, onSuccess) {
     const { data: categoriasDB } = await supabase.from('categorias_contables').select('nombre').eq('estado', 'activa');
@@ -110,13 +110,13 @@ export async function mostrarDetalleTransaccion(t, onSuccess) {
                             <label class="form-label text-muted small">Categor\u00eda</label>
                             <select id="edit-trans-categoria" class="form-select" disabled>
                                 <option value="">Sin categor\u00eda</option>
-                                ${categoriasDin.map(cat => `<option value="${cat}" ${t.categoria === cat ? 'selected' : ''}>${cat}</option>`).join('')}
+                                ${categoriasDin.map(cat => `<option value="${escapeHtml(cat)}" ${t.categoria === cat ? 'selected' : ''}>${escapeHtml(cat)}</option>`).join('')}
                             </select>
                         </div>
                         <div class="col-6">
                             <label class="form-label text-muted small">Observaciones</label>
                             <input type="text" id="edit-trans-observaciones" class="form-control"
-                                value="${(t.observaciones || '').replace(/"/g, '&quot;')}" disabled>
+                                value="${escapeHtml(t.observaciones || '')}" disabled>
                         </div>
                     </div>
 
@@ -177,7 +177,7 @@ export async function mostrarDetalleTransaccion(t, onSuccess) {
                                     <label class="form-label text-muted small">Categor\u00eda</label>
                                     <select id="edit-trans-categoria" class="form-select" disabled>
                                         <option value="">Sin categor\u00eda</option>
-                                        ${categoriasDin.map(cat => `<option value="${cat}" ${t.categoria === cat ? 'selected' : ''}>${cat}</option>`).join('')}
+                                        ${categoriasDin.map(cat => `<option value="${escapeHtml(cat)}" ${t.categoria === cat ? 'selected' : ''}>${escapeHtml(cat)}</option>`).join('')}
                                     </select>
                                 </div>
                                 <div class="col-6">
@@ -188,7 +188,7 @@ export async function mostrarDetalleTransaccion(t, onSuccess) {
                             <div class="mb-3">
                                 <label class="form-label text-muted small">Observaciones</label>
                                 <input type="text" id="edit-trans-observaciones" class="form-control"
-                                    value="${(t.observaciones || '').replace(/"/g, '&quot;')}" disabled>
+                                    value="${escapeHtml(t.observaciones || '')}" disabled>
                             </div>
                             <div class="d-grid mt-4" id="wrap-btn-guardar" style="display:none;">
                                 <button type="submit" id="btn-guardar-trans-edit" class="btn text-white"
@@ -207,7 +207,7 @@ export async function mostrarDetalleTransaccion(t, onSuccess) {
     const dbCuentasEdit = await DB.getAll('cuentas_bancarias') || [];
     const selectCuentaEdit = document.getElementById('edit-trans-cuenta');
     selectCuentaEdit.innerHTML = dbCuentasEdit.map(c =>
-        `<option value="${c.id}" ${String(c.id) === String(t.cuenta_id) ? 'selected' : ''}>${c.nombre}</option>`
+        `<option value="${c.id}" ${String(c.id) === String(t.cuenta_id) ? 'selected' : ''}>${escapeHtml(c.nombre)}</option>`
     ).join('');
 
     if (!isGroup) {

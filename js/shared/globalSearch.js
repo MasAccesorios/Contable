@@ -260,8 +260,8 @@ export const GlobalSearch = {
                         title = 'Contactos';
                         itemsHtml = group.data.map(item => `
                             <a href="#/contactos/ver/${item.id}" class="dropdown-item py-2 gs-result-link px-3 text-wrap" style="white-space: normal;" data-registrar="${escapeHtml(item.nombre)}">
-                                <div class="fw-medium text-dark" style="font-size: var(--fs-base);">${item.nombre}</div>
-                                <div class="text-muted" style="font-size: var(--fs-xs);">NIT: ${item.identificacion || 'N/A'}</div>
+                                <div class="fw-medium text-dark" style="font-size: var(--fs-base);">${escapeHtml(item.nombre)}</div>
+                                <div class="text-muted" style="font-size: var(--fs-xs);">NIT: ${escapeHtml(item.identificacion) || 'N/A'}</div>
                             </a>
                         `).join('');
                         break;
@@ -269,8 +269,8 @@ export const GlobalSearch = {
                         title = 'Productos';
                         itemsHtml = group.data.map(item => `
                             <a href="#/inventario/items/ver/${item.id}" class="dropdown-item py-2 gs-result-link px-3 text-wrap" style="white-space: normal;" data-registrar="${escapeHtml(item.nombre)}">
-                                <div class="fw-medium text-dark" style="font-size: var(--fs-base);">${item.nombre}</div>
-                                <div class="text-muted" style="font-size: var(--fs-xs);">SKU: ${item.sku || 'N/A'}</div>
+                                <div class="fw-medium text-dark" style="font-size: var(--fs-base);">${escapeHtml(item.nombre)}</div>
+                                <div class="text-muted" style="font-size: var(--fs-xs);">SKU: ${escapeHtml(item.sku) || 'N/A'}</div>
                             </a>
                         `).join('');
                         break;
@@ -284,7 +284,7 @@ export const GlobalSearch = {
                             return `
                                 <a href="${hash}" class="dropdown-item py-2 gs-result-link px-3 text-wrap" style="white-space: normal;" data-registrar="${escapeHtml(label)}">
                                     <div class="fw-medium text-dark" style="font-size: var(--fs-base);">${label}</div>
-                                    <div class="text-muted" style="font-size: var(--fs-xs);">${item.contactos?.nombre || 'Sin cliente'} - $${Number(item.total).toLocaleString()}</div>
+                                    <div class="text-muted" style="font-size: var(--fs-xs);">${escapeHtml(item.contactos?.nombre) || 'Sin cliente'} - $${Number(item.total).toLocaleString()}</div>
                                 </a>
                             `;
                         }).join('');
@@ -296,7 +296,7 @@ export const GlobalSearch = {
                             return `
                             <a href="#/ingresos/cotizaciones/ver/${item.id}" class="dropdown-item py-2 gs-result-link px-3 text-wrap" style="white-space: normal;" data-registrar="${escapeHtml(label)}">
                                 <div class="fw-medium text-dark" style="font-size: var(--fs-base);">${label}</div>
-                                <div class="text-muted" style="font-size: var(--fs-xs);">${item.contactos?.nombre || 'Sin cliente'} - $${Number(item.total).toLocaleString()}</div>
+                                <div class="text-muted" style="font-size: var(--fs-xs);">${escapeHtml(item.contactos?.nombre) || 'Sin cliente'} - $${Number(item.total).toLocaleString()}</div>
                             </a>
                         `;
                         }).join('');

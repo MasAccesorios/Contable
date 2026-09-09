@@ -1,3 +1,5 @@
+import { escapeHtml } from './formatters.js';
+
 export function renderTablaFacturas(facturas, contactosMap, sortColumn = 'fecha', sortDirection = 'desc', returnInfo = null) {
     const formatMoney = (val) => '$ ' + parseFloat(val || 0).toLocaleString('es-CO', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 
@@ -42,7 +44,7 @@ export function renderTablaFacturas(facturas, contactosMap, sortColumn = 'fecha'
                 <td class="py-2" style="white-space: nowrap;">${numDisplay}</td>
                 <td class="py-2" style="white-space: nowrap;">${c.fecha || ''}</td>
                 <td class="py-2 ${isVencida && c.saldoPendiente > 0 ? 'text-danger fw-semibold' : ''}" style="white-space: nowrap;">${vencimiento}</td>
-                <td class="py-2" style="color: var(--text-main); font-weight: var(--weight-medium); max-width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${contactosMap[c.clienteId || c.contacto_id || c.contactoId] || 'Sin Cliente'}</td>
+                <td class="py-2" style="color: var(--text-main); font-weight: var(--weight-medium); max-width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(contactosMap[c.clienteId || c.contacto_id || c.contactoId]) || 'Sin Cliente'}</td>
                 <td class="py-2 text-end" style="white-space: nowrap;">${formatMoney(c.total)}</td>
                 <td class="py-2 text-end" style="white-space: nowrap;">${formatMoney(c.totalPagado)}</td>
                 <td class="py-2 text-end fw-bold text-dark" style="white-space: nowrap;">${formatMoney(c.saldoPendiente)}</td>
