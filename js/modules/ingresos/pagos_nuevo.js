@@ -164,7 +164,7 @@ export default {
                 <td class="align-middle text-muted">${f.fecha}</td>
                 <td class="align-middle">${this.formatCurrency(f.total)}</td>
                 <td class="align-middle text-muted">${this.formatCurrency(f.totalAbonado)}</td>
-                <td class="align-middle text-danger fw-bold">${this.formatCurrency(f.saldo)}</td>
+                <td class="align-middle text-danger fw-bold td-saldo-pendiente">${this.formatCurrency(f.saldo)}</td>
                 <td class="align-middle">
                     <div class="input-group input-group-sm" style="max-width: 150px; margin-left:auto;">
                         <span class="input-group-text">$</span>
@@ -328,6 +328,14 @@ export default {
                 // Autocorrección si el usuario digita más del saldo permitido
                 if (val > max) { val = max; input.value = val; applyCurrencyFormatting(input); }
                 if (val < 0) { val = 0; input.value = 0; }
+
+                // Saldo pendiente en vivo: lo que quedaría debiendo con este valor
+                const filaTr = input.closest('tr');
+                const celdaSaldo = filaTr ? filaTr.querySelector('.td-saldo-pendiente') : null;
+                if (celdaSaldo) {
+                    const saldoLive = Math.max(0, max - val);
+                    celdaSaldo.textContent = this.formatCurrency(saldoLive);
+                }
                 
                 sum += val;
             });
