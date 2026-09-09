@@ -208,7 +208,12 @@ export const PagosRecibidosEvents = {
                             const {data: t} = await supabase.from('pagos_ingresos').select('*').eq('id', id).single();
                             if (t) {
                                 try {
-                                    await anularTransaccion(t);
+                                    if (t.categoria === 'Transferencia') {
+                                        const { error } = await supabase.rpc('anular_transferencia_pareja', { p_id: t.id });
+                                        if (error) throw error;
+                                    } else {
+                                        await anularTransaccion(t);
+                                    }
                                     CoreActions.showWarningModal('Pago anulado con éxito', 'success');
                                     this.cargarPagos();
                                 } catch (err) {
@@ -286,7 +291,12 @@ export const PagosRecibidosEvents = {
 
                         if (confirm('¿Estás seguro de ELIMINAR permanentemente este pago? Esta acción no se puede deshacer.')) {
                             try {
-                                await supabase.from('pagos_ingresos').delete().eq('id', id);
+                                if (t.categoria === 'Transferencia') {
+                                    const { error } = await supabase.rpc('eliminar_transferencia_pareja', { p_id: id });
+                                    if (error) throw error;
+                                } else {
+                                    await supabase.from('pagos_ingresos').delete().eq('id', id);
+                                }
                                 CoreActions.showWarningModal('Pago eliminado con éxito', 'success');
                                 this.cargarPagos();
                             } catch (err) {

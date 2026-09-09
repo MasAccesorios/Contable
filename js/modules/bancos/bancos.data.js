@@ -72,28 +72,37 @@ export const TesoreriaData = {
         const nombreOrigen  = cuentaOrigen?.nombre  || String(origenId);
         const nombreDestino = cuentaDestino?.nombre || String(destinoId);
 
+        const transferenciaId = (typeof crypto !== 'undefined' && crypto.randomUUID)
+            ? crypto.randomUUID()
+            : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+                const r = Math.random() * 16 | 0;
+                return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+            });
+
         // 1. Egreso en la cuenta Origen (tipo='out', columnas reales de pagos_ingresos)
         const egreso = {
-            tipo:          'out',
-            monto:         Number(monto),
-            fecha:         fecha,
-            cuenta_id:     origenIdInt,
-            factura_id:    null,
-            categoria:     'Transferencia',
-            observaciones: `Transferencia a ${nombreDestino}${nota ? ' — ' + nota : ''}`,
-            estado:        'open'
+            tipo:             'out',
+            monto:            Number(monto),
+            fecha:            fecha,
+            cuenta_id:        origenIdInt,
+            factura_id:       null,
+            categoria:        'Transferencia',
+            observaciones:    `Transferencia a ${nombreDestino}${nota ? ' — ' + nota : ''}`,
+            estado:           'open',
+            transferencia_id: transferenciaId
         };
 
         // 2. Ingreso en la cuenta Destino (tipo='in')
         const ingreso = {
-            tipo:          'in',
-            monto:         Number(monto),
-            fecha:         fecha,
-            cuenta_id:     destinoIdInt,
-            factura_id:    null,
-            categoria:     'Transferencia',
-            observaciones: `Transferencia desde ${nombreOrigen}${nota ? ' — ' + nota : ''}`,
-            estado:        'open'
+            tipo:             'in',
+            monto:            Number(monto),
+            fecha:            fecha,
+            cuenta_id:        destinoIdInt,
+            factura_id:       null,
+            categoria:        'Transferencia',
+            observaciones:    `Transferencia desde ${nombreOrigen}${nota ? ' — ' + nota : ''}`,
+            estado:           'open',
+            transferencia_id: transferenciaId
         };
 
         // 3. Guardar ambos — DB.save('transacciones') mapea internamente a pagos_ingresos

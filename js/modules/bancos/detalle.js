@@ -355,7 +355,13 @@ export const DetalleBancoModule = {
                         if (grupo) {
                             await anularTransaccion(grupo, true);
                         } else {
-                            await anularTransaccion(id, false);
+                            const { data: row } = await supabase.from('pagos_ingresos').select('categoria').eq('id', id).single();
+                            if (row?.categoria === 'Transferencia') {
+                                const { error } = await supabase.rpc('anular_transferencia_pareja', { p_id: id });
+                                if (error) throw error;
+                            } else {
+                                await anularTransaccion(id, false);
+                            }
                         }
                         this.state.offset = 0; // Reset pagination
                         await this.loadData(false);

@@ -599,7 +599,13 @@ export class CrudFinanciero {
     }
 
     async anularTransaccionObj(id) {
-        await anularTransaccion(id);
+        const { data: row } = await supabase.from('pagos_ingresos').select('categoria').eq('id', id).single();
+        if (row?.categoria === 'Transferencia') {
+            const { error } = await supabase.rpc('anular_transferencia_pareja', { p_id: id });
+            if (error) throw error;
+        } else {
+            await anularTransaccion(id);
+        }
     }
 
     mostrarDetalleRegistro(registro, element) {
