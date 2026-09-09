@@ -532,7 +532,8 @@ export const PagosRecibidosModule = {
                                 ${formatMoney(pago.monto)}
                             </td>
                             <td class="py-3 text-end pe-3 position-relative">
-                                <button class="btn btn-sm btn-link text-muted p-0 border-0 btn-menu-row" data-id="${pago.id}" data-conciliado="${pago.estado_conciliacion}" data-factura="${pago.factura_id || ''}" data-anulado="${pago.estado_transaccion === 'anulado'}" style="text-decoration: none; font-size: var(--fs-lg);"><i class="bi bi-three-dots-vertical"></i></button>
+                                <button class="btn btn-sm btn-link text-muted p-0 border-0 btn-menu-row" data-id="${pago.id}" data-conciliado="${pago.estado_conciliacion}" data-factura="${pago.factura_id || ''}"
+                                    data-grupo="${pago.grupo_pago_id || ''}" data-anulado="${pago.estado_transaccion === 'anulado'}" style="text-decoration: none; font-size: var(--fs-lg);"><i class="bi bi-three-dots-vertical"></i></button>
                             </td>
                         </tr>
                         `;
@@ -829,8 +830,56 @@ export const PagosRecibidosModule = {
                         ev.preventDefault();
                         ev.stopPropagation();
                         window.cleanupFloatingElements();
-                        
+
+                        const grupoId = btn.getAttribute('data-grupo');
+
+                        if (grupoId) {
+                            if (conciliado) {
+                                CoreActions.showWarningModal('No se puede eliminar un pago que ya ha sido conciliado. Usa la opción "Anular" en su lugar.');
+                                return;
+                            }
+
+                            const confirmado = await CoreActions.showConfirmModalAsync('¿Estás seguro de ELIMINAR permanentemente este pago agrupado? Se borrarán TODAS sus facturas asociadas y sus saldos volverán al estado anterior a este pago. Esta acción no se puede deshacer.');
+                            if (!confirmado) return;
+
+                            try {
+                                const { data: pagosGrupo } = await supabase.from('pagos_ingresos').select('*').eq('grupo_pago_id', grupoId);
+                                const facturaIdsAfectadas = [...new Set((pagosGrupo || []).map(p => p.factura_id).filter(Boolean))];
+                                let estadosFacturas = [];
+
+                                if (facturaIdsAfectadas.length > 0) {
+                                    const { data: transaccionesF } = await supabase.from('pagos_ingresos').select('*').in('factura_id', facturaIdsAfectadas);
+                                    const { data: facturasF } = await supabase.from('facturas').select('*').in('id', facturaIdsAfectadas);
+                                    if (facturasF && transaccionesF) {
+                                        const { calcularEstadoFactura } = await import('../../shared/carteraUtils.js');
+                                        for (const f of facturasF) {
+                                            f.estado = 'pendiente';
+                                            const txM = transaccionesF
+                                                .filter(tx => tx.factura_id === f.id && tx.grupo_pago_id !== grupoId)
+                                                .map(tx => ({ ...tx, tipo: tx.tipo === 'in' ? 'ingreso' : 'egreso' }));
+                                            const metricas = calcularEstadoFactura(f, txM);
+                                            estadosFacturas.push({ id: f.id, estado: metricas.estado });
+                                        }
+                                    }
+                                }
+
+                                const { error } = await supabase.rpc('eliminar_pago_grupo', {
+                                    p_grupo_pago_id: grupoId,
+                                    p_estados_facturas: estadosFacturas
+                                });
+                                if (error) throw error;
+
+                                CoreActions.showWarningModal('Pago agrupado eliminado con éxito', 'success');
+                                this.cargarPagos();
+                            } catch (err) {
+                                CoreActions.showWarningModal('Error al eliminar: ' + err.message);
+                            }
+                            return;
+                        }
+
+                        // ── Caso pago individual (sin grupo): comportamiento existente sin cambios ──
                         const {data: t} = await supabase.from('pagos_ingresos').select('*').eq('id', id).single();
+
                         if (t.factura_id) {
                             CoreActions.showWarningModal('No se puede eliminar un pago asociado a una factura. Por favor, usa la opción "Anular" en su lugar para mantener la consistencia del saldo.');
                             return;
@@ -839,7 +888,7 @@ export const PagosRecibidosModule = {
                             CoreActions.showWarningModal('No se puede eliminar un pago que ya ha sido conciliado. Usa la opción "Anular" en su lugar.');
                             return;
                         }
-                        
+
                         if (confirm('¿Estás seguro de ELIMINAR permanentemente este pago? Esta acción no se puede deshacer.')) {
                             try {
                                 await supabase.from('pagos_ingresos').delete().eq('id', id);
