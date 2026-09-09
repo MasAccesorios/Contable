@@ -1,3 +1,5 @@
+import { escapeHtml } from '../../shared/formatters.js';
+
 export const ContactosTemplates = {
     renderKpis({ total, clientes, proveedores }) {
         const kpiTotal = this.element.querySelector('#kpi-total-contactos');
@@ -52,11 +54,11 @@ export const ContactosTemplates = {
                                 <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold flex-shrink-0" style="width: 32px; height: 32px; background-color: var(--primary); font-size: var(--fs-md);">
                                     ${inicial}
                                 </div>
-                                <span class="fw-medium text-dark text-capitalize text-truncate" style="max-width: 200px;">${c.nombre ? c.nombre.toLowerCase() : ''}</span>
+                                <span class="fw-medium text-dark text-capitalize text-truncate" style="max-width: 200px;">${c.nombre ? escapeHtml(c.nombre.toLowerCase()) : ''}</span>
                             </div>
                         </td>
-                        <td class="py-2 text-muted">${c.nit || '-'}</td>
-                        <td class="py-2 text-muted">${c.telefono || '-'}</td>
+                        <td class="py-2 text-muted">${escapeHtml(c.nit) || '-'}</td>
+                        <td class="py-2 text-muted">${escapeHtml(c.telefono) || '-'}</td>
                         <td class="py-2">${tipoBadge}</td>
                         <td class="py-2 text-end">
                             <button class="btn btn-sm btn-light text-muted btn-editar me-1" data-id="${c.id}" title="Editar"><i class="bi bi-pencil"></i></button>

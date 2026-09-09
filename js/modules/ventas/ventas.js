@@ -14,6 +14,7 @@ import { AbonoModal } from '../../shared/abonoModal.js';
 import { InventarioUtils } from '../../shared/inventarioUtils.js';
 import { EstadoUtils } from '../../shared/estadoUtils.js';
 import { anularTransaccion } from '../../shared/transaccionesUtils.js';
+import { escapeHtml } from '../../shared/formatters.js';
 
 export const FacturasModule = {
     cache: { contactos: null, productos: null },
@@ -721,7 +722,7 @@ export const FacturasModule = {
                             <div class="col-12 col-sm-6 col-md-3" id="container-cuenta-venta" style="display: ${factura.tipoVenta === 'contado' ? 'block' : 'none'};">
                                 <label class="form-label" style="font-size: var(--fs-sm); font-weight: var(--weight-medium); color: var(--text-body);">Cuenta (Contado)</label>
                                 <select id="select-cuenta-venta" class="form-select form-select-sm text-muted" ${isViewOnly ? 'disabled' : ''}>
-                                    ${cuentasActivas.map(c => `<option value="${c.nombre}" ${factura.cuentaId === c.nombre ? 'selected' : ''}>${c.nombre}</option>`).join('')}
+                                    ${cuentasActivas.map(c => `<option value="${escapeHtml(c.nombre)}" ${factura.cuentaId === c.nombre ? 'selected' : ''}>${escapeHtml(c.nombre)}</option>`).join('')}
                                 </select>
                             </div>
                             <div class="col-6 col-md-3">
@@ -736,7 +737,7 @@ export const FacturasModule = {
                                 <label class="form-label" style="font-size: var(--fs-sm); font-weight: var(--weight-medium); color: var(--text-body);">Vendedor (opcional)</label>
                                 <select id="select-vendedor" class="form-select form-select-sm text-muted" ${isViewOnly ? 'disabled' : ''}>
                                     <option value="">Sin vendedor asignado</option>
-                                    ${(vendedoresActivos || []).map(v => `<option value="${v.id}" ${String(factura.vendedor_id) === String(v.id) ? 'selected' : ''}>${v.nombre}</option>`).join('')}
+                                    ${(vendedoresActivos || []).map(v => `<option value="${v.id}" ${String(factura.vendedor_id) === String(v.id) ? 'selected' : ''}>${escapeHtml(v.nombre)}</option>`).join('')}
                                 </select>
                             </div>
                         </div>
@@ -796,11 +797,11 @@ export const FacturasModule = {
                 <!-- TEXTAREAS ADICIONALES -->
                 <div class="mb-4">
                     <h6 class="fw-bold mb-1" style="font-size: var(--fs-md); color: var(--text-main);">Notas</h6>
-                    <textarea id="input-notas" class="form-control text-muted" rows="2" style="font-size: var(--fs-base); border-color: var(--border-color); resize: none;" placeholder="Agrega comentarios para aclarar datos de la factura, serán visibles para tus clientes" ${isViewOnly ? 'disabled' : ''}>${factura.notas}</textarea>
+                    <textarea id="input-notas" class="form-control text-muted" rows="2" style="font-size: var(--fs-base); border-color: var(--border-color); resize: none;" placeholder="Agrega comentarios para aclarar datos de la factura, serán visibles para tus clientes" ${isViewOnly ? 'disabled' : ''}>${escapeHtml(factura.notas)}</textarea>
                 </div>
                 <div>
                     <h6 class="fw-bold mb-1" style="font-size: var(--fs-md); color: var(--text-main);">Términos y condiciones</h6>
-                    <textarea id="input-terminos" class="form-control text-muted" rows="2" style="font-size: var(--fs-base); border-color: var(--border-color); resize: none;" placeholder="Define los términos y condiciones, y/o las posibles cláusulas en caso de reclamos" ${isViewOnly ? 'disabled' : ''}>${factura.terminosCondiciones}</textarea>
+                    <textarea id="input-terminos" class="form-control text-muted" rows="2" style="font-size: var(--fs-base); border-color: var(--border-color); resize: none;" placeholder="Define los términos y condiciones, y/o las posibles cláusulas en caso de reclamos" ${isViewOnly ? 'disabled' : ''}>${escapeHtml(factura.terminosCondiciones)}</textarea>
                 </div>
 
                 <!-- DOCUMENTOS RELACIONADOS (Solo Vista) -->
@@ -864,7 +865,7 @@ export const FacturasModule = {
                                         <tr style="border-bottom: 1px solid #f0f0f0; cursor: pointer; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#f8f9fa'" onmouseout="this.style.backgroundColor='transparent'" onclick="window.location.hash='#/ingresos/notas-credito/ver/${nc.id}'">
                                             <td class="py-2 text-muted">${nc.fecha || ''}</td>
                                             <td class="py-2">NC-${nc.numero || nc.id}</td>
-                                            <td class="py-2">${nc.motivo || '-'}</td>
+                                            <td class="py-2">${escapeHtml(nc.motivo) || '-'}</td>
                                             <td class="py-2 text-center">${EstadoUtils.estaAnulado(nc.estado) ? '<span class="text-danger fw-bold">Anulada</span>' : '<span class="text-success fw-bold">Activa</span>'}</td>
                                             <td class="py-2 text-end fw-medium">$${Number(nc.total || 0).toLocaleString()}</td>
                                         </tr>`).join('') : `

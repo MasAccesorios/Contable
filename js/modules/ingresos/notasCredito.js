@@ -4,6 +4,7 @@ import { CoreActions } from '../../shared/crud.js';
 import { ItemEngine } from '../../shared/itemEngine.js';
 import { InventarioUtils } from '../../shared/inventarioUtils.js';
 import { EstadoUtils } from '../../shared/estadoUtils.js';
+import { escapeHtml } from '../../shared/formatters.js';
 
 import { NotasCreditoData } from './notasCredito.data.js';
 export const NotasCreditoModule = {
@@ -100,7 +101,7 @@ export const NotasCreditoModule = {
                     <tr style="cursor: pointer; opacity: ${opacity}; transition: opacity 0.2s;" onclick="if(!event.target.closest('button')) window.location.hash = '#/ingresos/notas-credito/ver/${n.id}'">
                         <td class="py-3">${n.numero || n.id}</td>
                         <td class="py-3">${n.fecha || ''}</td>
-                        <td class="py-3 fw-medium">${n.contacto_nombre || 'Sin cliente'}</td>
+                        <td class="py-3 fw-medium">${escapeHtml(n.contacto_nombre) || 'Sin cliente'}</td>
                         <td class="py-3 text-end fw-medium">$${Number(n.total || 0).toLocaleString('es-CO', {minimumFractionDigits: 2})}</td>
                         <td class="py-3 text-center">${estadoLabel}</td>
                         <td class="py-3 text-end" style="position: relative;">
@@ -418,7 +419,7 @@ export const NotasCreditoModule = {
                             </div>
                             ` : ''}
                             <div id="factura-search-result" class="mt-2 small">
-                                ${isEditMode ? `<span class="text-success fw-bold">Factura asociada: #${facturaOrigen?.numero} - Cliente: ${clienteNombre} - Total: ${Number(facturaOrigen?.total || 0).toLocaleString()}</span>` : ''}
+                                ${isEditMode ? `<span class="text-success fw-bold">Factura asociada: #${facturaOrigen?.numero} - Cliente: ${escapeHtml(clienteNombre)} - Total: ${Number(facturaOrigen?.total || 0).toLocaleString()}</span>` : ''}
                             </div>
                         </div>
                         <div class="col-md-6">
@@ -428,7 +429,7 @@ export const NotasCreditoModule = {
                     </div>
                     <div class="mb-4">
                         <label class="form-label fw-medium text-muted small">Motivo</label>
-                        <input type="text" id="nc-motivo" class="form-control" value="${nota.motivo}">
+                        <input type="text" id="nc-motivo" class="form-control" value="${escapeHtml(nota.motivo)}">
                     </div>
                     
                     <div id="items-container" class="${!isEditMode ? 'd-none' : ''}">
@@ -567,7 +568,7 @@ export const NotasCreditoModule = {
                                 <div class="row mb-4 mt-2">
                                     <div class="col-6">
                                         <div class="mas-receipt-info-label">CLIENTE</div>
-                                        <div class="mas-receipt-info-value">${clienteNombre || 'N/A'}</div>
+                                        <div class="mas-receipt-info-value">${escapeHtml(clienteNombre) || 'N/A'}</div>
                                     </div>
                                     <div class="col-6 text-end">
                                         <div class="mas-receipt-info-label">FACTURA ORIGEN</div>
@@ -579,7 +580,7 @@ export const NotasCreditoModule = {
                                     </div>
                                     <div class="col-6 mt-3 text-end">
                                         <div class="mas-receipt-info-label">MOTIVO</div>
-                                        <div class="mas-receipt-info-value">${nota.motivo || 'N/A'}</div>
+                                        <div class="mas-receipt-info-value">${escapeHtml(nota.motivo) || 'N/A'}</div>
                                     </div>
                                 </div>
                                 <table class="table table-borderless mas-receipt-table mb-4">
@@ -750,7 +751,7 @@ export const NotasCreditoModule = {
                             const cliente = item.cliente_nombre ? item.cliente_nombre : 'Sin Cliente';
                             return `
                                 <div class="d-flex flex-column">
-                                    <span class="fw-bold text-dark">#${item.numero} - ${cliente}</span>
+                                    <span class="fw-bold text-dark">#${item.numero} - ${escapeHtml(cliente)}</span>
                                     <span class="text-muted small">Total: $${total}</span>
                                 </div>
                             `;

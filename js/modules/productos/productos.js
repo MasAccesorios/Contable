@@ -294,7 +294,7 @@ export const ProductosModule = {
             
             html += `
                 <tr data-id="${p.id}" style="cursor: pointer; border-bottom: 1px solid var(--border-color); font-size: var(--fs-base); color: var(--text-body);" class="row-clickable">
-                    <td class="py-2 ps-4 td-sku" style="color: var(--text-main); font-weight: var(--weight-medium);">${p.sku || ''}</td>
+                    <td class="py-2 ps-4 td-sku" style="color: var(--text-main); font-weight: var(--weight-medium);">${escapeHtml(p.sku) || ''}</td>
                     <td class="py-2 text-truncate td-nombre" style="max-width: 300px;">${escapeHtml(p.nombre || '')}</td>
                     <td class="py-2 text-end">$${(p.precioVenta || 0).toLocaleString('es-CO', {minimumFractionDigits: 2})}</td>
                     <td class="py-2 text-end">
@@ -415,11 +415,11 @@ export const ProductosModule = {
                     <form id="form-producto-data">
                         <div class="mb-3">
                             <label class="form-label fw-semibold text-muted small">SKU / Código Único *</label>
-                            <input type="text" id="form-sku" class="form-control" value="${producto.sku}" ${id ? 'disabled' : 'required'}>
+                            <input type="text" id="form-sku" class="form-control" value="${escapeHtml(producto.sku)}" ${id ? 'disabled' : 'required'}>
                         </div>
                         <div class="mb-3">
                             <label class="form-label fw-semibold text-muted small">Nombre del Producto *</label>
-                            <input type="text" id="form-nombre" class="form-control" value="${producto.nombre}" required>
+                            <input type="text" id="form-nombre" class="form-control" value="${escapeHtml(producto.nombre)}" required>
                         </div>
                         <div class="row mb-3 g-3">
                             <div class="col-12 col-sm-6 col-md-4">
@@ -554,7 +554,7 @@ export const ProductosModule = {
             lotesHtml += `
                 <tr class="${l.cantidadActual === 0 ? 'table-light opacity-50' : ''}">
                     <td>${l.fechaIngreso}</td>
-                    <td>${l.referencia}</td>
+                    <td>${escapeHtml(l.referencia)}</td>
                     <td class="text-end">$${l.costoUnitario.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
                     <td class="text-end">${l.cantidadInicial} und</td>
                     <td class="text-end">
@@ -614,7 +614,7 @@ export const ProductosModule = {
                                 <li class="mb-3 d-flex align-items-center">
                                     <strong>SKU:</strong> 
                                     <span class="badge bg-white text-danger border border-danger border-2 px-3 py-2 ms-2 fs-6 shadow-sm rounded">
-                                        ${producto.sku}
+                                        ${escapeHtml(producto.sku)}
                                     </span>
                                 </li>
                                 <li class="mb-2"><strong>Descripción:</strong> ${escapeHtml(producto.nombre)}</li>
@@ -705,7 +705,7 @@ export const ProductosModule = {
                                 <i class="bi bi-receipt me-2 text-muted"></i>Facturas de Venta que incluyen este ítem
                             </h5>
                         </div>
-                        ${renderTablaFacturas(facturasAsociadas, contactosMap, 'fecha', 'desc', { hash: `#/inventario/items/ver/${id}`, label: `Volver al Producto (${producto.nombre})` })}
+                        ${renderTablaFacturas(facturasAsociadas, contactosMap, 'fecha', 'desc', { hash: `#/inventario/items/ver/${id}`, label: `Volver al Producto (${escapeHtml(producto.nombre)})` })}
                     </div>
                 </div>` : ''}
             </div>

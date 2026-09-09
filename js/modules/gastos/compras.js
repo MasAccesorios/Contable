@@ -11,6 +11,7 @@ import { calcularEstadoFactura, calcularDiasVencida } from '../../shared/cartera
 import { AbonoModal } from '../../shared/abonoModal.js';
 import { InventarioUtils } from '../../shared/inventarioUtils.js';
 import { EstadoUtils } from '../../shared/estadoUtils.js';
+import { escapeHtml } from '../../shared/formatters.js';
 
 export const ComprasModule = {
     cache: { contactos: null, productos: null },
@@ -276,7 +277,7 @@ export const ComprasModule = {
                         <td class="py-3">${numDisplay}</td>
                         <td class="py-3">${c.fecha || ''}</td>
                         <td class="py-3 ${isVencida && c.saldoPendiente > 0 ? 'text-danger fw-semibold' : ''}">${c.vencimiento || ''}</td>
-                        <td class="py-3" style="color: var(--text-main); font-weight: var(--weight-medium);">${contactosMap[c.proveedorId || c.contacto_id || c.contactoId] || 'Sin Proveedor'}</td>
+                        <td class="py-3" style="color: var(--text-main); font-weight: var(--weight-medium);">${escapeHtml(contactosMap[c.proveedorId || c.contacto_id || c.contactoId]) || 'Sin Proveedor'}</td>
                         <td class="py-3 text-end">${formatMoney(c.total)}</td>
                         <td class="py-3 text-end">${formatMoney(c.totalPagado)}</td>
                         <td class="py-3 text-end fw-bold text-dark">${formatMoney(c.saldoPendiente)}</td>
@@ -705,7 +706,7 @@ export const ComprasModule = {
                             <div class="col-12 col-sm-6 col-md-3" id="container-cuenta-venta" style="display: ${factura.tipoCompra === 'contado' ? 'block' : 'none'};">
                                 <label class="form-label" style="font-size: var(--fs-sm); font-weight: var(--weight-medium); color: var(--text-body);">Cuenta (Contado)</label>
                                 <select id="select-cuenta-compra" class="form-select form-select-sm text-muted" ${isViewOnly ? 'disabled' : ''}>
-                                    ${cuentasActivas.map(c => `<option value="${c.nombre}" ${factura.cuentaId === c.nombre ? 'selected' : ''}>${c.nombre}</option>`).join('')}
+                                    ${cuentasActivas.map(c => `<option value="${escapeHtml(c.nombre)}" ${factura.cuentaId === c.nombre ? 'selected' : ''}>${escapeHtml(c.nombre)}</option>`).join('')}
                                 </select>
                             </div>
                             <div class="col-6 col-md-3">

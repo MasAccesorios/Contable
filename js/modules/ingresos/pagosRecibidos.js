@@ -1,6 +1,7 @@
 import { supabase } from '../../core/supabase.js';
 import { CoreActions } from '../../shared/crud.js';
 import { anularTransaccion } from '../../shared/transaccionesUtils.js';
+import { escapeHtml } from '../../shared/formatters.js';
 
 export const PagosRecibidosModule = {
     state: {
@@ -267,14 +268,14 @@ export const PagosRecibidosModule = {
                             <div class="col-sm-6 mb-2 mb-sm-0">
                                 <div class="mas-receipt-info-label">Recibido de</div>
                                 ${(t.contacto_id || t.facturas?.contacto_id) ? `
-                                <a href="#/contactos/ver/${t.contacto_id || t.facturas?.contacto_id}" class="mas-receipt-info-value text-decoration-none d-inline-flex align-items-center gap-1" title="${t.contactos?.nombre || t.facturas?.contactos?.nombre || 'Cliente Contado'}" style="font-size: 14px; font-weight: 700; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--bs-primary);">
-                                    <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${t.contactos?.nombre || t.facturas?.contactos?.nombre || 'Cliente Contado'}</span>
+                                <a href="#/contactos/ver/${t.contacto_id || t.facturas?.contacto_id}" class="mas-receipt-info-value text-decoration-none d-inline-flex align-items-center gap-1" title="${escapeHtml(t.contactos?.nombre || t.facturas?.contactos?.nombre) || 'Cliente Contado'}" style="font-size: 14px; font-weight: 700; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--bs-primary);">
+                                    <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(t.contactos?.nombre || t.facturas?.contactos?.nombre) || 'Cliente Contado'}</span>
                                     <i class="bi bi-box-arrow-up-right" style="font-size: 0.75rem;"></i>
                                 </a>
                                 ` : `
-                                <div class="mas-receipt-info-value" title="${t.contactos?.nombre || t.facturas?.contactos?.nombre || 'Cliente Contado'}" style="font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${t.contactos?.nombre || t.facturas?.contactos?.nombre || 'Cliente Contado'}</div>
+                                <div class="mas-receipt-info-value" title="${escapeHtml(t.contactos?.nombre || t.facturas?.contactos?.nombre) || 'Cliente Contado'}" style="font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(t.contactos?.nombre || t.facturas?.contactos?.nombre) || 'Cliente Contado'}</div>
                                 `}
-                                ${(t.contactos?.identificacion || t.facturas?.contactos?.identificacion) ? `<div style="font-size: 12px; color: #64748b; margin-top: 2px;">NIT/CC: ${t.contactos?.identificacion || t.facturas?.contactos?.identificacion}</div>` : ''}
+                                ${(t.contactos?.identificacion || t.facturas?.contactos?.identificacion) ? `<div style="font-size: 12px; color: #64748b; margin-top: 2px;">NIT/CC: ${escapeHtml(t.contactos?.identificacion || t.facturas?.contactos?.identificacion)}</div>` : ''}
                             </div>
                             <div class="col-sm-6 text-sm-end">
                                 <div class="row">
@@ -286,7 +287,7 @@ export const PagosRecibidosModule = {
                                         <div class="mas-receipt-info-label">Ingresado a</div>
                                         <div class="mas-receipt-info-value d-flex align-items-center justify-content-sm-end gap-2">
                                             <i class="bi bi-bank" style="color: #94a3b8;"></i>
-                                            ${t.cuentas_bancarias?.nombre || 'Efectivo / Caja'}
+                                            ${escapeHtml(t.cuentas_bancarias?.nombre) || 'Efectivo / Caja'}
                                         </div>
                                     </div>
                                 </div>
@@ -305,7 +306,7 @@ export const PagosRecibidosModule = {
                                 ${t.itemsGrupo ? t.itemsGrupo.map(p => `
                                 <tr>
                                     <td class="text-start">
-                                        <div style="font-weight: 600; color: #0f172a;">${p.categoria || 'Abono / Pago de factura'}</div>
+                                        <div style="font-weight: 600; color: #0f172a;">${escapeHtml(p.categoria) || 'Abono / Pago de factura'}</div>
                                     </td>
                                     <td class="text-center">
                                         ${p.factura_id ? 
@@ -319,7 +320,7 @@ export const PagosRecibidosModule = {
                                 `).join('') : `
                                 <tr>
                                     <td class="text-start">
-                                        <div style="font-weight: 600; color: #0f172a;">${t.categoria || 'Abono / Pago de factura'}</div>
+                                        <div style="font-weight: 600; color: #0f172a;">${escapeHtml(t.categoria) || 'Abono / Pago de factura'}</div>
                                     </td>
                                     <td class="text-center">
                                         ${t.factura_id ? 
@@ -338,7 +339,7 @@ export const PagosRecibidosModule = {
                     <div class="mas-receipt-footer position-relative" style="z-index: 1;">
                         <div class="mas-receipt-info-label" style="color: #475569;">Observaciones</div>
                         <p style="font-size: 12px; color: #64748b; line-height: 1.4; margin: 0 0 16px 0; padding-right: 15px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
-                            ${t.observaciones ? t.observaciones : 'Sin notas adicionales.'}
+                            ${t.observaciones ? escapeHtml(t.observaciones) : 'Sin notas adicionales.'}
                         </p>
                         <div class="mas-receipt-total-row">
                             <span class="mas-receipt-total-label">Total Recibido</span>
@@ -515,7 +516,7 @@ export const PagosRecibidosModule = {
                         return `
                         <tr style="cursor: pointer; border-bottom: 1px solid var(--border-color);" class="row-pago" data-id="${pago.id}">
                             <td class="py-3 fw-medium ms-2" style="color: var(--text-main);">${pago.numero}</td>
-                            <td class="py-3 text-truncate" style="color: var(--text-body); max-width: 200px;">${clienteNombre}</td>
+                            <td class="py-3 text-truncate" style="color: var(--text-body); max-width: 200px;">${escapeHtml(clienteNombre)}</td>
                             <td class="py-3 text-truncate" style="color: var(--text-body); max-width: 200px;">${detallesHtml}</td>
                             <td class="py-3" style="color: var(--text-muted);">${formatFecha(pago.fecha)}</td>
                             <td class="py-3 text-truncate" style="color: var(--text-body); max-width: 150px;">${pago.cuenta_bancaria}</td>

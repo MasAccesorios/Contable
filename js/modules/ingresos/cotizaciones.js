@@ -7,6 +7,7 @@ import { ItemEngine } from '../../shared/itemEngine.js';
 import { NumberingManager } from '../../shared/numberingManager.js';
 import { ContactosModule } from '../clientes/clientes.js';
 import { UI } from '../../shared/combobox.js';
+import { escapeHtml } from '../../shared/formatters.js';
 
 export const CotizacionesModule = {
     async init(element) {
@@ -603,11 +604,11 @@ export const CotizacionesModule = {
                 <!-- TEXTAREAS ADICIONALES -->
                 <div class="mb-4">
                     <h6 class="fw-bold mb-1" style="font-size: var(--fs-md); color: var(--text-main);">Notas</h6>
-                    <textarea id="input-notas" class="form-control text-muted" rows="2" style="font-size: var(--fs-base); border-color: var(--border-color); resize: none;" placeholder="Agrega comentarios para aclarar datos de la cotización, serán visibles para tus clientes" ${isViewOnly ? 'disabled' : ''}>${cotizacion.notas}</textarea>
+                    <textarea id="input-notas" class="form-control text-muted" rows="2" style="font-size: var(--fs-base); border-color: var(--border-color); resize: none;" placeholder="Agrega comentarios para aclarar datos de la cotización, serán visibles para tus clientes" ${isViewOnly ? 'disabled' : ''}>${escapeHtml(cotizacion.notas)}</textarea>
                 </div>
                 <div>
                     <h6 class="fw-bold mb-1" style="font-size: var(--fs-md); color: var(--text-main);">Términos y condiciones</h6>
-                    <textarea id="input-terminos" class="form-control text-muted" rows="2" style="font-size: var(--fs-base); border-color: var(--border-color); resize: none;" placeholder="Define los términos y condiciones, y/o las posibles cláusulas en caso de reclamos" ${isViewOnly ? 'disabled' : ''}>${cotizacion.terminosCondiciones}</textarea>
+                    <textarea id="input-terminos" class="form-control text-muted" rows="2" style="font-size: var(--fs-base); border-color: var(--border-color); resize: none;" placeholder="Define los términos y condiciones, y/o las posibles cláusulas en caso de reclamos" ${isViewOnly ? 'disabled' : ''}>${escapeHtml(cotizacion.terminosCondiciones)}</textarea>
                 </div>
 
                 <!-- DOCUMENTOS RELACIONADOS (Solo Vista) -->
@@ -739,7 +740,7 @@ export const CotizacionesModule = {
                 const metaQty = tr.querySelector('.meta-qty');
                 const prod = productos.find(p => p.id === detalle.productoId);
                 if (prod) {
-                    if (metaProd) metaProd.innerHTML = `<span style="color: var(--text-muted); font-size: var(--fs-xs);">${prod.sku || 'S/N'}</span>`;
+                    if (metaProd) metaProd.innerHTML = `<span style="color: var(--text-muted); font-size: var(--fs-xs);">${escapeHtml(prod.sku) || 'S/N'}</span>`;
                     if (metaQty) metaQty.innerHTML = `<span style="color: var(--text-muted); font-size: var(--fs-xs);">Disp: ${prod.stockActual || prod.cantidad || 0}</span>`;
                 }
             }

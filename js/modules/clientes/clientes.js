@@ -212,11 +212,11 @@ export const ContactosModule = {
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="form-label text-muted small fw-medium">Nombre o Razón Social *</label>
-                            <input type="text" id="form-nombre" class="form-control form-control-sm" value="${contacto.nombre}" required>
+                            <input type="text" id="form-nombre" class="form-control form-control-sm" value="${escapeHtml(contacto.nombre)}" required>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label text-muted small fw-medium">NIT o Cédula *</label>
-                            <input type="text" id="form-nit" class="form-control form-control-sm" value="${contacto.nit}" required>
+                            <input type="text" id="form-nit" class="form-control form-control-sm" value="${escapeHtml(contacto.nit)}" required>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label text-muted small fw-medium d-block">Tipo de Contacto <span class="text-danger">*</span></label>
@@ -233,24 +233,24 @@ export const ContactosModule = {
                             <label class="form-label text-muted small fw-medium">Vendedor asignado</label>
                             <select id="form-vendedor" class="form-select form-select-sm">
                                 <option value="">Sin vendedor asignado</option>
-                                ${(vendedoresActivos || []).map(v => `<option value="${v.id}" ${String(contacto.vendedor_id) === String(v.id) ? 'selected' : ''}>${v.nombre}</option>`).join('')}
+                                ${(vendedoresActivos || []).map(v => `<option value="${v.id}" ${String(contacto.vendedor_id) === String(v.id) ? 'selected' : ''}>${escapeHtml(v.nombre)}</option>`).join('')}
                             </select>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label text-muted small fw-medium">Teléfono</label>
-                            <input type="text" id="form-telefono" class="form-control form-control-sm" value="${contacto.telefono || ''}">
+                            <input type="text" id="form-telefono" class="form-control form-control-sm" value="${escapeHtml(contacto.telefono) || ''}">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label text-muted small fw-medium">Correo Electrónico</label>
-                            <input type="email" id="form-email" class="form-control form-control-sm" value="${contacto.email || ''}">
+                            <input type="email" id="form-email" class="form-control form-control-sm" value="${escapeHtml(contacto.email) || ''}">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label text-muted small fw-medium">Ciudad</label>
-                            <input type="text" id="form-ciudad" class="form-control form-control-sm" value="${contacto.ciudad || ''}">
+                            <input type="text" id="form-ciudad" class="form-control form-control-sm" value="${escapeHtml(contacto.ciudad) || ''}">
                         </div>
                         <div class="col-md-12">
                             <label class="form-label text-muted small fw-medium">Dirección</label>
-                            <input type="text" id="form-direccion" class="form-control form-control-sm" value="${contacto.direccion || ''}">
+                            <input type="text" id="form-direccion" class="form-control form-control-sm" value="${escapeHtml(contacto.direccion) || ''}">
                         </div>
                         <div class="col-md-4">
                             <label class="form-label text-muted small fw-medium">Régimen Tributario</label>
@@ -261,11 +261,11 @@ export const ContactosModule = {
                         </div>
                         <div class="col-md-4">
                             <label class="form-label text-muted small fw-medium">Cupo de Crédito ($)</label>
-                            <input type="number" id="form-cupo" class="form-control form-control-sm" value="${contacto.cupoCredito || 0}">
+                            <input type="number" id="form-cupo" class="form-control form-control-sm" value="${escapeHtml(contacto.cupoCredito) || 0}">
                         </div>
                         <div class="col-md-4">
                             <label class="form-label text-muted small fw-medium">Plazos de Pago (Días)</label>
-                            <input type="number" id="form-plazos" class="form-control form-control-sm" value="${contacto.plazosPago || 0}">
+                            <input type="number" id="form-plazos" class="form-control form-control-sm" value="${escapeHtml(contacto.plazosPago) || 0}">
                         </div>
                     </div>
                     <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
@@ -409,11 +409,11 @@ export const ContactosModule = {
                         <div class="card border-0 shadow-sm h-100">
                             <div class="card-body">
                                 <h4 class="h6 fw-bold text-dark mb-3">Datos Básicos</h4>
-                                <p class="mb-2 text-muted small"><strong class="text-dark">Identificación:</strong> ${contacto.nit}</p>
-                                <p class="mb-2 text-muted small text-capitalize"><strong class="text-dark">Tipo:</strong> ${contacto.tipo}</p>
-                                <p class="mb-2 text-muted small"><strong class="text-dark">Teléfono:</strong> ${contacto.telefono || 'No registrado'}</p>
-                                <p class="mb-2 text-muted small"><strong class="text-dark">Email:</strong> ${contacto.email || 'No registrado'}</p>
-                                <p class="mb-0 text-muted small"><strong class="text-dark">Ubicación:</strong> ${contacto.direccion || ''} ${contacto.ciudad ? `(${contacto.ciudad})` : ''}</p>
+                                <p class="mb-2 text-muted small"><strong class="text-dark">Identificación:</strong> ${escapeHtml(contacto.nit)}</p>
+                                <p class="mb-2 text-muted small text-capitalize"><strong class="text-dark">Tipo:</strong> ${escapeHtml(contacto.tipo)}</p>
+                                <p class="mb-2 text-muted small"><strong class="text-dark">Teléfono:</strong> ${escapeHtml(contacto.telefono) || 'No registrado'}</p>
+                                <p class="mb-2 text-muted small"><strong class="text-dark">Email:</strong> ${escapeHtml(contacto.email) || 'No registrado'}</p>
+                                <p class="mb-0 text-muted small"><strong class="text-dark">Ubicación:</strong> ${escapeHtml(contacto.direccion) || ''} ${contacto.ciudad ? `(${escapeHtml(contacto.ciudad)})` : ''}</p>
                             </div>
                         </div>
                     </div>
@@ -421,9 +421,9 @@ export const ContactosModule = {
                         <div class="card border-0 shadow-sm h-100">
                             <div class="card-body">
                                 <h4 class="h6 fw-bold text-dark mb-3">Condiciones Comerciales</h4>
-                                <p class="mb-2 text-muted small"><strong class="text-dark">Régimen:</strong> ${contacto.regimen || 'Regimen Simplificado'}</p>
+                                <p class="mb-2 text-muted small"><strong class="text-dark">Régimen:</strong> ${escapeHtml(contacto.regimen) || 'Regimen Simplificado'}</p>
                                 <p class="mb-2 text-muted small"><strong class="text-dark">Cupo de Crédito:</strong> $${(contacto.cupoCredito || 0).toLocaleString()}</p>
-                                <p class="mb-0 text-muted small"><strong class="text-dark">Plazos de Pago:</strong> ${contacto.plazosPago || 0} días</p>
+                                <p class="mb-0 text-muted small"><strong class="text-dark">Plazos de Pago:</strong> ${escapeHtml(contacto.plazosPago) || 0} días</p>
                             </div>
                         </div>
                     </div>
@@ -582,7 +582,7 @@ export const ContactosModule = {
                                         ${(transaccionesAgrupadas || []).map(t => `
                                             <tr style="border-bottom: 1px solid #f0f0f0; cursor:pointer;" data-id="${t.id}">
                                                 <td class="py-3 text-muted">${t.fecha}</td>
-                                                <td class="py-3">${t.categoria || t.observaciones || ''}</td>
+                                                <td class="py-3">${escapeHtml(t.categoria || t.observaciones) || ''}</td>
                                                 <td class="py-3" style="color: ${t.tipo === 'in' ? '#2cbfb7' : '#e74c3c'}; font-weight: 500;">${t.tipo === 'in' ? '+' : '-'}$${Number(t.monto).toLocaleString()}</td>
                                                 <td class="py-3 text-end">
                                                     <button class="btn btn-sm btn-link text-dark p-1 btn-editar-transaccion-cliente" data-id="${t.id}" title="Editar"><i class="bi bi-pencil"></i></button>
