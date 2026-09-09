@@ -32,6 +32,10 @@ export const PrintManager = {
             if (window._crudPrintCleanupFallback) clearTimeout(window._crudPrintCleanupFallback);
             window._crudPrintCleanupFallback = setTimeout(cleanupPrint, 15000);
 
+            if (typeof window.cleanupFloatingElements === 'function') {
+                window.cleanupFloatingElements();
+            }
+
             window.print();
             return;
         }
@@ -130,6 +134,10 @@ export const PrintManager = {
                 }
             };
             
+            if (typeof window.cleanupFloatingElements === 'function') {
+                window.cleanupFloatingElements();
+            }
+
             setTimeout(precacheShareImage, 100);
             
             btnCompartir.addEventListener('click', async () => {

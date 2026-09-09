@@ -9,7 +9,7 @@ import { QuickActions } from '../shared/quickActions.js';
 
 
 window.cleanupFloatingElements = function() {
-    document.querySelectorAll('.dropdown-menu, .row-actions-menu, .desc-popover, .search-results-dropdown').forEach(el => el.remove());
+    document.querySelectorAll('.dropdown-menu, .row-actions-menu, .row-action-menu, .desc-popover, .search-results-dropdown').forEach(el => el.remove());
 };
 
 // Listener global ÚNICO para cerrar menús contextuales de filas (.row-action-menu)

@@ -411,6 +411,10 @@ body {
     #app-container {
         display: none !important;
     }
+
+    .dropdown-menu, .row-actions-menu, .row-action-menu, .desc-popover, .search-results-dropdown {
+        display: none !important;
+    }
     
     .sidebar, .navbar, .topbar, .global-actions-bar, input, button, select, textarea {
         display: none !important;
