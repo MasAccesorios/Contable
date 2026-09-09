@@ -348,14 +348,17 @@ export default {
             applyCurrencyFormatting(input);
             input.addEventListener('input', updateSum);
             input.addEventListener('focus', function() {
-                if (!self.grupoId) {
-                    const valorActual = parseCurrencyValue(this.value);
-                    if (valorActual === 0) {
-                        const maxVal = parseFloat(this.getAttribute('data-saldo')) || 0;
-                        this.value = maxVal;
-                        applyCurrencyFormatting(this);
-                        updateSum();
+                const valorActual = parseCurrencyValue(this.value);
+                if (valorActual === 0) {
+                    let maxVal = parseFloat(this.getAttribute('data-saldo')) || 0;
+                    if (self.grupoId) {
+                        const montoExistente = parseFloat(this.getAttribute('data-monto-existente')) || 0;
+                        const totalFactura = parseFloat(this.getAttribute('data-total')) || (maxVal + montoExistente);
+                        maxVal = Math.min(maxVal + montoExistente, totalFactura);
                     }
+                    this.value = maxVal;
+                    applyCurrencyFormatting(this);
+                    updateSum();
                 }
                 this.select();
             });
