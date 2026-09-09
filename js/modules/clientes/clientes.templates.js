@@ -691,7 +691,6 @@ export const ContactosTemplates = {
                 regimen: 'Regimen Simplificado',
                 cupoCredito: 0,
                 plazosPago: 0,
-                fechaCreacion: new Date().toISOString()
             };
 
             try {
