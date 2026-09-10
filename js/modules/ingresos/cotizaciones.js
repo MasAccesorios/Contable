@@ -88,7 +88,7 @@ export const CotizacionesModule = {
                 </div>
 
                 <!-- DATA TABLE CARD -->
-                <div class="ds-table-container mb-4">
+                <div class="dash-table-container mb-4">
                     
                     <!-- FILTERS -->
                     <div class="card-header bg-white border-bottom p-3 d-flex gap-3 align-items-center">
@@ -191,7 +191,7 @@ export const CotizacionesModule = {
 
             // Generar Thead (Para flechas de ordenamiento)
             const theadHtml = `
-                <tr class="ds-table-header">
+                <tr>
                     <th class="py-2 fw-normal sortable-header" data-column="numero" style="cursor: pointer; user-select: none; white-space: nowrap; width: 80px;">
                         Número ${sortColumn === 'numero' ? (sortDirection === 'asc' ? ' ▲' : ' ▼') : ''}
                     </th>

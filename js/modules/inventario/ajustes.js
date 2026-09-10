@@ -60,10 +60,10 @@ export const AjustesInventarioModule = {
                         </button>
                     </div>
 
-                    <div class="ds-table-container">
+                    <div class="dash-table-container">
                         <div class="table-responsive">
                             <table class="table table-borderless align-middle mb-0">
-                                <thead class="ds-table-header">
+                                <thead>
                                     <tr>
                                         <th class="py-3">Número</th>
                                         <th class="py-3">Fecha</th>

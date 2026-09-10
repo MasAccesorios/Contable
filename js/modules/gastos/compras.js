@@ -131,7 +131,7 @@ export const ComprasModule = {
                     </div>
 
                     <!-- DATA TABLE CARD -->
-                    <div class="ds-table-container">
+                    <div class="dash-table-container">
                         <!-- FILTERS -->
                         <div class="card-header bg-white border-bottom p-3 d-flex gap-3 align-items-center">
                             <div class="ds-search-container" style="width: 250px;">
@@ -156,7 +156,7 @@ export const ComprasModule = {
                         <!-- GRID -->
                         <div class="table-responsive">
                             <table class="table table-borderless align-middle mb-0 text-nowrap">
-                                <thead class="ds-table-header" id="compras-thead">
+                                <thead id="compras-thead">
                                     <tr>
                                         <th class="py-3 fw-normal sortable-header" data-column="numero" style="cursor: pointer; user-select: none;">Número</th>
                                         <th class="py-3 fw-normal sortable-header" data-column="fecha" style="cursor: pointer; user-select: none;">Creación</th>

@@ -71,10 +71,10 @@ export const VendedoresModule = {
                     </div>
                 </div>
 
-                <div class="ds-table-container mb-4">
+                <div class="dash-table-container mb-4">
                     <div class="table-responsive">
                         <table class="table table-borderless align-middle mb-0">
-                            <thead class="ds-table-header">
+                            <thead>
                                 <tr>
                                     <th class="py-2 fw-normal">Nombre</th>
                                     <th class="py-2 fw-normal text-center">% Comisión</th>
@@ -247,10 +247,10 @@ export const VendedoresModule = {
                 <h2 class="page-title">${escapeHtml(vendedor?.nombre || 'Vendedor')}</h2>
                 <p class="text-muted mb-4" style="font-size: var(--fs-md);">Comisión: ${Number(vendedor?.porcentaje_comision || 0)}% sobre el valor total de cada venta pagada.</p>
 
-                <div class="ds-table-container mb-4">
+                <div class="dash-table-container mb-4">
                     <div class="table-responsive">
                         <table class="table table-borderless align-middle mb-0">
-                            <thead class="ds-table-header">
+                            <thead>
                                 <tr>
                                     <th class="py-2 fw-normal">Factura</th>
                                     <th class="py-2 fw-normal">Fecha</th>

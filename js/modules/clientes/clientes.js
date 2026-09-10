@@ -72,7 +72,7 @@ export const ContactosModule = {
                     </div>
                 </div>
 
-                <div class="ds-table-container">
+                <div class="dash-table-container">
                     <div class="card-body p-0">
                         <!-- Pestañas de Filtro (Tabs) -->
                         <ul class="nav nav-tabs border-bottom-0 gap-3 px-4 pt-3" id="contactos-tabs" style="border-bottom: 2px solid var(--border-color) !important;">
@@ -102,7 +102,7 @@ export const ContactosModule = {
                                 <!-- Tabla -->
                                 <div class="table-responsive">
                                     <table class="table table-borderless align-middle mb-0">
-                                        <thead class="ds-table-header">
+                                        <thead>
                                             <tr>
                                                 <th class="py-2" style="width: 40px;"><input type="checkbox" class="form-check-input" id="check-all"></th>
                                                 <th class="py-2" style="white-space: nowrap;">Nombre <i class="bi bi-arrow-up-short"></i></th>

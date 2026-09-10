@@ -74,7 +74,7 @@ export const CategoriasModule = {
                 </div>
 
                 <!-- DATA TABLE CARD -->
-                <div class="ds-table-container mb-4">
+                <div class="dash-table-container mb-4">
                     <!-- FILTERS -->
                     <div class="card-header bg-white border-bottom p-3 d-flex gap-3 align-items-center">
                         <div class="ds-search-container" style="width: 250px;">
@@ -86,7 +86,7 @@ export const CategoriasModule = {
                     <!-- GRID -->
                     <div class="table-responsive">
                         <table class="table table-borderless align-middle mb-0">
-                            <thead class="ds-table-header">
+                            <thead>
                                 <tr>
                                     <th class="py-2 fw-normal" style="min-width: 200px;">Nombre</th>
                                     <th class="py-2 fw-normal text-center" style="width: 150px;">Flujo</th>
