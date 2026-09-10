@@ -8,7 +8,7 @@ export async function init(container = null) {
         <div class="dash-layout p-4">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <div>
-                    <h2 class="h3 fw-bold mb-1 text-dark">🛡️ Auditoría de Integridad</h2>
+                    <h2 class="page-title">🛡️ Auditoría de Integridad</h2>
                     <p class="text-muted mb-0" style="font-size: var(--fs-md);">Este módulo ejecuta verificaciones lógicas de integridad de datos en la base de datos para detectar discrepancias e inconsistencias, como sobreventas, huérfanos o saldos desalineados.</p>
                 </div>
                 <div>

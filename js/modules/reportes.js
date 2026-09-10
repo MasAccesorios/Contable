@@ -15,7 +15,7 @@ export default {
 
         element.innerHTML = `
             <div class="dash-layout p-4">
-                <h2 class="h3 fw-bold mb-4 text-dark">Reportes y Exportaciones</h2>
+                <h2 class="page-title">Reportes y Exportaciones</h2>
                 
                 <!-- KPI CARDS REPORTES -->
                 <div class="row g-3 mb-4">

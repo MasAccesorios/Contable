@@ -8,7 +8,7 @@ export const SistemaModule = {
         element.innerHTML = `
             <div class="module-container p-4">
                 <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h2 class="h3 fw-bold text-dark mb-0"><i class="bi bi-gear-fill me-2"></i>Sistema y Mantenimiento</h2>
+                    <h2 class="page-title"><i class="bi bi-gear-fill me-2"></i>Sistema y Mantenimiento</h2>
                 </div>
 
                 <div id="sistema-alert" class="alert d-none mb-4 py-2"></div>

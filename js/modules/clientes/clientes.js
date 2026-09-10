@@ -28,7 +28,7 @@ export const ContactosModule = {
                 <!-- Header -->
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <div>
-                        <h2 class="h3 fw-bold mb-1 text-dark">Gestión de Contactos</h2>
+                        <h2 class="page-title">Gestión de Contactos</h2>
                         <p class="text-muted small mb-0">Crea tus clientes, proveedores y demás contactos para asociarlos en tus documentos</p>
                     </div>
                     <div class="d-flex gap-2">

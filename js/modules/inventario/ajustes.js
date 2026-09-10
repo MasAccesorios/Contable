@@ -52,7 +52,7 @@ export const AjustesInventarioModule = {
                 <div class="dash-layout p-4" style="max-width: 1000px; margin: 0 auto;">
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <div>
-                            <h2 class="h3 fw-bold mb-1 text-dark">Ajustes de Inventario</h2>
+                            <h2 class="page-title">Ajustes de Inventario</h2>
                             <p class="text-muted mb-0" style="font-size: var(--fs-md);">Registra incrementos o disminuciones por daños, pérdidas o descuadres.</p>
                         </div>
                         <button class="btn btn-primary-action" onclick="window.location.hash='#/inventario/ajustes/nuevo'">
