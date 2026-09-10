@@ -1267,6 +1267,15 @@ export const FacturasModule = {
                             };
                         });
 
+                        console.log('DEBUG EDICION FACTURA', {
+                            factura_id: id,
+                            detalles_enviados: detallesPayload,
+                            suma_por_producto: detallesPayload.reduce((acc, d) => {
+                                acc[d.producto_id] = (acc[d.producto_id] || 0) + d.cantidad;
+                                return acc;
+                            }, {})
+                        });
+
                         // Primer intento sin permitir negativos
                         let { data: updateRes, error: updateErr } = await supabase.rpc('editar_factura_inventario_fifo', {
                             p_factura_id: parseInt(id, 10),
