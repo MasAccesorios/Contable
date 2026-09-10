@@ -13,7 +13,7 @@ export const DashboardModule = {
                 <!-- ═══ HEADER ═══ -->
                 <div class="dash-header">
                     <div>
-                        <h3 class="fw-bold mb-0" style="font-size: var(--fs-lg); color: var(--text-main); letter-spacing: -0.3px;">Resumen del negocio</h3>
+                        <h2 class="page-title">Resumen del negocio</h2>
                         <p class="mb-0 text-muted" style="font-size: var(--fs-sm); margin-top: 2px;">Vista consolidada en tiempo real</p>
                     </div>
                     <div class="dashboard-pill-group" role="group" id="dashboard-rango-filtro">

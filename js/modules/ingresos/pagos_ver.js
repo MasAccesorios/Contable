@@ -113,7 +113,7 @@ export const PagosVerModule = {
                 <div class="d-flex justify-content-between align-items-center mb-4" style="max-width: 1000px; margin: 0 auto;">
                     <div>
                         <a href="#/ingresos/pagos" class="text-decoration-none" style="font-size: var(--fs-base); color: var(--primary);" id="btn-volver-listado">�?Volver a mis pagos recibidos</a>
-                        <h2 class="fw-bold text-dark mt-2 mb-0" style="font-size: var(--fs-xl);">Pago recibido ${numero}</h2>
+                        <h2 class="page-title">Pago recibido ${numero}</h2>
                     </div>
                     <div class="d-flex gap-2">
                         <button class="btn btn-light border bg-white text-secondary" style="border-radius: 6px; padding: 6px 12px;"><i class="bi bi-three-dots-vertical"></i></button>

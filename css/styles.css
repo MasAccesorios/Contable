@@ -118,6 +118,15 @@ body {
     font-weight: 400 !important;
 }
 
+/* Título canónico de pantalla — unifica todos los h2/h3 de encabezado de módulo */
+.page-title {
+    font-size: var(--fs-xxl) !important;
+    font-weight: var(--weight-bold) !important;
+    color: var(--text-main) !important;
+    margin-bottom: 0.25rem !important;
+    line-height: 1.2;
+}
+
 /* Sombras y Tarjetas */
 .shadow-sm, .card, .dropdown-content, .dropdown-menu {
     box-shadow: var(--shadow-soft) !important;
