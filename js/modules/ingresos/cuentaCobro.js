@@ -229,7 +229,7 @@ export const CuentaCobroModule = {
                 </div>
 
                 <div class="dash-table-container mb-4" style="overflow: visible;">
-                    <div class="card-header bg-white border-bottom py-3 px-4">
+                    <div class="card-header bg-white border-bottom p-3">
                         <h6 class="mb-0 fw-bold" style="color: var(--text-main);">Información del Cliente</h6>
                     </div>
                     <div class="card-body p-4">
@@ -263,7 +263,7 @@ export const CuentaCobroModule = {
                 </div>
 
                 <div class="card border-0 shadow-sm mb-4" style="border-radius: 12px; overflow: visible;">
-                    <div class="card-header bg-white border-bottom py-3 px-4">
+                    <div class="card-header bg-white border-bottom p-3">
                         <h6 class="mb-0 fw-bold" style="color: var(--text-main);">Detalles del Pago</h6>
                     </div>
                     <div class="card-body p-4">
@@ -292,7 +292,7 @@ export const CuentaCobroModule = {
                 </div>
 
                 <div class="card border-0 shadow-sm mb-4" style="border-radius: 12px; overflow: visible;">
-                    <div class="card-header bg-white border-bottom py-3 px-4 d-flex justify-content-between align-items-center">
+                    <div class="card-header bg-white border-bottom p-3 d-flex justify-content-between align-items-center">
                         <h6 class="mb-0 fw-bold" style="color: var(--text-main);">Productos o Servicios</h6>
                     </div>
                     <div class="card-body p-0">

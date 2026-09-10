@@ -17,7 +17,7 @@ export const ConfiguracionModule = {
                 </div>
                 
                 <div class="dash-table-container mb-4">
-                    <div class="card-header bg-white border-bottom py-3">
+                    <div class="card-header bg-white border-bottom p-3">
                         <h5 class="mb-0 fw-bold" style="color: var(--primary);">Apariencia</h5>
                     </div>
                     <div class="card-body p-4">
@@ -64,7 +64,7 @@ export const ConfiguracionModule = {
                 </div>
 
                 <div class="dash-table-container mb-4">
-                    <div class="card-header bg-white border-bottom py-3">
+                    <div class="card-header bg-white border-bottom p-3">
                         <h5 class="mb-0 fw-bold" style="color: var(--primary);">Numeración de documentos</h5>
                     </div>
                     <div class="card-body p-4 text-center" id="config-loader">

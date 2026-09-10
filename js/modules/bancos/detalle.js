@@ -162,7 +162,7 @@ export const DetalleBancoModule = {
                     <!-- STATS CARDS -->
                     <div class="row g-4 mb-4">
                         <div class="col-md-4">
-                            <div class="card border-0" style="box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.03), 0px 1px 3px rgba(0, 0, 0, 0.05); border-radius: 8px; border-top: 4px solid #2cbfb7;">
+                            <div class="card border-0" style="border-radius: 8px; border-top: 4px solid #2cbfb7;">
                                 <div class="card-body p-4">
                                     <p class="text-muted mb-1" style="font-size: var(--fs-base);">Saldo en Libros</p>
                                     <h3 class="fw-bold mb-0" id="detail-saldo-card" style="color: var(--primary);">${formatMoney(this.state.saldo)}</h3>
@@ -172,7 +172,7 @@ export const DetalleBancoModule = {
                     </div>
 
                     <!-- DATA TABLE CARD -->
-                    <div class="card border-0" style="box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.03), 0px 1px 3px rgba(0, 0, 0, 0.05); border-radius: 8px;">
+                    <div class="card border-0" style="border-radius: 8px;">
                         
                         <!-- FILTERS -->
                         <div class="card-header bg-white border-bottom p-3 d-flex gap-3 align-items-center" style="border-radius: 8px 8px 0 0;">

@@ -101,7 +101,7 @@ export const TesoreriaModule = {
                 <div class="row g-4 mb-4">
                     <!-- Chart -->
                     <div class="col-md-8">
-                        <div class="card border-0 h-100" style="background: var(--surface); box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.03), 0px 1px 3px rgba(0, 0, 0, 0.05); border-radius: 8px;">
+                        <div class="card border-0 h-100" style="background: var(--surface); border-radius: 8px;">
                             <div class="card-body p-4">
                                 <div class="d-flex justify-content-between align-items-center mb-4">
                                     <h5 class="fw-bold mb-0" style="color: var(--text-main); font-size: var(--fs-lg);">Ingresos y gastos</h5>
@@ -119,7 +119,7 @@ export const TesoreriaModule = {
                     </div>
                     <!-- Resumen -->
                     <div class="col-md-4">
-                        <div class="card border-0 h-100" style="background: var(--surface); box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.03), 0px 1px 3px rgba(0, 0, 0, 0.05); border-radius: 8px;">
+                        <div class="card border-0 h-100" style="background: var(--surface); border-radius: 8px;">
                             <div class="card-body p-4 d-flex flex-column">
                                 <h5 class="fw-bold mb-4" style="color: var(--text-main); font-size: var(--fs-lg);">Resumen</h5>
                                 
