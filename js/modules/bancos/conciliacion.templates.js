@@ -210,7 +210,7 @@ export const ConciliacionTemplates = {
         }
 
         // Ordenar por fecha asc
-        const movimientosStr = [...this.state.movimientosRango].sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+        const movimientosStr = [...this.state.movimientosRango].sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
 
         movimientosStr.forEach(m => {
             const isIngreso = m.tipo === 'ingreso';
