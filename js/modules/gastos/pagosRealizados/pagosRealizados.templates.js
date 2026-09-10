@@ -318,7 +318,7 @@ export const PagosRealizadosTemplates = {
                 </div>
 
                 <!-- DATA TABLE CARD -->
-                <div class="ds-table-container mb-4">
+                <div class="dash-table-container mb-4">
                     <!-- FILTERS -->
                     <div class="card-header bg-white border-bottom p-3 d-flex gap-3 align-items-center">
                         <div class="ds-search-container" style="width: 250px;">
@@ -364,7 +364,7 @@ export const PagosRealizadosTemplates = {
             ` : ''}
             <div class="table-responsive">
                 <table class="table table-borderless align-middle mb-0">
-                    <thead class="ds-table-header">
+                    <thead>
                         <tr>
                             <th class="py-3 fw-normal ms-2" style="white-space: nowrap;">Número</th>
                             <th class="py-3 fw-normal" style="white-space: nowrap;">Proveedor</th>

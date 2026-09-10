@@ -121,7 +121,7 @@ export default {
                 <div class="row g-4">
                     <!-- Columna Izquierda: Configuración del Pago -->
                     <div class="col-lg-4">
-                        <div class="ds-table-container p-4 mb-4">
+                        <div class="dash-table-container p-4 mb-4">
                             <h6 class="ds-kpi-label mb-1">Proveedor</h6>
                             ${proveedor ? `<h4 class="fw-bold mb-3" style="color: var(--text-main);">${escapeHtml(proveedor.nombre)}</h4>` : `
                             <div class="custom-combobox position-relative mb-3" id="combo-proveedor-container">
@@ -135,7 +135,7 @@ export default {
                             </div>
                         </div>
 
-                        <div class="ds-table-container p-4">
+                        <div class="dash-table-container p-4">
                             <h5 class="fw-bold mb-4" style="color: var(--text-main);">Detalles del Recibo</h5>
                             
                             <div class="mb-3">
@@ -173,13 +173,13 @@ export default {
 
                     <!-- Columna Derecha: Tabla de Facturas -->
                     <div class="col-lg-8">
-                        <div class="ds-table-container h-100">
+                        <div class="dash-table-container h-100">
                             <div class="p-4" style="border-bottom: 1px solid var(--border-color);">
                                 <h5 class="fw-bold mb-0" style="color: var(--text-main);">Facturas Pendientes</h5>
                             </div>
                             <div class="table-responsive">
                                 <table class="table table-borderless align-middle mb-0">
-                                    <thead class="ds-table-header">
+                                    <thead>
                                         <tr>
                                             <th class="py-2 fw-normal ps-4"># Factura</th>
                                             <th class="py-2 fw-normal">Fecha</th>
