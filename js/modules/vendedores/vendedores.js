@@ -42,7 +42,7 @@ export const VendedoresModule = {
             <div class="dash-layout p-4" style="max-width: 1200px; margin: 0 auto;">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <div>
-                        <h2 class="h3 fw-bold mb-1" style="color: var(--text-main);">Vendedores</h2>
+                        <h2 class="page-title">Vendedores</h2>
                         <p class="text-muted mb-0" style="font-size: var(--fs-md);">Gestiona tus vendedores y las comisiones generadas por sus ventas pagadas.</p>
                     </div>
                     <button class="btn btn-primary-action" id="btn-nuevo-vendedor">
@@ -244,7 +244,7 @@ export const VendedoresModule = {
                 <a href="#/vendedores" class="text-decoration-none text-muted d-inline-flex align-items-center gap-1 mb-3" style="font-size: var(--fs-md);">
                     <i class="bi bi-arrow-left"></i> Volver a Vendedores
                 </a>
-                <h2 class="h3 fw-bold mb-1" style="color: var(--text-main);">${escapeHtml(vendedor?.nombre || 'Vendedor')}</h2>
+                <h2 class="page-title">${escapeHtml(vendedor?.nombre || 'Vendedor')}</h2>
                 <p class="text-muted mb-4" style="font-size: var(--fs-md);">Comisión: ${Number(vendedor?.porcentaje_comision || 0)}% sobre el valor total de cada venta pagada.</p>
 
                 <div class="ds-table-container mb-4">

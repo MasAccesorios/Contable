@@ -87,7 +87,7 @@ export const ComprasModule = {
                     <!-- TOP BAR -->
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <div>
-                            <h2 class="h3 fw-bold mb-1" style="color: var(--text-main);">Facturas de Compra</h2>
+                            <h2 class="page-title">Facturas de Compra</h2>
                             <p class="text-muted mb-0" style="font-size: var(--fs-md);">
                                 Gestiona las facturas generadas por compras a tus proveedores. 
                             </p>

@@ -47,7 +47,7 @@ export const TesoreriaModule = {
                 <!-- TOP BAR -->
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <div>
-                        <h2 class="h3 fw-bold mb-1" style="color: var(--text-main);">Bancos</h2>
+                        <h2 class="page-title">Bancos</h2>
                         <p class="text-muted mb-0" style="font-size: var(--fs-md);">Controla los movimientos de dinero con tus cuentas de banco, efectivo y tarjetas de crédito.</p>
                     </div>
                     <div class="d-flex gap-2">

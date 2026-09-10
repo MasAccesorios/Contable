@@ -117,7 +117,7 @@ export const NotasCreditoModule = {
                 <div class="dash-layout p-4">
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <div>
-                            <h2 class="h3 fw-bold mb-1" style="color: var(--text-main);">Notas de Crédito</h2>
+                            <h2 class="page-title">Notas de Crédito</h2>
                             <p class="text-muted mb-0" style="font-size: var(--fs-md);">Gestiona las devoluciones y saldos a favor de tus clientes.</p>
                         </div>
                         <button class="btn btn-primary-action" onclick="window.location.hash='#/ingresos/notas-credito/nueva'">
@@ -386,7 +386,7 @@ export const NotasCreditoModule = {
                             <button class="btn btn-link text-muted p-0 text-decoration-none mb-2" onclick="window.location.hash='#/ingresos/notas-credito'">
                                 <i class="bi bi-arrow-left me-1"></i>Volver a Notas de Crédito
                             </button>
-                            <h2 class="h3 fw-bold mb-1" style="color: var(--text-main);">${headerTitle}</h2>
+                            <h2 class="page-title">${headerTitle}</h2>
                             <p class="text-muted mb-0">${headerSubtitle}</p>
                         </div>
                         ${(id && !isViewOnly && !EstadoUtils.estaAnulado(nota.estado)) ? `

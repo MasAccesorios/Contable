@@ -26,7 +26,7 @@ export const ProductosModule = {
                 <!-- TOP BAR -->
                 <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
                     <div>
-                        <h2 class="h3 fw-bold mb-1" style="color: var(--text-main);">Ítems de venta</h2>
+                        <h2 class="page-title">Ítems de venta</h2>
                         <p class="text-muted mb-0" style="font-size: var(--fs-md);">Gestiona tus productos, su costo promedio y el inventario disponible.</p>
                     </div>
                     <div class="d-flex flex-wrap gap-2 w-100 w-md-auto justify-content-md-end">

@@ -46,7 +46,7 @@ export const CotizacionesModule = {
                 <!-- TOP BAR -->
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <div>
-                        <h2 class="h3 fw-bold mb-1" style="color: var(--text-main);">Cotizaciones</h2>
+                        <h2 class="page-title">Cotizaciones</h2>
                         <p class="text-muted mb-0" style="font-size: var(--fs-md);">
                             Crea y gestiona cotizaciones personalizadas para tus clientes potenciales. 
                             <a href="#" style="color: var(--primary); text-decoration: none;">Saber más</a>

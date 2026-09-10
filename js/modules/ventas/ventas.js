@@ -134,7 +134,7 @@ export const FacturasModule = {
                     <!-- TOP BAR -->
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <div>
-                            <h2 class="h3 fw-bold mb-1" style="color: var(--text-main);">Facturas de venta</h2>
+                            <h2 class="page-title">Facturas de venta</h2>
                             <p class="text-muted mb-0" style="font-size: var(--fs-md);">
                                 Gestiona las facturas generadas por ventas a tus clientes. 
                             </p>

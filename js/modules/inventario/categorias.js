@@ -36,7 +36,7 @@ export const CategoriasModule = {
                 <!-- TOP BAR -->
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <div>
-                        <h2 class="h3 fw-bold mb-1" style="color: var(--text-main);">Categorías</h2>
+                        <h2 class="page-title">Categorías</h2>
                         <p class="text-muted mb-0" style="font-size: var(--fs-md);">
                             Gestiona las categorías de tus productos y movimientos financieros.
                         </p>
