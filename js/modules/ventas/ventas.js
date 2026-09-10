@@ -175,7 +175,7 @@ export const FacturasModule = {
                     </div>
 
                     <!-- DATA TABLE CARD -->
-                    <div class="ds-table-container mb-4">
+                    <div class="dash-table-container mb-4">
                         <!-- FILTERS -->
                         <div class="card-header bg-white border-bottom p-3 d-flex gap-3 align-items-center">
                             <div class="ds-search-container" style="width: 250px;">

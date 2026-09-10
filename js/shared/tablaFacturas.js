@@ -66,7 +66,7 @@ export function renderTablaFacturas(facturas, contactosMap, sortColumn = 'fecha'
     return `
         <div class="table-responsive">
             <table class="table table-borderless align-middle mb-0">
-                <thead class="ds-table-header">
+                <thead>
                     <tr>
                         <th class="py-2 fw-normal sortable-header" data-column="numero" style="cursor: pointer; user-select: none; white-space: nowrap;">
                             Número ${sortColumn === 'numero' ? (sortDirection === 'asc' ? ' ▲' : ' ▼') : ''}

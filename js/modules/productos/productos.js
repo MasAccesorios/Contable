@@ -43,7 +43,7 @@ export const ProductosModule = {
                 </div>
 
                 <!-- DATA TABLE CARD -->
-                <div class="ds-table-container">
+                <div class="dash-table-container">
                     
                     <!-- FILTERS -->
                     <div class="card-header bg-white border-bottom p-3 d-flex gap-3 align-items-center">
@@ -212,7 +212,7 @@ export const ProductosModule = {
 
         if (thead) {
             thead.innerHTML = `
-                <tr class="ds-table-header">
+                <tr>
                     <th class="py-2 fw-normal ps-4 cursor-pointer sort-col" data-col="sku" style="white-space: nowrap;">
                         SKU ${this.sortColumn === 'sku' ? (this.sortDirection === 'asc' ? '<i class="bi bi-arrow-up-short"></i>' : '<i class="bi bi-arrow-down-short"></i>') : ''}
                     </th>
