@@ -44,7 +44,7 @@ export class CrudFinanciero {
                         <a href="#" onclick="event.preventDefault(); window.history.length > 2 ? window.history.back() : window.location.hash = '#/dashboard';" class="btn btn-light bg-white border me-3" style="font-weight: var(--weight-medium); font-size: var(--fs-md); color: var(--text-body);">
                             <i class="bi bi-arrow-left me-1"></i> Volver
                         </a>
-                        <h1 class="h3 mb-0">${this.config.titulo}</h1>
+                        <h1 class="page-title">${this.config.titulo}</h1>
                     </div>
                 </div>
 
