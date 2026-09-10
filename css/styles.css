@@ -1475,6 +1475,11 @@ html[data-theme^="dark"] .alert-danger {
     border-bottom: 1px solid var(--border-color) !important;
 }
 
+/* Filas de datos — iguala el tamaño usado en .dash-table-container */
+.ds-table-container td {
+    font-size: 0.875rem !important;
+}
+
 /* Utilidades adicionales */
 .ds-search-input {
     border-radius: 8px;
