@@ -120,11 +120,16 @@ body {
 
 /* Título canónico de pantalla — unifica todos los h2/h3 de encabezado de módulo */
 .page-title {
-    font-size: var(--fs-xxl) !important;
+    font-size: calc(1.3rem + 0.6vw) !important;
     font-weight: var(--weight-bold) !important;
     color: var(--text-main) !important;
     margin-bottom: 0.25rem !important;
     line-height: 1.2;
+}
+@media (min-width: 1200px) {
+    .page-title {
+        font-size: var(--fs-xxl) !important;
+    }
 }
 
 /* Sombras y Tarjetas */
