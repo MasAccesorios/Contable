@@ -430,7 +430,6 @@ export const CotizacionesModule = {
         const contactos = (!id || !isViewOnly)
             ? await DB.refreshCache('contactos')
             : await DB.getAll('contactos');
-        const productos = await DB.getAll('productos');
         
         // Estado por defecto
         let cotizacion = {
@@ -471,6 +470,18 @@ export const CotizacionesModule = {
                 }
             } catch (e) {
                 console.error("Error al buscar factura asociada:", e);
+            }
+        }
+
+        // Cargar solo los productos de los detalles (evita descargar el catálogo completo)
+        let productos = [];
+        if (id && cotizacion.detalles && cotizacion.detalles.length > 0) {
+            const pIds = cotizacion.detalles
+                .map(d => parseInt(d.productoId, 10))
+                .filter(pId => !isNaN(pId) && pId > 0);
+            if (pIds.length > 0) {
+                const { data: pData } = await supabase.from('productos').select('*').in('id', pIds);
+                if (pData) productos = pData.map(p => DB._mapToFrontend('productos', p));
             }
         }
 
