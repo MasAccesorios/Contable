@@ -126,10 +126,10 @@ export const PagosRecibidosEvents = {
                 
                 const menu = document.createElement('div');
                 menu.className = 'dropdown-menu row-action-menu show shadow-sm border border-light-subtle';
-                menu.style.position = 'fixed';
+                menu.style.position = 'absolute';
                 menu.style.top = `${rect.bottom + window.scrollY}px`;
-                menu.style.left = `${rect.left - 120}px`;
-                menu.style.zIndex = '1050';
+                menu.style.left = `${rect.left + window.scrollX - 120}px`;
+                menu.style.zIndex = '1060';
                 menu.style.minWidth = '140px';
                 menu.style.fontSize = '13px';
                 menu.style.borderRadius = '6px';
