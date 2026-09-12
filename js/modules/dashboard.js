@@ -211,6 +211,7 @@ export const DashboardModule = {
     },
 
     async renderDynamicContent(element, rango) {
+        await supabase.auth.getSession();
 
         const hoy = new Date();
         hoy.setHours(0,0,0,0);
