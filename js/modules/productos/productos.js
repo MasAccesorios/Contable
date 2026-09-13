@@ -536,10 +536,14 @@ export const ProductosModule = {
         const container = element.querySelector('#productos-view-container');
         if (!container) return;
 
-        const producto = await DB.get('productos', id);
+        const [producto, lotesResult, detallesResult] = await Promise.all([
+            DB.get('productos', id),
+            supabase.from('lotes_fifo').select('*').eq('producto_id', id),
+            supabase.from('factura_detalles').select('factura_id').eq('producto_id', id)
+        ]);
         if (!producto) return;
 
-        const { data: lotesData } = await supabase.from('lotes_fifo').select('*').eq('producto_id', id);
+        const { data: lotesData } = lotesResult;
         const lotesProd = lotesData ? lotesData.map(l => DB._mapToFrontend('lotes_fifo', l)) : [];
 
         // Ordenar lotes por fecha de ingreso ascendente para visualización FIFO
@@ -568,20 +572,21 @@ export const ProductosModule = {
         let facturasAsociadas = [];
         let contactosMap = {};
         try {
-            const { data: detalles } = await supabase.from('factura_detalles').select('factura_id').eq('producto_id', id);
+            const detalles = detallesResult?.data;
             if (detalles && detalles.length > 0) {
                 const facturaIds = [...new Set(detalles.map(d => d.factura_id))];
                 const { data: facturas } = await supabase.from('facturas').select('*').in('id', facturaIds).eq('tipo', 'venta');
                 
                 if (facturas && facturas.length > 0) {
                     const cliIds = [...new Set(facturas.map(f => f.clienteId || f.contacto_id || f.contactoId).filter(Boolean))];
-                    if (cliIds.length > 0) {
-                        const { data: contactos } = await supabase.from('contactos').select('id, nombre').in('id', cliIds);
-                        contactos?.forEach(c => contactosMap[c.id] = c.nombre);
-                    }
+                    
+                    const [contactosRes, transaccionesRes] = await Promise.all([
+                        cliIds.length > 0 ? supabase.from('contactos').select('id, nombre').in('id', cliIds) : Promise.resolve({ data: [] }),
+                        supabase.from('pagos_ingresos').select('*').in('factura_id', facturas.map(f => f.id))
+                    ]);
 
-                    const { data: transaccionesRaw } = await supabase.from('pagos_ingresos').select('*').in('factura_id', facturas.map(f => f.id));
-                    const transMapeadas = (transaccionesRaw || []).map(t => ({...t, tipo: t.tipo === 'in' ? 'ingreso' : 'egreso'}));
+                    contactosRes?.data?.forEach(c => contactosMap[c.id] = c.nombre);
+                    const transMapeadas = (transaccionesRes?.data || []).map(t => ({...t, tipo: t.tipo === 'in' ? 'ingreso' : 'egreso'}));
 
                     facturasAsociadas = facturas.map(f => {
                         const tr = transMapeadas.filter(t => t.factura_id === f.id);
