@@ -506,7 +506,7 @@ body {
         justify-content: center !important;
     }
     
-    /* Prevenir que las tablas grandes rompan la pantalla en m贸vil */
+    /* Prevenir que las tablas grandes rompan la pantalla en móvil */
     .table-responsive,
     .form-table-wrapper,
     table {
@@ -514,6 +514,13 @@ body {
         width: 100%;
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
+    }
+
+    .dash-table-container .card-header.bg-white {
+        flex-wrap: wrap !important;
+    }
+    .dash-table-container .ds-search-container {
+        width: 100% !important;
     }
 
     /* Tabla de detalles responsiva estilo tarjetas en formularios */
