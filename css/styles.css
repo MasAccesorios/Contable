@@ -525,6 +525,10 @@ body {
         width: 100% !important;
     }
 
+    .row > [class*="col-"] {
+        min-width: 0;
+    }
+
     /* Tabla de detalles responsiva estilo tarjetas en formularios */
     #tabla-detalles, 
     #tabla-detalles thead, 
