@@ -512,8 +512,10 @@ body {
     table {
         display: block;
         width: 100%;
-        overflow-x: auto;
+        overflow-x: scroll;
         -webkit-overflow-scrolling: touch;
+        -webkit-transform: translateZ(0);
+        will-change: scroll-position;
     }
 
     .dash-table-container .card-header.bg-white {
