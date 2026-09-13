@@ -545,21 +545,20 @@ export const FacturasModule = {
 
     async renderForm(element, id = null, isViewOnly = false) {
         const facturaIdTransacciones = id ? [id] : [];
-        const { data: rawTransaccionesData } = facturaIdTransacciones.length > 0
-            ? await supabase.from('pagos_ingresos').select('*').in('factura_id', facturaIdTransacciones)
-            : { data: [] };
-            
+        const [transaccionesResult, notasCreditoResult] = facturaIdTransacciones.length > 0
+            ? await Promise.all([
+                supabase.from('pagos_ingresos').select('*').in('factura_id', facturaIdTransacciones),
+                supabase.from('notas_credito').select('*').in('factura_id', facturaIdTransacciones)
+              ])
+            : [{ data: [] }, { data: [] }];
+
         // TRADUCCIÓN OBLIGATORIA: El query crudo a Supabase devuelve 'in' / 'out'. 
         // calcularEstadoFactura exige el contrato 'ingreso' / 'egreso'.
-        const transacciones = (rawTransaccionesData || []).map(t => ({
+        const transacciones = (transaccionesResult.data || []).map(t => ({
             ...t,
             tipo: t.tipo === 'in' ? 'ingreso' : 'egreso'
         }));
-
-        const { data: rawNotasCredito } = facturaIdTransacciones.length > 0
-            ? await supabase.from('notas_credito').select('*').in('factura_id', facturaIdTransacciones)
-            : { data: [] };
-        const notasCredito = rawNotasCredito || [];
+        const notasCredito = notasCreditoResult.data || [];
         
         // Estado por defecto
         let factura = {
@@ -601,32 +600,25 @@ export const FacturasModule = {
         const headerHtml = CoreActions.renderDocumentHeader('ingresos/facturas', 'Volver a Facturas de venta');
         const actionsHtml = CoreActions.renderActionButtons(factura, 'factura', isViewOnly, !id);
 
-        const contactos = await DB.getAll('contactos');
+        const pIdsIniciales = (factura.detalles || [])
+            .map(d => parseInt(d.productoId, 10))
+            .filter(pid => !isNaN(pid) && pid > 0);
 
-        // Fetch initial client name
-        let clienteNombreActual = '';
-        if (factura.clienteId) {
-            const { data: cliData } = await supabase.from('contactos').select('nombre').eq('id', factura.clienteId).single();
-            if (cliData) clienteNombreActual = cliData.nombre;
-        }
+        const [contactos, cliDataResult, productosResult, vendedoresResult, dbCuentasResult] = await Promise.all([
+            DB.getAll('contactos'),
+            factura.clienteId ? supabase.from('contactos').select('nombre').eq('id', factura.clienteId).single() : Promise.resolve({ data: null }),
+            pIdsIniciales.length > 0 ? supabase.from('productos').select('*').in('id', pIdsIniciales) : Promise.resolve({ data: [] }),
+            supabase.from('vendedores').select('id, nombre').eq('estado', 'activo').order('nombre'),
+            DB.getAll('cuentas_bancarias')
+        ]);
 
-        // Fetch initial products for details
-        let productosFactura = [];
-        if (factura.detalles && factura.detalles.length > 0) {
-            const pIds = factura.detalles
-                .map(d => parseInt(d.productoId, 10))
-                .filter(id => !isNaN(id) && id > 0);
-            if (pIds.length > 0) {
-                const { data: pData } = await supabase.from('productos').select('*').in('id', pIds);
-                if (pData) productosFactura = pData.map(p => DB._mapToFrontend('productos', p));
-            }
-        }
-        
-        const dbContactos = await DB.getAll('contactos') || [];
+        let clienteNombreActual = cliDataResult?.data ? cliDataResult.data.nombre : '';
+        let productosFactura = (productosResult?.data || []).map(p => DB._mapToFrontend('productos', p));
+
+        const dbContactos = contactos || [];
         const clientes = dbContactos.filter(c => c.estado === 'activo' && (c.es_cliente || c.tipo !== 'proveedor'));
-
-        const { data: vendedoresActivos } = await supabase.from('vendedores').select('id, nombre').eq('estado', 'activo').order('nombre');
-        const dbCuentas = await DB.getAll('cuentas_bancarias') || [];
+        const { data: vendedoresActivos } = vendedoresResult;
+        const dbCuentas = dbCuentasResult || [];
         const cuentasActivas = dbCuentas.filter(c => c.estado === 'active');
         const cuentasMap = {};
         dbCuentas.forEach(c => cuentasMap[c.id] = c.nombre);
