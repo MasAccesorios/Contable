@@ -606,7 +606,7 @@ export const ProductosModule = {
 
             <div class="row g-4">
                 <!-- Panel de Detalles del Producto & Carga de Lotes -->
-                <div class="col-lg-4">
+                <div class="col-12 col-lg-4">
                     <div class="card border-0 shadow-sm mb-4">
                         <div class="card-body p-4">
                             <h5 class="fw-bold mb-3">Detalle Técnico</h5>
@@ -657,7 +657,7 @@ export const ProductosModule = {
                 </div>
 
                 <!-- Tabla de Lotes Históricos (FIFO) -->
-                <div class="col-lg-8">
+                <div class="col-12 col-lg-8">
                     <div class="card border-0 shadow-sm h-100">
                         <div class="card-body p-4">
                             <div class="d-flex justify-content-between align-items-center mb-4">
@@ -698,7 +698,7 @@ export const ProductosModule = {
                     </div>
                 </div>
                 ${facturasAsociadas.length > 0 ? `
-                <div class="col-lg-12">
+                <div class="col-12 col-lg-12">
                     <div class="card border-0 mb-4 shadow-sm" style="border-radius: var(--border-radius-sm);">
                         <div class="card-header bg-white border-bottom p-3">
                             <h5 class="fw-bold mb-0" style="color: var(--text-main); font-size: var(--fs-md);">
