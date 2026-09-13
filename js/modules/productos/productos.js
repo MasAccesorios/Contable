@@ -706,6 +706,7 @@ export const ProductosModule = {
                             </h5>
                         </div>
                         ${renderTablaFacturas(facturasAsociadas, contactosMap, 'fecha', 'desc', { hash: `#/inventario/items/ver/${id}`, label: `Volver al Producto (${escapeHtml(producto.nombre)})` })}
+                        <div id="debug-scroll-info" style="background:#fffbe6; border:2px solid #f59e0b; padding:10px; margin:10px; font-family:monospace; font-size:12px; white-space:pre-wrap; word-break:break-all;">Cargando diagnóstico...</div>
                     </div>
                 </div>` : ''}
             </div>
@@ -747,6 +748,31 @@ export const ProductosModule = {
                 </div>
             </div>
         `;
+
+        setTimeout(() => {
+            const wrapper = element.querySelector('#debug-scroll-info')?.previousElementSibling;
+            const debugBox = element.querySelector('#debug-scroll-info');
+            if (wrapper && debugBox) {
+                const table = wrapper.querySelector('table');
+                const cs = getComputedStyle(wrapper);
+                const rowEl = wrapper.closest('.row');
+                const colEl = wrapper.closest('[class*="col-"]');
+                debugBox.textContent = 
+                    'window.innerWidth: ' + window.innerWidth + '\n' +
+                    'media query activa (<=768): ' + window.matchMedia('(max-width: 768px)').matches + '\n' +
+                    'wrapper.scrollWidth: ' + wrapper.scrollWidth + '\n' +
+                    'wrapper.clientWidth: ' + wrapper.clientWidth + '\n' +
+                    'table.scrollWidth: ' + table.scrollWidth + '\n' +
+                    'overflow-x computado: ' + cs.overflowX + '\n' +
+                    'col clase: ' + (colEl ? colEl.className : 'NO ENCONTRADO') + '\n' +
+                    'col computed min-width: ' + (colEl ? getComputedStyle(colEl).minWidth : '-') + '\n' +
+                    'col computed width: ' + (colEl ? getComputedStyle(colEl).width : '-') + '\n' +
+                    'col scrollWidth: ' + (colEl ? colEl.scrollWidth : '-') + '\n' +
+                    'col clientWidth: ' + (colEl ? colEl.clientWidth : '-');
+            } else if (debugBox) {
+                debugBox.textContent = 'No se encontró el wrapper .table-responsive';
+            }
+        }, 300);
 
         import('../../shared/formatters.js').then(fmt => {
             fmt.applyCurrencyFormatting(element.querySelector('#lote-costo'));
