@@ -944,7 +944,7 @@ body {
     max-width: 1100px;
     margin: 0 auto;
     display: grid;
-    grid-template-columns: 1fr;  /* una columna 鈥?cada bloque ocupa el ancho exacto */
+    grid-template-columns: minmax(0, 1fr);  /* una columna — cada bloque ocupa el ancho exacto */
     gap: 1.25rem;
 }
 
