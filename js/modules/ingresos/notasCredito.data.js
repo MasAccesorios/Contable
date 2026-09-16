@@ -7,8 +7,26 @@ export const NotasCreditoData = {
         const { data: snapshotNota, error: errN } = await supabase.from('notas_credito').select('*').eq('id', id).single();
         if (errN || !snapshotNota) throw new Error("No se encontró la nota de crédito");
         
-        const { data: snapshotPago } = await supabase.from('pagos_ingresos')
-            .select('*').eq('referencia', 'NC-' + snapshotNota.numero).single();
+        const { data: pagosCruzados, error: errPago } = await supabase
+            .from('pagos_ingresos')
+            .select('*')
+            .eq('referencia', 'NC-' + snapshotNota.numero);
+
+        if (errPago) throw new Error("Error al consultar el pago cruzado: " + errPago.message);
+
+        let snapshotPago = null;
+        if (pagosCruzados && pagosCruzados.length > 0) {
+            let candidatos = pagosCruzados;
+            if (candidatos.length > 1 && snapshotNota.factura_id) {
+                candidatos = candidatos.filter(p => String(p.factura_id) === String(snapshotNota.factura_id));
+            }
+
+            if (candidatos.length > 1) {
+                throw new Error("No se pudo identificar el pago cruzado de forma única, revisar manualmente.");
+            }
+
+            snapshotPago = candidatos[0] || null;
+        }
 
         // 2. Fetch detalles para calcular salida de inventario
         const { data: detalles } = await supabase.from('nota_credito_detalles').select('*').eq('nota_credito_id', id);
