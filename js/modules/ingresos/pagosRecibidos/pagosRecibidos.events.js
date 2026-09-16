@@ -212,7 +212,7 @@ export const PagosRecibidosEvents = {
                                         const { error } = await supabase.rpc('anular_transferencia_pareja', { p_id: t.id });
                                         if (error) throw error;
                                     } else {
-                                        await anularTransaccion(t);
+                                        await anularTransaccion(t.id, false);
                                     }
                                     CoreActions.showWarningModal('Pago anulado con éxito', 'success');
                                     this.cargarPagos();
