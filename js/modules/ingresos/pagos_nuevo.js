@@ -481,20 +481,9 @@ export default {
                         };
                         await DB.save('transacciones', transaccion);
                         
-                        // Actualizar estado de factura si llega a 0 (Opcional, pero para mantener la UI limpia si recargan)
+                        // Recalcular estado de la factura de forma centralizada en BD
                         const fId = abono.factura_id;
-                        const facturaData = await DB.get('facturas', fId);
-                        if (facturaData) {
-                            const inputRow = element.querySelector(`.monto-abono[data-id="${fId}"]`);
-                            const saldoAntiguo = parseFloat(inputRow.getAttribute('data-saldo'));
-                            if (abono.monto >= saldoAntiguo) {
-                                facturaData.estado = 'closed';
-                                await DB.save('facturas', facturaData);
-                            } else {
-                                facturaData.estado = 'parcial';
-                                await DB.save('facturas', facturaData);
-                            }
-                        }
+                        await supabase.rpc('recalcular_estado_factura', { p_factura_id: fId });
                     }
 
                     CoreActions.showWarningModal(`¡Se han registrado ${abonos.length} abonos exitosamente!`);

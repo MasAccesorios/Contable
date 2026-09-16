@@ -209,7 +209,7 @@ const DB = {
         // facturas / cotizaciones → estado por defecto + limpieza de campos basura
         if (storeName === 'facturas' || storeName === 'cotizaciones') {
             if (!payload.estado) {
-                payload.estado = storeName === 'facturas' ? 'open' : 'draft';
+                payload.estado = storeName === 'facturas' ? 'por_pagar' : 'draft';
             }
             // Eliminar campos que no existen en el esquema Postgres
             // (calculados en JS, residuos de Firebase, o de otras capas)

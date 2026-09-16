@@ -219,6 +219,7 @@ export const AbonoModal = {
                 };
                 
                 await DB.save('transacciones', transaccion);
+                await supabase.rpc('recalcular_estado_factura', { p_factura_id: factura.id });
                 
                 document.activeElement?.blur();
                 const modalEl = document.getElementById('modalAbonoShared');
