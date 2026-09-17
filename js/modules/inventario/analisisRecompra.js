@@ -8,10 +8,11 @@ import { escapeHtml } from '../../shared/formatters.js';
 // 1. DATA LAYER
 // ==========================================
 export const AnalisisRecompraData = {
-    async fetchAnalisis(dias = 90) {
+    async fetchAnalisis(dias = 90, umbralCobertura = 30) {
         try {
             const { data, error } = await supabase.rpc('get_analisis_recompra_productos', {
-                p_dias: parseInt(dias, 10)
+                p_dias: parseInt(dias, 10),
+                p_umbral_dias_cobertura: parseInt(umbralCobertura, 10)
             });
 
             if (error) throw error;
@@ -22,7 +23,7 @@ export const AnalisisRecompraData = {
         }
     },
 
-    getProcessedData() {
+    getFilteredAndSortedData() {
         let items = [...(this.state.rawData || [])];
 
         // Filtro por búsqueda (SKU o Nombre)
@@ -50,26 +51,46 @@ export const AnalisisRecompraData = {
 
         // Ordenamiento
         const col = this.state.sortColumn;
+        if (!col) return items;
+
         const dir = this.state.sortDirection === 'asc' ? 1 : -1;
 
         items.sort((a, b) => {
             let valA = a[col];
             let valB = b[col];
 
-            // Manejo de valores numéricos
-            if (['stock_actual', 'margen_pct', 'unidades_vendidas_periodo', 'tendencia_pct', 'rotacion_dias', 'variacion_costo_pct', 'margen_generado_periodo', 'precio_venta', 'costo_base'].includes(col)) {
+            // Fechas
+            if (col === 'ultima_compra_fecha') {
+                const tA = valA ? new Date(valA).getTime() : 0;
+                const tB = valB ? new Date(valB).getTime() : 0;
+                return (tA - tB) * dir;
+            }
+
+            // Numéricos
+            const numCols = [
+                'stock_actual', 'margen_pct', 'unidades_vendidas_periodo',
+                'tendencia_pct', 'rotacion_dias', 'variacion_costo_pct',
+                'margen_generado_periodo', 'precio_venta', 'precio_venta_real_promedio',
+                'ultima_compra_costo', 'dias_desde_ultima_compra', 'score'
+            ];
+
+            if (numCols.includes(col)) {
                 valA = valA != null ? Number(valA) : -Infinity;
                 valB = valB != null ? Number(valB) : -Infinity;
                 return (valA - valB) * dir;
             }
 
-            // Manejo de strings
+            // Strings
             valA = (valA || '').toString().toLowerCase();
             valB = (valB || '').toString().toLowerCase();
             return valA.localeCompare(valB) * dir;
         });
 
         return items;
+    },
+
+    getReponerUrgenteItems() {
+        return (this.state.rawData || []).filter(it => it.reponer_urgente === true);
     }
 };
 
@@ -87,12 +108,23 @@ export const AnalisisRecompraTemplates = {
                         <p class="text-muted mb-0" style="font-size: var(--fs-md);">Sugerencias inteligentes de abastecimiento basadas en ventas, rotación y margen.</p>
                     </div>
                     <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <!-- SELECTOR VENTANA DE TIEMPO -->
                         <div class="d-flex align-items-center bg-white border rounded px-2 py-1 shadow-sm">
                             <span class="text-muted me-2 small fw-medium"><i class="bi bi-clock-history me-1"></i>Periodo:</span>
-                            <select id="select-periodo-dias" class="form-select form-select-sm border-0 bg-transparent fw-bold" style="width: 130px; box-shadow: none; cursor: pointer;">
+                            <select id="select-periodo-dias" class="form-select form-select-sm border-0 bg-transparent fw-bold" style="width: 110px; box-shadow: none; cursor: pointer;">
                                 <option value="30">30 días</option>
                                 <option value="60">60 días</option>
                                 <option value="90" selected>90 días</option>
+                            </select>
+                        </div>
+                        <!-- SELECTOR UMBRAL COBERTURA -->
+                        <div class="d-flex align-items-center bg-white border rounded px-2 py-1 shadow-sm">
+                            <span class="text-muted me-2 small fw-medium"><i class="bi bi-shield-check me-1"></i>Umbral cobertura:</span>
+                            <select id="select-umbral-cobertura" class="form-select form-select-sm border-0 bg-transparent fw-bold" style="width: 110px; box-shadow: none; cursor: pointer;">
+                                <option value="15">15 días</option>
+                                <option value="30" selected>30 días</option>
+                                <option value="45">45 días</option>
+                                <option value="60">60 días</option>
                             </select>
                         </div>
                         <button id="btn-refresh-analisis" class="btn btn-light bg-white border shadow-sm" title="Recargar datos">
@@ -114,8 +146,8 @@ export const AnalisisRecompraTemplates = {
                     </div>
                     <div class="col-12 col-sm-6 col-lg-3">
                         <div class="card p-3 shadow-sm border-0 h-100">
-                            <span class="text-success small fw-medium"><i class="bi bi-lightning-charge-fill me-1"></i>Recomprar Urgente</span>
-                            <h3 class="fw-bold mb-0 mt-2 text-success" id="kpi-urgentes">-</h3>
+                            <span class="text-danger small fw-medium"><i class="bi bi-lightning-charge-fill me-1"></i>Reponer Pronto</span>
+                            <h3 class="fw-bold mb-0 mt-2 text-danger" id="kpi-urgentes">-</h3>
                         </div>
                     </div>
                     <div class="col-12 col-sm-6 col-lg-3">
@@ -132,7 +164,24 @@ export const AnalisisRecompraTemplates = {
                     </div>
                 </div>
 
-                <!-- DATA TABLE CONTAINER -->
+                <!-- SECCIÓN REPONER PRONTO -->
+                <div class="card mb-4 border-0 shadow-sm" id="section-reponer-pronto">
+                    <div class="card-header bg-white border-bottom p-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge bg-danger text-white rounded-pill px-2 py-1"><i class="bi bi-lightning-fill"></i></span>
+                            <h5 class="mb-0 fw-bold" style="color: var(--text-main);">Reponer pronto</h5>
+                            <span class="badge bg-danger text-danger bg-opacity-10 border border-danger-subtle rounded-pill fw-medium px-2 py-1 ms-1" id="reponer-pronto-count">0</span>
+                        </div>
+                        <span class="text-muted small">SKUs con stock crítico (cobertura menor o igual a ${this.state.umbralCobertura} días)</span>
+                    </div>
+                    <div class="card-body p-0" id="reponer-pronto-content">
+                        <div class="p-4 text-center text-muted">
+                            <span class="spinner-border spinner-border-sm me-2"></span>Cargando sugerencias urgentes...
+                        </div>
+                    </div>
+                </div>
+
+                <!-- DATA TABLE CONTAINER (TODOS LOS PRODUCTOS) -->
                 <div class="dash-table-container">
                     <!-- FILTROS -->
                     <div class="card-header bg-white border-bottom p-3 d-flex justify-content-between align-items-center flex-wrap gap-3" style="border-radius: 8px 8px 0 0;">
@@ -163,7 +212,7 @@ export const AnalisisRecompraTemplates = {
                             </thead>
                             <tbody id="recompra-tbody">
                                 <tr>
-                                    <td colspan="9" class="text-center py-5 text-muted">
+                                    <td colspan="13" class="text-center py-5 text-muted">
                                         <span class="spinner-border spinner-border-sm me-2"></span>Cargando análisis de recompra...
                                     </td>
                                 </tr>
@@ -196,7 +245,7 @@ export const AnalisisRecompraTemplates = {
                 <th class="py-3 ps-4 sort-col" data-col="sku" style="cursor: pointer; user-select: none; white-space: nowrap;">
                     SKU ${getSortIcon('sku')}
                 </th>
-                <th class="py-3 sort-col" data-col="nombre" style="cursor: pointer; user-select: none; min-width: 220px;">
+                <th class="py-3 sort-col" data-col="nombre" style="cursor: pointer; user-select: none; min-width: 200px;">
                     Nombre ${getSortIcon('nombre')}
                 </th>
                 <th class="py-3 text-end sort-col" data-col="stock_actual" style="cursor: pointer; user-select: none; white-space: nowrap;">
@@ -215,7 +264,19 @@ export const AnalisisRecompraTemplates = {
                     Rotación (días) ${getSortIcon('rotacion_dias')}
                 </th>
                 <th class="py-3 text-end sort-col" data-col="variacion_costo_pct" style="cursor: pointer; user-select: none; white-space: nowrap;">
-                    Var. Costo Compra % ${getSortIcon('variacion_costo_pct')}
+                    Var. Costo % ${getSortIcon('variacion_costo_pct')}
+                </th>
+                <th class="py-3 text-end sort-col" data-col="ultima_compra_fecha" style="cursor: pointer; user-select: none; white-space: nowrap;">
+                    Última compra ${getSortIcon('ultima_compra_fecha')}
+                </th>
+                <th class="py-3 text-end sort-col" data-col="dias_desde_ultima_compra" style="cursor: pointer; user-select: none; white-space: nowrap;">
+                    Días compra ${getSortIcon('dias_desde_ultima_compra')}
+                </th>
+                <th class="py-3 text-end sort-col" data-col="precio_venta_real_promedio" style="cursor: pointer; user-select: none; white-space: nowrap;">
+                    Precio Venta (Real / Cat.) ${getSortIcon('precio_venta_real_promedio')}
+                </th>
+                <th class="py-3 text-end sort-col" data-col="score" style="cursor: pointer; user-select: none; white-space: nowrap;">
+                    Score ${getSortIcon('score')}
                 </th>
                 <th class="py-3 text-center pe-4 sort-col" data-col="recomendacion" style="cursor: pointer; user-select: none; white-space: nowrap;">
                     Recomendación ${getSortIcon('recomendacion')}
@@ -224,11 +285,72 @@ export const AnalisisRecompraTemplates = {
         `;
     },
 
+    getReponerProntoHTML(items) {
+        if (!items || items.length === 0) {
+            return `
+                <div class="p-4 text-center text-muted">
+                    <i class="bi bi-check2-circle text-success fs-3 d-block mb-1"></i>
+                    No hay productos urgentes por reponer
+                </div>
+            `;
+        }
+
+        return `
+            <div class="table-responsive">
+                <table class="table table-borderless align-middle mb-0">
+                    <thead style="border-bottom: 1px solid var(--border-color); font-size: var(--fs-sm); color: var(--text-muted); background: #fdfdfd;">
+                        <tr>
+                            <th class="py-2 ps-4" style="white-space: nowrap;">SKU</th>
+                            <th class="py-2" style="min-width: 180px;">Nombre</th>
+                            <th class="py-2 text-end" style="white-space: nowrap;">Stock actual</th>
+                            <th class="py-2 text-end" style="white-space: nowrap;">Rotación (días de cobertura)</th>
+                            <th class="py-2 text-end" style="white-space: nowrap;">Vendidas (${this.state.diasPeriodo}d)</th>
+                            <th class="py-2 text-center pe-4" style="white-space: nowrap;">Recomendación</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${items.map(it => {
+                            const sku = escapeHtml(it.sku || 'S/R');
+                            const nombre = escapeHtml(it.nombre || 'Sin nombre');
+                            const stock = it.stock_actual != null ? Number(it.stock_actual).toLocaleString('es-CO') : '0';
+                            const rotacionHTML = this.getRotacionHTML(it.rotacion_dias);
+                            const vendidas = it.unidades_vendidas_periodo != null ? Number(it.unidades_vendidas_periodo).toLocaleString('es-CO') : '0';
+                            const badgeHTML = this.getRecomendacionBadgeHTML(it.recomendacion);
+
+                            return `
+                                <tr style="border-bottom: 1px solid var(--border-color); font-size: var(--fs-base); background-color: rgba(220, 53, 69, 0.02);">
+                                    <td class="py-2 ps-4 fw-bold font-monospace" style="color: var(--text-main);">
+                                        ${sku}
+                                    </td>
+                                    <td class="py-2 fw-medium" style="color: var(--text-main);">
+                                        ${nombre}
+                                    </td>
+                                    <td class="py-2 text-end fw-bold text-danger">
+                                        ${stock}
+                                    </td>
+                                    <td class="py-2 text-end">
+                                        ${rotacionHTML}
+                                    </td>
+                                    <td class="py-2 text-end fw-medium">
+                                        ${vendidas}
+                                    </td>
+                                    <td class="py-2 text-center pe-4">
+                                        ${badgeHTML}
+                                    </td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    },
+
     getTableRowsHTML(items) {
         if (!items || items.length === 0) {
             return `
                 <tr>
-                    <td colspan="9" class="text-center py-5 text-muted">
+                    <td colspan="13" class="text-center py-5 text-muted">
                         <i class="bi bi-inbox fs-2 d-block mb-2 text-secondary opacity-50"></i>
                         No se encontraron productos para el criterio seleccionado.
                     </td>
@@ -247,6 +369,33 @@ export const AnalisisRecompraTemplates = {
             const rotacionHTML = this.getRotacionHTML(item.rotacion_dias);
             const varCostoHTML = this.getVariacionCostoHTML(item.variacion_costo_pct);
             const badgeHTML = this.getRecomendacionBadgeHTML(item.recomendacion);
+
+            // Última compra (fecha + costo)
+            const fechaCompra = item.ultima_compra_fecha ? escapeHtml(String(item.ultima_compra_fecha).slice(0, 10)) : '<span class="text-muted">Sin compras</span>';
+            const costoCompra = item.ultima_compra_costo != null ? `$${Math.round(Number(item.ultima_compra_costo)).toLocaleString('es-CO')}` : '';
+
+            // Días desde última compra
+            const diasCompra = item.dias_desde_ultima_compra != null ? `${Math.round(Number(item.dias_desde_ultima_compra))} d` : '<span class="text-muted">-</span>';
+
+            // Precio de venta real promedio vs catálogo
+            const pRealNum = item.precio_venta_real_promedio != null ? Number(item.precio_venta_real_promedio) : null;
+            const pCatNum = item.precio_venta != null ? Number(item.precio_venta) : null;
+            
+            let precioVentaHTML = '';
+            if (pRealNum != null) {
+                const difDescuento = (pCatNum && pCatNum > pRealNum) ? Math.round(((pCatNum - pRealNum) / pCatNum) * 100) : 0;
+                precioVentaHTML = `
+                    <div class="fw-semibold" style="color: var(--text-main);">$${Math.round(pRealNum).toLocaleString('es-CO')}</div>
+                    <div class="text-muted" style="font-size: var(--fs-xs);">Cat: $${pCatNum ? Math.round(pCatNum).toLocaleString('es-CO') : '0'}${difDescuento > 0 ? ` <span class="text-danger fw-bold">(-${difDescuento}%)</span>` : ''}</div>
+                `;
+            } else if (pCatNum != null) {
+                precioVentaHTML = `<div class="fw-semibold" style="color: var(--text-main);">$${Math.round(pCatNum).toLocaleString('es-CO')}</div>`;
+            } else {
+                precioVentaHTML = '<span class="text-muted">-</span>';
+            }
+
+            // Score
+            const scoreNum = item.score != null ? Number(item.score).toFixed(1) : '0.0';
 
             return `
                 <tr style="border-bottom: 1px solid var(--border-color); font-size: var(--fs-base);">
@@ -273,6 +422,19 @@ export const AnalisisRecompraTemplates = {
                     </td>
                     <td class="py-3 text-end text-nowrap">
                         ${varCostoHTML}
+                    </td>
+                    <td class="py-3 text-end text-nowrap">
+                        <div>${fechaCompra}</div>
+                        ${costoCompra ? `<div class="text-muted" style="font-size: var(--fs-xs);">${costoCompra}</div>` : ''}
+                    </td>
+                    <td class="py-3 text-end text-nowrap">
+                        ${diasCompra}
+                    </td>
+                    <td class="py-3 text-end text-nowrap">
+                        ${precioVentaHTML}
+                    </td>
+                    <td class="py-3 text-end text-nowrap">
+                        <span class="badge bg-light text-dark border fw-bold px-2 py-1">${scoreNum}</span>
                     </td>
                     <td class="py-3 text-center pe-4 text-nowrap">
                         ${badgeHTML}
@@ -389,6 +551,13 @@ export const AnalisisRecompraEvents = {
             await this.cargarDatos();
         });
 
+        // Selector umbral cobertura (15 / 30 / 45 / 60)
+        el.querySelector('#select-umbral-cobertura')?.addEventListener('change', async (e) => {
+            this.state.umbralCobertura = parseInt(e.target.value, 10) || 30;
+            this.state.currentPage = 1;
+            await this.cargarDatos();
+        });
+
         // Botón Actualizar
         el.querySelector('#btn-refresh-analisis')?.addEventListener('click', async () => {
             await this.cargarDatos();
@@ -431,7 +600,7 @@ export const AnalisisRecompraEvents = {
                     this.state.sortDirection = this.state.sortDirection === 'asc' ? 'desc' : 'asc';
                 } else {
                     this.state.sortColumn = col;
-                    // Por defecto texto en asc, números en desc
+                    // Por defecto texto en asc, números/score/fechas en desc
                     if (['sku', 'nombre', 'recomendacion'].includes(col)) {
                         this.state.sortDirection = 'asc';
                     } else {
@@ -456,7 +625,7 @@ export const AnalisisRecompraEvents = {
         });
 
         el.querySelector('#btn-next-page')?.addEventListener('click', () => {
-            const processed = this.getProcessedData();
+            const processed = this.getFilteredAndSortedData();
             const totalPages = Math.ceil(processed.length / this.state.itemsPerPage) || 1;
             if (this.state.currentPage < totalPages) {
                 this.state.currentPage++;
@@ -478,10 +647,11 @@ export const AnalisisRecompraEvents = {
 export const AnalisisRecompraModule = {
     state: {
         diasPeriodo: 90,
+        umbralCobertura: 30,
         rawData: [],
         searchQuery: '',
         filterRecomendacion: 'todas',
-        sortColumn: 'margen_generado_periodo',
+        sortColumn: 'score',
         sortDirection: 'desc',
         currentPage: 1,
         itemsPerPage: 25,
@@ -496,7 +666,7 @@ export const AnalisisRecompraModule = {
         this.state.searchQuery = '';
         this.state.filterRecomendacion = 'todas';
         this.state.currentPage = 1;
-        this.state.sortColumn = 'margen_generado_periodo';
+        this.state.sortColumn = 'score';
         this.state.sortDirection = 'desc';
 
         // Renderizado del cascarón principal
@@ -512,21 +682,32 @@ export const AnalisisRecompraModule = {
     async cargarDatos() {
         this.state.isLoading = true;
         const tbody = this.element.querySelector('#recompra-tbody');
+        const reponerContent = this.element.querySelector('#reponer-pronto-content');
+
         if (tbody) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="9" class="text-center py-5 text-muted">
-                        <span class="spinner-border spinner-border-sm me-2"></span>Analizando datos de compras y ventas (${this.state.diasPeriodo} días)...
+                    <td colspan="13" class="text-center py-5 text-muted">
+                        <span class="spinner-border spinner-border-sm me-2"></span>Analizando datos de compras y ventas (${this.state.diasPeriodo} días, umbral ${this.state.umbralCobertura} días)...
                     </td>
                 </tr>
             `;
         }
 
-        const data = await this.fetchAnalisis(this.state.diasPeriodo);
+        if (reponerContent) {
+            reponerContent.innerHTML = `
+                <div class="p-4 text-center text-muted">
+                    <span class="spinner-border spinner-border-sm me-2"></span>Evaluando productos urgentes...
+                </div>
+            `;
+        }
+
+        const data = await this.fetchAnalisis(this.state.diasPeriodo, this.state.umbralCobertura);
         this.state.rawData = data;
         this.state.isLoading = false;
 
         this.actualizarKPIs();
+        this.renderReponerPronto();
         this.renderGrid();
     },
 
@@ -534,15 +715,13 @@ export const AnalisisRecompraModule = {
         const raw = this.state.rawData || [];
         const total = raw.length;
 
-        let urgentes = 0;
+        const urgentes = raw.filter(it => it.reponer_urgente === true).length;
         let normal = 0;
         let revisar = 0;
 
         raw.forEach(it => {
             const rec = (it.recomendacion || '').toLowerCase();
-            if (rec.includes('urgente')) {
-                urgentes++;
-            } else if (rec.startsWith('recomprar')) {
+            if (rec.startsWith('recomprar') && !rec.includes('urgente')) {
                 normal++;
             } else if (rec.includes('revisar') || rec.includes('demand') || rec.includes('cayendo') || rec.includes('no recomprar')) {
                 revisar++;
@@ -560,8 +739,22 @@ export const AnalisisRecompraModule = {
         if (elRev) elRev.textContent = revisar.toLocaleString('es-CO');
     },
 
+    renderReponerPronto() {
+        const urgentes = this.getReponerUrgenteItems();
+        const contentEl = this.element.querySelector('#reponer-pronto-content');
+        const countEl = this.element.querySelector('#reponer-pronto-count');
+
+        if (countEl) {
+            countEl.textContent = urgentes.length;
+        }
+
+        if (contentEl) {
+            contentEl.innerHTML = this.getReponerProntoHTML(urgentes);
+        }
+    },
+
     renderGrid() {
-        const processed = this.getProcessedData();
+        const processed = this.getFilteredAndSortedData();
         const totalItems = processed.length;
         const totalPages = Math.ceil(totalItems / this.state.itemsPerPage) || 1;
 
@@ -588,7 +781,7 @@ export const AnalisisRecompraModule = {
     },
 
     exportarCSV() {
-        const items = this.getProcessedData();
+        const items = this.getFilteredAndSortedData();
         if (!items || items.length === 0) {
             alert('No hay datos disponibles para exportar.');
             return;
@@ -603,6 +796,13 @@ export const AnalisisRecompraModule = {
             'Tendencia %',
             'Rotacion Dias',
             'Variacion Costo Compra %',
+            'Ultima Compra Fecha',
+            'Ultima Compra Costo',
+            'Dias Desde Ultima Compra',
+            'Precio Venta Catalogo',
+            'Precio Venta Real Promedio',
+            'Score',
+            'Reponer Urgente',
             'Recomendacion',
             'Margen Generado Periodo'
         ];
@@ -616,6 +816,13 @@ export const AnalisisRecompraModule = {
             it.tendencia_pct != null ? it.tendencia_pct : '',
             it.rotacion_dias != null ? it.rotacion_dias : '',
             it.variacion_costo_pct != null ? it.variacion_costo_pct : '',
+            it.ultima_compra_fecha ? `"${it.ultima_compra_fecha}"` : '',
+            it.ultima_compra_costo != null ? it.ultima_compra_costo : '',
+            it.dias_desde_ultima_compra != null ? it.dias_desde_ultima_compra : '',
+            it.precio_venta != null ? it.precio_venta : '',
+            it.precio_venta_real_promedio != null ? it.precio_venta_real_promedio : '',
+            it.score != null ? it.score : '',
+            it.reponer_urgente ? 'SI' : 'NO',
             `"${(it.recomendacion || '').toString().replace(/"/g, '""')}"`,
             it.margen_generado_periodo != null ? it.margen_generado_periodo : ''
         ]);
@@ -625,7 +832,7 @@ export const AnalisisRecompraModule = {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `analisis_recompra_${this.state.diasPeriodo}d_${new Date().toISOString().slice(0, 10)}.csv`;
+        a.download = `analisis_recompra_${this.state.diasPeriodo}d_umbral${this.state.umbralCobertura}d_${new Date().toISOString().slice(0, 10)}.csv`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
