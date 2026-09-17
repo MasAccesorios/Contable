@@ -41,6 +41,7 @@ const routes = {
     'inventario/items': () => import('../modules/productos/productos.js'),
     'inventario/categorias': () => import('../modules/inventario/categorias.js'),
     'inventario/valor': () => import('../modules/inventario/valorizacion.js'),
+    'inventario/analisis-recompra': () => import('../modules/inventario/analisisRecompra.js'),
     'inventario/ajustes': () => import('../modules/inventario/ajustes.js'),
     'ingresos/cotizaciones': () => import('../modules/ingresos/cotizaciones.js'),
     'ingresos/cuenta-cobro': () => import('../modules/ingresos/cuentaCobro.js'),
