@@ -570,25 +570,26 @@ export const ProductosModule = {
 
 
         let facturasAsociadas = [];
+        let facturasCompraAsociadas = [];
         let contactosMap = {};
         try {
             const detalles = detallesResult?.data;
             if (detalles && detalles.length > 0) {
                 const facturaIds = [...new Set(detalles.map(d => d.factura_id))];
-                const { data: facturas } = await supabase.from('facturas').select('*').in('id', facturaIds).eq('tipo', 'venta');
+                const { data: facturas } = await supabase.from('facturas').select('*').in('id', facturaIds).in('tipo', ['venta', 'compra']);
                 
                 if (facturas && facturas.length > 0) {
-                    const cliIds = [...new Set(facturas.map(f => f.clienteId || f.contacto_id || f.contactoId).filter(Boolean))];
+                    const contactIds = [...new Set(facturas.map(f => f.clienteId || f.proveedorId || f.contacto_id || f.contactoId).filter(Boolean))];
                     
                     const [contactosRes, transaccionesRes] = await Promise.all([
-                        cliIds.length > 0 ? supabase.from('contactos').select('id, nombre').in('id', cliIds) : Promise.resolve({ data: [] }),
+                        contactIds.length > 0 ? supabase.from('contactos').select('id, nombre').in('id', contactIds) : Promise.resolve({ data: [] }),
                         supabase.from('pagos_ingresos').select('*').in('factura_id', facturas.map(f => f.id))
                     ]);
 
                     contactosRes?.data?.forEach(c => contactosMap[c.id] = c.nombre);
                     const transMapeadas = (transaccionesRes?.data || []).map(t => ({...t, tipo: t.tipo === 'in' ? 'ingreso' : 'egreso'}));
 
-                    facturasAsociadas = facturas.map(f => {
+                    const procesarFactura = (f) => {
                         const tr = transMapeadas.filter(t => t.factura_id === f.id);
                         const { estado, saldo, totalPagado } = calcularEstadoFactura(f, tr);
                         return {
@@ -597,14 +598,24 @@ export const ProductosModule = {
                             saldoPendiente: saldo,
                             totalPagado
                         };
-                    });
-                    
+                    };
+
+                    const facturasVenta = facturas.filter(f => f.tipo === 'venta' || !f.tipo);
+                    const facturasCompra = facturas.filter(f => f.tipo === 'compra');
+
+                    facturasAsociadas = facturasVenta.map(procesarFactura);
                     facturasAsociadas.sort((a, b) => new Date(b.fecha || 0) - new Date(a.fecha || 0));
+
+                    facturasCompraAsociadas = facturasCompra.map(procesarFactura);
+                    facturasCompraAsociadas.sort((a, b) => new Date(b.fecha || 0) - new Date(a.fecha || 0));
                 }
             }
         } catch (e) {
             console.error("Error al cargar facturas asociadas:", e);
         }
+
+        const tieneFacturas = facturasAsociadas.length > 0 || facturasCompraAsociadas.length > 0;
+        const defaultTabVenta = facturasAsociadas.length > 0 || facturasCompraAsociadas.length === 0;
 
         container.innerHTML = `
 
@@ -702,15 +713,31 @@ export const ProductosModule = {
                         </div>
                     </div>
                 </div>
-                ${facturasAsociadas.length > 0 ? `
+                ${tieneFacturas ? `
                 <div class="col-12 col-lg-12">
                     <div class="card border-0 mb-4 shadow-sm" style="border-radius: var(--border-radius-sm);">
                         <div class="card-header bg-white border-bottom p-3">
-                            <h5 class="fw-bold mb-0" style="color: var(--text-main); font-size: var(--fs-md);">
-                                <i class="bi bi-receipt me-2 text-muted"></i>Facturas de Venta que incluyen este ítem
-                            </h5>
+                            <ul class="nav nav-tabs card-header-tabs border-bottom-0" id="tabs-facturas-item" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link ${defaultTabVenta ? 'active fw-bold' : 'fw-semibold'} text-nowrap" id="tab-facturas-venta-btn" data-bs-toggle="tab" data-bs-target="#tab-facturas-venta-pane" type="button" role="tab" aria-controls="tab-facturas-venta-pane" aria-selected="${defaultTabVenta ? 'true' : 'false'}" style="font-size: var(--fs-md);">
+                                        <i class="bi bi-receipt me-2 text-muted"></i>Facturas de Venta <span class="badge rounded-pill bg-light text-secondary border ms-1">${facturasAsociadas.length}</span>
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link ${!defaultTabVenta ? 'active fw-bold' : 'fw-semibold'} text-nowrap" id="tab-facturas-compra-btn" data-bs-toggle="tab" data-bs-target="#tab-facturas-compra-pane" type="button" role="tab" aria-controls="tab-facturas-compra-pane" aria-selected="${!defaultTabVenta ? 'true' : 'false'}" style="font-size: var(--fs-md);">
+                                        <i class="bi bi-cart-check me-2 text-muted"></i>Facturas de Compra <span class="badge rounded-pill bg-light text-secondary border ms-1">${facturasCompraAsociadas.length}</span>
+                                    </button>
+                                </li>
+                            </ul>
                         </div>
-                        ${renderTablaFacturas(facturasAsociadas, contactosMap, 'fecha', 'desc', { hash: `#/inventario/items/ver/${id}`, label: `Volver al Producto (${escapeHtml(producto.nombre)})` })}
+                        <div class="tab-content" id="tabs-facturas-item-content">
+                            <div class="tab-pane fade ${defaultTabVenta ? 'show active' : ''}" id="tab-facturas-venta-pane" role="tabpanel" aria-labelledby="tab-facturas-venta-btn">
+                                ${renderTablaFacturas(facturasAsociadas, contactosMap, 'fecha', 'desc', { hash: `#/inventario/items/ver/${id}`, label: `Volver al Producto (${escapeHtml(producto.nombre)})` }, 'venta')}
+                            </div>
+                            <div class="tab-pane fade ${!defaultTabVenta ? 'show active' : ''}" id="tab-facturas-compra-pane" role="tabpanel" aria-labelledby="tab-facturas-compra-btn">
+                                ${renderTablaFacturas(facturasCompraAsociadas, contactosMap, 'fecha', 'desc', { hash: `#/inventario/items/ver/${id}`, label: `Volver al Producto (${escapeHtml(producto.nombre)})` }, 'compra')}
+                            </div>
+                        </div>
                     </div>
                 </div>` : ''}
             </div>

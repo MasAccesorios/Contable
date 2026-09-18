@@ -1,9 +1,11 @@
 import { escapeHtml } from './formatters.js';
 
-export function renderTablaFacturas(facturas, contactosMap, sortColumn = 'fecha', sortDirection = 'desc', returnInfo = null) {
+export function renderTablaFacturas(facturas, contactosMap, sortColumn = 'fecha', sortDirection = 'desc', returnInfo = null, tipo = 'venta') {
+    const isCompraTable = tipo === 'compra';
     const formatMoney = (val) => '$ ' + parseFloat(val || 0).toLocaleString('es-CO', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 
     const tbodyHtml = facturas.length > 0 ? facturas.map(c => {
+        const isCompra = c.tipo === 'compra' || isCompraTable;
         const estado = c.estado || 'por_pagar';
         let labelEstado = '';
         let badgeClass = '';
@@ -21,13 +23,13 @@ export function renderTablaFacturas(facturas, contactosMap, sortColumn = 'fecha'
             labelEstado = 'Anulada';
             badgeClass = 'bg-secondary text-secondary bg-opacity-10 border border-secondary-subtle';
         } else if (c.saldoPendiente <= 0) {
-            labelEstado = 'Cobrada';
+            labelEstado = isCompra ? 'Pagada' : 'Cobrada';
             badgeClass = 'bg-primary text-primary bg-opacity-10 border border-primary-subtle';
         } else if (isVencida) {
             labelEstado = 'Vencida';
             badgeClass = 'bg-danger text-danger bg-opacity-10 border border-danger-subtle';
         } else {
-            labelEstado = 'Por cobrar';
+            labelEstado = isCompra ? 'Por pagar' : 'Por cobrar';
             badgeClass = 'bg-warning text-warning-emphasis bg-opacity-10 border border-warning-subtle';
         }
 
@@ -35,16 +37,20 @@ export function renderTablaFacturas(facturas, contactosMap, sortColumn = 'fecha'
         
         const rowOpacity = (estado === 'anulada' || estado === 'voided' || estado === 'void') ? '0.5' : '1';
         
+        const baseRoute = isCompra ? '#/gastos/proveedores/ver/' : '#/ingresos/facturas/ver/';
+        const defaultContactText = isCompra ? 'Sin Proveedor' : 'Sin Cliente';
+        const contactId = c.proveedorId || c.clienteId || c.contacto_id || c.contactoId;
+
         const onclickAction = returnInfo 
-            ? `if(!event.target.closest('button')) { sessionStorage.setItem('origenVolver', JSON.stringify({hash: '${returnInfo.hash}', label: '${returnInfo.label}'})); window.location.hash = '#/ingresos/facturas/ver/${c.id}'; }`
-            : `if(!event.target.closest('button')) window.location.hash = '#/ingresos/facturas/ver/${c.id}'`;
+            ? `if(!event.target.closest('button')) { sessionStorage.setItem('origenVolver', JSON.stringify({hash: '${returnInfo.hash}', label: '${returnInfo.label}'})); window.location.hash = '${baseRoute}${c.id}'; }`
+            : `if(!event.target.closest('button')) window.location.hash = '${baseRoute}${c.id}'`;
             
         return `
             <tr style="cursor: pointer; border-bottom: 1px solid var(--border-color); font-size: 13px; color: var(--text-body); opacity: ${rowOpacity}; transition: opacity 0.2s;" onclick="${onclickAction}">
                 <td class="py-2" style="white-space: nowrap;">${numDisplay}</td>
                 <td class="py-2" style="white-space: nowrap;">${c.fecha || ''}</td>
                 <td class="py-2 ${isVencida && c.saldoPendiente > 0 ? 'text-danger fw-semibold' : ''}" style="white-space: nowrap;">${vencimiento}</td>
-                <td class="py-2" style="color: var(--text-main); font-weight: var(--weight-medium); max-width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(contactosMap[c.clienteId || c.contacto_id || c.contactoId]) || 'Sin Cliente'}</td>
+                <td class="py-2" style="color: var(--text-main); font-weight: var(--weight-medium); max-width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(contactosMap[contactId]) || defaultContactText}</td>
                 <td class="py-2 text-end" style="white-space: nowrap;">${formatMoney(c.total)}</td>
                 <td class="py-2 text-end" style="white-space: nowrap;">${formatMoney(c.totalPagado)}</td>
                 <td class="py-2 text-end fw-bold text-dark" style="white-space: nowrap;">${formatMoney(c.saldoPendiente)}</td>
@@ -63,6 +69,11 @@ export function renderTablaFacturas(facturas, contactosMap, sortColumn = 'fecha'
         `;
     }).join('') : `<tr><td colspan="9" class="text-center py-5 text-muted">No se encontraron facturas</td></tr>`;
 
+    const colContactKey = isCompraTable ? 'proveedor' : 'cliente';
+    const colContactLabel = isCompraTable ? 'Proveedor' : 'Cliente';
+    const colCobradoLabel = isCompraTable ? 'Pagado' : 'Cobrado';
+    const colPendienteLabel = isCompraTable ? 'Por pagar' : 'Por cobrar';
+
     return `
         <div class="table-responsive">
             <table class="table table-borderless align-middle mb-0">
@@ -75,12 +86,12 @@ export function renderTablaFacturas(facturas, contactosMap, sortColumn = 'fecha'
                             Creación ${sortColumn === 'fecha' ? (sortDirection === 'asc' ? ' ▲' : ' ▼') : ''}
                         </th>
                         <th class="py-2 fw-normal" style="min-width: 105px; white-space: nowrap;">Vencimiento</th>
-                        <th class="py-2 fw-normal sortable-header" data-column="cliente" style="cursor: pointer; user-select: none; width: 100%; min-width: 150px;">
-                            Cliente ${sortColumn === 'cliente' ? (sortDirection === 'asc' ? ' ▲' : ' ▼') : ''}
+                        <th class="py-2 fw-normal sortable-header" data-column="${colContactKey}" style="cursor: pointer; user-select: none; width: 100%; min-width: 150px;">
+                            ${colContactLabel} ${sortColumn === colContactKey ? (sortDirection === 'asc' ? ' ▲' : ' ▼') : ''}
                         </th>
                         <th class="py-2 fw-normal text-end" style="min-width: 110px; white-space: nowrap;">Total</th>
-                        <th class="py-2 fw-normal text-end" style="min-width: 110px; white-space: nowrap;">Cobrado</th>
-                        <th class="py-2 fw-normal text-end" style="min-width: 110px; white-space: nowrap;">Por cobrar</th>
+                        <th class="py-2 fw-normal text-end" style="min-width: 110px; white-space: nowrap;">${colCobradoLabel}</th>
+                        <th class="py-2 fw-normal text-end" style="min-width: 110px; white-space: nowrap;">${colPendienteLabel}</th>
                         <th class="py-2 fw-normal text-center" style="min-width: 100px; white-space: nowrap;">Estado</th>
                         <th class="py-2 fw-normal text-end" style="width: 80px; white-space: nowrap;"></th>
                     </tr>
