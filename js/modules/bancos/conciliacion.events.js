@@ -33,17 +33,19 @@ export const ConciliacionEvents = {
             this.recalcularDiferenciaPendiente();
         });
 
-        const _resetSeleccion = () => { 
+        const _resetearInputs = () => { 
             this.state._seleccionados = new Set(); 
             this.state.editingConciliacionId = null;
-            
+            this.state.saldoBancario = 0;
             this.state.ajusteGastos = 0;
             this.state.ajusteImpuestos = 0;
             this.state.ajusteEntradas = 0;
             
+            const saldoInput = this.element.querySelector('#concil-input-saldo');
             const e1 = this.element.querySelector('#concil-ajuste-gastos');
             const e2 = this.element.querySelector('#concil-ajuste-impuestos');
             const e3 = this.element.querySelector('#concil-ajuste-entradas');
+            if (saldoInput) saldoInput.value = '0';
             if (e1) e1.value = '0';
             if (e2) e2.value = '0';
             if (e3) e3.value = '0';
@@ -52,7 +54,8 @@ export const ConciliacionEvents = {
         this.element.querySelector('#nueva-tab')?.addEventListener('click', (e) => {
             // Solo actuar si el usuario hizo clic real (no si se invocó via JS desde "Editar")
             if (e.isTrusted) {
-                _resetSeleccion();
+                _resetearInputs();
+                this.recalcularDiferenciaPendiente();
                 this.renderTabla();
             }
         });
@@ -63,30 +66,33 @@ export const ConciliacionEvents = {
         });
 
         this.element.querySelector('#concil-cuenta').addEventListener('change', async (e) => {
-            _resetSeleccion();
-            this.state.bancoId = e.target.value;
+            _resetearInputs();
+            this.state.bancoId = e.target.value ? parseInt(e.target.value, 10) : null;
             await Promise.all([
                 this.cargarDatosRPC(),
                 this.loadHistorial(this.state.bancoId)
             ]);
             this.calcularTotales();
+            this.recalcularDiferenciaPendiente();
             this.renderTabla();
             this.renderHistorial();
         });
 
         this.element.querySelector('#concil-desde').addEventListener('change', async (e) => {
-            _resetSeleccion();
+            _resetearInputs();
             this.state.fechaDesde = e.target.value;
             await this.cargarDatosRPC();
             this.calcularTotales();
+            this.recalcularDiferenciaPendiente();
             this.renderTabla();
         });
 
         this.element.querySelector('#concil-hasta').addEventListener('change', async (e) => {
-            _resetSeleccion();
+            _resetearInputs();
             this.state.fechaHasta = e.target.value;
             await this.cargarDatosRPC();
             this.calcularTotales();
+            this.recalcularDiferenciaPendiente();
             this.renderTabla();
         });
 
@@ -162,15 +168,16 @@ export const ConciliacionEvents = {
                 }
             }
 
+            const editId = this.state.editingConciliacionId ? parseInt(this.state.editingConciliacionId, 10) : null;
             const payload = {
-                p_id: this.state.editingConciliacionId || null,
+                p_id: (editId !== null && !isNaN(editId) && editId > 0) ? editId : null,
                 p_banco_id: parseInt(this.state.bancoId, 10),
                 p_fecha_desde: this.state.fechaDesde,
                 p_fecha_hasta: this.state.fechaHasta,
-                p_saldo_bancario: this.state.saldoBancario,
-                p_saldo_sistema: this.state.saldoAnterior + this.state.entradas - this.state.salidas,
-                p_diferencia: this.state.saldoBancario - (this.state.saldoAnterior + this.state.entradas - this.state.salidas),
-                p_movimientos_conciliados: movimientosConciliados
+                p_saldo_bancario: Number(this.state.saldoBancario) || 0,
+                p_saldo_sistema: Number(this.state.saldoAnterior + this.state.entradas - this.state.salidas) || 0,
+                p_diferencia: Number(this.state.saldoBancario - (this.state.saldoAnterior + this.state.entradas - this.state.salidas)) || 0,
+                p_movimientos_conciliados: movimientosConciliados.map(mid => parseInt(mid, 10)).filter(mid => !isNaN(mid))
             };
 
             try {
@@ -180,11 +187,12 @@ export const ConciliacionEvents = {
                 this.state.editingConciliacionId = null;
                 alert('Conciliación guardada exitosamente.');
                 
-                _resetSeleccion();
+                _resetearInputs();
                 await this.loadHistorial(this.state.bancoId);
                 this.renderHistorial();
                 await this.cargarDatosRPC();
                 this.calcularTotales();
+                this.recalcularDiferenciaPendiente();
                 this.renderTabla();
 
                 // Cambiar automáticamente a la pestaña Historial para mostrar el registro actualizado
@@ -212,12 +220,13 @@ export const ConciliacionEvents = {
 
             if (btnEditar) {
                 const id = btnEditar.getAttribute('data-id');
-                const concil = this.state.historialConciliaciones.find(c => String(c.id) === String(id));
+                const targetId = parseInt(id, 10);
+                const concil = this.state.historialConciliaciones.find(c => parseInt(c.id, 10) === targetId);
                 if (!concil) return;
 
-                this.state.editingConciliacionId = concil.id;
+                this.state.editingConciliacionId = targetId;
                 this.state._seleccionados = new Set(
-                    (concil.movimientos_conciliados || []).map(id => parseInt(id, 10)).filter(Boolean)
+                    (concil.movimientos_conciliados || []).map(mid => parseInt(mid, 10)).filter(mid => !isNaN(mid))
                 );
 
                 // Llenar inputs
@@ -227,8 +236,9 @@ export const ConciliacionEvents = {
                 const inputSaldo = document.getElementById('concil-input-saldo');
                 
                 if (inputCuenta && concil.banco_id) {
-                    inputCuenta.value = concil.banco_id;
-                    this.state.bancoId = concil.banco_id;
+                    const bId = parseInt(concil.banco_id, 10);
+                    inputCuenta.value = bId;
+                    this.state.bancoId = bId;
                 }
                 if (inputDesde) inputDesde.value = concil.fecha_desde;
                 if (inputHasta) inputHasta.value = concil.fecha_hasta;
@@ -239,10 +249,11 @@ export const ConciliacionEvents = {
                 
                 this.state.fechaDesde = concil.fecha_desde;
                 this.state.fechaHasta = concil.fecha_hasta;
-                this.state.saldoBancario = concil.saldo_bancario;
+                this.state.saldoBancario = Number(concil.saldo_bancario) || 0;
 
                 await this.cargarDatosRPC();
                 this.calcularTotales();
+                this.recalcularDiferenciaPendiente();
                 this.renderTabla();
 
                 // Cambiar a la pestaña Nueva Conciliacion
@@ -255,14 +266,23 @@ export const ConciliacionEvents = {
 
             if (btnEliminar) {
                 const id = btnEliminar.getAttribute('data-id');
-                if (confirm("¿Seguro que deseas eliminar el registro de esta conciliación?\n(Los movimientos bancarios reales no se verán afectados)")) {
+                const targetId = parseInt(id, 10);
+                if (isNaN(targetId)) return;
+                if (confirm("¿Seguro que deseas eliminar el registro de esta conciliación?\n(Los movimientos bancarios asociados volverán a quedar pendientes)")) {
                     try {
-                        await DB.delete('conciliaciones', id);
+                        const { error: rpcError } = await supabase.rpc('eliminar_conciliacion_bancaria', { p_id: targetId });
+                        if (rpcError) {
+                            console.warn('[Conciliacion] RPC eliminar no disponible, ejecutando fallback directo:', rpcError);
+                            await supabase.from('pagos_ingresos').update({ conciliado_en: null, conciliacion_id: null }).eq('conciliacion_id', targetId);
+                            const { error: delError } = await supabase.from('conciliaciones').delete().eq('id', targetId);
+                            if (delError) throw delError;
+                        }
+                        DB.invalidateCache('conciliaciones');
                         await this.loadHistorial(this.state.bancoId);
                         this.renderHistorial();
                     } catch (error) {
-                        console.error(error);
-                        alert("Error al eliminar la conciliación.");
+                        console.error('[Conciliacion] Error al eliminar:', error);
+                        alert("Error al eliminar la conciliación: " + (error?.message || JSON.stringify(error)));
                     }
                 }
             }

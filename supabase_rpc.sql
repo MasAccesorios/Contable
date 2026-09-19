@@ -2193,8 +2193,11 @@ CREATE OR REPLACE FUNCTION public.guardar_conciliacion_bancaria(p_id bigint, p_b
 AS $function$
 DECLARE
     v_id BIGINT;
+    v_estado VARCHAR(50);
 BEGIN
-    IF p_id IS NOT NULL THEN
+    v_estado := CASE WHEN abs(p_diferencia) < 0.01 THEN 'exitosa' ELSE 'pendiente' END;
+
+    IF p_id IS NOT NULL AND p_id > 0 THEN
         UPDATE pagos_ingresos
         SET conciliado_en = NULL, conciliacion_id = NULL
         WHERE conciliacion_id = p_id
@@ -2207,14 +2210,15 @@ BEGIN
             saldo_bancario = p_saldo_bancario,
             saldo_sistema = p_saldo_sistema,
             diferencia = p_diferencia,
+            estado = v_estado,
             fecha_guardado = now(),
             movimientos_conciliados = p_movimientos_conciliados
         WHERE id = p_id;
 
         v_id := p_id;
     ELSE
-        INSERT INTO conciliaciones (banco_id, fecha_desde, fecha_hasta, saldo_bancario, saldo_sistema, diferencia, fecha_guardado, movimientos_conciliados)
-        VALUES (p_banco_id, p_fecha_desde, p_fecha_hasta, p_saldo_bancario, p_saldo_sistema, p_diferencia, now(), p_movimientos_conciliados)
+        INSERT INTO conciliaciones (banco_id, fecha_desde, fecha_hasta, saldo_bancario, saldo_sistema, diferencia, estado, fecha_guardado, movimientos_conciliados)
+        VALUES (p_banco_id, p_fecha_desde, p_fecha_hasta, p_saldo_bancario, p_saldo_sistema, p_diferencia, v_estado, now(), p_movimientos_conciliados)
         RETURNING id INTO v_id;
     END IF;
 
@@ -2223,6 +2227,28 @@ BEGIN
     WHERE id = ANY(p_movimientos_conciliados);
 
     RETURN v_id;
+END;
+$function$;
+
+CREATE OR REPLACE FUNCTION public.eliminar_conciliacion_bancaria(p_id bigint)
+ RETURNS boolean
+ LANGUAGE plpgsql
+AS $function$
+BEGIN
+    IF p_id IS NULL OR p_id <= 0 THEN
+        RETURN false;
+    END IF;
+
+    -- 1. Desvincular movimientos asociados
+    UPDATE pagos_ingresos
+    SET conciliado_en = NULL, conciliacion_id = NULL
+    WHERE conciliacion_id = p_id;
+
+    -- 2. Eliminar la conciliación
+    DELETE FROM conciliaciones
+    WHERE id = p_id;
+
+    RETURN true;
 END;
 $function$;
 

@@ -41,6 +41,7 @@ CREATE TABLE conciliaciones (
     saldo_bancario numeric(14,2) NOT NULL DEFAULT 0,
     saldo_sistema numeric(14,2) NOT NULL DEFAULT 0,
     diferencia numeric(14,2) NOT NULL DEFAULT 0,
+    estado varchar(50) DEFAULT 'pendiente',
     fecha_guardado timestamptz DEFAULT now(),
     movimientos_conciliados bigint[] DEFAULT '{}'
 );

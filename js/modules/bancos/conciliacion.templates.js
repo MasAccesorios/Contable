@@ -184,6 +184,7 @@ export const ConciliacionTemplates = {
                                                 <th class="py-3 text-muted" style="font-size: var(--fs-sm); font-weight: 600;">Rango de Fechas</th>
                                                 <th class="py-3 text-muted" style="font-size: var(--fs-sm); font-weight: 600;">Saldo Bancario</th>
                                                 <th class="py-3 text-muted" style="font-size: var(--fs-sm); font-weight: 600;">Diferencia</th>
+                                                <th class="py-3 text-muted" style="font-size: var(--fs-sm); font-weight: 600;">Estado</th>
                                                 <th class="py-3 text-center text-muted" style="font-size: var(--fs-sm); font-weight: 600;">Movs. Conciliados</th>
                                                 <th class="py-3 pe-4 text-end text-muted" style="font-size: var(--fs-sm); font-weight: 600;">Acciones</th>
                                             </tr>
@@ -251,16 +252,26 @@ export const ConciliacionTemplates = {
             return isNaN(dt.getTime()) ? new Date(d) : dt;
         };
 
+        const currentBancoId = this.state.bancoId !== null && this.state.bancoId !== undefined && this.state.bancoId !== ''
+            ? parseInt(this.state.bancoId, 10)
+            : null;
+
         const listaHistorial = [...(this.state.historialConciliaciones || [])]
-            .filter(c => !this.state.bancoId || String(c.banco_id) === String(this.state.bancoId))
+            .filter(c => {
+                if (currentBancoId === null || isNaN(currentBancoId)) return true;
+                const cBancoId = (c.banco_id !== null && c.banco_id !== undefined && c.banco_id !== '')
+                    ? parseInt(c.banco_id, 10)
+                    : null;
+                return cBancoId === currentBancoId;
+            })
             .sort((a, b) => {
                 const diff = parseDate(b.fecha_guardado) - parseDate(a.fecha_guardado);
                 if (diff !== 0 && !isNaN(diff)) return diff;
-                return (Number(b.id) || 0) - (Number(a.id) || 0);
+                return (parseInt(b.id, 10) || 0) - (parseInt(a.id, 10) || 0);
             });
 
         if (listaHistorial.length === 0) {
-            html = `<tr><td colspan="7" class="text-center py-5 text-muted">No hay historial para esta cuenta.</td></tr>`;
+            html = `<tr><td colspan="8" class="text-center py-5 text-muted">No hay historial para esta cuenta.</td></tr>`;
         }
 
         listaHistorial.forEach(h => {
@@ -270,11 +281,19 @@ export const ConciliacionTemplates = {
                 : (h.fecha_guardado || '-');
             const rango = `${h.fecha_desde || ''} a ${h.fecha_hasta || ''}`;
             
-            const isDiferenciaCero = Number(h.diferencia) === 0;
+            const isDiferenciaCero = Math.abs(Number(h.diferencia) || 0) < 0.01;
             const difColor = isDiferenciaCero ? '#059669' : '#dc2626';
             const cantMovs = Array.isArray(h.movimientos_conciliados) ? h.movimientos_conciliados.length : 0;
-            const cuenta = (this.state.cuentas || []).find(c => String(c.id) === String(h.banco_id));
-            const cuentaNombre = cuenta ? cuenta.nombre : (h.banco_id ? `Cuenta #${h.banco_id}` : '-');
+            const hBancoId = (h.banco_id !== null && h.banco_id !== undefined && h.banco_id !== '') ? parseInt(h.banco_id, 10) : null;
+            const cuenta = (this.state.cuentas || []).find(c => parseInt(c.id, 10) === hBancoId);
+            const cuentaNombre = cuenta ? cuenta.nombre : (hBancoId ? `Cuenta #${hBancoId}` : '-');
+
+            const estado = h.estado || (isDiferenciaCero ? 'exitosa' : 'pendiente');
+            const badgeEstado = estado === 'exitosa'
+                ? '<span class="badge" style="background-color: #d1fae5; color: #059669; font-weight: 500;">Exitosa</span>'
+                : (estado === 'anulada'
+                    ? '<span class="badge bg-secondary text-white" style="font-weight: 500;">Anulada</span>'
+                    : '<span class="badge" style="background-color: #fef3c7; color: #d97706; font-weight: 500;">Pendiente</span>');
 
             html += `
                 <tr class="row-historial-concil" data-id="${h.id}" style="cursor: pointer; font-size: var(--fs-base); color: var(--text-body);">
@@ -283,6 +302,7 @@ export const ConciliacionTemplates = {
                     <td class="py-3 text-muted">${rango}</td>
                     <td class="py-3" style="font-weight: 500;">${this.formatMoney(h.saldo_bancario)}</td>
                     <td class="py-3" style="color: ${difColor}; font-weight: 600;">${this.formatMoney(h.diferencia)}</td>
+                    <td class="py-3">${badgeEstado}</td>
                     <td class="py-3 text-center">
                         <span class="badge bg-light text-dark border">${cantMovs}</span>
                     </td>
@@ -300,13 +320,15 @@ export const ConciliacionTemplates = {
     },
 
     async renderDetalle(element, id) {
-        const concil = this.state.historialConciliaciones.find(c => String(c.id) === String(id));
+        const targetId = parseInt(id, 10);
+        const concil = this.state.historialConciliaciones.find(c => parseInt(c.id, 10) === targetId);
         if (!concil) {
             element.innerHTML = `<div class="p-5 text-center text-muted">Conciliación no encontrada.</div>`;
             return;
         }
 
-        const cuenta = this.state.cuentas.find(c => String(c.id) === String(concil.banco_id));
+        const cBancoId = parseInt(concil.banco_id, 10);
+        const cuenta = this.state.cuentas.find(c => parseInt(c.id, 10) === cBancoId);
         const bancoNombre = cuenta ? cuenta.nombre : 'Cuenta Desconocida';
 
         const ids = (concil.movimientos_conciliados || []).map(i => parseInt(i, 10)).filter(Boolean);
