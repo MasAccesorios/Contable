@@ -2246,13 +2246,18 @@ BEGIN
     FROM conciliaciones
     WHERE id = p_id;
 
-    -- Actualizar AMBAS columnas a NULL
+    -- 1. Eliminar completamente los ajustes automáticos creados para esta conciliación
+    DELETE FROM pagos_ingresos
+    WHERE (conciliacion_id = p_id OR (v_movs IS NOT NULL AND array_length(v_movs, 1) > 0 AND id = ANY(v_movs)))
+      AND observaciones = 'Ajuste automático de conciliación';
+
+    -- 2. Desvincular los demás movimientos asociados
     UPDATE pagos_ingresos
     SET conciliado_en = NULL, conciliacion_id = NULL
     WHERE conciliacion_id = p_id
        OR (v_movs IS NOT NULL AND array_length(v_movs, 1) > 0 AND id = ANY(v_movs));
 
-    -- Eliminar la conciliación
+    -- 3. Eliminar el registro de conciliación
     DELETE FROM conciliaciones
     WHERE id = p_id;
 

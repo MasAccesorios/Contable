@@ -273,6 +273,7 @@ export const ConciliacionEvents = {
                         const { error: rpcError } = await supabase.rpc('eliminar_conciliacion_bancaria', { p_id: targetId });
                         if (rpcError) {
                             console.warn('[Conciliacion] RPC eliminar no disponible, ejecutando fallback directo:', rpcError);
+                            await supabase.from('pagos_ingresos').delete().eq('conciliacion_id', targetId).eq('observaciones', 'Ajuste automático de conciliación');
                             await supabase.from('pagos_ingresos').update({ conciliado_en: null, conciliacion_id: null }).eq('conciliacion_id', targetId);
                             const { error: delError } = await supabase.from('conciliaciones').delete().eq('id', targetId);
                             if (delError) throw delError;
