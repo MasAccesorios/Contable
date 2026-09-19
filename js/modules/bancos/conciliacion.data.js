@@ -2,18 +2,28 @@ import DB from '../../core/db.js';
 import { supabase } from '../../core/supabase.js';
 
 export const ConciliacionData = {
-    async loadHistorial() {
+    async loadHistorial(bancoId = null) {
+        const targetBancoId = bancoId || this.state.bancoId;
         DB.invalidateCache('conciliaciones');
         try {
-            const { data, error } = await supabase
+            let query = supabase
                 .from('conciliaciones')
                 .select('*')
                 .order('fecha_guardado', { ascending: false });
+
+            if (targetBancoId) {
+                query = query.eq('banco_id', parseInt(targetBancoId, 10));
+            }
+
+            const { data, error } = await query;
             if (error) throw error;
             this.state.historialConciliaciones = data || [];
         } catch (err) {
             console.error('[Conciliacion] Error cargando historial:', err);
-            this.state.historialConciliaciones = await DB.getAll('conciliaciones') || [];
+            const all = await DB.getAll('conciliaciones') || [];
+            this.state.historialConciliaciones = targetBancoId
+                ? all.filter(c => String(c.banco_id) === String(targetBancoId))
+                : all;
         }
         return this.state.historialConciliaciones;
     },
@@ -25,7 +35,7 @@ export const ConciliacionData = {
             this.state.bancoId = this.state.cuentas[0].id;
         }
         // transacciones ya NO se cargan en masa — se obtienen vía RPC por cuenta/rango
-        await this.loadHistorial();
+        await this.loadHistorial(this.state.bancoId);
     },
 
     async cargarDatosRPC() {

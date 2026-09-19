@@ -252,6 +252,7 @@ export const ConciliacionTemplates = {
         };
 
         const listaHistorial = [...(this.state.historialConciliaciones || [])]
+            .filter(c => !this.state.bancoId || String(c.banco_id) === String(this.state.bancoId))
             .sort((a, b) => {
                 const diff = parseDate(b.fecha_guardado) - parseDate(a.fecha_guardado);
                 if (diff !== 0 && !isNaN(diff)) return diff;
@@ -259,7 +260,7 @@ export const ConciliacionTemplates = {
             });
 
         if (listaHistorial.length === 0) {
-            html = `<tr><td colspan="7" class="text-center py-5 text-muted">No hay historial de conciliaciones.</td></tr>`;
+            html = `<tr><td colspan="7" class="text-center py-5 text-muted">No hay historial para esta cuenta.</td></tr>`;
         }
 
         listaHistorial.forEach(h => {

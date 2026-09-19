@@ -58,14 +58,17 @@ export const ConciliacionEvents = {
         });
 
         this.element.querySelector('#historial-tab')?.addEventListener('click', async () => {
-            await this.loadHistorial();
+            await this.loadHistorial(this.state.bancoId);
             this.renderHistorial();
         });
 
         this.element.querySelector('#concil-cuenta').addEventListener('change', async (e) => {
             _resetSeleccion();
             this.state.bancoId = e.target.value;
-            await this.cargarDatosRPC();
+            await Promise.all([
+                this.cargarDatosRPC(),
+                this.loadHistorial(this.state.bancoId)
+            ]);
             this.calcularTotales();
             this.renderTabla();
             this.renderHistorial();
@@ -178,7 +181,7 @@ export const ConciliacionEvents = {
                 alert('Conciliación guardada exitosamente.');
                 
                 _resetSeleccion();
-                await this.loadHistorial();
+                await this.loadHistorial(this.state.bancoId);
                 this.renderHistorial();
                 await this.cargarDatosRPC();
                 this.calcularTotales();
@@ -255,7 +258,7 @@ export const ConciliacionEvents = {
                 if (confirm("¿Seguro que deseas eliminar el registro de esta conciliación?\n(Los movimientos bancarios reales no se verán afectados)")) {
                     try {
                         await DB.delete('conciliaciones', id);
-                        await this.loadHistorial();
+                        await this.loadHistorial(this.state.bancoId);
                         this.renderHistorial();
                     } catch (error) {
                         console.error(error);
