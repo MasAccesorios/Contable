@@ -906,7 +906,7 @@ begin
       and m.estado   != 'anulado'
       and (m.tipo = 'in' or m.tipo = 'out')
       and m.fecha::date between p_fecha_desde and p_fecha_hasta
-      and (m.conciliado_en IS NULL OR m.conciliacion_id = p_conciliacion_id);
+      and (m.conciliacion_id IS NULL OR m.conciliacion_id = p_conciliacion_id);
 
     return json_build_object(
         'saldo_anterior', v_saldo_anterior,
