@@ -5,6 +5,7 @@
 * **Push:** Se puede hacer `git push` de la rama de trabajo a GitHub libremente, siempre que sea a una rama distinta de `main`. Nunca hacer push directo a `main`.
 * **Merge a main:** Solo se hace merge a `main` con autorización explícita del usuario, después de que valide los cambios.
 * **Verificación:** Después de cada push, reporta el hash del commit y el resultado exacto de `git log -1`, sin resumir ni interpretar.
+* **PROHIBIDO EL USO DEL NAVEGADOR:** NUNCA usar `browser_subagent` ni herramientas de navegador. El usuario realiza y valida personalmente todas las pruebas en navegador y consola.
 
 ## Reglas de Negocio y Módulos Financieros
 Antes de dar por terminada cualquier tarea sobre bancos, pagos, cartera o inventario:

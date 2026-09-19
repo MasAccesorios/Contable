@@ -2234,17 +2234,25 @@ CREATE OR REPLACE FUNCTION public.eliminar_conciliacion_bancaria(p_id bigint)
  RETURNS boolean
  LANGUAGE plpgsql
 AS $function$
+DECLARE
+    v_movs bigint[];
 BEGIN
     IF p_id IS NULL OR p_id <= 0 THEN
         RETURN false;
     END IF;
 
-    -- 1. Desvincular movimientos asociados
+    -- Obtener array de movimientos registrados antes de borrar
+    SELECT movimientos_conciliados INTO v_movs
+    FROM conciliaciones
+    WHERE id = p_id;
+
+    -- Actualizar AMBAS columnas a NULL
     UPDATE pagos_ingresos
     SET conciliado_en = NULL, conciliacion_id = NULL
-    WHERE conciliacion_id = p_id;
+    WHERE conciliacion_id = p_id
+       OR (v_movs IS NOT NULL AND array_length(v_movs, 1) > 0 AND id = ANY(v_movs));
 
-    -- 2. Eliminar la conciliación
+    -- Eliminar la conciliación
     DELETE FROM conciliaciones
     WHERE id = p_id;
 
