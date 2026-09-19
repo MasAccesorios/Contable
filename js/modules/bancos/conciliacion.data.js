@@ -2,6 +2,22 @@ import DB from '../../core/db.js';
 import { supabase } from '../../core/supabase.js';
 
 export const ConciliacionData = {
+    async loadHistorial() {
+        DB.invalidateCache('conciliaciones');
+        try {
+            const { data, error } = await supabase
+                .from('conciliaciones')
+                .select('*')
+                .order('fecha_guardado', { ascending: false });
+            if (error) throw error;
+            this.state.historialConciliaciones = data || [];
+        } catch (err) {
+            console.error('[Conciliacion] Error cargando historial:', err);
+            this.state.historialConciliaciones = await DB.getAll('conciliaciones') || [];
+        }
+        return this.state.historialConciliaciones;
+    },
+
     async loadData() {
         const dbCuentas = await DB.getAll('cuentas_bancarias') || [];
         this.state.cuentas = dbCuentas.filter(c => c.estado === 'active' || c.estado === 'activo');
@@ -9,7 +25,7 @@ export const ConciliacionData = {
             this.state.bancoId = this.state.cuentas[0].id;
         }
         // transacciones ya NO se cargan en masa — se obtienen vía RPC por cuenta/rango
-        this.state.historialConciliaciones = await DB.getAll('conciliaciones') || [];
+        await this.loadHistorial();
     },
 
     async cargarDatosRPC() {

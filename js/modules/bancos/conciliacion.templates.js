@@ -180,6 +180,7 @@ export const ConciliacionTemplates = {
                                         <thead style="background-color: var(--bg-main);">
                                             <tr>
                                                 <th class="py-3 ps-4 text-muted" style="font-size: var(--fs-sm); font-weight: 600;">Fecha Guardado</th>
+                                                <th class="py-3 text-muted" style="font-size: var(--fs-sm); font-weight: 600;">Cuenta</th>
                                                 <th class="py-3 text-muted" style="font-size: var(--fs-sm); font-weight: 600;">Rango de Fechas</th>
                                                 <th class="py-3 text-muted" style="font-size: var(--fs-sm); font-weight: 600;">Saldo Bancario</th>
                                                 <th class="py-3 text-muted" style="font-size: var(--fs-sm); font-weight: 600;">Diferencia</th>
@@ -242,26 +243,42 @@ export const ConciliacionTemplates = {
         if (!tbody) return;
         let html = '';
 
-        const historialFiltrado = this.state.historialConciliaciones
-            .filter(c => String(c.banco_id) === String(this.state.bancoId))
-            .sort((a, b) => new Date(b.fecha_guardado) - new Date(a.fecha_guardado));
+        const parseDate = (d) => {
+            if (!d) return new Date(0);
+            if (d instanceof Date) return d;
+            const s = String(d).replace(' ', 'T');
+            const dt = new Date(s);
+            return isNaN(dt.getTime()) ? new Date(d) : dt;
+        };
 
-        if (historialFiltrado.length === 0) {
-            html = `<tr><td colspan="5" class="text-center py-5 text-muted">No hay historial para esta cuenta.</td></tr>`;
+        const listaHistorial = [...(this.state.historialConciliaciones || [])]
+            .sort((a, b) => {
+                const diff = parseDate(b.fecha_guardado) - parseDate(a.fecha_guardado);
+                if (diff !== 0 && !isNaN(diff)) return diff;
+                return (Number(b.id) || 0) - (Number(a.id) || 0);
+            });
+
+        if (listaHistorial.length === 0) {
+            html = `<tr><td colspan="7" class="text-center py-5 text-muted">No hay historial de conciliaciones.</td></tr>`;
         }
 
-        historialFiltrado.forEach(h => {
-            const dateObj = new Date(h.fecha_guardado);
-            const fechaGuardadoStr = dateObj.toLocaleDateString('es-CO') + ' ' + dateObj.toLocaleTimeString('es-CO', {hour: '2-digit', minute:'2-digit'});
-            const rango = `${h.fecha_desde} a ${h.fecha_hasta}`;
+        listaHistorial.forEach(h => {
+            const dateObj = parseDate(h.fecha_guardado);
+            const fechaGuardadoStr = !isNaN(dateObj.getTime())
+                ? dateObj.toLocaleDateString('es-CO') + ' ' + dateObj.toLocaleTimeString('es-CO', {hour: '2-digit', minute:'2-digit'})
+                : (h.fecha_guardado || '-');
+            const rango = `${h.fecha_desde || ''} a ${h.fecha_hasta || ''}`;
             
-            const isDiferenciaCero = h.diferencia === 0;
+            const isDiferenciaCero = Number(h.diferencia) === 0;
             const difColor = isDiferenciaCero ? '#059669' : '#dc2626';
-            const cantMovs = h.movimientos_conciliados ? h.movimientos_conciliados.length : 0;
+            const cantMovs = Array.isArray(h.movimientos_conciliados) ? h.movimientos_conciliados.length : 0;
+            const cuenta = (this.state.cuentas || []).find(c => String(c.id) === String(h.banco_id));
+            const cuentaNombre = cuenta ? cuenta.nombre : (h.banco_id ? `Cuenta #${h.banco_id}` : '-');
 
             html += `
                 <tr class="row-historial-concil" data-id="${h.id}" style="cursor: pointer; font-size: var(--fs-base); color: var(--text-body);">
                     <td class="py-3 ps-4 fw-medium text-muted">${fechaGuardadoStr}</td>
+                    <td class="py-3 fw-medium" style="color: var(--text-main);">${escapeHtml(cuentaNombre)}</td>
                     <td class="py-3 text-muted">${rango}</td>
                     <td class="py-3" style="font-weight: 500;">${this.formatMoney(h.saldo_bancario)}</td>
                     <td class="py-3" style="color: ${difColor}; font-weight: 600;">${this.formatMoney(h.diferencia)}</td>

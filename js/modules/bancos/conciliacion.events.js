@@ -57,6 +57,11 @@ export const ConciliacionEvents = {
             }
         });
 
+        this.element.querySelector('#historial-tab')?.addEventListener('click', async () => {
+            await this.loadHistorial();
+            this.renderHistorial();
+        });
+
         this.element.querySelector('#concil-cuenta').addEventListener('change', async (e) => {
             _resetSeleccion();
             this.state.bancoId = e.target.value;
@@ -171,8 +176,20 @@ export const ConciliacionEvents = {
                 
                 this.state.editingConciliacionId = null;
                 alert('Conciliación guardada exitosamente.');
-                // Redirigir a bancos
-                window.location.hash = '#/bancos';
+                
+                _resetSeleccion();
+                await this.loadHistorial();
+                this.renderHistorial();
+                await this.cargarDatosRPC();
+                this.calcularTotales();
+                this.renderTabla();
+
+                // Cambiar automáticamente a la pestaña Historial para mostrar el registro actualizado
+                const tabHistorial = this.element.querySelector('#historial-tab');
+                if (tabHistorial && typeof bootstrap !== 'undefined' && bootstrap.Tab) {
+                    const tab = bootstrap.Tab.getInstance(tabHistorial) || new bootstrap.Tab(tabHistorial);
+                    tab.show();
+                }
             } catch (error) {
                 console.error("[Conciliacion] Error al guardar:", error);
                 alert('Hubo un error al guardar la conciliación: ' + (error?.message || JSON.stringify(error)));
@@ -192,7 +209,7 @@ export const ConciliacionEvents = {
 
             if (btnEditar) {
                 const id = btnEditar.getAttribute('data-id');
-                const concil = this.state.historialConciliaciones.find(c => c.id === id);
+                const concil = this.state.historialConciliaciones.find(c => String(c.id) === String(id));
                 if (!concil) return;
 
                 this.state.editingConciliacionId = concil.id;
@@ -201,10 +218,15 @@ export const ConciliacionEvents = {
                 );
 
                 // Llenar inputs
+                const inputCuenta = document.getElementById('concil-cuenta');
                 const inputDesde = document.getElementById('concil-desde');
                 const inputHasta = document.getElementById('concil-hasta');
                 const inputSaldo = document.getElementById('concil-input-saldo');
                 
+                if (inputCuenta && concil.banco_id) {
+                    inputCuenta.value = concil.banco_id;
+                    this.state.bancoId = concil.banco_id;
+                }
                 if (inputDesde) inputDesde.value = concil.fecha_desde;
                 if (inputHasta) inputHasta.value = concil.fecha_hasta;
                 if (inputSaldo) {
@@ -223,7 +245,7 @@ export const ConciliacionEvents = {
                 // Cambiar a la pestaña Nueva Conciliacion
                 const tabBtn = document.getElementById('nueva-tab');
                 if (tabBtn && typeof bootstrap !== 'undefined' && bootstrap.Tab) {
-                    const tab = new bootstrap.Tab(tabBtn);
+                    const tab = bootstrap.Tab.getInstance(tabBtn) || new bootstrap.Tab(tabBtn);
                     tab.show();
                 }
             }
@@ -233,7 +255,7 @@ export const ConciliacionEvents = {
                 if (confirm("¿Seguro que deseas eliminar el registro de esta conciliación?\n(Los movimientos bancarios reales no se verán afectados)")) {
                     try {
                         await DB.delete('conciliaciones', id);
-                        this.state.historialConciliaciones = await DB.getAll('conciliaciones') || [];
+                        await this.loadHistorial();
                         this.renderHistorial();
                     } catch (error) {
                         console.error(error);

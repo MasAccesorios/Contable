@@ -262,7 +262,7 @@ const DB = {
                 }
 
                 let q = supabase.from(table).select(cols, withCount ? { count: 'exact' } : undefined);
-                if (table === 'lotes_fifo' || table === 'pagos_ingresos' || table === 'facturas' || table === 'cotizaciones') {
+                if (table === 'lotes_fifo' || table === 'pagos_ingresos' || table === 'facturas' || table === 'cotizaciones' || table === 'conciliaciones') {
                     q = q.order('id', { ascending: false });
                 }
                 return q;
