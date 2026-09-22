@@ -94,16 +94,17 @@ export default {
         const cuentasOptions = cuentas.map(c => `<option value="${c.id}">${escapeHtml(c.nombre)} (${c.tipo})</option>`).join('');
         const facturasRows = this.facturasData.map(f => `
             <tr style="border-bottom: 1px solid var(--border-color); font-size: var(--fs-base); color: var(--text-body);">
-                <td class="align-middle fw-bold" style="color: var(--text-main);">#${f.numero}</td>
-                <td class="align-middle text-muted">${f.fecha}</td>
-                <td class="align-middle">${this.formatCurrency(f.total)}</td>
-                <td class="align-middle text-muted">${this.formatCurrency(f.totalAbonado)}</td>
-                <td class="align-middle text-danger fw-bold">${this.formatCurrency(f.saldo)}</td>
-                <td class="align-middle">
+                <td data-label="Factura" class="align-middle fw-bold" style="color: var(--text-main);">#${f.numero}</td>
+                <td data-label="Fecha" class="align-middle text-muted">${f.fecha}</td>
+                <td data-label="Total" class="align-middle">${this.formatCurrency(f.total)}</td>
+                <td data-label="Pagado" class="align-middle text-muted">${this.formatCurrency(f.totalAbonado)}</td>
+                <td data-label="Saldo pendiente" class="align-middle text-danger fw-bold">${this.formatCurrency(f.saldo)}</td>
+                <td data-label="Monto a pagar" class="align-middle td-monto-pagar">
                     <div class="input-group input-group-sm" style="max-width: 150px; margin-left:auto;">
                         <span class="input-group-text">$</span>
                         <input type="text" class="form-control monto-abono text-end fw-bold" 
-                            data-id="${f.id}" data-saldo="${f.saldo}" value="0">
+                            data-id="${f.id}" data-saldo="${f.saldo}" value="0"
+                            inputmode="decimal" autocomplete="off">
                     </div>
                 </td>
             </tr>
@@ -178,7 +179,7 @@ export default {
                                 <h5 class="fw-bold mb-0" style="color: var(--text-main);">Facturas Pendientes</h5>
                             </div>
                             <div class="table-responsive">
-                                <table class="table table-borderless align-middle mb-0">
+                                <table class="table table-borderless align-middle mb-0 tabla-pagos-multi">
                                     <thead>
                                         <tr>
                                             <th class="py-2 fw-normal ps-4"># Factura</th>

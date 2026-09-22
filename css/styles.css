@@ -1558,3 +1558,57 @@ html[data-theme^="dark"] .alert-danger {
     color: var(--text-muted);
 }
 
+/* Pagos multi-factura: filas como tarjetas en móvil */
+@media (max-width: 768px) {
+    .tabla-pagos-multi,
+    .tabla-pagos-multi tbody,
+    .tabla-pagos-multi tr,
+    .tabla-pagos-multi td {
+        display: block !important;
+        width: 100% !important;
+        overflow: visible !important;
+        will-change: auto !important;
+        -webkit-transform: none !important;
+    }
+    .dash-table-container .table-responsive:has(.tabla-pagos-multi) {
+        overflow: visible !important;
+    }
+    .tabla-pagos-multi thead { display: none !important; }
+    .tabla-pagos-multi tr {
+        padding: 12px 16px !important;
+        border-bottom: 1px solid var(--border-color) !important;
+    }
+    .tabla-pagos-multi td {
+        display: flex !important;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        padding: 4px 0 !important;
+        text-align: right;
+    }
+    .tabla-pagos-multi td::before {
+        content: attr(data-label);
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        text-align: left;
+        flex-shrink: 0;
+    }
+    .tabla-pagos-multi td.td-monto-pagar {
+        flex-direction: column;
+        align-items: stretch;
+        padding-top: 10px !important;
+    }
+    .tabla-pagos-multi td.td-monto-pagar .input-group {
+        max-width: none !important;
+        width: 100% !important;
+        margin-left: 0 !important;
+    }
+    .tabla-pagos-multi td.td-monto-pagar .input-group-sm > .form-control,
+    .tabla-pagos-multi td.td-monto-pagar .input-group-sm > .input-group-text {
+        font-size: 16px !important;   /* evita zoom automático en iOS */
+        min-height: 44px;
+    }
+}
+
