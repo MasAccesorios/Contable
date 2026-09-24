@@ -6,6 +6,7 @@ import { EstadoUtils } from '../../shared/estadoUtils.js';
 import { escapeHtml } from '../../shared/formatters.js';
 
 import { NotasCreditoData } from './notasCredito.data.js';
+import { AplicarSaldoNCModal } from './notasCredito.aplicarSaldo.js';
 export const NotasCreditoModule = {
     async init(element) {
         if (!element) return;
@@ -91,8 +92,18 @@ export const NotasCreditoModule = {
             const startIndex = (currentPage - 1) * itemsPerPage;
 
             const tbodyHtml = currentItems.length > 0 ? currentItems.map(n => {
-                let badgeClass = EstadoUtils.estaAnulado(n.estado) ? 'bg-secondary text-secondary bg-opacity-10 border border-secondary-subtle' : 'bg-success text-success bg-opacity-10 border border-success-subtle';
-                let labelEstado = EstadoUtils.estaAnulado(n.estado) ? 'Anulada' : 'Aplicada';
+                let badgeClass = '';
+                let labelEstado = '';
+                if (EstadoUtils.estaAnulado(n.estado)) {
+                    badgeClass = 'bg-secondary text-secondary bg-opacity-10 border border-secondary-subtle';
+                    labelEstado = 'Anulada';
+                } else if (Number(n.saldo_a_favor) > 0) {
+                    badgeClass = 'bg-warning text-warning bg-opacity-10 border border-warning-subtle';
+                    labelEstado = 'Saldo a favor';
+                } else {
+                    badgeClass = 'bg-success text-success bg-opacity-10 border border-success-subtle';
+                    labelEstado = 'Aplicada';
+                }
                 const estadoLabel = `<span class="badge ${badgeClass} rounded-pill fw-medium" style="font-size: var(--fs-xs); padding: 5px 10px;">${labelEstado}</span>`;
                 const opacity = EstadoUtils.estaAnulado(n.estado) ? '0.5' : '1';
                 
@@ -140,7 +151,7 @@ export const NotasCreditoModule = {
                         <div class="col-12 col-sm-6 col-lg-4">
                             <div class="dash-kpi-card d-flex flex-column justify-content-between" style="min-height: 90px;">
                                 <div class="d-flex justify-content-between align-items-start">
-                                    <span class="dash-kpi-label">Notas Pendientes (este mes)</span>
+                                    <span class="dash-kpi-label">Saldo a Favor Pendiente</span>
                                     <div class="dash-icon-box variant-yellow">
                                         <i class="bi bi-clock-history"></i>
                                     </div>
@@ -339,6 +350,7 @@ export const NotasCreditoModule = {
             let detallesNota = [];
             let facturaOrigen = null;
             let clienteNombre = '';
+            let saldoAFavorNC = 0;
 
             if (id) {
                 // Cargar nota existente
@@ -356,6 +368,12 @@ export const NotasCreditoModule = {
                         const { data: cData } = await supabase.from('contactos').select('nombre').eq('id', nota.contacto_id).single();
                         if (cData) clienteNombre = cData.nombre;
                     }
+                }
+
+                if (nota && nota.numero) {
+                    const { data: pagosNC } = await supabase.from('pagos_ingresos').select('monto').eq('referencia', 'NC-' + nota.numero).neq('estado', 'anulado');
+                    const sumaMontos = (pagosNC || []).reduce((sum, p) => sum + (parseFloat(p.monto) || 0), 0);
+                    saldoAFavorNC = Math.max(0, Number(nota.total || 0) - sumaMontos);
                 }
             } else {
                 nota = {
@@ -388,11 +406,18 @@ export const NotasCreditoModule = {
                             <h2 class="page-title">${headerTitle}</h2>
                             <p class="text-muted mb-0">${headerSubtitle}</p>
                         </div>
-                        ${(id && !isViewOnly && !EstadoUtils.estaAnulado(nota.estado)) ? `
-                            <button id="btn-anular-nc" class="btn btn-outline-danger bg-white" style="font-weight: 500;">
-                                <i class="bi bi-x-circle me-1"></i> Anular Nota de Crédito
-                            </button>
-                        ` : ''}
+                        <div class="d-flex gap-2">
+                            ${(id && !EstadoUtils.estaAnulado(nota.estado) && saldoAFavorNC > 0) ? `
+                                <button id="btn-aplicar-saldo-nc" class="btn btn-outline-primary bg-white" style="font-weight: 500;">
+                                    <i class="bi bi-arrow-left-right me-1"></i> Aplicar saldo a favor
+                                </button>
+                            ` : ''}
+                            ${(id && !isViewOnly && !EstadoUtils.estaAnulado(nota.estado)) ? `
+                                <button id="btn-anular-nc" class="btn btn-outline-danger bg-white" style="font-weight: 500;">
+                                    <i class="bi bi-x-circle me-1"></i> Anular Nota de Crédito
+                                </button>
+                            ` : ''}
+                        </div>
                     </div>
             `;
 
@@ -899,6 +924,23 @@ export const NotasCreditoModule = {
                         btnGuardar.innerHTML = 'Crear Nota de Crédito';
                         CoreActions.showErrorModal(e.message);
                     }
+                });
+            }
+
+            const btnAplicarSaldo = element.querySelector('#btn-aplicar-saldo-nc');
+            if (btnAplicarSaldo) {
+                btnAplicarSaldo.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    AplicarSaldoNCModal.abrir({
+                        ncId: id,
+                        ncNumero: nota.numero || nota.id,
+                        contactoId: nota.contacto_id,
+                        clienteNombre: clienteNombre,
+                        saldoAFavor: saldoAFavorNC,
+                        onSuccess: () => {
+                            window.location.hash = '#/ingresos/notas-credito';
+                        }
+                    });
                 });
             }
 
