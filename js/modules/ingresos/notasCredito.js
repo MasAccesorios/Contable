@@ -2,7 +2,6 @@ import { getLocalDate } from '../../core/db.js';
 import { supabase } from '../../core/supabase.js';
 import { CoreActions } from '../../shared/crud.js';
 import { ItemEngine } from '../../shared/itemEngine.js';
-import { InventarioUtils } from '../../shared/inventarioUtils.js';
 import { EstadoUtils } from '../../shared/estadoUtils.js';
 import { escapeHtml } from '../../shared/formatters.js';
 
@@ -874,142 +873,25 @@ export const NotasCreditoModule = {
                         
                         if (selectedItems.length === 0) throw new Error("Debe seleccionar al menos un ítem para devolver.");
                         
-                        // CREACIÓN: RPC atómico crear_nota_credito (valida, inserta NC, detalles, pago cruzado hasta el saldo e inventario en una transacción).
-                        // El código de abajo queda solo para el camino de edición.
-                        if (!isEditMode) {
-                            const { data: res, error: rpcErr } = await supabase.rpc('crear_nota_credito', {
-                                p_factura_id: currentFactura.id,
-                                p_fecha: element.querySelector('#nc-fecha').value,
-                                p_motivo: element.querySelector('#nc-motivo').value,
-                                p_items: selectedItems.map(si => ({
-                                    producto_id: parseInt(si.productoId),
-                                    cantidad: si.cantidad,
-                                    precio_unitario: parseFloat(si.precio)
-                                }))
-                            });
-                            if (rpcErr) throw new Error(rpcErr.message);
-                            let msg = `Nota de crédito #${res.numero} creada con éxito. Inventario actualizado.`;
-                            if (parseFloat(res.saldo_a_favor) > 0) {
-                                msg += ` Saldo a favor del cliente: $${parseFloat(res.saldo_a_favor).toLocaleString('es-CO')} (la factura ya estaba pagada o su saldo no alcanzaba).`;
-                            }
-                            CoreActions.showSuccessModal(msg);
-                            window.location.hash = '#/ingresos/notas-credito';
-                            return;
+                        // CREACIÓN y EDICIÓN vía RPC atómicos (validan, escriben NC, detalles, pago cruzado hasta el saldo e inventario en una transacción)
+                        const itemsRpc = selectedItems.map(si => ({
+                            producto_id: parseInt(si.productoId),
+                            cantidad: si.cantidad,
+                            precio_unitario: parseFloat(si.precio)
+                        }));
+                        const fechaNC = element.querySelector('#nc-fecha').value;
+                        const motivoNC = element.querySelector('#nc-motivo').value;
+                        const { data: res, error: rpcErr } = isEditMode
+                            ? await supabase.rpc('editar_nota_credito', { p_nc_id: parseInt(id), p_fecha: fechaNC, p_motivo: motivoNC, p_items: itemsRpc })
+                            : await supabase.rpc('crear_nota_credito', { p_factura_id: currentFactura.id, p_fecha: fechaNC, p_motivo: motivoNC, p_items: itemsRpc });
+                        if (rpcErr) throw new Error(rpcErr.message);
+                        let msg = isEditMode
+                            ? `Nota de crédito #${res.numero} actualizada con éxito. Inventario actualizado.`
+                            : `Nota de crédito #${res.numero} creada con éxito. Inventario actualizado.`;
+                        if (parseFloat(res.saldo_a_favor) > 0) {
+                            msg += ` Saldo a favor del cliente: $${parseFloat(res.saldo_a_favor).toLocaleString('es-CO')} (la factura ya estaba pagada o su saldo no alcanzaba).`;
                         }
-
-                        // Validar saldo
-                        const { data: cartera, error: errCartera } = await supabase.rpc('get_cartera_con_saldos', { p_tipo_cartera: 'cxc' });
-                        if (errCartera) throw new Error("Error consultando cartera para validación de saldo: " + errCartera.message);
-                        
-                        const facturaCartera = cartera?.find(c => String(c.id) === String(currentFactura.id));
-                        const saldoPendienteActual = facturaCartera ? parseFloat(facturaCartera.saldo) : 0;
-                        const totalAnterior = isEditMode ? parseFloat(nota.total) : 0;
-                        const saldoDisponibleReal = saldoPendienteActual + totalAnterior;
-                        
-                        if (totalNC > saldoDisponibleReal) {
-                            throw new Error(`El total de la Nota de Crédito (${totalNC.toLocaleString()}) supera el saldo disponible de la factura (${saldoDisponibleReal.toLocaleString()}).`);
-                        }
-                        
-                        // 1. FASE 1: Cálculo en memoria (Read-Only)
-                        const planReversion = await InventarioUtils.calcularReversionInventario(selectedItems);
-                        if (!planReversion.success) throw new Error("Error calculando inventario: " + planReversion.error);
-
-                        // SI ES EDICIÓN: Anular nota existente
-                        if (isEditMode) {
-                            try {
-                                await NotasCreditoModule.anularNotaCredito(id);
-                            } catch(e) {
-                                throw new Error("Fallo al anular la nota actual antes de editarla: " + e.message);
-                            }
-                        }
-
-                        // 2. Obtener num NC (si es creación)
-                        let ncNumero = isEditMode ? nota.numero : 1;
-                        if (!isEditMode) {
-                            const { data: numData } = await supabase.rpc('get_next_sequence_value', { seq_name: 'notas_credito_seq' });
-                            ncNumero = numData || Date.now();
-                        }
-
-                        let ncId = isEditMode ? nota.id : null;
-                        let pagoId = null;
-
-                        try {
-                            // 3. FASE 2: Escritura Documental Escalona (Segura)
-                            
-                            // a. Crear/Actualizar Cabecera
-                            if (isEditMode) {
-                                const { error: ncErr } = await supabase.from('notas_credito').update({
-                                    fecha: element.querySelector('#nc-fecha').value,
-                                    motivo: element.querySelector('#nc-motivo').value,
-                                    total: totalNC,
-                                    estado: 'activa'
-                                }).eq('id', ncId);
-                                if (ncErr) throw new Error("Fallo al actualizar cabecera: " + ncErr.message);
-                            } else {
-                                const { data: ncGuardada, error: ncErr } = await supabase.from('notas_credito').insert([{
-                                    numero: ncNumero,
-                                    factura_id: currentFactura.id,
-                                    contacto_id: currentFactura.contacto_id || currentFactura.clienteId,
-                                    fecha: element.querySelector('#nc-fecha').value,
-                                    motivo: element.querySelector('#nc-motivo').value,
-                                    total: totalNC,
-                                    estado: 'activa'
-                                }]).select().single();
-                                
-                                if (ncErr) throw new Error("Fallo al crear cabecera: " + ncErr.message);
-                                ncId = ncGuardada.id;
-                            }
-
-                            // b. Crear Detalles
-                            if (isEditMode) {
-                                await supabase.from('nota_credito_detalles').delete().eq('nota_credito_id', ncId);
-                            }
-                            const detallesArr = selectedItems.map(si => ({
-                                nota_credito_id: ncId,
-                                producto_id: parseInt(si.productoId),
-                                cantidad: si.cantidad,
-                                precio_unitario: si.precio,
-                                subtotal: si.subtotal
-                            }));
-                            const { error: detErr } = await supabase.from('nota_credito_detalles').insert(detallesArr);
-                            if (detErr) throw new Error("Error al guardar detalles de la nota: " + detErr.message);
-
-                            // c. Inyectar pago cruzado en pagos_ingresos
-                            const { data: pagoCruzado, error: pagoErr } = await supabase.from('pagos_ingresos').insert([{
-                                factura_id: currentFactura.id,
-                                fecha: element.querySelector('#nc-fecha').value,
-                                monto: totalNC,
-                                tipo: 'in',
-                                cuenta_id: null,
-                                estado: 'completado',
-                                observaciones: 'Pago cruzado por Nota de Crédito #' + ncNumero,
-                                referencia: 'NC-' + ncNumero
-                            }]).select().single();
-                            if (pagoErr) throw new Error("Error al cruzar saldo en pagos: " + pagoErr.message);
-                            pagoId = pagoCruzado.id;
-
-                            // 4. FASE 3: Modificación Física de Inventario con Rollback interno
-                            const origenDoc = 'nota_credito:' + ncNumero;
-                            await InventarioUtils.ejecutarPlanInventario(planReversion.operacionesDB, origenDoc);
-
-                        } catch (errorTransaccion) {
-                            console.error("Fallo crítico en transacción. Revirtiendo creación de nota de crédito...", errorTransaccion);
-                            
-                            // 5. ROLLBACK COMPENSATORIO EXTERNO
-                            if (pagoId) await supabase.from('pagos_ingresos').delete().eq('id', pagoId);
-
-                            if (isEditMode) {
-                                throw new Error(`La nota de crédito fue revertida pero la actualización falló. Estado actual: ANULADA. Se requiere revisión manual inmediata. Detalle: ${errorTransaccion.message}`);
-                            } else {
-                                if (ncId) {
-                                    await supabase.from('nota_credito_detalles').delete().eq('nota_credito_id', ncId);
-                                    await supabase.rpc('rollback_eliminar_nota_credito', { p_id: ncId });
-                                }
-                                throw new Error("Transacción fallida. Se abortó la creación y el inventario físico quedó intacto. Detalle: " + errorTransaccion.message);
-                            }
-                        }
-
-                        CoreActions.showSuccessModal(isEditMode ? "Nota de crédito actualizada con éxito." : "Nota de crédito creada con éxito. Inventario actualizado.");
+                        CoreActions.showSuccessModal(msg);
                         window.location.hash = '#/ingresos/notas-credito';
 
                     } catch (e) {
