@@ -2,11 +2,11 @@ import { getLocalDate } from '../../core/db.js';
 import { supabase } from '../../core/supabase.js';
 import { CoreActions } from '../../shared/crud.js';
 import { ItemEngine } from '../../shared/itemEngine.js';
-import { InventarioUtils } from '../../shared/inventarioUtils.js';
 import { EstadoUtils } from '../../shared/estadoUtils.js';
 import { escapeHtml } from '../../shared/formatters.js';
 
 import { NotasCreditoData } from './notasCredito.data.js';
+import { AplicarSaldoNCModal } from './notasCredito.aplicarSaldo.js';
 export const NotasCreditoModule = {
     async init(element) {
         if (!element) return;
@@ -92,8 +92,18 @@ export const NotasCreditoModule = {
             const startIndex = (currentPage - 1) * itemsPerPage;
 
             const tbodyHtml = currentItems.length > 0 ? currentItems.map(n => {
-                let badgeClass = EstadoUtils.estaAnulado(n.estado) ? 'bg-secondary text-secondary bg-opacity-10 border border-secondary-subtle' : 'bg-success text-success bg-opacity-10 border border-success-subtle';
-                let labelEstado = EstadoUtils.estaAnulado(n.estado) ? 'Anulada' : 'Aplicada';
+                let badgeClass = '';
+                let labelEstado = '';
+                if (EstadoUtils.estaAnulado(n.estado)) {
+                    badgeClass = 'bg-secondary text-secondary bg-opacity-10 border border-secondary-subtle';
+                    labelEstado = 'Anulada';
+                } else if (Number(n.saldo_a_favor) > 0) {
+                    badgeClass = 'bg-warning text-warning bg-opacity-10 border border-warning-subtle';
+                    labelEstado = 'Saldo a favor';
+                } else {
+                    badgeClass = 'bg-success text-success bg-opacity-10 border border-success-subtle';
+                    labelEstado = 'Aplicada';
+                }
                 const estadoLabel = `<span class="badge ${badgeClass} rounded-pill fw-medium" style="font-size: var(--fs-xs); padding: 5px 10px;">${labelEstado}</span>`;
                 const opacity = EstadoUtils.estaAnulado(n.estado) ? '0.5' : '1';
                 
@@ -105,7 +115,7 @@ export const NotasCreditoModule = {
                         <td class="py-3 text-end fw-medium">$${Number(n.total || 0).toLocaleString('es-CO', {minimumFractionDigits: 2})}</td>
                         <td class="py-3 text-center">${estadoLabel}</td>
                         <td class="py-3 text-end" style="position: relative;">
-                            <button class="btn btn-link text-muted p-0 btn-menu-row" data-id="${n.id}" data-estado="${n.estado}">
+                            <button class="btn btn-link text-muted p-0 btn-menu-row" data-id="${n.id}" data-estado="${n.estado}" data-numero="${n.numero}" data-contacto-id="${n.contacto_id}" data-contacto-nombre="${escapeHtml(n.contacto_nombre || '')}" data-saldo-favor="${n.saldo_a_favor}">
                                 <i class="bi bi-three-dots-vertical"></i>
                             </button>
                         </td>
@@ -141,7 +151,7 @@ export const NotasCreditoModule = {
                         <div class="col-12 col-sm-6 col-lg-4">
                             <div class="dash-kpi-card d-flex flex-column justify-content-between" style="min-height: 90px;">
                                 <div class="d-flex justify-content-between align-items-start">
-                                    <span class="dash-kpi-label">Notas Pendientes (este mes)</span>
+                                    <span class="dash-kpi-label">Saldo a Favor Pendiente</span>
                                     <div class="dash-icon-box variant-yellow">
                                         <i class="bi bi-clock-history"></i>
                                     </div>
@@ -274,15 +284,22 @@ export const NotasCreditoModule = {
 
                     const id = e.currentTarget.dataset.id;
                     const estado = e.currentTarget.dataset.estado;
+                    const numero = e.currentTarget.dataset.numero;
+                    const contactoId = e.currentTarget.dataset.contactoId;
+                    const contactoNombre = e.currentTarget.dataset.contactoNombre;
+                    const saldoAFavor = parseFloat(e.currentTarget.dataset.saldoFavor) || 0;
                     const rect = e.currentTarget.getBoundingClientRect();
                     const isAnulada = EstadoUtils.estaAnulado(estado);
                     
                     const menuHtml = `
                         <div class="row-action-menu position-absolute bg-white shadow rounded border py-2" 
-                             style="z-index: 1060; width: 150px; top: ${rect.bottom + window.scrollY}px; left: ${rect.left - 100}px;">
+                             style="z-index: 1060; width: 175px; top: ${rect.bottom + window.scrollY}px; left: ${rect.left - 125}px;">
                             <a href="#/ingresos/notas-credito/ver/${id}" class="d-block px-3 py-1 text-decoration-none text-body hover-bg-light" style="font-size: var(--fs-base);">Ver Detalle</a>
                             ${!isAnulada ? `
                                 <a href="#/ingresos/notas-credito/editar/${id}" class="d-block px-3 py-1 text-decoration-none text-body hover-bg-light" style="font-size: var(--fs-base);">Editar</a>
+                                ${saldoAFavor > 0 ? `
+                                    <a href="#" class="d-block px-3 py-1 text-decoration-none text-body hover-bg-light btn-action-aplicar-saldo" data-id="${id}" style="font-size: var(--fs-base);">Aplicar saldo a favor</a>
+                                ` : ''}
                                 <div class="dropdown-divider my-1"></div>
                                 <a href="#" class="d-block px-3 py-1 text-decoration-none text-danger hover-bg-light btn-action-anular" data-id="${id}" style="font-size: var(--fs-base);">Anular</a>
                             ` : ''}
@@ -291,6 +308,25 @@ export const NotasCreditoModule = {
                     document.body.insertAdjacentHTML('beforeend', menuHtml);
                     
                     const menu = document.querySelector('.row-action-menu');
+
+                    const btnAplicar = menu.querySelector('.btn-action-aplicar-saldo');
+                    if (btnAplicar) {
+                        btnAplicar.addEventListener('click', (ev) => {
+                            ev.preventDefault();
+                            menu.remove();
+                            AplicarSaldoNCModal.abrir({
+                                ncId: id,
+                                ncNumero: numero,
+                                contactoId: contactoId,
+                                clienteNombre: contactoNombre,
+                                saldoAFavor: saldoAFavor,
+                                onSuccess: () => {
+                                    kpiDataNC = null;
+                                    renderGrid();
+                                }
+                            });
+                        });
+                    }
                     
                     if (!isAnulada) {
                         menu.querySelector('.btn-action-anular').addEventListener('click', async (ev) => {
@@ -340,6 +376,7 @@ export const NotasCreditoModule = {
             let detallesNota = [];
             let facturaOrigen = null;
             let clienteNombre = '';
+            let saldoAFavorNC = 0;
 
             if (id) {
                 // Cargar nota existente
@@ -357,6 +394,12 @@ export const NotasCreditoModule = {
                         const { data: cData } = await supabase.from('contactos').select('nombre').eq('id', nota.contacto_id).single();
                         if (cData) clienteNombre = cData.nombre;
                     }
+                }
+
+                if (nota && nota.numero) {
+                    const { data: pagosNC } = await supabase.from('pagos_ingresos').select('monto').eq('referencia', 'NC-' + nota.numero).neq('estado', 'anulado');
+                    const sumaMontos = (pagosNC || []).reduce((sum, p) => sum + (parseFloat(p.monto) || 0), 0);
+                    saldoAFavorNC = Math.max(0, Number(nota.total || 0) - sumaMontos);
                 }
             } else {
                 nota = {
@@ -389,11 +432,18 @@ export const NotasCreditoModule = {
                             <h2 class="page-title">${headerTitle}</h2>
                             <p class="text-muted mb-0">${headerSubtitle}</p>
                         </div>
-                        ${(id && !isViewOnly && !EstadoUtils.estaAnulado(nota.estado)) ? `
-                            <button id="btn-anular-nc" class="btn btn-outline-danger bg-white" style="font-weight: 500;">
-                                <i class="bi bi-x-circle me-1"></i> Anular Nota de Crédito
-                            </button>
-                        ` : ''}
+                        <div class="d-flex gap-2">
+                            ${(id && !EstadoUtils.estaAnulado(nota.estado) && saldoAFavorNC > 0) ? `
+                                <button id="btn-aplicar-saldo-nc" class="btn btn-outline-primary bg-white" style="font-weight: 500;">
+                                    <i class="bi bi-arrow-left-right me-1"></i> Aplicar saldo a favor
+                                </button>
+                            ` : ''}
+                            ${(id && !isViewOnly && !EstadoUtils.estaAnulado(nota.estado)) ? `
+                                <button id="btn-anular-nc" class="btn btn-outline-danger bg-white" style="font-weight: 500;">
+                                    <i class="bi bi-x-circle me-1"></i> Anular Nota de Crédito
+                                </button>
+                            ` : ''}
+                        </div>
                     </div>
             `;
 
@@ -874,142 +924,25 @@ export const NotasCreditoModule = {
                         
                         if (selectedItems.length === 0) throw new Error("Debe seleccionar al menos un ítem para devolver.");
                         
-                        // CREACIÓN: RPC atómico crear_nota_credito (valida, inserta NC, detalles, pago cruzado hasta el saldo e inventario en una transacción).
-                        // El código de abajo queda solo para el camino de edición.
-                        if (!isEditMode) {
-                            const { data: res, error: rpcErr } = await supabase.rpc('crear_nota_credito', {
-                                p_factura_id: currentFactura.id,
-                                p_fecha: element.querySelector('#nc-fecha').value,
-                                p_motivo: element.querySelector('#nc-motivo').value,
-                                p_items: selectedItems.map(si => ({
-                                    producto_id: parseInt(si.productoId),
-                                    cantidad: si.cantidad,
-                                    precio_unitario: parseFloat(si.precio)
-                                }))
-                            });
-                            if (rpcErr) throw new Error(rpcErr.message);
-                            let msg = `Nota de crédito #${res.numero} creada con éxito. Inventario actualizado.`;
-                            if (parseFloat(res.saldo_a_favor) > 0) {
-                                msg += ` Saldo a favor del cliente: $${parseFloat(res.saldo_a_favor).toLocaleString('es-CO')} (la factura ya estaba pagada o su saldo no alcanzaba).`;
-                            }
-                            CoreActions.showSuccessModal(msg);
-                            window.location.hash = '#/ingresos/notas-credito';
-                            return;
+                        // CREACIÓN y EDICIÓN vía RPC atómicos (validan, escriben NC, detalles, pago cruzado hasta el saldo e inventario en una transacción)
+                        const itemsRpc = selectedItems.map(si => ({
+                            producto_id: parseInt(si.productoId),
+                            cantidad: si.cantidad,
+                            precio_unitario: parseFloat(si.precio)
+                        }));
+                        const fechaNC = element.querySelector('#nc-fecha').value;
+                        const motivoNC = element.querySelector('#nc-motivo').value;
+                        const { data: res, error: rpcErr } = isEditMode
+                            ? await supabase.rpc('editar_nota_credito', { p_nc_id: parseInt(id), p_fecha: fechaNC, p_motivo: motivoNC, p_items: itemsRpc })
+                            : await supabase.rpc('crear_nota_credito', { p_factura_id: currentFactura.id, p_fecha: fechaNC, p_motivo: motivoNC, p_items: itemsRpc });
+                        if (rpcErr) throw new Error(rpcErr.message);
+                        let msg = isEditMode
+                            ? `Nota de crédito #${res.numero} actualizada con éxito. Inventario actualizado.`
+                            : `Nota de crédito #${res.numero} creada con éxito. Inventario actualizado.`;
+                        if (parseFloat(res.saldo_a_favor) > 0) {
+                            msg += ` Saldo a favor del cliente: $${parseFloat(res.saldo_a_favor).toLocaleString('es-CO')} (la factura ya estaba pagada o su saldo no alcanzaba).`;
                         }
-
-                        // Validar saldo
-                        const { data: cartera, error: errCartera } = await supabase.rpc('get_cartera_con_saldos', { p_tipo_cartera: 'cxc' });
-                        if (errCartera) throw new Error("Error consultando cartera para validación de saldo: " + errCartera.message);
-                        
-                        const facturaCartera = cartera?.find(c => String(c.id) === String(currentFactura.id));
-                        const saldoPendienteActual = facturaCartera ? parseFloat(facturaCartera.saldo) : 0;
-                        const totalAnterior = isEditMode ? parseFloat(nota.total) : 0;
-                        const saldoDisponibleReal = saldoPendienteActual + totalAnterior;
-                        
-                        if (totalNC > saldoDisponibleReal) {
-                            throw new Error(`El total de la Nota de Crédito (${totalNC.toLocaleString()}) supera el saldo disponible de la factura (${saldoDisponibleReal.toLocaleString()}).`);
-                        }
-                        
-                        // 1. FASE 1: Cálculo en memoria (Read-Only)
-                        const planReversion = await InventarioUtils.calcularReversionInventario(selectedItems);
-                        if (!planReversion.success) throw new Error("Error calculando inventario: " + planReversion.error);
-
-                        // SI ES EDICIÓN: Anular nota existente
-                        if (isEditMode) {
-                            try {
-                                await NotasCreditoModule.anularNotaCredito(id);
-                            } catch(e) {
-                                throw new Error("Fallo al anular la nota actual antes de editarla: " + e.message);
-                            }
-                        }
-
-                        // 2. Obtener num NC (si es creación)
-                        let ncNumero = isEditMode ? nota.numero : 1;
-                        if (!isEditMode) {
-                            const { data: numData } = await supabase.rpc('get_next_sequence_value', { seq_name: 'notas_credito_seq' });
-                            ncNumero = numData || Date.now();
-                        }
-
-                        let ncId = isEditMode ? nota.id : null;
-                        let pagoId = null;
-
-                        try {
-                            // 3. FASE 2: Escritura Documental Escalona (Segura)
-                            
-                            // a. Crear/Actualizar Cabecera
-                            if (isEditMode) {
-                                const { error: ncErr } = await supabase.from('notas_credito').update({
-                                    fecha: element.querySelector('#nc-fecha').value,
-                                    motivo: element.querySelector('#nc-motivo').value,
-                                    total: totalNC,
-                                    estado: 'activa'
-                                }).eq('id', ncId);
-                                if (ncErr) throw new Error("Fallo al actualizar cabecera: " + ncErr.message);
-                            } else {
-                                const { data: ncGuardada, error: ncErr } = await supabase.from('notas_credito').insert([{
-                                    numero: ncNumero,
-                                    factura_id: currentFactura.id,
-                                    contacto_id: currentFactura.contacto_id || currentFactura.clienteId,
-                                    fecha: element.querySelector('#nc-fecha').value,
-                                    motivo: element.querySelector('#nc-motivo').value,
-                                    total: totalNC,
-                                    estado: 'activa'
-                                }]).select().single();
-                                
-                                if (ncErr) throw new Error("Fallo al crear cabecera: " + ncErr.message);
-                                ncId = ncGuardada.id;
-                            }
-
-                            // b. Crear Detalles
-                            if (isEditMode) {
-                                await supabase.from('nota_credito_detalles').delete().eq('nota_credito_id', ncId);
-                            }
-                            const detallesArr = selectedItems.map(si => ({
-                                nota_credito_id: ncId,
-                                producto_id: parseInt(si.productoId),
-                                cantidad: si.cantidad,
-                                precio_unitario: si.precio,
-                                subtotal: si.subtotal
-                            }));
-                            const { error: detErr } = await supabase.from('nota_credito_detalles').insert(detallesArr);
-                            if (detErr) throw new Error("Error al guardar detalles de la nota: " + detErr.message);
-
-                            // c. Inyectar pago cruzado en pagos_ingresos
-                            const { data: pagoCruzado, error: pagoErr } = await supabase.from('pagos_ingresos').insert([{
-                                factura_id: currentFactura.id,
-                                fecha: element.querySelector('#nc-fecha').value,
-                                monto: totalNC,
-                                tipo: 'in',
-                                cuenta_id: null,
-                                estado: 'completado',
-                                observaciones: 'Pago cruzado por Nota de Crédito #' + ncNumero,
-                                referencia: 'NC-' + ncNumero
-                            }]).select().single();
-                            if (pagoErr) throw new Error("Error al cruzar saldo en pagos: " + pagoErr.message);
-                            pagoId = pagoCruzado.id;
-
-                            // 4. FASE 3: Modificación Física de Inventario con Rollback interno
-                            const origenDoc = 'nota_credito:' + ncNumero;
-                            await InventarioUtils.ejecutarPlanInventario(planReversion.operacionesDB, origenDoc);
-
-                        } catch (errorTransaccion) {
-                            console.error("Fallo crítico en transacción. Revirtiendo creación de nota de crédito...", errorTransaccion);
-                            
-                            // 5. ROLLBACK COMPENSATORIO EXTERNO
-                            if (pagoId) await supabase.from('pagos_ingresos').delete().eq('id', pagoId);
-
-                            if (isEditMode) {
-                                throw new Error(`La nota de crédito fue revertida pero la actualización falló. Estado actual: ANULADA. Se requiere revisión manual inmediata. Detalle: ${errorTransaccion.message}`);
-                            } else {
-                                if (ncId) {
-                                    await supabase.from('nota_credito_detalles').delete().eq('nota_credito_id', ncId);
-                                    await supabase.rpc('rollback_eliminar_nota_credito', { p_id: ncId });
-                                }
-                                throw new Error("Transacción fallida. Se abortó la creación y el inventario físico quedó intacto. Detalle: " + errorTransaccion.message);
-                            }
-                        }
-
-                        CoreActions.showSuccessModal(isEditMode ? "Nota de crédito actualizada con éxito." : "Nota de crédito creada con éxito. Inventario actualizado.");
+                        CoreActions.showSuccessModal(msg);
                         window.location.hash = '#/ingresos/notas-credito';
 
                     } catch (e) {
@@ -1017,6 +950,23 @@ export const NotasCreditoModule = {
                         btnGuardar.innerHTML = 'Crear Nota de Crédito';
                         CoreActions.showErrorModal(e.message);
                     }
+                });
+            }
+
+            const btnAplicarSaldo = element.querySelector('#btn-aplicar-saldo-nc');
+            if (btnAplicarSaldo) {
+                btnAplicarSaldo.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    AplicarSaldoNCModal.abrir({
+                        ncId: id,
+                        ncNumero: nota.numero || nota.id,
+                        contactoId: nota.contacto_id,
+                        clienteNombre: clienteNombre,
+                        saldoAFavor: saldoAFavorNC,
+                        onSuccess: () => {
+                            window.location.hash = '#/ingresos/notas-credito';
+                        }
+                    });
                 });
             }
 
