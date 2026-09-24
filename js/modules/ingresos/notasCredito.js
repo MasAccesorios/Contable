@@ -115,7 +115,7 @@ export const NotasCreditoModule = {
                         <td class="py-3 text-end fw-medium">$${Number(n.total || 0).toLocaleString('es-CO', {minimumFractionDigits: 2})}</td>
                         <td class="py-3 text-center">${estadoLabel}</td>
                         <td class="py-3 text-end" style="position: relative;">
-                            <button class="btn btn-link text-muted p-0 btn-menu-row" data-id="${n.id}" data-estado="${n.estado}">
+                            <button class="btn btn-link text-muted p-0 btn-menu-row" data-id="${n.id}" data-estado="${n.estado}" data-numero="${n.numero}" data-contacto-id="${n.contacto_id}" data-contacto-nombre="${escapeHtml(n.contacto_nombre || '')}" data-saldo-favor="${n.saldo_a_favor}">
                                 <i class="bi bi-three-dots-vertical"></i>
                             </button>
                         </td>
@@ -284,9 +284,12 @@ export const NotasCreditoModule = {
 
                     const id = e.currentTarget.dataset.id;
                     const estado = e.currentTarget.dataset.estado;
+                    const numero = e.currentTarget.dataset.numero;
+                    const contactoId = e.currentTarget.dataset.contactoId;
+                    const contactoNombre = e.currentTarget.dataset.contactoNombre;
+                    const saldoAFavor = parseFloat(e.currentTarget.dataset.saldoFavor) || 0;
                     const rect = e.currentTarget.getBoundingClientRect();
                     const isAnulada = EstadoUtils.estaAnulado(estado);
-                    const n = currentItems.find(item => String(item.id) === String(id));
                     
                     const menuHtml = `
                         <div class="row-action-menu position-absolute bg-white shadow rounded border py-2" 
@@ -294,7 +297,7 @@ export const NotasCreditoModule = {
                             <a href="#/ingresos/notas-credito/ver/${id}" class="d-block px-3 py-1 text-decoration-none text-body hover-bg-light" style="font-size: var(--fs-base);">Ver Detalle</a>
                             ${!isAnulada ? `
                                 <a href="#/ingresos/notas-credito/editar/${id}" class="d-block px-3 py-1 text-decoration-none text-body hover-bg-light" style="font-size: var(--fs-base);">Editar</a>
-                                ${Number(n?.saldo_a_favor) > 0 ? `
+                                ${saldoAFavor > 0 ? `
                                     <a href="#" class="d-block px-3 py-1 text-decoration-none text-body hover-bg-light btn-action-aplicar-saldo" data-id="${id}" style="font-size: var(--fs-base);">Aplicar saldo a favor</a>
                                 ` : ''}
                                 <div class="dropdown-divider my-1"></div>
@@ -311,19 +314,17 @@ export const NotasCreditoModule = {
                         btnAplicar.addEventListener('click', (ev) => {
                             ev.preventDefault();
                             menu.remove();
-                            if (n) {
-                                AplicarSaldoNCModal.abrir({
-                                    ncId: n.id,
-                                    ncNumero: n.numero,
-                                    contactoId: n.contacto_id,
-                                    clienteNombre: n.contacto_nombre,
-                                    saldoAFavor: Number(n.saldo_a_favor),
-                                    onSuccess: () => {
-                                        kpiDataNC = null;
-                                        renderGrid();
-                                    }
-                                });
-                            }
+                            AplicarSaldoNCModal.abrir({
+                                ncId: id,
+                                ncNumero: numero,
+                                contactoId: contactoId,
+                                clienteNombre: contactoNombre,
+                                saldoAFavor: saldoAFavor,
+                                onSuccess: () => {
+                                    kpiDataNC = null;
+                                    renderGrid();
+                                }
+                            });
                         });
                     }
                     
