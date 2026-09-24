@@ -286,13 +286,17 @@ export const NotasCreditoModule = {
                     const estado = e.currentTarget.dataset.estado;
                     const rect = e.currentTarget.getBoundingClientRect();
                     const isAnulada = EstadoUtils.estaAnulado(estado);
+                    const n = currentItems.find(item => String(item.id) === String(id));
                     
                     const menuHtml = `
                         <div class="row-action-menu position-absolute bg-white shadow rounded border py-2" 
-                             style="z-index: 1060; width: 150px; top: ${rect.bottom + window.scrollY}px; left: ${rect.left - 100}px;">
+                             style="z-index: 1060; width: 175px; top: ${rect.bottom + window.scrollY}px; left: ${rect.left - 125}px;">
                             <a href="#/ingresos/notas-credito/ver/${id}" class="d-block px-3 py-1 text-decoration-none text-body hover-bg-light" style="font-size: var(--fs-base);">Ver Detalle</a>
                             ${!isAnulada ? `
                                 <a href="#/ingresos/notas-credito/editar/${id}" class="d-block px-3 py-1 text-decoration-none text-body hover-bg-light" style="font-size: var(--fs-base);">Editar</a>
+                                ${Number(n?.saldo_a_favor) > 0 ? `
+                                    <a href="#" class="d-block px-3 py-1 text-decoration-none text-body hover-bg-light btn-action-aplicar-saldo" data-id="${id}" style="font-size: var(--fs-base);">Aplicar saldo a favor</a>
+                                ` : ''}
                                 <div class="dropdown-divider my-1"></div>
                                 <a href="#" class="d-block px-3 py-1 text-decoration-none text-danger hover-bg-light btn-action-anular" data-id="${id}" style="font-size: var(--fs-base);">Anular</a>
                             ` : ''}
@@ -301,6 +305,27 @@ export const NotasCreditoModule = {
                     document.body.insertAdjacentHTML('beforeend', menuHtml);
                     
                     const menu = document.querySelector('.row-action-menu');
+
+                    const btnAplicar = menu.querySelector('.btn-action-aplicar-saldo');
+                    if (btnAplicar) {
+                        btnAplicar.addEventListener('click', (ev) => {
+                            ev.preventDefault();
+                            menu.remove();
+                            if (n) {
+                                AplicarSaldoNCModal.abrir({
+                                    ncId: n.id,
+                                    ncNumero: n.numero,
+                                    contactoId: n.contacto_id,
+                                    clienteNombre: n.contacto_nombre,
+                                    saldoAFavor: Number(n.saldo_a_favor),
+                                    onSuccess: () => {
+                                        kpiDataNC = null;
+                                        renderGrid();
+                                    }
+                                });
+                            }
+                        });
+                    }
                     
                     if (!isAnulada) {
                         menu.querySelector('.btn-action-anular').addEventListener('click', async (ev) => {
