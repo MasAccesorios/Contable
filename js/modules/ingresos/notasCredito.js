@@ -874,6 +874,29 @@ export const NotasCreditoModule = {
                         
                         if (selectedItems.length === 0) throw new Error("Debe seleccionar al menos un ítem para devolver.");
                         
+                        // CREACIÓN: RPC atómico crear_nota_credito (valida, inserta NC, detalles, pago cruzado hasta el saldo e inventario en una transacción).
+                        // El código de abajo queda solo para el camino de edición.
+                        if (!isEditMode) {
+                            const { data: res, error: rpcErr } = await supabase.rpc('crear_nota_credito', {
+                                p_factura_id: currentFactura.id,
+                                p_fecha: element.querySelector('#nc-fecha').value,
+                                p_motivo: element.querySelector('#nc-motivo').value,
+                                p_items: selectedItems.map(si => ({
+                                    producto_id: parseInt(si.productoId),
+                                    cantidad: si.cantidad,
+                                    precio_unitario: parseFloat(si.precio)
+                                }))
+                            });
+                            if (rpcErr) throw new Error(rpcErr.message);
+                            let msg = `Nota de crédito #${res.numero} creada con éxito. Inventario actualizado.`;
+                            if (parseFloat(res.saldo_a_favor) > 0) {
+                                msg += ` Saldo a favor del cliente: $${parseFloat(res.saldo_a_favor).toLocaleString('es-CO')} (la factura ya estaba pagada o su saldo no alcanzaba).`;
+                            }
+                            CoreActions.showSuccessModal(msg);
+                            window.location.hash = '#/ingresos/notas-credito';
+                            return;
+                        }
+
                         // Validar saldo
                         const { data: cartera, error: errCartera } = await supabase.rpc('get_cartera_con_saldos', { p_tipo_cartera: 'cxc' });
                         if (errCartera) throw new Error("Error consultando cartera para validación de saldo: " + errCartera.message);
