@@ -107,6 +107,16 @@ export const DetalleBancoModule = {
                     };
                 });
 
+                const idsMov = mapped.map(m => m.id);
+                if (idsMov.length > 0) {
+                    const { data: concRows } = await supabase
+                        .from('pagos_ingresos')
+                        .select('id, conciliacion_id')
+                        .in('id', idsMov);
+                    const mapaConc = new Map((concRows || []).map(r => [r.id, r.conciliacion_id]));
+                    mapped.forEach(m => { m.conciliacion_id = mapaConc.get(m.id) ?? null; });
+                }
+
                 if (!isLoadMore) {
                     this.state.transacciones = mapped;
                 } else {
