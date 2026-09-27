@@ -10,6 +10,7 @@ export function agruparTransaccionesPorPago(transacciones) {
         }
         grupos[key].monto += Number(t.monto);
         grupos[key].idsIncluidos.push(t.id);
+        if (t.conciliacion_id) grupos[key].conciliacion_id = t.conciliacion_id;
         if (t.factura_id) grupos[key].facturaIdsIncluidas.push(t.factura_id);
     });
     return Object.values(grupos);

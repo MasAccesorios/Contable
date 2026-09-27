@@ -448,7 +448,8 @@ export class CrudFinanciero {
             monto: Number(g.monto),
             cuentaId: g.cuenta_id,
             proveedorId: g.contacto_id,
-            estado: g.estado
+            estado: g.estado,
+            conciliacion_id: g.conciliacion_id
         }));
 
         tbody.innerHTML = transacciones.map(g => {
@@ -473,8 +474,12 @@ export class CrudFinanciero {
                             <i class="bi bi-three-dots-vertical fs-6"></i>
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end shadow border-0" style="font-size: var(--fs-base);">
-                            <li><a class="dropdown-item text-primary btn-editar-registro" href="javascript:void(0)" data-id="${g.id}">Editar</a></li>
-                            <li><a class="dropdown-item text-danger btn-eliminar-registro" href="javascript:void(0)" data-id="${g.id}">Eliminar</a></li>
+                            ${!g.conciliacion_id ? `
+                                <li><a class="dropdown-item text-primary btn-editar-registro" href="javascript:void(0)" data-id="${g.id}">Editar</a></li>
+                                <li><a class="dropdown-item text-danger btn-eliminar-registro" href="javascript:void(0)" data-id="${g.id}">Eliminar</a></li>
+                            ` : `
+                                <li><span class="dropdown-item-text text-muted small fst-italic">Movimiento conciliado</span></li>
+                            `}
                         </ul>
                     </div>
                 </td>

@@ -319,8 +319,12 @@ export const DetalleBancoModule = {
                                 <i class="bi bi-three-dots-vertical fs-6"></i>
                             </button>
                             <ul class="dropdown-menu dropdown-menu-end shadow border-0" style="font-size: var(--fs-base);">
-                                <li><a class="dropdown-item btn-editar-transaccion" href="javascript:void(0)" data-id="${t.id}">Editar</a></li>
-                                <li><a class="dropdown-item text-danger btn-eliminar-banco" href="javascript:void(0)" data-id="${t.id}" data-grupo="${t.grupo_pago_id || ''}" data-monto="${t.monto}" data-fecha="${t.fecha}">Eliminar</a></li>
+                                ${!t.conciliacion_id ? `
+                                    <li><a class="dropdown-item btn-editar-transaccion" href="javascript:void(0)" data-id="${t.id}">Editar</a></li>
+                                    <li><a class="dropdown-item text-danger btn-eliminar-banco" href="javascript:void(0)" data-id="${t.id}" data-grupo="${t.grupo_pago_id || ''}" data-monto="${t.monto}" data-fecha="${t.fecha}">Eliminar</a></li>
+                                ` : `
+                                    <li><span class="dropdown-item-text text-muted small fst-italic">Movimiento conciliado</span></li>
+                                `}
                             </ul>
                         </div>
                     </td>

@@ -141,18 +141,21 @@ export const PagosRecibidosEvents = {
                     <a class="dropdown-item py-2 d-flex align-items-center gap-2 text-dark" href="#" id="action-imprimir-${id}">
                         <i class="bi bi-printer text-secondary"></i> Imprimir
                     </a>
-                    ${!anulado ? `
+                    ${conciliado ? `
+                        <div class="dropdown-divider my-1"></div>
+                        <div class="px-3 py-2 text-muted small fst-italic">Movimiento conciliado. Elimina la conciliación para modificarlo.</div>
+                    ` : (!anulado ? `
                         <a class="dropdown-item py-2 d-flex align-items-center gap-2 text-dark" href="#" id="action-editar-${id}">
                             <i class="bi bi-pencil text-secondary"></i> Editar
                         </a>
-                        ${!conciliado ? `<a class="dropdown-item py-2 d-flex align-items-center gap-2 text-dark" href="#" id="action-anular-${id}">
+                        <a class="dropdown-item py-2 d-flex align-items-center gap-2 text-dark" href="#" id="action-anular-${id}">
                             <i class="bi bi-x-circle text-secondary"></i> Anular
-                        </a>` : `<div class="px-3 py-2 text-muted small fst-italic">No se puede anular un pago conciliado</div>`}
+                        </a>
                         <div class="dropdown-divider my-1"></div>
                         <a class="dropdown-item py-2 d-flex align-items-center gap-2 text-danger" href="#" id="action-eliminar-${id}">
                             <i class="bi bi-trash"></i> Eliminar
                         </a>
-                    ` : ''}
+                    ` : '')}
                 `;
 
                 document.body.appendChild(menu);
@@ -235,7 +238,7 @@ export const PagosRecibidosEvents = {
 
                         if (grupoId) {
                             if (conciliado) {
-                                CoreActions.showWarningModal('No se puede eliminar un pago que ya ha sido conciliado. Usa la opción "Anular" en su lugar.');
+                                CoreActions.showWarningModal('Este movimiento está conciliado. Elimina la conciliación en Bancos > Conciliación para poder modificarlo.');
                                 return;
                             }
 
@@ -285,7 +288,7 @@ export const PagosRecibidosEvents = {
                             return;
                         }
                         if (conciliado) {
-                            CoreActions.showWarningModal('No se puede eliminar un pago que ya ha sido conciliado. Usa la opción "Anular" en su lugar.');
+                            CoreActions.showWarningModal('Este movimiento está conciliado. Elimina la conciliación en Bancos > Conciliación para poder modificarlo.');
                             return;
                         }
 

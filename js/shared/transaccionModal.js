@@ -33,6 +33,19 @@ export async function mostrarDetalleTransaccion(t, onSuccess) {
         montoTotalGrupo = pagosDelGrupo.reduce((s, p) => s + Number(p.monto), 0);
     }
 
+    // ── Verificar si está conciliado ─────────────────────────────────────────
+    let estaConciliado = false;
+    if (isGroup) {
+        const { data: concData } = await supabase
+            .from('pagos_ingresos')
+            .select('id')
+            .eq('grupo_pago_id', t.grupo_pago_id)
+            .not('conciliacion_id', 'is', null);
+        estaConciliado = !!(concData && concData.length > 0);
+    } else {
+        estaConciliado = t.conciliacion_id !== null && t.conciliacion_id !== undefined;
+    }
+
     // ── CAMPO FACTURA ASOCIADA (solo caso NO grupo) ──────────────────────────
     let htmlFacturaAsociada = '';
     if (!isGroup) {
@@ -78,7 +91,7 @@ export async function mostrarDetalleTransaccion(t, onSuccess) {
                     <span class="text-muted" style="font-size: 13px;">N\u00ba grupo: ${transIdVisual}</span>
                 </div>
                 <div class="d-flex align-items-center gap-2">
-                    <button type="button" id="btn-activar-edicion" class="btn btn-sm btn-light border">
+                    <button type="button" id="btn-activar-edicion" class="btn btn-sm btn-light border" ${estaConciliado ? 'style="display:none;"' : ''}>
                         <i class="bi bi-pencil me-1"></i>Editar pago
                     </button>
                     <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button>
@@ -86,6 +99,11 @@ export async function mostrarDetalleTransaccion(t, onSuccess) {
             </div>
             <div class="offcanvas-body">
                 <div>
+                    ${estaConciliado ? `
+                        <div class="alert alert-secondary py-2 px-3 small mb-3 border-0 bg-light text-muted d-flex align-items-center gap-2">
+                            <i class="bi bi-info-circle text-secondary"></i> Movimiento conciliado — elimina la conciliación para editarlo.
+                        </div>
+                    ` : ''}
                     <!-- Resumen monto total -->
                     <div class="mb-4 p-3 rounded-3" style="background: #f8fafc; border: 1px solid #e2e8f0;">
                         <div class="text-muted small mb-1">Total abonado en este pago</div>
@@ -149,13 +167,18 @@ export async function mostrarDetalleTransaccion(t, onSuccess) {
                     <div class="modal-header border-0 pb-0 pt-4 px-4">
                         <h5 class="modal-title fw-bold">Pago recibido <span class="text-muted ms-2" style="font-size: 14px; font-weight: normal;">(N\u00ba trans: ${transIdVisual})</span></h5>
                         <div class="d-flex align-items-center gap-2">
-                            <button type="button" id="btn-activar-edicion" class="btn btn-sm btn-light border">
+                            <button type="button" id="btn-activar-edicion" class="btn btn-sm btn-light border" ${estaConciliado ? 'style="display:none;"' : ''}>
                                 <i class="bi bi-pencil me-1"></i>Editar pago
                             </button>
                             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                         </div>
                     </div>
                     <div class="modal-body pt-3 pb-4 px-4">
+                        ${estaConciliado ? `
+                            <div class="alert alert-secondary py-2 px-3 small mb-3 border-0 bg-light text-muted d-flex align-items-center gap-2">
+                                <i class="bi bi-info-circle text-secondary"></i> Movimiento conciliado — elimina la conciliación para editarlo.
+                            </div>
+                        ` : ''}
                         <form id="form-editar-trans">
                             <div class="mb-4">
                                 <div class="text-muted small">Valor total</div>
@@ -222,25 +245,32 @@ export async function mostrarDetalleTransaccion(t, onSuccess) {
     uiInstance.show();
 
     // ── Activar edición ──────────────────────────────────────────────────────
-    document.getElementById('btn-activar-edicion').addEventListener('click', () => {
-        if (isGroup) {
-            sessionStorage.setItem('clienteId', String(t.contacto_id));
-            window.location.hash = '#/ingresos/pagos/nuevo?clienteId=' + t.contacto_id + '&grupoId=' + encodeURIComponent(t.grupo_pago_id);
-            uiInstance.hide();
-            return;
+    const btnActivarEdicion = document.getElementById('btn-activar-edicion');
+    if (btnActivarEdicion) {
+        if (estaConciliado) {
+            btnActivarEdicion.style.display = 'none';
+        } else {
+            btnActivarEdicion.addEventListener('click', () => {
+                if (isGroup) {
+                    sessionStorage.setItem('clienteId', String(t.contacto_id));
+                    window.location.hash = '#/ingresos/pagos/nuevo?clienteId=' + t.contacto_id + '&grupoId=' + encodeURIComponent(t.grupo_pago_id);
+                    uiInstance.hide();
+                    return;
+                }
+
+                ['edit-trans-fecha', 'edit-trans-cuenta', 'edit-trans-categoria', 'edit-trans-observaciones'].forEach(id => {
+                    document.getElementById(id).disabled = false;
+                });
+
+                document.getElementById('edit-trans-monto').disabled = false;
+                const facInput = document.getElementById('edit-trans-factura-id');
+                if (facInput) facInput.disabled = false;
+
+                document.getElementById('wrap-btn-guardar').style.display = 'block';
+                document.getElementById('btn-activar-edicion').style.display = 'none';
+            });
         }
-
-        ['edit-trans-fecha', 'edit-trans-cuenta', 'edit-trans-categoria', 'edit-trans-observaciones'].forEach(id => {
-            document.getElementById(id).disabled = false;
-        });
-
-        document.getElementById('edit-trans-monto').disabled = false;
-        const facInput = document.getElementById('edit-trans-factura-id');
-        if (facInput) facInput.disabled = false;
-
-        document.getElementById('wrap-btn-guardar').style.display = 'block';
-        document.getElementById('btn-activar-edicion').style.display = 'none';
-    });
+    }
 
     // ── Submit handler (solo individual) ─────────────────────────────────────
     const formEditar = document.getElementById('form-editar-trans');

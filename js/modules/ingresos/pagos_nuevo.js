@@ -57,6 +57,11 @@ export default {
                     .eq('grupo_pago_id', this.grupoId);
                 if (errPg) console.error("Error fetching pagosGrupo:", errPg);
                 pagosGrupo = pg || [];
+                if (pagosGrupo.some(p => p.conciliacion_id !== null && p.conciliacion_id !== undefined)) {
+                    CoreActions.showWarningModal('Este pago está conciliado. Elimina la conciliación para editarlo.');
+                    window.history.back();
+                    return;
+                }
                 if (pagosGrupo.length > 0) {
                     const primerPago = pagosGrupo[0];
                     this.fechaOriginal = primerPago.fecha;
