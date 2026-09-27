@@ -147,6 +147,7 @@ export const ConciliacionEvents = {
                 { valor: this.state.ajusteEntradas, tipo: 'ingreso', categoria: 'Entradas bancarias' }
             ];
             
+            const ajustesCreados = [];
             for (const adj of ajustes) {
                 if (adj.valor > 0) {
                     const payloadAdj = {
@@ -163,11 +164,18 @@ export const ConciliacionEvents = {
                         const resId = (res && res.id) || (res && res[0] && res[0].id);
                         if (resId) {
                             movimientosConciliados.push(resId);
+                            ajustesCreados.push(resId);
                         } else {
+                            if (ajustesCreados.length > 0) {
+                                await supabase.from('pagos_ingresos').delete().in('id', ajustesCreados);
+                            }
                             alert('No se pudo guardar el ajuste "' + adj.categoria + '": no se obtuvo ID. La conciliación NO se guardó.');
                             return;
                         }
                     } catch (err) {
+                        if (ajustesCreados.length > 0) {
+                            await supabase.from('pagos_ingresos').delete().in('id', ajustesCreados);
+                        }
                         alert('No se pudo guardar el ajuste "' + adj.categoria + '": ' + (err?.message || err) + '. La conciliación NO se guardó.');
                         return;
                     }
@@ -192,7 +200,12 @@ export const ConciliacionEvents = {
 
             try {
                 const { error } = await supabase.rpc('guardar_conciliacion_bancaria', payload);
-                if (error) throw error;
+                if (error) {
+                    if (ajustesCreados.length > 0) {
+                        await supabase.from('pagos_ingresos').delete().in('id', ajustesCreados);
+                    }
+                    throw error;
+                }
                 
                 this.state.editingConciliacionId = null;
                 alert('Conciliación guardada exitosamente.');
