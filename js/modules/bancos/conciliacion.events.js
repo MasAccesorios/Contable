@@ -151,7 +151,7 @@ export const ConciliacionEvents = {
                 if (adj.valor > 0) {
                     const payloadAdj = {
                         tipo: adj.tipo,
-                        fecha: new Date().toISOString(),
+                        fecha: this.state.fechaHasta,
                         monto: adj.valor,
                         cuenta_id: parseInt(this.state.bancoId, 10),
                         categoria: adj.categoria,
@@ -160,13 +160,23 @@ export const ConciliacionEvents = {
                     };
                     try {
                         const res = await DB.save('transacciones', payloadAdj);
-                        if (res && res.id) movimientosConciliados.push(res.id);
-                        else if (res && res[0] && res[0].id) movimientosConciliados.push(res[0].id);
+                        const resId = (res && res.id) || (res && res[0] && res[0].id);
+                        if (resId) {
+                            movimientosConciliados.push(resId);
+                        } else {
+                            alert('No se pudo guardar el ajuste "' + adj.categoria + '": no se obtuvo ID. La conciliación NO se guardó.');
+                            return;
+                        }
                     } catch (err) {
-                        console.error('Error guardando ajuste', adj.categoria, err);
+                        alert('No se pudo guardar el ajuste "' + adj.categoria + '": ' + (err?.message || err) + '. La conciliación NO se guardó.');
+                        return;
                     }
                 }
             }
+
+            this.recalcularDiferenciaPendiente();
+            const difFinal = Math.abs(this.state.diferenciaActual) < 1 ? 0 : Number(this.state.diferenciaActual);
+            const saldoBanco = Number(this.state.saldoBancario) || 0;
 
             const editId = this.state.editingConciliacionId ? parseInt(this.state.editingConciliacionId, 10) : null;
             const payload = {
@@ -174,9 +184,9 @@ export const ConciliacionEvents = {
                 p_banco_id: parseInt(this.state.bancoId, 10),
                 p_fecha_desde: this.state.fechaDesde,
                 p_fecha_hasta: this.state.fechaHasta,
-                p_saldo_bancario: Number(this.state.saldoBancario) || 0,
-                p_saldo_sistema: Number(this.state.saldoAnterior + this.state.entradas - this.state.salidas) || 0,
-                p_diferencia: Number(this.state.saldoBancario - (this.state.saldoAnterior + this.state.entradas - this.state.salidas)) || 0,
+                p_saldo_bancario: saldoBanco,
+                p_saldo_sistema: saldoBanco - difFinal,
+                p_diferencia: difFinal,
                 p_movimientos_conciliados: movimientosConciliados.map(mid => parseInt(mid, 10)).filter(mid => !isNaN(mid))
             };
 
