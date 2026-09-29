@@ -207,6 +207,7 @@ export const PrintManager = {
                     <td style="padding: 8px 4px;">
                         <div style="font-weight: 600; color: #212529;">${escapeHtml(det.nombre) || 'Ítem sin nombre'}</div>
                         ${det.sku ? `<div style="font-size: 12px; color: #6c757d; margin-top: 3px;">SKU: ${escapeHtml(det.sku)}</div>` : ''}
+                        ${det.descripcion_personalizada ? `<div style="font-size: 12px; color: #212529; margin-top: 3px;">${escapeHtml(det.descripcion_personalizada)}</div>` : ''}
                     </td>
                     <td style="padding: 8px 4px; text-align: center;">${det.cantidad}</td>
                     <td style="padding: 8px 4px; text-align: right;">${formatMoney(det.precio_unitario)}</td>

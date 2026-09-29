@@ -173,7 +173,7 @@ export const CuentaCobroModule = {
             cliente_email: '',
             forma_pago: 'Contado',
             medio_pago: 'Instrumento no definido',
-            detalles: [{ id: Date.now(), producto_id: '', nombre: '', sku: '', cantidad: 1, precio_unitario: 0, total: 0 }],
+            detalles: [{ id: Date.now(), producto_id: '', nombre: '', sku: '', descripcion_personalizada: '', cantidad: 1, precio_unitario: 0, total: 0 }],
             subtotal: 0,
             impuestos: 0,
             total: 0
@@ -392,6 +392,7 @@ export const CuentaCobroModule = {
 
                 tr.querySelector('.input-price').addEventListener('input', updateTotals);
                 tr.querySelector('.input-qty').addEventListener('input', updateTotals);
+                tr.querySelector('.input-prod-desc')?.addEventListener('input', updateTotals);
                 
                 tr.querySelector('.btn-remove-line').addEventListener('click', () => {
                     tr.remove();
@@ -419,6 +420,7 @@ export const CuentaCobroModule = {
                     producto_id: (() => { const h = tr.querySelector('.input-prod-id'); return h && h.value ? h.value : null; })(),
                     nombre: searchInput ? searchInput.value : '',
                     sku: searchInput ? (searchInput.dataset.lastSku || '') : '',
+                    descripcion_personalizada: (tr.querySelector('.input-prod-desc')?.value || '').trim(),
                     cantidad: qty,
                     precio_unitario: price,
                     total: totalLine
@@ -440,7 +442,7 @@ export const CuentaCobroModule = {
 
         if (!isViewOnly) {
             element.querySelector('#btn-add-line').addEventListener('click', () => {
-                renderLine({ id: Date.now(), producto_id: '', nombre: '', sku: '', cantidad: 1, precio_unitario: 0, total: 0 }, tbody.children.length);
+                renderLine({ id: Date.now(), producto_id: '', nombre: '', sku: '', descripcion_personalizada: '', cantidad: 1, precio_unitario: 0, total: 0 }, tbody.children.length);
             });
 
             element.querySelector('#btn-save').addEventListener('click', async () => {
