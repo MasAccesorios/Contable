@@ -10,6 +10,7 @@ export class CrudFinanciero {
         this.currentPage = 1;
         this.itemsPerPage = 10;
         this.editingId = null;
+        this.isEditing = false;
         this.currentData = [];
         // config expected:
         // titulo: string
@@ -26,6 +27,10 @@ export class CrudFinanciero {
     }
 
     async init(element) {
+        // Garantizar que toda inicialización de la pantalla arranque en modo creación limpio
+        this.editingId = null;
+        this.isEditing = false;
+
         // Cargar contactos para el selector de proveedor
         const contactos = await DB.getAll('contactos');        // Add legacy fallback for contacts not yet synced to IndexedDB
         this.proveedores = contactos; // Search across all contacts, not just suppliers
@@ -292,8 +297,12 @@ export class CrudFinanciero {
                 }
             }
 
+            // Modo edición estrictamente condicionado a bandera activa y editingId válido
+            const isEditMode = Boolean(this.isEditing && this.editingId);
+            const targetId = isEditMode ? parseInt(this.editingId, 10) : null;
+
             const datos = {
-                id: this.editingId,
+                id: targetId,
                 fecha: element.querySelector('#transaccion-fecha').value,
                 categoria: element.querySelector('#transaccion-categoria').value,
                 monto: parseCurrencyValue(element.querySelector('#transaccion-monto').value),
@@ -310,11 +319,14 @@ export class CrudFinanciero {
                 
                 await this.registrarTransaccion(datos);
                 
+                // Resetear estado inmediatamente tras éxito
+                this.editingId = null;
+                this.isEditing = false;
                 this.cancelarEdicion(element);
                 
                 await this.renderTabla(element);
             } catch (err) {
-                alert('Error al guardar: ' + err.message);
+                alert('Error al guardar: ' + (err?.message || JSON.stringify(err)));
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = '<i class="bi bi-plus-circle me-1"></i>Registrar';
@@ -340,18 +352,29 @@ export class CrudFinanciero {
             };
 
             if (datosPrevios.id) {
-                const { data: exist } = await supabase.from('pagos_ingresos').select('*').eq('id', datosPrevios.id).single();
+                const { data: exist, error: errExist } = await supabase
+                    .from('pagos_ingresos')
+                    .select('*')
+                    .eq('id', datosPrevios.id)
+                    .single();
+
+                if (errExist || !exist) {
+                    throw new Error(`El registro a editar con ID ${datosPrevios.id} no existe en la base de datos.`);
+                }
                 if (exist) {
                     transaccion = { ...exist, ...transaccion };
                 }
                 transaccion.id = datosPrevios.id;
             }
 
-            await DB.save('transacciones', transaccion);
-            return transaccion;
+            const saved = await DB.save('transacciones', transaccion);
+            if (datosPrevios.id && (!saved || !saved.id)) {
+                throw new Error(`No se pudo actualizar el registro ID ${datosPrevios.id}. La base de datos no devolvió confirmación.`);
+            }
+            return saved || transaccion;
         } catch (error) {
-            console.error("Fallo al registrar la transacción en pagos_ingresos.", error);
-            throw new Error("No se pudo registrar la transacción en el sistema.");
+            console.error("Fallo al registrar la transacción en pagos_ingresos:", error);
+            throw error;
         }
     }
 
@@ -563,6 +586,7 @@ export class CrudFinanciero {
         if (!registro) return;
 
         this.editingId = id;
+        this.isEditing = true;
         
         element.querySelector('#transaccion-fecha').value = registro.fecha;
         element.querySelector('#transaccion-categoria').value = registro.categoria || '';
@@ -591,6 +615,7 @@ export class CrudFinanciero {
 
     cancelarEdicion(element) {
         this.editingId = null;
+        this.isEditing = false;
         element.querySelector(`#${this.config.formId}`).reset();
         element.querySelector('#transaccion-fecha').value = getLocalDate();
         element.querySelector('#transaccion-cuenta-id').value = '';
