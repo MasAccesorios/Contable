@@ -21,16 +21,16 @@ export function renderTablaFacturas(facturas, contactosMap, sortColumn = 'fecha'
 
         if (estado === 'anulada' || estado === 'voided' || estado === 'void') {
             labelEstado = 'Anulada';
-            badgeClass = 'bg-secondary text-secondary bg-opacity-10 border border-secondary-subtle';
+            badgeClass = 'badge-stitch-anulado';
         } else if (c.saldoPendiente <= 0) {
             labelEstado = isCompra ? 'Pagada' : 'Cobrada';
-            badgeClass = 'bg-primary text-primary bg-opacity-10 border border-primary-subtle';
+            badgeClass = 'badge-stitch-cobrado';
         } else if (isVencida) {
             labelEstado = 'Vencida';
-            badgeClass = 'bg-danger text-danger bg-opacity-10 border border-danger-subtle';
+            badgeClass = 'badge-stitch-vencido';
         } else {
             labelEstado = isCompra ? 'Por pagar' : 'Por cobrar';
-            badgeClass = 'bg-warning text-warning-emphasis bg-opacity-10 border border-warning-subtle';
+            badgeClass = 'badge-stitch-pendiente';
         }
 
         const numDisplay = c.numero || parseInt(String(c.id).replace(/\D/g, ''), 10) || c.id;
@@ -46,23 +46,23 @@ export function renderTablaFacturas(facturas, contactosMap, sortColumn = 'fecha'
             : `if(!event.target.closest('button')) window.location.hash = '${baseRoute}${c.id}'`;
             
         return `
-            <tr style="cursor: pointer; border-bottom: 1px solid var(--border-color); font-size: 13px; color: var(--text-body); opacity: ${rowOpacity}; transition: opacity 0.2s;" onclick="${onclickAction}">
-                <td class="py-2" style="white-space: nowrap;">${numDisplay}</td>
-                <td class="py-2" style="white-space: nowrap;">${c.fecha || ''}</td>
-                <td class="py-2 ${isVencida && c.saldoPendiente > 0 ? 'text-danger fw-semibold' : ''}" style="white-space: nowrap;">${vencimiento}</td>
-                <td class="py-2" style="color: var(--text-main); font-weight: var(--weight-medium); max-width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(contactosMap[contactId]) || defaultContactText}</td>
-                <td class="py-2 text-end" style="white-space: nowrap;">${formatMoney(c.total)}</td>
-                <td class="py-2 text-end" style="white-space: nowrap;">${formatMoney(c.totalPagado)}</td>
-                <td class="py-2 text-end fw-bold text-dark" style="white-space: nowrap;">${formatMoney(c.saldoPendiente)}</td>
-                <td class="py-2 text-center">
-                    <span class="badge ${badgeClass} rounded-pill fw-medium" style="font-size: 11px; padding: 5px 10px;">${labelEstado}</span>
+            <tr style="cursor: pointer; border-bottom: 1px solid var(--border-color); font-size: 13.5px; color: var(--text-body); opacity: ${rowOpacity}; transition: background-color 0.15s ease;" onclick="${onclickAction}">
+                <td class="py-2.5 px-3 fw-semibold text-primary" style="white-space: nowrap;">${numDisplay}</td>
+                <td class="py-2.5 px-3 tnum text-muted" style="white-space: nowrap;">${c.fecha || ''}</td>
+                <td class="py-2.5 px-3 tnum ${isVencida && c.saldoPendiente > 0 ? 'text-danger fw-semibold' : 'text-muted'}" style="white-space: nowrap;">${vencimiento}</td>
+                <td class="py-2.5 px-3" style="color: var(--text-main); font-weight: var(--weight-medium); max-width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(contactosMap[contactId]) || defaultContactText}</td>
+                <td class="py-2.5 px-3 text-end tnum cell-numeric" style="white-space: nowrap;">${formatMoney(c.total)}</td>
+                <td class="py-2.5 px-3 text-end tnum cell-numeric text-muted" style="white-space: nowrap;">${formatMoney(c.totalPagado)}</td>
+                <td class="py-2.5 px-3 text-end tnum cell-numeric fw-bold text-dark" style="white-space: nowrap;">${formatMoney(c.saldoPendiente)}</td>
+                <td class="py-2.5 px-3 text-center">
+                    <span class="badge ${badgeClass} rounded-pill fw-semibold" style="font-size: 11px; padding: 4px 10px;">${labelEstado}</span>
                 </td>
-                <td class="py-2 text-end" style="position: relative; white-space: nowrap;">
-                    <button class="btn btn-link text-muted p-0 me-2 btn-imprimir-row" data-id="${c.id}">
-                        <i class="bi bi-printer"></i>
+                <td class="py-2.5 px-3 text-end" style="position: relative; white-space: nowrap;">
+                    <button class="btn btn-link text-muted p-1 me-1 btn-imprimir-row" data-id="${c.id}" title="Imprimir">
+                        <span class="material-symbols-outlined text-[18px]">print</span>
                     </button>
-                    <button class="btn btn-link text-muted p-0 btn-menu-row" data-id="${c.id}">
-                        <i class="bi bi-three-dots-vertical"></i>
+                    <button class="btn btn-link text-muted p-1 btn-menu-row" data-id="${c.id}" title="Opciones">
+                        <span class="material-symbols-outlined text-[18px]">more_vert</span>
                     </button>
                 </td>
             </tr>
@@ -77,23 +77,23 @@ export function renderTablaFacturas(facturas, contactosMap, sortColumn = 'fecha'
     return `
         <div class="table-responsive">
             <table class="table table-borderless align-middle mb-0">
-                <thead>
+                <thead style="background-color: #f8fafc; border-bottom: 1px solid var(--border-color);">
                     <tr>
-                        <th class="py-2 fw-normal sortable-header" data-column="numero" style="cursor: pointer; user-select: none; white-space: nowrap;">
+                        <th class="py-2.5 px-3 fw-semibold text-uppercase sortable-header" data-column="numero" style="font-size: 11px; letter-spacing: 0.5px; color: var(--text-muted); cursor: pointer; user-select: none; white-space: nowrap;">
                             Número ${sortColumn === 'numero' ? (sortDirection === 'asc' ? ' ▲' : ' ▼') : ''}
                         </th>
-                        <th class="py-2 fw-normal sortable-header" data-column="fecha" style="cursor: pointer; user-select: none; min-width: 105px; white-space: nowrap;">
+                        <th class="py-2.5 px-3 fw-semibold text-uppercase sortable-header" data-column="fecha" style="font-size: 11px; letter-spacing: 0.5px; color: var(--text-muted); cursor: pointer; user-select: none; min-width: 105px; white-space: nowrap;">
                             Creación ${sortColumn === 'fecha' ? (sortDirection === 'asc' ? ' ▲' : ' ▼') : ''}
                         </th>
-                        <th class="py-2 fw-normal" style="min-width: 105px; white-space: nowrap;">Vencimiento</th>
-                        <th class="py-2 fw-normal sortable-header" data-column="${colContactKey}" style="cursor: pointer; user-select: none; width: 100%; min-width: 150px;">
+                        <th class="py-2.5 px-3 fw-semibold text-uppercase" style="font-size: 11px; letter-spacing: 0.5px; color: var(--text-muted); min-width: 105px; white-space: nowrap;">Vencimiento</th>
+                        <th class="py-2.5 px-3 fw-semibold text-uppercase sortable-header" data-column="${colContactKey}" style="font-size: 11px; letter-spacing: 0.5px; color: var(--text-muted); cursor: pointer; user-select: none; width: 100%; min-width: 150px;">
                             ${colContactLabel} ${sortColumn === colContactKey ? (sortDirection === 'asc' ? ' ▲' : ' ▼') : ''}
                         </th>
-                        <th class="py-2 fw-normal text-end" style="min-width: 110px; white-space: nowrap;">Total</th>
-                        <th class="py-2 fw-normal text-end" style="min-width: 110px; white-space: nowrap;">${colCobradoLabel}</th>
-                        <th class="py-2 fw-normal text-end" style="min-width: 110px; white-space: nowrap;">${colPendienteLabel}</th>
-                        <th class="py-2 fw-normal text-center" style="min-width: 100px; white-space: nowrap;">Estado</th>
-                        <th class="py-2 fw-normal text-end" style="width: 80px; white-space: nowrap;"></th>
+                        <th class="py-2.5 px-3 fw-semibold text-uppercase text-end" style="font-size: 11px; letter-spacing: 0.5px; color: var(--text-muted); min-width: 110px; white-space: nowrap;">Total</th>
+                        <th class="py-2.5 px-3 fw-semibold text-uppercase text-end" style="font-size: 11px; letter-spacing: 0.5px; color: var(--text-muted); min-width: 110px; white-space: nowrap;">${colCobradoLabel}</th>
+                        <th class="py-2.5 px-3 fw-semibold text-uppercase text-end" style="font-size: 11px; letter-spacing: 0.5px; color: var(--text-muted); min-width: 110px; white-space: nowrap;">${colPendienteLabel}</th>
+                        <th class="py-2.5 px-3 fw-semibold text-uppercase text-center" style="font-size: 11px; letter-spacing: 0.5px; color: var(--text-muted); min-width: 100px; white-space: nowrap;">Estado</th>
+                        <th class="py-2.5 px-3 fw-semibold text-uppercase text-end" style="font-size: 11px; letter-spacing: 0.5px; color: var(--text-muted); width: 80px; white-space: nowrap;"></th>
                     </tr>
                 </thead>
                 <tbody>

@@ -83,27 +83,32 @@ export const ComprasModule = {
 
         // DRAW STATIC SHELL
         element.innerHTML = `
-                <div class="module-container p-4" style="max-width: 1200px; margin: 0 auto;">
+                <div class="dash-layout p-4" style="max-width: 1100px; margin: 0 auto;">
                     <!-- TOP BAR -->
-                    <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
                         <div>
-                            <h2 class="page-title">Facturas de Compra</h2>
-                            <p class="text-muted mb-0" style="font-size: var(--fs-md);">
-                                Gestiona las facturas generadas por compras a tus proveedores. 
+                            <div class="d-flex align-items-center gap-2">
+                                <h2 class="page-title mb-0">Facturas de Compra</h2>
+                                <span class="badge" style="background-color: #eff4ff; color: var(--primary); font-size: 11px; font-weight: 600; border-radius: 9999px; padding: 4px 10px;">
+                                    Gastos y Proveedores
+                                </span>
+                            </div>
+                            <p class="text-muted mb-0" style="font-size: var(--fs-md); margin-top: 3px;">
+                                Registro contable, trazabilidad de egresos y amortización a proveedores.
                             </p>
                         </div>
-                        <div class="d-flex gap-2">
-                            <a href="#" onclick="event.preventDefault(); window.history.length > 2 ? window.history.back() : window.location.hash = '#/dashboard';" class="btn btn-light bg-white border me-2" style="font-weight: var(--weight-medium); font-size: var(--fs-md); color: var(--text-body);">
-                                <i class="bi bi-arrow-left me-1"></i> Volver
+                        <div class="d-flex flex-wrap gap-2">
+                            <a href="#" onclick="event.preventDefault(); window.history.length > 2 ? window.history.back() : window.location.hash = '#/dashboard';" class="btn btn-light bg-white border" style="font-weight: var(--weight-medium); font-size: var(--fs-md); color: var(--text-body); border-radius: var(--radius-md);">
+                                <span class="material-symbols-outlined text-[17px] me-1" style="vertical-align: text-bottom;">arrow_back</span> Volver
                             </a>
-                            <button id="btn-refresh-list" class="btn btn-light bg-white border me-2" style="font-weight: var(--weight-medium); font-size: var(--fs-md); color: var(--text-body);">
-                                <i class="bi bi-arrow-clockwise me-1"></i> Actualizar
+                            <button id="btn-refresh-list" class="btn btn-light bg-white border" style="font-weight: var(--weight-medium); font-size: var(--fs-md); color: var(--text-body); border-radius: var(--radius-md);">
+                                <span class="material-symbols-outlined text-[17px] me-1" style="vertical-align: text-bottom;">refresh</span> Actualizar
                             </button>
-                            <button id="btn-export-list" class="btn btn-light bg-white border" style="font-weight: var(--weight-medium); font-size: var(--fs-md); color: var(--text-body);">
-                                <i class="bi bi-download me-1"></i> Exportar
+                            <button id="btn-export-list" class="btn btn-light bg-white border" style="font-weight: var(--weight-medium); font-size: var(--fs-md); color: var(--text-body); border-radius: var(--radius-md);">
+                                <span class="material-symbols-outlined text-[17px] me-1" style="vertical-align: text-bottom;">download</span> Exportar
                             </button>
-                            <button id="btn-nueva-factura" class="btn text-white" style="background-color: var(--primary); font-weight: var(--weight-medium); font-size: var(--fs-md);">
-                                <i class="bi bi-plus-lg me-1"></i> Nueva factura
+                            <button id="btn-nueva-factura" class="btn btn-primary-action">
+                                <span class="material-symbols-outlined text-[18px] me-1" style="vertical-align: text-bottom;">add</span> Nueva factura
                             </button>
                         </div>
                     </div>
@@ -112,20 +117,35 @@ export const ComprasModule = {
                     <div class="row g-3 mb-4">
                         <div class="col-12 col-sm-6 col-lg-4">
                             <div class="ds-kpi-card">
-                                <span class="ds-kpi-label">Total por Pagar</span>
-                                <div class="ds-kpi-value">$ ${formatMoney(kpiDataCxp.total).replace('$ ', '')}</div>
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <span class="ds-kpi-label">Total por Pagar</span>
+                                    <div class="dash-icon-box variant-blue" style="width: 32px; height: 32px; border-radius: 8px;">
+                                        <span class="material-symbols-outlined text-[18px]">payments</span>
+                                    </div>
+                                </div>
+                                <div class="ds-kpi-value tnum">$ ${formatMoney(kpiDataCxp.total).replace('$ ', '')}</div>
                             </div>
                         </div>
                         <div class="col-12 col-sm-6 col-lg-4">
                             <div class="ds-kpi-card">
-                                <span class="ds-kpi-label">Cuentas Vigentes</span>
-                                <div class="ds-kpi-value" style="color: var(--success);">$ ${formatMoney(kpiDataCxp.vigente).replace('$ ', '')}</div>
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <span class="ds-kpi-label">Cuentas Vigentes</span>
+                                    <div class="dash-icon-box variant-green" style="width: 32px; height: 32px; border-radius: 8px;">
+                                        <span class="material-symbols-outlined text-[18px]">check_circle</span>
+                                    </div>
+                                </div>
+                                <div class="ds-kpi-value tnum" style="color: var(--success);">$ ${formatMoney(kpiDataCxp.vigente).replace('$ ', '')}</div>
                             </div>
                         </div>
                         <div class="col-12 col-sm-6 col-lg-4">
                             <div class="ds-kpi-card">
-                                <span class="ds-kpi-label">Cuentas Vencidas</span>
-                                <div class="ds-kpi-value" style="color: var(--danger);">$ ${formatMoney(kpiDataCxp.vencido).replace('$ ', '')}</div>
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <span class="ds-kpi-label">Cuentas Vencidas</span>
+                                    <div class="dash-icon-box" style="width: 32px; height: 32px; border-radius: 8px; background-color: #fef2f2; color: #dc2626;">
+                                        <span class="material-symbols-outlined text-[18px]">warning</span>
+                                    </div>
+                                </div>
+                                <div class="ds-kpi-value tnum" style="color: var(--danger);">$ ${formatMoney(kpiDataCxp.vencido).replace('$ ', '')}</div>
                             </div>
                         </div>
                     </div>
@@ -156,17 +176,17 @@ export const ComprasModule = {
                         <!-- GRID -->
                         <div class="table-responsive">
                             <table class="table table-borderless align-middle mb-0 text-nowrap">
-                                <thead id="compras-thead">
+                                <thead id="compras-thead" style="background-color: #f8fafc; border-bottom: 1px solid var(--border-color);">
                                     <tr>
-                                        <th class="py-3 fw-normal sortable-header" data-column="numero" style="cursor: pointer; user-select: none;">Número</th>
-                                        <th class="py-3 fw-normal sortable-header" data-column="fecha" style="cursor: pointer; user-select: none;">Creación</th>
-                                        <th class="py-3 fw-normal">Vencimiento</th>
-                                        <th class="py-3 fw-normal sortable-header" data-column="proveedor" style="cursor: pointer; user-select: none;">Proveedor</th>
-                                        <th class="py-3 fw-normal text-end">Total</th>
-                                        <th class="py-3 fw-normal text-end">Pagado</th>
-                                        <th class="py-3 fw-normal text-end">Por pagar</th>
-                                        <th class="py-3 fw-normal text-center">Estado</th>
-                                        <th class="py-3 fw-normal text-end" style="width: 80px;"></th>
+                                        <th class="py-2.5 px-3 fw-semibold text-uppercase sortable-header" data-column="numero" style="font-size: 11px; letter-spacing: 0.5px; color: var(--text-muted); cursor: pointer; user-select: none;">Número</th>
+                                        <th class="py-2.5 px-3 fw-semibold text-uppercase sortable-header" data-column="fecha" style="font-size: 11px; letter-spacing: 0.5px; color: var(--text-muted); cursor: pointer; user-select: none;">Creación</th>
+                                        <th class="py-2.5 px-3 fw-semibold text-uppercase" style="font-size: 11px; letter-spacing: 0.5px; color: var(--text-muted);">Vencimiento</th>
+                                        <th class="py-2.5 px-3 fw-semibold text-uppercase sortable-header" data-column="proveedor" style="font-size: 11px; letter-spacing: 0.5px; color: var(--text-muted); cursor: pointer; user-select: none;">Proveedor</th>
+                                        <th class="py-2.5 px-3 fw-semibold text-uppercase text-end" style="font-size: 11px; letter-spacing: 0.5px; color: var(--text-muted);">Total</th>
+                                        <th class="py-2.5 px-3 fw-semibold text-uppercase text-end" style="font-size: 11px; letter-spacing: 0.5px; color: var(--text-muted);">Pagado</th>
+                                        <th class="py-2.5 px-3 fw-semibold text-uppercase text-end" style="font-size: 11px; letter-spacing: 0.5px; color: var(--text-muted);">Por pagar</th>
+                                        <th class="py-2.5 px-3 fw-semibold text-uppercase text-center" style="font-size: 11px; letter-spacing: 0.5px; color: var(--text-muted);">Estado</th>
+                                        <th class="py-2.5 px-3 fw-semibold text-uppercase text-end" style="width: 80px; font-size: 11px; letter-spacing: 0.5px; color: var(--text-muted);"></th>
                                     </tr>
                                 </thead>
                                 <tbody id="compras-tbody">
@@ -257,39 +277,39 @@ export const ComprasModule = {
                 
                 if (estado === 'anulada' || estado === 'voided' || estado === 'void') {
                     labelEstado = 'Anulada';
-                    badgeClass = 'bg-secondary text-secondary bg-opacity-10 border border-secondary-subtle';
+                    badgeClass = 'badge-stitch-anulado';
                 } else if (c.saldoPendiente <= 0) {
                     labelEstado = 'Pagada';
-                    badgeClass = 'bg-primary text-primary bg-opacity-10 border border-primary-subtle';
+                    badgeClass = 'badge-stitch-cobrado';
                 } else if (isVencida) {
                     labelEstado = 'Vencida';
-                    badgeClass = 'bg-danger text-danger bg-opacity-10 border border-danger-subtle';
+                    badgeClass = 'badge-stitch-vencido';
                 } else {
-                    labelEstado = 'Vigente';
-                    badgeClass = 'bg-success text-success bg-opacity-10 border border-success-subtle';
+                    labelEstado = 'Por pagar';
+                    badgeClass = 'badge-stitch-pendiente';
                 }
 
                 const numDisplay = c.numero || parseInt(String(c.id).replace(/\D/g, ''), 10) || c.id;
                 const rowOpacity = (estado === 'anulada' || estado === 'voided' || estado === 'void') ? '0.5' : '1';
                 
                 return `
-                    <tr style="cursor: pointer; border-bottom: 1px solid var(--border-color); font-size: var(--fs-base); color: var(--text-body); opacity: ${rowOpacity}; transition: opacity 0.2s;" onclick="if(!event.target.closest('button')) window.location.hash = '#/gastos/proveedores/ver/${c.id}'">
-                        <td class="py-3">${numDisplay}</td>
-                        <td class="py-3">${c.fecha || ''}</td>
-                        <td class="py-3 ${isVencida && c.saldoPendiente > 0 ? 'text-danger fw-semibold' : ''}">${c.vencimiento || ''}</td>
-                        <td class="py-3" style="color: var(--text-main); font-weight: var(--weight-medium);">${escapeHtml(contactosMap[c.proveedorId || c.contacto_id || c.contactoId]) || 'Sin Proveedor'}</td>
-                        <td class="py-3 text-end">${formatMoney(c.total)}</td>
-                        <td class="py-3 text-end">${formatMoney(c.totalPagado)}</td>
-                        <td class="py-3 text-end fw-bold text-dark">${formatMoney(c.saldoPendiente)}</td>
-                        <td class="py-3 text-center">
-                            <span class="badge ${badgeClass} rounded-pill fw-medium" style="font-size: var(--fs-xs); padding: 5px 10px;">${labelEstado}</span>
+                    <tr style="cursor: pointer; border-bottom: 1px solid var(--border-color); font-size: 13.5px; color: var(--text-body); opacity: ${rowOpacity}; transition: background-color 0.15s ease;" onclick="if(!event.target.closest('button')) window.location.hash = '#/gastos/proveedores/ver/${c.id}'">
+                        <td class="py-2.5 px-3 fw-semibold text-primary" style="white-space: nowrap;">${numDisplay}</td>
+                        <td class="py-2.5 px-3 tnum text-muted" style="white-space: nowrap;">${c.fecha || ''}</td>
+                        <td class="py-2.5 px-3 tnum ${isVencida && c.saldoPendiente > 0 ? 'text-danger fw-semibold' : 'text-muted'}" style="white-space: nowrap;">${c.vencimiento || ''}</td>
+                        <td class="py-2.5 px-3" style="color: var(--text-main); font-weight: var(--weight-medium); max-width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(contactosMap[c.proveedorId || c.contacto_id || c.contactoId]) || 'Sin Proveedor'}</td>
+                        <td class="py-2.5 px-3 text-end tnum cell-numeric" style="white-space: nowrap;">${formatMoney(c.total)}</td>
+                        <td class="py-2.5 px-3 text-end tnum cell-numeric text-muted" style="white-space: nowrap;">${formatMoney(c.totalPagado)}</td>
+                        <td class="py-2.5 px-3 text-end tnum cell-numeric fw-bold text-dark" style="white-space: nowrap;">${formatMoney(c.saldoPendiente)}</td>
+                        <td class="py-2.5 px-3 text-center">
+                            <span class="badge ${badgeClass} rounded-pill fw-semibold" style="font-size: 11px; padding: 4px 10px;">${labelEstado}</span>
                         </td>
-                        <td class="py-3 text-end" style="position: relative;">
-                            <button class="btn btn-link text-muted p-0 me-2 btn-imprimir-row" data-id="${c.id}">
-                                <i class="bi bi-printer"></i>
+                        <td class="py-2.5 px-3 text-end" style="position: relative; white-space: nowrap;">
+                            <button class="btn btn-link text-muted p-1 me-1 btn-imprimir-row" data-id="${c.id}" title="Imprimir">
+                                <span class="material-symbols-outlined text-[18px]">print</span>
                             </button>
-                            <button class="btn btn-link text-muted p-0 btn-menu-row" data-id="${c.id}">
-                                <i class="bi bi-three-dots-vertical"></i>
+                            <button class="btn btn-link text-muted p-1 btn-menu-row" data-id="${c.id}" title="Opciones">
+                                <span class="material-symbols-outlined text-[18px]">more_vert</span>
                             </button>
                         </td>
                     </tr>

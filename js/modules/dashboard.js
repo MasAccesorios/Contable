@@ -13,8 +13,14 @@ export const DashboardModule = {
                 <!-- ═══ HEADER ═══ -->
                 <div class="dash-header">
                     <div>
-                        <h2 class="page-title">Resumen del negocio</h2>
-                        <p class="mb-0 text-muted" style="font-size: var(--fs-sm); margin-top: 2px;">Vista consolidada en tiempo real</p>
+                        <div class="d-flex align-items-center gap-2">
+                            <h2 class="page-title mb-0">Resumen del negocio</h2>
+                            <span class="badge" style="background-color: #eff4ff; color: var(--primary); font-size: 11px; font-weight: 600; border-radius: 9999px; padding: 4px 10px;">
+                                <span class="spinner-grow spinner-grow-sm me-1" style="width: 7px; height: 7px; vertical-align: middle; background-color: var(--primary);"></span>
+                                En Tiempo Real
+                            </span>
+                        </div>
+                        <p class="mb-0 text-muted" style="font-size: var(--fs-sm); margin-top: 3px;">Vista consolidada de liquidez, operaciones y cartera</p>
                     </div>
                     <div class="dashboard-pill-group" role="group" id="dashboard-rango-filtro">
                         <button type="button" class="dpg-btn" data-rango="7 Días">7 Días</button>
@@ -28,18 +34,21 @@ export const DashboardModule = {
 
                     <!-- Cuentas por cobrar -->
                     <div class="dash-card-premium dash-card-link" onclick="window.location.hash = '#/cartera'" tabindex="0">
-                            <div class="d-flex justify-content-between align-items-start mb-1">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
                                 <div>
-                                    <span class="dash-card-label"><i class="bi bi-arrow-down-circle me-1 text-success" style="font-size: var(--fs-sm);"></i>Cuentas por cobrar</span>
+                                    <span class="dash-card-label">
+                                        <span class="material-symbols-outlined text-[16px] me-1" style="color: var(--success);">trending_up</span>
+                                        Cuentas por cobrar
+                                    </span>
                                     <div class="dash-card-metric" id="kpi-cxc-total"><span class="spinner-border spinner-border-sm text-secondary"></span></div>
                                 </div>
                                 <span class="badge dash-badge-mora" id="kpi-cxc-badge-mora" style="display:none;"></span>
                             </div>
                             <div class="dash-micro-bar" id="kpi-cxc-progress">
-                                <div class="dash-micro-fill" style="width: 0%; background:#2dbda8;"></div>
-                                <div class="dash-micro-fill" style="width: 0%; background:#f06548;"></div>
+                                <div class="dash-micro-fill" style="width: 0%; background: var(--success);"></div>
+                                <div class="dash-micro-fill" style="width: 0%; background: var(--danger);"></div>
                             </div>
-                            <div class="d-flex gap-4 mt-3">
+                            <div class="d-flex gap-4 mt-3 pt-1">
                                 <div class="dash-sub-item dash-sub-green">
                                     <span class="dash-sub-label">Vigentes</span>
                                     <span class="dash-sub-value" id="kpi-cxc-vigentes"><span class="spinner-border spinner-border-sm text-secondary"></span></span>
@@ -55,18 +64,21 @@ export const DashboardModule = {
 
                     <!-- Cuentas por pagar -->
                     <div class="dash-card-premium">
-                            <div class="d-flex justify-content-between align-items-start mb-1">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
                                 <div>
-                                    <span class="dash-card-label"><i class="bi bi-arrow-up-circle me-1 text-danger" style="font-size: var(--fs-sm);"></i>Cuentas por pagar</span>
+                                    <span class="dash-card-label">
+                                        <span class="material-symbols-outlined text-[16px] me-1" style="color: var(--danger);">payments</span>
+                                        Cuentas por pagar
+                                    </span>
                                     <div class="dash-card-metric" id="kpi-cxp-total"><span class="spinner-border spinner-border-sm text-secondary"></span></div>
                                 </div>
                                 <span class="badge dash-badge-mora dash-badge-mora--warning" id="kpi-cxp-badge-mora" style="display:none;"></span>
                             </div>
                             <div class="dash-micro-bar" id="kpi-cxp-progress">
-                                <div class="dash-micro-fill" style="width: 0%; background:#6c757d;"></div>
-                                <div class="dash-micro-fill" style="width: 0%; background:#fd7e14;"></div>
+                                <div class="dash-micro-fill" style="width: 0%; background: var(--text-muted);"></div>
+                                <div class="dash-micro-fill" style="width: 0%; background: var(--warning);"></div>
                             </div>
-                            <div class="d-flex gap-4 mt-3">
+                            <div class="d-flex gap-4 mt-3 pt-1">
                                 <div class="dash-sub-item dash-sub-neutral">
                                     <span class="dash-sub-label">Vigentes</span>
                                     <span class="dash-sub-value" id="kpi-cxp-vigentes"><span class="spinner-border spinner-border-sm text-secondary"></span></span>
@@ -85,44 +97,44 @@ export const DashboardModule = {
                 <div class="dash-grid-kpis">
 
                     <!-- Utilidad -->
-                    <div class="dash-kpi-card d-flex flex-column justify-content-between" style="min-height: 90px;">
+                    <div class="dash-kpi-card d-flex flex-column justify-content-between">
                         <div class="d-flex justify-content-between align-items-start">
                             <span class="dash-kpi-label">Utilidad del mes</span>
                             <div class="dash-icon-box variant-green">
-                                <i class="bi bi-graph-up-arrow"></i>
+                                <span class="material-symbols-outlined text-[20px]">account_balance_wallet</span>
                             </div>
                         </div>
                         <div class="dash-kpi-value" id="kpi-utilidad-mes"><span class="spinner-border spinner-border-sm text-secondary"></span></div>
                     </div>
 
                     <!-- Productos vendidos -->
-                    <div class="dash-kpi-card d-flex flex-column justify-content-between" style="min-height: 90px;">
+                    <div class="dash-kpi-card d-flex flex-column justify-content-between">
                         <div class="d-flex justify-content-between align-items-start">
                             <span class="dash-kpi-label">Productos vendidos</span>
                             <div class="dash-icon-box variant-blue">
-                                <i class="bi bi-box-seam"></i>
+                                <span class="material-symbols-outlined text-[20px]">inventory_2</span>
                             </div>
                         </div>
                         <div class="dash-kpi-value" id="kpi-productos"><span class="spinner-border spinner-border-sm text-secondary"></span></div>
                     </div>
 
                     <!-- Inventario Valorizado -->
-                    <div class="dash-kpi-card d-flex flex-column justify-content-between" style="min-height: 90px;">
+                    <div class="dash-kpi-card d-flex flex-column justify-content-between">
                         <div class="d-flex justify-content-between align-items-start">
                             <span class="dash-kpi-label">Inventario val.</span>
-                            <div class="dash-icon-box variant-blue">
-                                <i class="bi bi-boxes"></i>
+                            <div class="dash-icon-box variant-cyan">
+                                <span class="material-symbols-outlined text-[20px]">warehouse</span>
                             </div>
                         </div>
                         <div class="dash-kpi-value" id="kpi-inventario-valorizado"><span class="spinner-border spinner-border-sm text-secondary"></span></div>
                     </div>
 
                     <!-- Saldo Bancos -->
-                    <div class="dash-kpi-card d-flex flex-column justify-content-between" style="min-height: 90px;">
+                    <div class="dash-kpi-card d-flex flex-column justify-content-between">
                         <div class="d-flex justify-content-between align-items-start">
                             <span class="dash-kpi-label">Saldo bancos</span>
-                            <div class="dash-icon-box variant-cyan">
-                                <i class="bi bi-bank"></i>
+                            <div class="dash-icon-box variant-blue">
+                                <span class="material-symbols-outlined text-[20px]">account_balance</span>
                             </div>
                         </div>
                         <div class="dash-kpi-value" id="kpi-saldo-bancos"><span class="spinner-border spinner-border-sm text-secondary"></span></div>
@@ -135,7 +147,7 @@ export const DashboardModule = {
                     <div class="card-body p-4">
                     <div class="dash-chart-header">
                             <div>
-                                <h6 class="text-dark text-body mb-1 fw-bold">Total de ventas <i class="bi bi-info-circle ms-1 text-muted"></i></h6>
+                                <h6 class="text-dark text-body mb-1 fw-bold" style="font-size: 15px;">Total de ventas</h6>
                                 <div class="d-flex gap-4 mt-3">
                                     <div>
                                         <span class="text-muted d-block text-uppercase fw-semibold" style="font-size: var(--fs-xxs); letter-spacing: 0.5px;">Ticket Promedio</span>
@@ -165,8 +177,7 @@ export const DashboardModule = {
                 </div>
 
                 </div><!-- /.dash-layout -->
-            </div>
-        `;
+            </div>`;
 
         // Ensure Chart.js is loaded
         if (typeof Chart === 'undefined') {
@@ -400,8 +411,8 @@ export const DashboardModule = {
         const pCartera = supabase.rpc('get_dashboard_cartera_kpis')
             .then(({ data }) => {
                 const kpis = data || {};
-                updateCarteraUI(kpis, 'cxc', ['#2dbda8', '#f06548']);
-                updateCarteraUI(kpis, 'cxp', ['#6c757d', '#fd7e14']);
+                updateCarteraUI(kpis, 'cxc', ['#059669', '#dc2626']);
+                updateCarteraUI(kpis, 'cxp', ['#64748b', '#d97706']);
             })
             .catch(e => console.error('Error fetching Cartera KPIs', e));
 
@@ -443,14 +454,14 @@ export const DashboardModule = {
                     {
                         label: datasetLabel,
                         data: dataVentas,
-                        borderColor: '#1877f2', // Azul corporativo
+                        borderColor: '#2563eb', // Blue 600
                         backgroundColor: function(context) {
                             const chart = context.chart;
                             const {ctx, chartArea} = chart;
                             if (!chartArea) return null;
                             const gradient = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
-                            gradient.addColorStop(0, 'rgba(24, 119, 242, 0.3)');
-                            gradient.addColorStop(1, 'rgba(44, 191, 183, 0)');
+                            gradient.addColorStop(0, 'rgba(37, 99, 235, 0.22)');
+                            gradient.addColorStop(1, 'rgba(37, 99, 235, 0.0)');
                             return gradient;
                         },
                         fill: true,
@@ -458,7 +469,7 @@ export const DashboardModule = {
                         tension: 0.4, 
                         pointRadius: 0,
                         pointHoverRadius: 6,
-                        pointBackgroundColor: '#1877f2',
+                        pointBackgroundColor: '#2563eb',
                         pointBorderColor: '#fff',
                         pointBorderWidth: 2,
                         borderDash: []

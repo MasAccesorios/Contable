@@ -1,46 +1,79 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
 :root {
-    --primary: #2dbda8;
-    --danger: #dc3545;
-    --danger-bg: #fee2e2;
-    --success: #198754;
-    --success-bg: #dcfce7;
-    --warning: #fd7e14;
-    --warning-bg: #fff3cd;
-    --primary-light: #e6f6f4;
-    --dark: #1e293b;
-    --bg-main: #f8fafc;
-    --surface: #ffffff;
-    --border-color: #e2e8f0;
+    /* Ergonomic Financial Clarity - Tokens Principales */
+    --primary: #2563eb;          /* Acento Interactivo (Blue 600) */
+    --primary-hover: #1d4ed8;    /* Blue 700 */
+    --primary-dark: #0f172a;     /* Slate 900 Principal */
+    --primary-slate: #1e293b;    /* Slate 800 */
+    --primary-container: #131b2e;
+    --on-primary-container: #7c839b;
+    --primary-light: #eff4ff;    /* Surface container low */
+    --primary-subtle: #dbe1ff;
+
+    /* Semántica Contable Ergonómica (Sin saturación agresiva) */
+    --danger: #dc2626;           /* Red 600 */
+    --danger-bg: #fef2f2;        /* Red 50 */
+    --danger-border: #fecaca;    /* Red 200 */
+
+    --success: #059669;          /* Emerald 600 */
+    --success-bg: #ecfdf5;       /* Emerald 50 */
+    --success-border: #a7f3d0;   /* Emerald 200 */
+
+    --warning: #d97706;          /* Amber 600 */
+    --warning-bg: #fffbeb;       /* Amber 50 */
+    --warning-border: #fde68a;   /* Amber 200 */
+
+    --info: #0051d5;
+    --info-bg: #e5eeff;
+    --info-border: #b4c5ff;
+
+    /* Superficies y Canvas */
+    --dark: #0f172a;             /* Slate 900 */
+    --bg-main: #f8fafc;          /* Slate 50 Interface Base */
+    --surface: #ffffff;          /* Superficie de Tarjetas y Contenedores */
+    --surface-muted: #f1f5f9;    /* Slate 100 */
+    --border-color: #e2e8f0;     /* Slate 200 Bordes Sutiles 1px */
+    --border-focus: #2563eb;     /* Blue 600 */
+
     --sidebar-width: 250px;
-    --navbar-height: 60px;
+    --navbar-height: 56px;
     
-    /* Box Shadows (Alegra Style) */
-    --shadow-soft: 0px 4px 12px rgba(0, 0, 0, 0.03), 0px 1px 3px rgba(0, 0, 0, 0.05);
+    /* Sombras Ergonómicas (Nivel 1 y 2 de Elevación) */
+    --shadow-soft: 0 1px 3px 0 rgba(15, 23, 42, 0.04), 0 1px 2px -1px rgba(15, 23, 42, 0.03);
+    --shadow-card: 0 1px 3px 0 rgba(15, 23, 42, 0.04), 0 1px 2px -1px rgba(15, 23, 42, 0.03);
+    --shadow-elevated: 0 4px 6px -1px rgba(15, 23, 42, 0.07), 0 2px 4px -2px rgba(15, 23, 42, 0.05);
 
-    /* Paleta cromática suave de textos (cero negro puro) */
-    --text-main: #0c1a30;
-    --text-body: #4a5568;
-    --text-muted: #718096;
-    --text-link: #0070f3;
+    /* Textos con Jerarquía Calibrada (Cero negro puro) */
+    --text-main: #0f172a;        /* Slate 900 */
+    --text-body: #334155;        /* Slate 700 */
+    --text-muted: #64748b;       /* Slate 500 */
+    --text-link: #2563eb;        /* Blue 600 */
 
-    /* Tipografía */
+    /* Familias Tipográficas */
+    --font-heading: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     --font-mono: 'JetBrains Mono', monospace;
     --fs-xxs: 10px;
     --fs-xs: 11px;
     --fs-sm: 12px;
     --fs-base: 13px;
     --fs-md: 14px;
-    --fs-lg: 20px;
-    --fs-xl: 24px;
-    --fs-xxl: 28px;
+    --fs-lg: 18px;
+    --fs-xl: 20px;
+    --fs-xxl: 24px;
     
-    /* Variables de Grosor Estricto */
+    /* Pesos */
     --weight-regular: 400;
     --weight-medium: 500;
     --weight-semibold: 600;
     --weight-bold: 700;
+
+    /* Radios Estándar */
+    --radius-sm: 4px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --radius-pill: 9999px;
 }
 
 /* ============================================================
@@ -80,6 +113,37 @@ html[data-theme="dark-blue"] {
 html, body {
     transition: background-color 0.2s ease, color 0.2s ease;
 }
+
+/* Material Symbols Outlined Helper */
+.material-symbols-outlined {
+    font-family: 'Material Symbols Outlined' !important;
+    font-weight: normal;
+    font-style: normal;
+    font-size: 20px;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    display: inline-block;
+    white-space: nowrap;
+    word-wrap: normal;
+    direction: ltr;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    vertical-align: middle;
+}
+
+/* Alineación Tabular Numérica Estricta */
+.tnum, .cell-numeric, .text-metric, .dash-kpi-value, .ds-kpi-value, .dash-card-metric, table td.text-end, table th.text-end {
+    font-feature-settings: "tnum" 1, "cv05" 1;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Títulos y Encabezados con Plus Jakarta Sans */
+h1, h2, h3, h4, h5, h6, .page-title, .brand-title, .dash-header h2 {
+    font-family: var(--font-heading) !important;
+    letter-spacing: -0.015em;
+}
+
 
 * {
     margin: 0;
@@ -157,10 +221,11 @@ body {
     left: 0;
     z-index: 1000;
     overflow-y: auto;
+    box-shadow: 0 1px 8px rgba(0,0,0,0.03);
 }
 
 .brand {
-    height: 80px;
+    height: 72px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -168,40 +233,51 @@ body {
 }
 
 .brand .logo {
-    max-height: 60px;
+    max-height: 54px;
+    object-fit: contain;
 }
 
 .menu {
-    padding: 15px 0;
+    padding: 12px 10px;
     display: flex;
     flex-direction: column;
+    gap: 2px;
 }
 
 .menu-item, .dropdown-trigger {
     display: flex;
     align-items: center;
-    padding: 10px 20px;
+    padding: 8px 12px;
+    border-radius: var(--radius-md);
     color: #475569;
     text-decoration: none;
-    font-size: 14px;
+    font-size: 13.5px;
     font-weight: 500;
     cursor: pointer;
     background: none;
     border: none;
     width: 100%;
     text-align: left;
-    transition: all 0.2s;
+    transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 .menu-item:hover, .dropdown-trigger:hover {
-    background-color: #f8fafc;
-    color: var(--primary);
+    background-color: #f1f5f9;
+    color: var(--text-main);
 }
 
 .menu-item.active {
+    background-color: #0f172a;
+    color: #ffffff !important;
+    border-right: none;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
+    font-weight: 600;
+}
+
+html[data-theme="dark-green"] .menu-item.active,
+html[data-theme="dark-blue"] .menu-item.active {
     background-color: var(--primary-light);
-    color: var(--primary);
-    border-right: 3px solid var(--primary);
+    color: var(--primary) !important;
 }
 
 .menu .icon {
@@ -209,6 +285,9 @@ body {
     margin-right: 10px;
     text-align: center;
     font-size: 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .menu .arrow {
@@ -221,7 +300,8 @@ body {
 .menu-dropdown .dropdown-content {
     display: none;
     flex-direction: column;
-    background-color: #f8fafc;
+    background-color: transparent;
+    padding: 2px 0;
 }
 
 .menu-dropdown.open .dropdown-content {
@@ -233,19 +313,30 @@ body {
 }
 
 .dropdown-content a {
-    padding: 8px 20px 8px 54px;
+    padding: 7px 12px 7px 44px;
+    margin: 1px 0;
+    border-radius: 6px;
     color: #64748b;
     text-decoration: none;
     font-size: 13px;
+    transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 .dropdown-content a:hover {
-    color: var(--primary);
+    background-color: #f1f5f9;
+    color: var(--text-main);
 }
 
 .dropdown-content a.active {
     color: var(--primary);
+    background-color: var(--primary-light);
     font-weight: 600;
+}
+
+html[data-theme="dark-green"] .dropdown-content a.active,
+html[data-theme="dark-blue"] .dropdown-content a.active {
+    background-color: var(--primary-light);
+    color: var(--primary);
 }
 
 /* MAIN WRAPPER */
@@ -276,7 +367,7 @@ body {
     position: sticky;
     top: 0;
     z-index: 999;
-    box-shadow: var(--shadow-soft);
+    box-shadow: 0 1px 4px rgba(15, 23, 42, 0.03);
 }
 
 .search-box {
@@ -284,39 +375,51 @@ body {
     align-items: center;
     gap: 10px;
     width: 100%;
-    max-width: 500px;
+    max-width: 520px;
 }
 
 #global-search {
     flex: 1;
-    padding: 8px 16px;
+    padding: 7px 14px;
     border: 1px solid var(--border-color);
-    border-radius: 6px;
+    border-radius: var(--radius-md);
     outline: none;
-    font-size: 14px;
+    font-size: 13.5px;
+    background-color: #f8fafc;
+    color: var(--text-main);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
 }
 
 #global-search:focus {
+    background-color: #ffffff;
     border-color: var(--primary);
-    box-shadow: 0 0 0 2px var(--primary-light);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
 }
 
 .btn-add {
-    background-color: var(--surface);
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
+    background-color: var(--primary);
+    border: none;
+    border-radius: var(--radius-md);
     width: 34px;
     height: 34px;
-    font-size: 20px;
-    color: #475569;
+    font-size: 18px;
+    font-weight: 600;
+    color: #ffffff;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
+    transition: background-color 0.15s ease, transform 0.1s ease;
+    box-shadow: 0 1px 2px rgba(37, 99, 235, 0.2);
 }
 
 .btn-add:hover {
-    background-color: #f1f5f9;
+    background-color: var(--primary-hover);
+    transform: translateY(-1px);
+}
+
+.btn-add:active {
+    transform: scale(0.96);
 }
 
 .user-profile {
@@ -757,13 +860,14 @@ body {
     color: #334155;
 }
 .dpg-btn--active {
-    background: #1877f2;
-    color: #fff;
-    box-shadow: 0 2px 8px rgba(24, 119, 242, 0.25);
+    background: #ffffff;
+    color: #0f172a;
+    font-weight: 600;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
 }
 .dpg-btn--active:hover {
-    background: #1565c0;
-    color: #fff;
+    background: #ffffff;
+    color: #0f172a;
 }
 
 /* =========================================
@@ -773,7 +877,7 @@ body {
     background: var(--surface);
     border: 1px solid var(--border-color);
     border-radius: 14px;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.03), 0 1px 3px rgba(0,0,0,0.04);
+    box-shadow: var(--shadow-card);
     padding: 1.25rem 1.4rem 1.1rem;
     height: 100%;
     transition: all 0.25s ease;
@@ -831,8 +935,8 @@ body {
     padding-left: 10px;
     flex: 1;
 }
-.dash-sub-green  { border-left: 3px solid #2dbda8; }
-.dash-sub-red    { border-left: 3px solid #f06548; }
+.dash-sub-green  { border-left: 3px solid #059669; }
+.dash-sub-red    { border-left: 3px solid #dc2626; }
 .dash-sub-neutral{ border-left: 3px solid #94a3b8; }
 .dash-sub-orange { border-left: 3px solid #fd7e14; }
 
@@ -976,7 +1080,7 @@ body {
     background: var(--surface);
     border: 1px solid var(--border-color);
     border-radius: 14px;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.03), 0 1px 3px rgba(0,0,0,0.04);
+    box-shadow: var(--shadow-card);
     transition: all 0.25s ease;
 }
 .dash-chart-card:hover {
@@ -1612,3 +1716,32 @@ html[data-theme^="dark"] .alert-danger {
     }
 }
 
+
+/* Badges Contables Semánticos - Ergonomic Financial Clarity */
+.badge-stitch-cobrado, .badge.bg-success-subtle {
+    background-color: #ecfdf5 !important;
+    color: #059669 !important;
+    border: 1px solid #a7f3d0 !important;
+    font-weight: 600 !important;
+}
+
+.badge-stitch-pendiente, .badge.bg-warning-subtle {
+    background-color: #fffbeb !important;
+    color: #d97706 !important;
+    border: 1px solid #fde68a !important;
+    font-weight: 600 !important;
+}
+
+.badge-stitch-vencido, .badge.bg-danger-subtle {
+    background-color: #fef2f2 !important;
+    color: #dc2626 !important;
+    border: 1px solid #fecaca !important;
+    font-weight: 600 !important;
+}
+
+.badge-stitch-anulado, .badge.bg-secondary-subtle {
+    background-color: #f1f5f9 !important;
+    color: #64748b !important;
+    border: 1px solid #cbd5e1 !important;
+    font-weight: 500 !important;
+}

@@ -132,22 +132,27 @@ export const FacturasModule = {
             element.innerHTML = `
                 <div class=\"dash-layout p-4\" style=\"max-width: 1100px; margin: 0 auto;\">
                     <!-- TOP BAR -->
-                    <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
                         <div>
-                            <h2 class="page-title">Facturas de venta</h2>
-                            <p class="text-muted mb-0" style="font-size: var(--fs-md);">
-                                Gestiona las facturas generadas por ventas a tus clientes. 
+                            <div class="d-flex align-items-center gap-2">
+                                <h2 class="page-title mb-0">Facturas de venta</h2>
+                                <span class="badge" style="background-color: #eff4ff; color: var(--primary); font-size: 11px; font-weight: 600; border-radius: 9999px; padding: 4px 10px;">
+                                    Ventas e Ingresos
+                                </span>
+                            </div>
+                            <p class="text-muted mb-0" style="font-size: var(--fs-md); margin-top: 3px;">
+                                Gestiona las facturas generadas por ventas a tus clientes y recaudación.
                             </p>
                         </div>
-                        <div class="d-flex gap-2">
-                            <button id="btn-refresh-list" class="btn btn-light bg-white border me-2" style="font-weight: var(--weight-medium); font-size: var(--fs-md); color: var(--text-body);">
-                                <i class="bi bi-arrow-clockwise me-1"></i> Actualizar
+                        <div class="d-flex flex-wrap gap-2">
+                            <button id="btn-refresh-list" class="btn btn-light bg-white border" style="font-weight: var(--weight-medium); font-size: var(--fs-md); color: var(--text-body); border-radius: var(--radius-md);">
+                                <span class="material-symbols-outlined text-[17px] me-1" style="vertical-align: text-bottom;">refresh</span> Actualizar
                             </button>
-                            <button id="btn-export-list" class="btn btn-light bg-white border" style="font-weight: var(--weight-medium); font-size: var(--fs-md); color: var(--text-body);">
-                                <i class="bi bi-download me-1"></i> Exportar
+                            <button id="btn-export-list" class="btn btn-light bg-white border" style="font-weight: var(--weight-medium); font-size: var(--fs-md); color: var(--text-body); border-radius: var(--radius-md);">
+                                <span class="material-symbols-outlined text-[17px] me-1" style="vertical-align: text-bottom;">download</span> Exportar
                             </button>
                             <button id="btn-nueva-factura" class="btn btn-primary-action">
-                                <i class="bi bi-plus-lg me-1"></i> Nueva factura
+                                <span class="material-symbols-outlined text-[18px] me-1" style="vertical-align: text-bottom;">add</span> Nueva factura
                             </button>
                         </div>
                     </div>
@@ -156,20 +161,35 @@ export const FacturasModule = {
                     <div class="row g-3 mb-4">
                         <div class="col-12 col-sm-6 col-lg-4">
                             <div class="ds-kpi-card">
-                                <span class="ds-kpi-label">Total Facturado</span>
-                                <div class="ds-kpi-value">$ ${formatMoney(kpiDataCxc.facturado).replace('$ ', '')}</div>
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <span class="ds-kpi-label">Total Facturado</span>
+                                    <div class="dash-icon-box variant-blue" style="width: 32px; height: 32px; border-radius: 8px;">
+                                        <span class="material-symbols-outlined text-[18px]">request_quote</span>
+                                    </div>
+                                </div>
+                                <div class="ds-kpi-value tnum">$ ${formatMoney(kpiDataCxc.facturado).replace('$ ', '')}</div>
                             </div>
                         </div>
                         <div class="col-12 col-sm-6 col-lg-4">
                             <div class="ds-kpi-card">
-                                <span class="ds-kpi-label">Total Cobrado</span>
-                                <div class="ds-kpi-value">$ ${formatMoney(kpiDataCxc.cobrado).replace('$ ', '')}</div>
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <span class="ds-kpi-label">Total Cobrado</span>
+                                    <div class="dash-icon-box variant-green" style="width: 32px; height: 32px; border-radius: 8px;">
+                                        <span class="material-symbols-outlined text-[18px]">payments</span>
+                                    </div>
+                                </div>
+                                <div class="ds-kpi-value tnum">$ ${formatMoney(kpiDataCxc.cobrado).replace('$ ', '')}</div>
                             </div>
                         </div>
                         <div class="col-12 col-sm-6 col-lg-4">
                             <div class="ds-kpi-card">
-                                <span class="ds-kpi-label">Total Pendiente</span>
-                                <div class="ds-kpi-value">$ ${formatMoney(kpiDataCxc.pendiente).replace('$ ', '')}</div>
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <span class="ds-kpi-label">Total Pendiente</span>
+                                    <div class="dash-icon-box" style="width: 32px; height: 32px; border-radius: 8px; background-color: #fffbeb; color: #d97706;">
+                                        <span class="material-symbols-outlined text-[18px]">pending_actions</span>
+                                    </div>
+                                </div>
+                                <div class="ds-kpi-value tnum">$ ${formatMoney(kpiDataCxc.pendiente).replace('$ ', '')}</div>
                             </div>
                         </div>
                     </div>

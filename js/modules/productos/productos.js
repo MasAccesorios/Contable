@@ -26,18 +26,21 @@ export const ProductosModule = {
                 <!-- TOP BAR -->
                 <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
                     <div>
-                        <h2 class="page-title">Ítems de venta</h2>
-                        <p class="text-muted mb-0" style="font-size: var(--fs-md);">Gestiona tus productos, su costo promedio y el inventario disponible.</p>
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <h2 class="page-title mb-0" style="font-size: 20px; font-weight: 700; color: var(--text-main);">Ítems de venta</h2>
+                            <span class="badge" style="background-color: #f1f5f9; color: var(--text-muted); font-size: 11px; font-weight: 600; border: 1px solid var(--border-color); border-radius: 9999px; padding: 3px 10px;">Inventario</span>
+                        </div>
+                        <p class="text-muted mb-0" style="font-size: 13px;">Gestiona tus productos, su costo promedio y el inventario disponible en tiempo real.</p>
                     </div>
                     <div class="d-flex flex-wrap gap-2 w-100 w-md-auto justify-content-md-end">
-                        <button id="btn-refresh-list" class="btn btn-light bg-white border" style="flex: 1 1 auto; font-weight: var(--weight-medium); font-size: var(--fs-md); color: var(--text-body);">
-                            <i class="bi bi-arrow-clockwise me-1"></i> Actualizar
+                        <button id="btn-refresh-list" class="btn btn-light bg-white border d-inline-flex align-items-center justify-content-center" style="font-weight: 500; font-size: 13px; color: var(--text-body); border-radius: var(--border-radius-sm); padding: 8px 14px;">
+                            <span class="material-symbols-outlined me-1" style="font-size: 18px;">refresh</span> Actualizar
                         </button>
-                        <button id="btn-export-list" class="btn btn-light bg-white border" style="flex: 1 1 auto; font-weight: var(--weight-medium); font-size: var(--fs-md); color: var(--text-body);">
-                            <i class="bi bi-download me-1"></i> Exportar
+                        <button id="btn-export-list" class="btn btn-light bg-white border d-inline-flex align-items-center justify-content-center" style="font-weight: 500; font-size: 13px; color: var(--text-body); border-radius: var(--border-radius-sm); padding: 8px 14px;">
+                            <span class="material-symbols-outlined me-1" style="font-size: 18px;">download</span> Exportar
                         </button>
-                        <button id="btn-nuevo-producto" class="btn btn-primary-action" style="flex: 1 1 auto;">
-                            <i class="bi bi-plus-lg me-1"></i> Nuevo producto
+                        <button id="btn-nuevo-producto" class="btn btn-primary-action d-inline-flex align-items-center justify-content-center" style="font-weight: 600; font-size: 13px; border-radius: var(--border-radius-sm); padding: 8px 16px;">
+                            <span class="material-symbols-outlined me-1" style="font-size: 18px;">add</span> Nuevo producto
                         </button>
                     </div>
                 </div>
@@ -46,16 +49,16 @@ export const ProductosModule = {
                 <div class="dash-table-container">
                     
                     <!-- FILTERS -->
-                    <div class="card-header bg-white border-bottom p-3 d-flex gap-3 align-items-center">
-                        <div class="ds-search-container" style="width: 250px;">
-                            <i class="bi bi-search ds-search-icon"></i>
-                            <input type="text" id="searchProductos" class="ds-search-input" placeholder="Buscar por nombre, SKU..." value="${this.searchQuery}" autocomplete="off">
+                    <div class="card-header bg-white border-bottom p-3 d-flex gap-3 align-items-center" style="border-radius: var(--border-radius-sm) var(--border-radius-sm) 0 0;">
+                        <div class="ds-search-container" style="width: 280px; position: relative;">
+                            <span class="material-symbols-outlined" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); font-size: 18px; color: var(--text-muted); pointer-events: none;">search</span>
+                            <input type="text" id="searchProductos" class="form-control" placeholder="Buscar por nombre, SKU..." value="${this.searchQuery}" autocomplete="off" style="padding-left: 34px; font-size: 13px; border-radius: var(--border-radius-sm); border-color: var(--border-color);">
                         </div>
                         <div class="dropdown">
-                            <button class="btn btn-link text-decoration-none text-muted p-0 dropdown-toggle" data-bs-toggle="dropdown" style="font-size: var(--fs-md);">
-                                <i class="bi bi-funnel me-1"></i> Filtrar <span id="lbl-filtro-actual" style="font-size: var(--fs-sm); font-weight: 500; color: var(--primary);"></span>
+                            <button class="btn btn-light bg-white border dropdown-toggle d-inline-flex align-items-center" data-bs-toggle="dropdown" style="font-size: 13px; font-weight: 500; border-radius: var(--border-radius-sm); padding: 7px 12px; color: var(--text-body);">
+                                <span class="material-symbols-outlined me-1" style="font-size: 17px; color: var(--text-muted);">filter_list</span> Filtrar <span id="lbl-filtro-actual" style="font-size: 12px; font-weight: 600; color: var(--primary); margin-left: 4px;"></span>
                             </button>
-                            <ul class="dropdown-menu shadow border-0" style="font-size: var(--fs-base);">
+                            <ul class="dropdown-menu shadow-sm border" style="font-size: 13px; border-radius: var(--border-radius-sm);">
                                 <li><a class="dropdown-item filter-opt" href="#" data-criteria="todos">Todos los campos</a></li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li><a class="dropdown-item filter-opt" href="#" data-criteria="nombre">Por Nombre</a></li>
@@ -212,17 +215,17 @@ export const ProductosModule = {
 
         if (thead) {
             thead.innerHTML = `
-                <tr>
-                    <th class="py-2 fw-normal ps-4 cursor-pointer sort-col" data-col="sku" style="white-space: nowrap;">
-                        SKU ${this.sortColumn === 'sku' ? (this.sortDirection === 'asc' ? '<i class="bi bi-arrow-up-short"></i>' : '<i class="bi bi-arrow-down-short"></i>') : ''}
+                <tr style="background-color: #f8fafc; border-bottom: 1px solid var(--border-color);">
+                    <th class="py-3 ps-4 cursor-pointer sort-col" data-col="sku" style="white-space: nowrap; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">
+                        SKU ${this.sortColumn === 'sku' ? (this.sortDirection === 'asc' ? '<span class="material-symbols-outlined align-middle" style="font-size: 14px;">arrow_upward</span>' : '<span class="material-symbols-outlined align-middle" style="font-size: 14px;">arrow_downward</span>') : ''}
                     </th>
-                    <th class="py-2 fw-normal cursor-pointer sort-col" data-col="nombre" style="min-width: 200px;">
-                        Nombre / Descripción ${this.sortColumn === 'nombre' ? (this.sortDirection === 'asc' ? '<i class="bi bi-arrow-up-short"></i>' : '<i class="bi bi-arrow-down-short"></i>') : ''}
+                    <th class="py-3 cursor-pointer sort-col" data-col="nombre" style="min-width: 220px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">
+                        Nombre / Descripción ${this.sortColumn === 'nombre' ? (this.sortDirection === 'asc' ? '<span class="material-symbols-outlined align-middle" style="font-size: 14px;">arrow_upward</span>' : '<span class="material-symbols-outlined align-middle" style="font-size: 14px;">arrow_downward</span>') : ''}
                     </th>
-                    <th class="py-2 fw-normal text-end" style="white-space: nowrap; min-width: 120px;">Precio Venta</th>
-                    <th class="py-2 fw-normal text-end" style="white-space: nowrap; min-width: 100px;">Stock Total</th>
-                    <th class="py-2 fw-normal text-end" style="white-space: nowrap; min-width: 150px;">Costo Promedio Real</th>
-                    <th class="py-2 fw-normal text-end pe-4" style="width: 80px; white-space: nowrap;"></th>
+                    <th class="py-3 text-end" style="white-space: nowrap; min-width: 120px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Precio Venta</th>
+                    <th class="py-3 text-end" style="white-space: nowrap; min-width: 110px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Stock Total</th>
+                    <th class="py-3 text-end" style="white-space: nowrap; min-width: 150px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Costo Promedio Real</th>
+                    <th class="py-3 text-end pe-4" style="width: 80px; white-space: nowrap;"></th>
                 </tr>
             `;
             
@@ -293,22 +296,22 @@ export const ProductosModule = {
             const isLowStock = stockTotal <= (p.stockMinimo || 0);
             
             html += `
-                <tr data-id="${p.id}" style="cursor: pointer; border-bottom: 1px solid var(--border-color); font-size: var(--fs-base); color: var(--text-body);" class="row-clickable">
-                    <td class="py-2 ps-4 td-sku" style="color: var(--text-main); font-weight: var(--weight-medium);">${escapeHtml(p.sku) || ''}</td>
-                    <td class="py-2 text-truncate td-nombre" style="max-width: 300px;">${escapeHtml(p.nombre || '')}</td>
-                    <td class="py-2 text-end">$${(p.precioVenta || 0).toLocaleString('es-CO', {minimumFractionDigits: 2})}</td>
+                <tr data-id="${p.id}" style="cursor: pointer; border-bottom: 1px solid var(--border-color); font-size: 13px; color: var(--text-body); height: 44px;" class="row-clickable">
+                    <td class="py-2 ps-4 td-sku" style="color: var(--text-main); font-weight: 600; font-family: monospace;">${escapeHtml(p.sku) || ''}</td>
+                    <td class="py-2 text-truncate td-nombre" style="max-width: 300px; font-weight: 500; color: var(--text-main);">${escapeHtml(p.nombre || '')}</td>
+                    <td class="py-2 text-end tnum" style="font-weight: 500;">$${(p.precioVenta || 0).toLocaleString('es-CO', {minimumFractionDigits: 2})}</td>
                     <td class="py-2 text-end">
-                        <span style="${isLowStock ? 'color: var(--danger); background-color: var(--danger-bg, #fee2e2);' : 'color: var(--success); background-color: var(--success-bg, #dcfce7);'} padding: 4px 12px; border-radius: var(--border-radius); font-size: var(--fs-xs); font-weight: var(--weight-medium);" ${isLowStock ? 'title="¡Alerta: Stock por debajo del mínimo!"' : ''}>
-                            ${isLowStock ? '<i class="bi bi-exclamation-triangle-fill me-1"></i>' : ''}${stockTotal} und
+                        <span class="badge ${isLowStock ? 'badge-stitch-vencido' : 'badge-stitch-cobrado'} tnum" style="font-size: 11px; font-weight: 600;" ${isLowStock ? 'title="¡Alerta: Stock por debajo del mínimo!"' : ''}>
+                            ${isLowStock ? '<span class="material-symbols-outlined align-middle me-1" style="font-size: 13px;">warning</span>' : ''}${stockTotal} und
                         </span>
                     </td>
-                    <td class="py-2 text-end text-muted">$${(costoPromedio || 0).toLocaleString('es-CO', {minimumFractionDigits: 2})}</td>
+                    <td class="py-2 text-end text-muted tnum">$${(costoPromedio || 0).toLocaleString('es-CO', {minimumFractionDigits: 2})}</td>
                     <td class="py-2 text-end pe-4">
-                        <button class="btn btn-link text-muted p-0 me-2 btn-menu-row btn-editar" data-id="${p.id}">
-                            <i class="bi bi-pencil"></i>
+                        <button class="btn btn-link text-muted p-1 me-1 btn-menu-row btn-editar" data-id="${p.id}" title="Editar">
+                            <span class="material-symbols-outlined" style="font-size: 18px;">edit</span>
                         </button>
-                        <button class="btn btn-link text-muted p-0 btn-menu-row btn-eliminar" data-id="${p.id}">
-                            <i class="bi bi-trash"></i>
+                        <button class="btn btn-link text-muted p-1 btn-menu-row btn-eliminar" data-id="${p.id}" title="Desactivar">
+                            <span class="material-symbols-outlined" style="font-size: 18px;">delete</span>
                         </button>
                     </td>
                 </tr>
@@ -320,22 +323,22 @@ export const ProductosModule = {
         if (pagination) {
             const from = (this.currentPage - 1) * this.itemsPerPage;
             pagination.innerHTML = `
-                <div class="d-flex align-items-center gap-3" style="font-size: var(--fs-base); color: var(--text-body);">
+                <div class="d-flex align-items-center gap-3" style="font-size: 13px; color: var(--text-body);">
                     <span>Resultados por página:</span>
-                    <select class="form-select form-select-sm text-muted select-per-page" style="width: 70px;">
+                    <select class="form-select form-select-sm text-muted select-per-page" style="width: 70px; font-size: 13px; border-radius: var(--border-radius-sm);">
                         <option value="10" ${this.itemsPerPage===10?'selected':''}>10</option>
                         <option value="20" ${this.itemsPerPage===20?'selected':''}>20</option>
                         <option value="50" ${this.itemsPerPage===50?'selected':''}>50</option>
                     </select>
-                    <span class="text-muted border-start ps-3">${totalItems > 0 ? from + 1 : 0}-${Math.min(from + this.itemsPerPage, totalItems)} de ${totalItems}</span>
+                    <span class="text-muted border-start ps-3 tnum">${totalItems > 0 ? from + 1 : 0}-${Math.min(from + this.itemsPerPage, totalItems)} de ${totalItems}</span>
                 </div>
-                <div class="d-flex align-items-center gap-2" style="font-size: var(--fs-base); color: var(--text-body);">
+                <div class="d-flex align-items-center gap-2" style="font-size: 13px; color: var(--text-body);">
                     <span>Página</span>
-                    <input type="number" class="form-control form-control-sm text-center text-muted input-page" value="${this.currentPage}" min="1" max="${totalPages}" style="width: 50px;">
-                    <span>de ${totalPages}</span>
-                    <div class="ms-2">
-                        <button class="btn btn-link text-muted p-0 me-1 btn-prev-page" ${this.currentPage === 1 ? 'disabled' : ''}><i class="bi bi-chevron-left"></i></button>
-                        <button class="btn btn-link text-muted p-0 btn-next-page" ${this.currentPage === totalPages ? 'disabled' : ''}><i class="bi bi-chevron-right"></i></button>
+                    <input type="number" class="form-control form-control-sm text-center text-muted input-page tnum" value="${this.currentPage}" min="1" max="${totalPages}" style="width: 50px; font-size: 13px; border-radius: var(--border-radius-sm);">
+                    <span class="tnum">de ${totalPages}</span>
+                    <div class="ms-2 d-inline-flex gap-1">
+                        <button class="btn btn-sm btn-light border p-1 d-inline-flex align-items-center justify-content-center btn-prev-page" ${this.currentPage === 1 ? 'disabled' : ''} style="width: 28px; height: 28px; border-radius: var(--border-radius-sm);"><span class="material-symbols-outlined" style="font-size: 16px;">chevron_left</span></button>
+                        <button class="btn btn-sm btn-light border p-1 d-inline-flex align-items-center justify-content-center btn-next-page" ${this.currentPage === totalPages ? 'disabled' : ''} style="width: 28px; height: 28px; border-radius: var(--border-radius-sm);"><span class="material-symbols-outlined" style="font-size: 16px;">chevron_right</span></button>
                     </div>
                 </div>
             `;
@@ -556,12 +559,12 @@ export const ProductosModule = {
 
         lotesProd.forEach(l => {
             lotesHtml += `
-                <tr class="${l.cantidadActual === 0 ? 'table-light opacity-50' : ''}">
-                    <td>${l.fechaIngreso}</td>
-                    <td>${escapeHtml(l.referencia)}</td>
-                    <td class="text-end">$${l.costoUnitario.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                    <td class="text-end">${l.cantidadInicial} und</td>
-                    <td class="text-end">
+                <tr class="${l.cantidadActual === 0 ? 'table-light opacity-50' : ''}" style="border-bottom: 1px solid var(--border-color); font-size: 13px; color: var(--text-body);">
+                    <td class="py-2 ps-3 tnum">${l.fechaIngreso}</td>
+                    <td class="py-2">${escapeHtml(l.referencia)}</td>
+                    <td class="py-2 text-end tnum">$${l.costoUnitario.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                    <td class="py-2 text-end tnum">${l.cantidadInicial} und</td>
+                    <td class="py-2 text-end pe-3 tnum">
                         <strong class="${l.cantidadActual === 0 ? 'text-muted' : 'text-success'}">${l.cantidadActual} und</strong>
                     </td>
                 </tr>
@@ -625,17 +628,17 @@ export const ProductosModule = {
                 <div class="col-12 col-lg-4">
                     <div class="card border-0 shadow-sm mb-4">
                         <div class="card-body p-4">
-                            <h5 class="fw-bold mb-3">Detalle Técnico</h5>
-                            <ul class="list-unstyled mb-0">
+                            <h5 class="fw-bold mb-3" style="font-size: 15px; color: var(--text-main);">Detalle Técnico</h5>
+                            <ul class="list-unstyled mb-0" style="font-size: 13px;">
                                 <li class="mb-3 d-flex align-items-center">
-                                    <strong>SKU:</strong> 
-                                    <span class="badge bg-white text-danger border border-danger border-2 px-3 py-2 ms-2 fs-6 shadow-sm rounded">
+                                    <span class="text-muted me-2">SKU:</span> 
+                                    <span class="badge" style="background-color: #f1f5f9; color: var(--text-main); border: 1px solid var(--border-color); font-family: monospace; font-size: 13px; padding: 4px 10px;">
                                         ${escapeHtml(producto.sku)}
                                     </span>
                                 </li>
-                                <li class="mb-2"><strong>Descripción:</strong> ${escapeHtml(producto.nombre)}</li>
-                                <li class="mb-2"><strong>Precio Venta:</strong> $${producto.precioVenta.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</li>
-                                <li><strong>Costo Base Fijo:</strong> $${producto.costoBase.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</li>
+                                <li class="mb-2"><span class="text-muted">Descripción:</span> <strong style="color: var(--text-main);">${escapeHtml(producto.nombre)}</strong></li>
+                                <li class="mb-2"><span class="text-muted">Precio Venta:</span> <strong class="tnum" style="color: var(--text-main);">$${producto.precioVenta.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong></li>
+                                <li><span class="text-muted">Costo Base Fijo:</span> <span class="tnum text-muted">$${producto.costoBase.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span></li>
                             </ul>
                         </div>
                     </div>
@@ -677,32 +680,35 @@ export const ProductosModule = {
                     <div class="card border-0 shadow-sm h-100">
                         <div class="card-body p-4">
                             <div class="d-flex justify-content-between align-items-center mb-4">
-                                <h5 class="fw-bold mb-0">Capas de Inventario (Lotes FIFO)</h5>
-                                <div>
-                                    <button id="btn-kardex-prod" class="btn btn-sm btn-outline-primary me-2">
-                                        <i class="bi bi-card-list me-1"></i>Kardex
+                                <h5 class="fw-bold mb-0" style="font-size: 15px; color: var(--text-main);">Capas de Inventario (Lotes FIFO)</h5>
+                                <div class="d-flex gap-2">
+                                    <button id="btn-kardex-prod" class="btn btn-sm btn-outline-primary d-inline-flex align-items-center" style="font-size: 13px; font-weight: 500; border-radius: var(--border-radius-sm); padding: 5px 12px;">
+                                        <span class="material-symbols-outlined me-1" style="font-size: 16px;">receipt_long</span>Kardex
                                     </button>
-                                    <button id="btn-volver-prod" class="btn btn-sm btn-outline-secondary">
-                                        <i class="bi bi-arrow-left me-1"></i>Volver al Listado
+                                    <button id="btn-volver-prod" class="btn btn-sm btn-light border d-inline-flex align-items-center" style="font-size: 13px; font-weight: 500; border-radius: var(--border-radius-sm); padding: 5px 12px; color: var(--text-body);">
+                                        <span class="material-symbols-outlined me-1" style="font-size: 16px;">arrow_back</span>Volver al Listado
                                     </button>
                                 </div>
                             </div>
                             
                             <!-- NUEVO BANNER STOCK TOTAL -->
-                            <div class="alert alert-info d-flex align-items-center fw-bold fs-5 mb-4 shadow-sm" style="border-left: 5px solid var(--primary); background-color: var(--bg-main);">
-                                <i class="bi bi-box-seam me-3 fs-3"></i>
-                                Stock Total Disponible: ${stockTotalDisponible} unidades
+                            <div class="alert d-flex align-items-center p-3 mb-4" style="background-color: #eff6ff; border: 1px solid #bfdbfe; border-radius: var(--border-radius-sm);">
+                                <span class="material-symbols-outlined me-3" style="font-size: 28px; color: #2563eb;">inventory_2</span>
+                                <div>
+                                    <div class="text-muted" style="font-size: 12px; font-weight: 500;">Stock Total Disponible</div>
+                                    <div class="fw-bold tnum" style="font-size: 18px; color: #1e40af;">${stockTotalDisponible} unidades</div>
+                                </div>
                             </div>
 
                             <div class="table-responsive">
                                 <table class="table align-middle">
-                                    <thead class="table-light text-muted uppercase font-monospace" style="font-size: 0.85rem;">
-                                        <tr>
-                                            <th>Fecha Ingreso</th>
-                                            <th>Referencia</th>
-                                            <th class="text-end">Costo Unitario</th>
-                                            <th class="text-end">Cantidad Inicial</th>
-                                            <th class="text-end">Cantidad Disponible</th>
+                                    <thead style="background-color: #f8fafc; border-bottom: 1px solid var(--border-color);">
+                                        <tr style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">
+                                            <th class="py-2 ps-3">Fecha Ingreso</th>
+                                            <th class="py-2">Referencia</th>
+                                            <th class="py-2 text-end">Costo Unitario</th>
+                                            <th class="py-2 text-end">Cantidad Inicial</th>
+                                            <th class="py-2 text-end pe-3">Cantidad Disponible</th>
                                         </tr>
                                     </thead>
                                     <tbody id="tbody-lotes-fifo">
@@ -743,27 +749,27 @@ export const ProductosModule = {
             </div>
 
             <!-- MODAL KARDEX -->
-            <div class="modal fade" id="modalKardexProducto" tabindex="-1" aria-hidden="true" data-bs-theme="dark">
+            <div class="modal fade" id="modalKardexProducto" tabindex="-1" aria-hidden="true">
                 <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
-                    <div class="modal-content" style="background-color: var(--bg-main); border: 1px solid var(--border-color);">
+                    <div class="modal-content" style="background-color: var(--bg-main); border: 1px solid var(--border-color); border-radius: var(--border-radius-sm);">
                         <div class="modal-header border-bottom">
-                            <h5 class="modal-title fw-bold" style="color: var(--text-main);">
-                                <i class="bi bi-card-list me-2"></i>Kardex de Producto: ${escapeHtml(producto.nombre)}
+                            <h5 class="modal-title fw-bold d-flex align-items-center" style="color: var(--text-main); font-size: 16px;">
+                                <span class="material-symbols-outlined me-2" style="font-size: 20px; color: var(--primary);">receipt_long</span>Kardex de Producto: ${escapeHtml(producto.nombre)}
                             </h5>
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
                         <div class="modal-body p-0">
                             <div class="table-responsive">
-                                <table class="table table-hover align-middle mb-0 text-center">
-                                    <thead style="background-color: rgba(0,0,0,0.02); border-bottom: 2px solid var(--border-color);">
-                                        <tr style="color: var(--text-muted); font-size: 0.85rem;" class="text-uppercase font-monospace">
-                                            <th class="py-3 ps-4 text-start">Fecha</th>
-                                            <th class="py-3">Tipo</th>
-                                            <th class="py-3 text-end">Cant. Anterior</th>
-                                            <th class="py-3 text-end">Diferencia</th>
-                                            <th class="py-3 text-end">Cant. Nueva</th>
-                                            <th class="py-3">Origen</th>
-                                            <th class="py-3 pe-4">Referencia</th>
+                                <table class="table align-middle mb-0 text-center">
+                                    <thead style="background-color: #f8fafc; border-bottom: 1px solid var(--border-color);">
+                                        <tr style="color: var(--text-muted); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">
+                                            <th class="py-2 ps-4 text-start">Fecha</th>
+                                            <th class="py-2">Tipo</th>
+                                            <th class="py-2 text-end">Cant. Anterior</th>
+                                            <th class="py-2 text-end">Diferencia</th>
+                                            <th class="py-2 text-end">Cant. Nueva</th>
+                                            <th class="py-2">Origen</th>
+                                            <th class="py-2 pe-4">Referencia</th>
                                         </tr>
                                     </thead>
                                     <tbody id="tbody-kardex-modal">
@@ -830,14 +836,14 @@ export const ProductosModule = {
                 const formatNum = (num) => Number(num || 0).toLocaleString('es-CO');
 
                 html += `
-                    <tr style="border-bottom: 1px solid var(--border-color); font-size: var(--fs-base); color: var(--text-body);">
-                        <td class="py-3 ps-4 text-start">${dateParts}</td>
-                        <td class="py-3"><span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary-subtle px-2 py-1 text-uppercase">${escapeHtml(mov.tipo_operacion || '')}</span></td>
-                        <td class="py-3 text-end">${formatNum(mov.cantidad_anterior)}</td>
-                        <td class="py-3 text-end ${difColor}">${difSign}${formatNum(dif)}</td>
-                        <td class="py-3 fw-medium text-end" style="color: #ffc107;">${formatNum(mov.cantidad_nueva)}</td>
-                        <td class="py-3 text-muted small">${escapeHtml(mov.origen_documento || '-')}</td>
-                        <td class="py-3 pe-4 text-muted small">${escapeHtml(mov.referencia_lote || '-')}</td>
+                    <tr style="border-bottom: 1px solid var(--border-color); font-size: 13px; color: var(--text-body);">
+                        <td class="py-2 ps-4 text-start tnum">${dateParts}</td>
+                        <td class="py-2"><span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary-subtle px-2 py-1 text-uppercase" style="font-size: 10px;">${escapeHtml(mov.tipo_operacion || '')}</span></td>
+                        <td class="py-2 text-end tnum">${formatNum(mov.cantidad_anterior)}</td>
+                        <td class="py-2 text-end tnum ${difColor}">${difSign}${formatNum(dif)}</td>
+                        <td class="py-2 fw-medium text-end tnum" style="color: #d97706;">${formatNum(mov.cantidad_nueva)}</td>
+                        <td class="py-2 text-muted small">${escapeHtml(mov.origen_documento || '-')}</td>
+                        <td class="py-2 pe-4 text-muted small">${escapeHtml(mov.referencia_lote || '-')}</td>
                     </tr>
                 `;
             });
