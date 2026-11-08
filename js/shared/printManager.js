@@ -244,11 +244,11 @@ export const PrintManager = {
                     <div style="padding: 10px; font-size: 14px; color: #495057;">
                         <table style="width: 100%; border-collapse: collapse;">
                             <tr><td style="padding-bottom: 5px; width: 30%; white-space: nowrap;"><strong>Razón Social:</strong></td><td style="padding-bottom: 5px; padding-left: 5px;">${escapeHtml(doc.cliente_razon_social) || ''}</td></tr>
-                            <tr><td style="padding-bottom: 5px;"><strong>NIT:</strong></td><td style="padding-bottom: 5px;">${doc.cliente_nit || ''}</td></tr>
-                            <tr><td style="padding-bottom: 5px;"><strong>Dirección:</strong></td><td style="padding-bottom: 5px;">${doc.cliente_direccion || ''}</td></tr>
-                            <tr><td style="padding-bottom: 5px;"><strong>Ciudad:</strong></td><td style="padding-bottom: 5px;">${doc.cliente_ciudad || ''}</td></tr>
-                            <tr><td style="padding-bottom: 5px;"><strong>Teléfono:</strong></td><td style="padding-bottom: 5px;">${doc.cliente_telefono || ''}</td></tr>
-                            <tr><td><strong>Correo:</strong></td><td>${doc.cliente_email || ''}</td></tr>
+                            <tr><td style="padding-bottom: 5px;"><strong>NIT:</strong></td><td style="padding-bottom: 5px;">${escapeHtml(doc.cliente_nit) || ''}</td></tr>
+                            <tr><td style="padding-bottom: 5px;"><strong>Dirección:</strong></td><td style="padding-bottom: 5px;">${escapeHtml(doc.cliente_direccion) || ''}</td></tr>
+                            <tr><td style="padding-bottom: 5px;"><strong>Ciudad:</strong></td><td style="padding-bottom: 5px;">${escapeHtml(doc.cliente_ciudad) || ''}</td></tr>
+                            <tr><td style="padding-bottom: 5px;"><strong>Teléfono:</strong></td><td style="padding-bottom: 5px;">${escapeHtml(doc.cliente_telefono) || ''}</td></tr>
+                            <tr><td><strong>Correo:</strong></td><td>${escapeHtml(doc.cliente_email) || ''}</td></tr>
                         </table>
                     </div>
                 </div>
@@ -261,8 +261,8 @@ export const PrintManager = {
                             <tr><td style="padding-bottom: 5px; width: 45%;"><strong>Fecha Expedición:</strong></td><td style="padding-bottom: 5px;">${doc.fecha}</td></tr>
                             <tr><td style="padding-bottom: 5px; white-space: nowrap;"><strong>Fecha Vencimiento:</strong></td><td style="padding-bottom: 5px;">${doc.fecha_vencimiento || doc.fecha}</td></tr>
                             <tr><td style="padding-bottom: 5px; white-space: nowrap;"><strong>Moneda:</strong></td><td style="padding-bottom: 5px;">COP (Pesos Colombianos)</td></tr>
-                            <tr><td style="padding-bottom: 5px;"><strong>Forma de Pago:</strong></td><td style="padding-bottom: 5px;">${doc.forma_pago || 'Contado'}</td></tr>
-                            <tr><td style="white-space: nowrap;"><strong>Medio de Pago:</strong></td><td>${doc.medio_pago || 'Instrumento no definido'}</td></tr>
+                            <tr><td style="padding-bottom: 5px;"><strong>Forma de Pago:</strong></td><td style="padding-bottom: 5px;">${escapeHtml(doc.forma_pago || 'Contado')}</td></tr>
+                            <tr><td style="white-space: nowrap;"><strong>Medio de Pago:</strong></td><td>${escapeHtml(doc.medio_pago || 'Instrumento no definido')}</td></tr>
                         </table>
                     </div>
                 </div>

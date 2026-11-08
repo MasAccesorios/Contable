@@ -851,7 +851,7 @@ export const NotasCreditoModule = {
                             }
                         }
 
-                        resultDiv.innerHTML = `<span class="text-success fw-bold">Factura seleccionada: #${currentFactura.numero} - Cliente: ${clientName} - Total: $${Number(currentFactura.total).toLocaleString()}</span>`;
+                        resultDiv.innerHTML = `<span class="text-success fw-bold">Factura seleccionada: #${currentFactura.numero} - Cliente: ${escapeHtml(clientName)} - Total: ${Number(currentFactura.total).toLocaleString()}</span>`;
                         element.querySelector('#items-container').classList.remove('d-none');
                         
                         tbody.innerHTML = currentDetalles.map((d, index) => {
@@ -892,7 +892,7 @@ export const NotasCreditoModule = {
                         updateTotals();
 
                     } catch (e) {
-                        resultDiv.innerHTML = `<span class="text-danger">Error: ${e.message}</span>`;
+                        resultDiv.innerHTML = `<span class="text-danger">Error: ${escapeHtml(e.message)}</span>`;
                     }
                         }
                     });

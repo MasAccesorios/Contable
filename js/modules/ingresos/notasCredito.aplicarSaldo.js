@@ -128,7 +128,7 @@ export const AplicarSaldoNCModal = {
                     inp.classList.add('is-invalid');
                     hayError = true;
                     mensajeError = 'Los montos no pueden ser negativos.';
-                } else if (val > saldoMax) {
+                } else if (val > (saldoMax + 0.01)) {
                     inp.classList.add('is-invalid');
                     hayError = true;
                     mensajeError = `El monto en una factura supera su saldo pendiente ($${saldoMax.toLocaleString('es-CO')}).`;
@@ -143,7 +143,7 @@ export const AplicarSaldoNCModal = {
 
             const saldoRestante = saldoDisponibleNum - totalAplicar;
 
-            if (totalAplicar > saldoDisponibleNum) {
+            if (totalAplicar > (saldoDisponibleNum + 0.01)) {
                 hayError = true;
                 mensajeError = `El total a aplicar ($${totalAplicar.toLocaleString('es-CO')}) supera el saldo a favor disponible ($${saldoDisponibleNum.toLocaleString('es-CO')}).`;
                 displayRestante.classList.remove('text-success');

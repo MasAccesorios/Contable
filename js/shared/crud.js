@@ -212,7 +212,7 @@ export const CoreActions = {
                         <i class="bi bi-exclamation-triangle-fill text-warning fs-4 me-3"></i>
                         <h5 class="mb-0 fw-bold" style="color: var(--text-main); font-size: 16px;">Acción interceptada</h5>
                     </div>
-                    <p style="color: var(--text-body); font-size: 14px; line-height: 1.5; margin-bottom: 24px;">${message}</p>
+                    <p style="color: var(--text-body); font-size: 14px; line-height: 1.5; margin-bottom: 24px;">${escapeHtml(message).replace(/\n/g, '<br>')}</p>
                     <div class="text-end">
                         <button class="btn btn-light px-4 text-dark" style="font-weight: var(--weight-medium); border: 1px solid #e2e8f0;" onclick="document.getElementById('core-warning-modal').remove()">Entendido</button>
                     </div>

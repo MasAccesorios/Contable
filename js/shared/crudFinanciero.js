@@ -487,8 +487,8 @@ export class CrudFinanciero {
                 <td class="py-1 text-muted" style="white-space: nowrap;">${g.fecha}</td>
                 <td class="py-1" style="white-space: nowrap;"><span class="badge bg-light text-dark border">${escapeHtml(g.categoria)}</span></td>
                 <td class="py-1" style="white-space: nowrap;">${escapeHtml(g.descripcion)}</td>
-                <td class="py-1 text-muted" style="white-space: nowrap;">${proveedorNombre}</td>
-                <td class="py-1 text-muted" style="white-space: nowrap;">${cuentaNombre}</td>
+                <td class="py-1 text-muted" style="white-space: nowrap;">${escapeHtml(proveedorNombre)}</td>
+                <td class="py-1 text-muted" style="white-space: nowrap;">${escapeHtml(cuentaNombre)}</td>
                 <td class="py-1 text-muted" style="white-space: nowrap;">${escapeHtml(g.referencia) || '-'}</td>
                 <td class="py-1 text-end fw-bold ${this.config.colorMonto}" style="white-space: nowrap;">${this.config.prefijoMonto}$${g.monto.toLocaleString()}</td>
                 <td class="py-1 text-center" style="white-space: nowrap;">

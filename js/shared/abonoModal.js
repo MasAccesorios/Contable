@@ -188,7 +188,7 @@ export const AbonoModal = {
             let montoAbono = parseCurrencyValue(montoInput.value);
             const nota = document.getElementById('abono-nota-shared').value.trim();
 
-            if (montoAbono <= 0 || montoAbono > this.currentSaldo) {
+            if (montoAbono <= 0 || montoAbono > (this.currentSaldo + 0.01)) {
                 CoreActions.showWarningModal("El monto del abono es inválido o supera el saldo pendiente.");
                 return;
             }
@@ -215,7 +215,8 @@ export const AbonoModal = {
                     monto: montoAbono,
                     fecha: fecha,
                     cuenta_id: cuentaId,
-                    metodo_pago: metodoPago
+                    metodo_pago: metodoPago,
+                    observaciones: nota || null
                 };
                 
                 await DB.save('transacciones', transaccion);

@@ -384,7 +384,7 @@ export const ConciliacionTemplates = {
                             <i class="bi bi-arrow-left me-1"></i> Volver a Conciliación
                         </a>
                         <h2 class="h3 fw-bold mb-0" style="color: var(--text-main);">Detalle de Conciliación</h2>
-                        <p class="text-muted mb-0 mt-1" style="font-size: var(--fs-md);">${bancoNombre}</p>
+                        <p class="text-muted mb-0 mt-1" style="font-size: var(--fs-md);">${escapeHtml(bancoNombre)}</p>
                     </div>
                 </div>
 

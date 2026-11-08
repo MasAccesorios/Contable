@@ -213,7 +213,7 @@ export const CotizacionesModule = {
                 const badgeClass = isFacturada ? 'bg-success text-success bg-opacity-10 border border-success-subtle' : 'bg-warning text-warning-emphasis bg-opacity-10 border border-warning-subtle';
                 const labelEstado = isFacturada ? 'Facturada' : 'Sin facturar';
                 const numDisplay = (c.numero || c.id);
-                const clientNameDisplay = c.cliente_nombre || 'Sin Cliente';
+                const clientNameDisplay = escapeHtml(c.cliente_nombre || 'Sin Cliente');
                 
                 return `
                     <tr style="cursor: pointer; border-bottom: 1px solid var(--border-color); font-size: var(--fs-base); color: var(--text-body);" onclick="if(!event.target.closest('button')) window.location.hash = '#/ingresos/cotizaciones/ver/${c.id}'">
@@ -541,12 +541,12 @@ export const CotizacionesModule = {
                                 <label class="form-label" style="font-size: var(--fs-sm); font-weight: var(--weight-medium); color: var(--text-body);">Cliente <span class="text-danger">*</span></label>
                                 ${isViewOnly ? `
                                 <a href="#/contactos/ver/${cotizacion.clienteId}" class="form-control form-control-sm text-decoration-none d-flex align-items-center justify-content-between" style="cursor:pointer; color: var(--text-body); background-color: #e9ecef; border-color: #ced4da;">
-                                    ${clienteNombreActual}
+                                    ${escapeHtml(clienteNombreActual)}
                                     <i class="bi bi-box-arrow-up-right text-muted" style="font-size: 0.75rem;"></i>
                                 </a>
                                 <input type="hidden" id="select-cliente" value="${cotizacion.clienteId || ''}">
                                 ` : `
-                                <input type="text" id="search-cliente" class="form-control form-control-sm text-muted" placeholder="Buscar cliente..." value="${clienteNombreActual}" autocomplete="off">
+                                <input type="text" id="search-cliente" class="form-control form-control-sm text-muted" placeholder="Buscar cliente..." value="${escapeHtml(clienteNombreActual)}" autocomplete="off">
                                 <input type="hidden" id="select-cliente" value="${cotizacion.clienteId || ''}">
                                 `}
                             </div>

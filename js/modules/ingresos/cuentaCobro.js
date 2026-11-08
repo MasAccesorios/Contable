@@ -240,23 +240,23 @@ export const CuentaCobroModule = {
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label text-muted small fw-medium">NIT / CC</label>
-                                <input type="text" id="cc-nit" class="form-control" value="${doc.cliente_nit || ''}" ${isViewOnly ? 'disabled' : ''}>
+                                <input type="text" id="cc-nit" class="form-control" value="${escapeHtml(doc.cliente_nit || '')}" ${isViewOnly ? 'disabled' : ''}>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label text-muted small fw-medium">Dirección</label>
-                                <input type="text" id="cc-direccion" class="form-control" value="${doc.cliente_direccion || ''}" ${isViewOnly ? 'disabled' : ''}>
+                                <input type="text" id="cc-direccion" class="form-control" value="${escapeHtml(doc.cliente_direccion || '')}" ${isViewOnly ? 'disabled' : ''}>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label text-muted small fw-medium">Ciudad</label>
-                                <input type="text" id="cc-ciudad" class="form-control" value="${doc.cliente_ciudad || ''}" ${isViewOnly ? 'disabled' : ''}>
+                                <input type="text" id="cc-ciudad" class="form-control" value="${escapeHtml(doc.cliente_ciudad || '')}" ${isViewOnly ? 'disabled' : ''}>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label text-muted small fw-medium">Teléfono</label>
-                                <input type="text" id="cc-telefono" class="form-control" value="${doc.cliente_telefono || ''}" ${isViewOnly ? 'disabled' : ''}>
+                                <input type="text" id="cc-telefono" class="form-control" value="${escapeHtml(doc.cliente_telefono || '')}" ${isViewOnly ? 'disabled' : ''}>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label text-muted small fw-medium">Correo Electrónico</label>
-                                <input type="email" id="cc-email" class="form-control" value="${doc.cliente_email || ''}" ${isViewOnly ? 'disabled' : ''}>
+                                <input type="email" id="cc-email" class="form-control" value="${escapeHtml(doc.cliente_email || '')}" ${isViewOnly ? 'disabled' : ''}>
                             </div>
                         </div>
                     </div>

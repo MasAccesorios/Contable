@@ -713,7 +713,7 @@ export const ComprasModule = {
                         <div class="row mb-5 g-3">
                             <div class="col-12 col-sm-6 col-md-3">
                                 <label class="form-label" style="font-size: var(--fs-sm); font-weight: var(--weight-medium); color: var(--text-body);">Proveedor <span class="text-danger">*</span></label>
-                                <input type="text" id="search-proveedor" class="form-control form-control-sm text-muted" placeholder="Buscar proveedor..." value="${proveedorNombreActual}" autocomplete="off" ${isViewOnly ? 'disabled' : ''}>
+                                <input type="text" id="search-proveedor" class="form-control form-control-sm text-muted" placeholder="Buscar proveedor..." value="${escapeHtml(proveedorNombreActual)}" autocomplete="off" ${isViewOnly ? 'disabled' : ''}>
                                 <input type="hidden" id="select-proveedor" value="${factura.proveedorId || ''}">
                             </div>
                             <div class="col-12 col-sm-6 col-md-3">
