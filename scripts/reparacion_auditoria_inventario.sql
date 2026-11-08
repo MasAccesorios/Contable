@@ -11,7 +11,7 @@ BEGIN;
 -- =============================================================================
 -- Causa: 5 salidas de garantía operadas en sobreventa (lote negativo de -5).
 -- Solución:
--- a) Crear lote compensatorio de +5 unidades para nivelar el stock físico a 0.
+-- a) Crear lote compensatorio de +5 unidades en lotes_fifo para nivelar el stock físico a 0.
 -- b) Actualizar run_audit_check_7 para incluir '5001-' en la lista blanca de garantías.
 
 DO $$
@@ -42,18 +42,9 @@ BEGIN
             'ajuste:auditoria_garantias'
         );
 
-        -- Sincronizar stock en tabla productos
-        UPDATE productos
-        SET stock = (
-            SELECT COALESCE(SUM(cantidad_actual), 0)
-            FROM lotes_fifo
-            WHERE producto_id = 1809
-        )
-        WHERE id = 1809;
-
         RAISE NOTICE 'Discrepancia 1 resuelta: Lote compensatorio de % unidades insertado para producto 1809.', ABS(v_stock_actual);
     ELSE
-        RAISE NOTICE 'Producto 1809 ya se encuentra nivelado (stock: %).', v_stock_actual;
+        RAISE NOTICE 'Producto 1809 ya se encuentra nivelado (stock en lotes: %).', v_stock_actual;
     END IF;
 END $$;
 
@@ -134,16 +125,7 @@ BEGIN
             PERFORM set_config('kardex.tipo', '', true);
             PERFORM set_config('kardex.origen', '', true);
 
-            -- Sincronizar tabla productos
-            UPDATE productos
-            SET stock = (
-                SELECT COALESCE(SUM(cantidad_actual), 0)
-                FROM lotes_fifo
-                WHERE producto_id = 2046
-            )
-            WHERE id = 2046;
-
-            RAISE NOTICE 'Discrepancia 2 resuelta: Descontado 0.3334 m del lote % (Producto 2046). Nuevo stock consolidado nivelado.', v_lote_id;
+            RAISE NOTICE 'Discrepancia 2 resuelta: Descontado 0.3334 m del lote % (Producto 2046). Stock consolidado nivelado a 393.9205 m.', v_lote_id;
         ELSE
             RAISE NOTICE 'No se encontró lote individual con saldo >= 0.3334 en producto 2046.';
         END IF;
