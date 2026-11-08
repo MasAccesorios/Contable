@@ -66,9 +66,24 @@ const routes = {
 };
 
 let currentNavId = 0;
+let currentModuleCleanup = null;
 
 async function router() {
     const myNavId = ++currentNavId;
+
+    // Limpieza de gráficos y observadores previos para evitar fugas de memoria
+    if (window.myVentasChart && typeof window.myVentasChart.destroy === 'function') {
+        try { window.myVentasChart.destroy(); } catch (e) {}
+        window.myVentasChart = null;
+    }
+    if (window.currentChartInstance && typeof window.currentChartInstance.destroy === 'function') {
+        try { window.currentChartInstance.destroy(); } catch (e) {}
+        window.currentChartInstance = null;
+    }
+    if (typeof currentModuleCleanup === 'function') {
+        try { currentModuleCleanup(); } catch (e) { console.warn('Cleanup error:', e); }
+        currentModuleCleanup = null;
+    }
 
     // Cerrar sidebar en móviles automáticamente ante cualquier cambio de ruta
     const sidebar = document.getElementById('sidebar');
@@ -154,7 +169,10 @@ async function router() {
                 if (myNavId !== currentNavId) return; // Una navegación más reciente ya tomó el control, abortar esta
                 appEl.parentNode.replaceChild(newAppEl, appEl);
 
-                await initFn(newAppEl);
+                const cleanup = await initFn(newAppEl);
+                if (typeof cleanup === 'function') {
+                    currentModuleCleanup = cleanup;
+                }
                 if (myNavId !== currentNavId) return; // Una navegación más reciente ya tomó el control, abortar esta
             } else {
                 renderPlaceholder(appEl, routePath, "El módulo se cargó correctamente, pero no expone un método init().");

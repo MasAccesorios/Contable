@@ -41,8 +41,10 @@ export function renderTablaFacturas(facturas, contactosMap, sortColumn = 'fecha'
         const defaultContactText = isCompra ? 'Sin Proveedor' : 'Sin Cliente';
         const contactId = c.proveedorId || c.clienteId || c.contacto_id || c.contactoId;
 
+        const safeHash = returnInfo ? String(returnInfo.hash || "").replace(/['"\\]/g, "") : "";
+        const safeLabel = returnInfo ? String(returnInfo.label || "").replace(/['"\\]/g, "") : "";
         const onclickAction = returnInfo 
-            ? `if(!event.target.closest('button')) { sessionStorage.setItem('origenVolver', JSON.stringify({hash: '${returnInfo.hash}', label: '${returnInfo.label}'})); window.location.hash = '${baseRoute}${c.id}'; }`
+            ? `if(!event.target.closest('button')) { sessionStorage.setItem('origenVolver', JSON.stringify({hash: '${safeHash}', label: '${safeLabel}'})); window.location.hash = '${baseRoute}${c.id}'; }`
             : `if(!event.target.closest('button')) window.location.hash = '${baseRoute}${c.id}'`;
             
         return `

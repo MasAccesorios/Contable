@@ -291,26 +291,28 @@ export const ItemEngine = {
         const formRows = Array.from(tbody.querySelectorAll('tr'));
         
         import('./formatters.js').then(fmt => {
+            const round2 = (val) => Math.round((Number(val) + Number.EPSILON) * 100) / 100;
+
             formRows.forEach(tr => {
                 const qty = parseFloat(tr.querySelector('.input-qty').value || 0);
                 const price = fmt.parseCurrencyValue(tr.querySelector('.input-price').value);
                 const discPct = parseFloat(tr.querySelector('.input-disc').value || 0);
                 const taxPct = parseFloat(tr.querySelector('.input-tax').value || 0);
 
-                const baseLine = qty * price;
-                const discAmount = baseLine * (discPct / 100);
-                const subLine = baseLine - discAmount;
-                const taxAmount = subLine * (taxPct / 100);
+                const baseLine = round2(qty * price);
+                const discAmount = round2(baseLine * (discPct / 100));
+                const subLine = round2(baseLine - discAmount);
+                const taxAmount = round2(subLine * (taxPct / 100));
 
                 const subtotalEl = tr.querySelector('.calc-subtotal');
                 if (subtotalEl) subtotalEl.textContent = fmt_money(subLine);
 
-                sumSubtotal += baseLine;
-                sumDescuento += discAmount;
-                sumImpuestos += taxAmount;
+                sumSubtotal = round2(sumSubtotal + baseLine);
+                sumDescuento = round2(sumDescuento + discAmount);
+                sumImpuestos = round2(sumImpuestos + taxAmount);
             });
 
-            const totalFinal = sumSubtotal - sumDescuento + sumImpuestos;
+            const totalFinal = round2(sumSubtotal - sumDescuento + sumImpuestos);
             
             if (element) {
                 const elSubtotal = element.querySelector('#tot-subtotal');

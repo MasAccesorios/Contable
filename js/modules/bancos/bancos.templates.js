@@ -199,5 +199,6 @@ export const TesoreriaTemplates = {
                 }
             }
         });
+        window.currentChartInstance = this.state.chartInstance;
     }
 };

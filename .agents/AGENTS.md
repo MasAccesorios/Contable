@@ -1,31 +1,64 @@
-# Reglas de Trabajo para Contable
+# Reglas Maestras Universales y Memoria Central (DiegoM)
 
-## Trabajo Local
-* **Regla:** Todo cambio se trabaja en una rama nueva (`feat/...`, `fix/...`, `chore/...`), nunca directo en `main`.
-* **Push:** Se puede hacer `git push` de la rama de trabajo a GitHub libremente, siempre que sea a una rama distinta de `main`. Nunca hacer push directo a `main`.
-* **Merge a main:** Solo se hace merge a `main` con autorización explícita del usuario, después de que valide los cambios.
-* **Verificación:** Después de cada push, reporta el hash del commit y el resultado exacto de `git log -1`, sin resumir ni interpretar.
-* **PROHIBIDO EL USO DEL NAVEGADOR:** NUNCA usar `browser_subagent` ni herramientas de navegador. El usuario realiza y valida personalmente todas las pruebas en navegador y consola.
+## PILAR 1: Permisos y Modo Autónomo Total (Eager / Turbo)
+1. **`autoExecutionPolicy = CASCADE_COMMANDS_AUTO_EXECUTION_EAGER`:** Autorización total y permanente en todos los proyectos. Ejecución directa e inmediata de comandos y herramientas sin tarjetas de confirmación ni botón azul (*Submit / Allow*).
+2. **`fileAccessPolicy = AGENT_SETTING_POLICY_ALLOW`:** Lectura y escritura de archivos autorizada sin restricciones en todo el sistema.
+3. **`internetPolicy = AGENT_SETTING_POLICY_ALLOW`:** Peticiones y accesos de red autorizados sin restricciones.
+4. **`artifactReviewMode = ARTIFACT_REVIEW_MODE_NEVER`:** Ejecución directa y continua sin pausas para revisión intermedia.
 
-## Reglas de Negocio y Módulos Financieros
-Antes de dar por terminada cualquier tarea sobre bancos, pagos, cartera o inventario:
-1. No dupliques campos ni funciones que ya existan en `shared/crud.js` o `core/db.js`.
-2. Todo movimiento de dinero (abono, pago, gasto) debe crear un registro en `transacciones` (`movimientos_banco`) con `cuentaId` explícito — nunca editar el saldo del banco directamente.
-3. Antes de sincronizar o importar datos, verifica que no exista ya un registro con el mismo `alegra_invoice_id` o id de pago, para evitar duplicados.
-4. Al terminar, corre (o describe cómo correr) una validación que sume los movimientos de cada banco y la compare contra el saldo mostrado, y reporta si no cuadra.
-5. No crees archivos nuevos tipo `_v2`, `_backup`, `_old`, `_copy` — si hay que reemplazar un archivo, edítalo o bórralo explícitamente, y dilo.
+---
 
-## Estilo de Comunicación y Ahorro de Créditos
-* **Ahorro de créditos (MANDATORIO):** Respuestas ultra concisas, directas al grano, sin explicaciones redundantes, sin preámbulos ni conclusiones innecesarias. Ve directo a los datos/código solicitados.
+## PILAR 2: Veracidad Estricta, Lógica y Cero Modificaciones Innecesarias
+1. **Veracidad Técnica y Cero Alucinaciones:**
+   - Prohibido inventar rutas, comandos, librerías, nombres de variables, versiones o resultados.
+   - Toda afirmación técnica debe sustentarse en hechos verificables del sistema, inspección real de archivos o especificaciones oficiales.
+   - Si un dato no se conoce o no existe en el entorno, se debe investigar previamente con las herramientas del sistema o declarar con total transparencia técnica.
+2. **Principio de Mínima Intervención (No tocar lo que funciona):**
+   - Prohibido realizar refactorizaciones cosméticas, reorganizaciones de código no solicitadas o cambiar librerías y estilos funcionales.
+   - Resolver exclusivamente el problema encomendado atacando la causa raíz con la menor cantidad de cambios posibles, evitando efectos secundarios.
+3. **Lógica Rigurosa y Causa Raíz:**
+   - Diagnosticar siempre antes de actuar: analizar logs, flujos y código existente antes de proponer soluciones.
+   - Explicaciones y decisiones fundamentadas en lógica de sistemas, sin suposiciones infundadas.
 
-## Memoria Técnica de Correcciones y Rendimiento (2026-09-13)
-1. **Scroll Horizontal en iOS / Móviles (Tablas y Grid):**
-   - En `.dash-layout`, usar siempre `grid-template-columns: minmax(0, 1fr)` en lugar de `1fr` plano. `1fr` tiene `min-width: auto` implícito y se expande forzado por tablas hijas anchas, rompiendo el ancho de pantalla en móviles.
-   - En columnas Bootstrap, `.row > [class*="col-"]` debe tener `min-width: 0` en móvil para habilitar el shrink en Flexbox y permitir que `.table-responsive` active scroll horizontal real.
-   - En `.table-responsive`, forzar `overflow-x: scroll`, `-webkit-overflow-scrolling: touch`, `-webkit-transform: translateZ(0)` y `will-change: scroll-position` para momentum táctil en WebKit/iOS Safari.
-   - Al tocar CSS en producción, incrementar cache-bust en `index.html` (`css/styles.css?v=...`).
+---
 
-2. **Optimización de Consultas Supabase (Paralelización):**
-   - No ejecutar consultas independientes en cascada secuencial (`await` tras `await`). Usar `Promise.all` para lanzar en paralelo roundtrips independientes.
-   - `renderDetalle` (`productos.js`): `DB.get('productos')`, `lotes_fifo` y `factura_detalles` corren en paralelo en el paso 1; `contactos` y `pagos_ingresos` en paralelo en el paso 2.
-   - `renderForm` (`ventas.js`): `pagos_ingresos` y `notas_credito` en paralelo; luego `DB.getAll('contactos')`, `cliente`, `productos`, `vendedores` y `cuentas_bancarias` en paralelo (eliminando lecturas duplicadas de `contactos`).
+## PILAR 3: Calidad de Software, Integridad y Cero Regresiones
+1. **Preservación Arquitectural y Cero Regresiones:**
+   - Prohibido eliminar, alterar o simplificar funciones auxiliares, validaciones existentes o firmas de métodos sin orden explícita.
+   - Analizar siempre el impacto cruzado en todas las vistas, módulos y dependencias antes de aplicar modificaciones.
+2. **Verificación Previa de Estado y Fuentes Globales:**
+   - Antes de realizar peticiones de red redundantes, recrear estructuras o instanciar datos, verificar si ya residen en memoria, stores, caché o contextos globales de la aplicación.
+3. **Idempotencia y Consistencia Bidireccional de Datos:**
+   - En cualquier persistencia distribuida o local (IndexedDB, Firebase, Supabase, SQLite, archivos locales), garantizar coherencia bidireccional.
+   - Toda creación o mutación de registros debe utilizar IDs únicos deterministas generados en el cliente para prevenir duplicidades ante reintentos o desconexiones.
+4. **Modificaciones Quirúrgicas (Cero Sobrescrituras Accidentales):**
+   - **En archivos existentes:** Prohibido reescribir el archivo completo. Toda modificación debe aplicarse exclusivamente sobre las líneas afectadas (usando bloques DIFF estándar o herramientas de reemplazo de bloque puntual), garantizando que el resto del código permanezca intacto.
+   - **Excepción:** Generación completa permitida únicamente para **archivos nuevos creados desde cero** o cuando el usuario solicite explícitamente una reescritura total.
+5. **Ingesta Defensiva de Datos Externos:**
+   - Al parsear o consumir fuentes externas (APIs, CSV, JSON, Webhooks, hojas de cálculo), validar y sanitizar siempre la clave primaria o identificador de registro. Asignar fallbacks si los encabezados o registros iniciales vienen vacíos para prevenir colisiones o colapso de UI.
+6. **Robustez en Interfaz de Usuario y DOM:**
+   - Normalizar acceso a recursos multimedia mediante funciones utilitarias con fallback seguro.
+   - En bucles con eventos dinámicos (`onClick`, listeners), congelar siempre constantes locales de bloque (`const currentIdx = i`) para evitar fugas de closure y llamadas a `undefined`.
+   - En componentes con transiciones de visibilidad (`display: none` a `display: flex/block`), forzar reflow (`void el.offsetWidth`) antes de alternar clases animadas.
+
+---
+
+## PILAR 4: Eficiencia de Recursos y Ejecución Local
+1. **Procesamiento Pesado en la Máquina Local:**
+   - Tareas masivas, migraciones o limpiezas de datos se resuelven mediante scripts ejecutables en el PC (PowerShell, Node.js, Python).
+   - Prohibido procesar o inyectar payloads de datos de más de 50 KB en el chat de la IA.
+2. **Trabajo en Frío y Ahorro de Tokens:**
+   - Respuestas directas, estrictamente técnicas, sin saludos de cortesía, sin resúmenes obvios ni teoría innecesaria.
+   - No iniciar simulaciones de navegador o entornos virtuales (sandboxes) a menos que se solicite expresamente.
+
+---
+
+## PILAR 5: Entorno de Hardware (Windows 11 & AMD Radeon 780M)
+1. **Aceleración Gráfica Forzada:**
+   - La GPU AMD Radeon 780M debe mantener la aceleración por hardware activa en Windows y navegadores para renderizado fluido e IA en tiempo real.
+2. **Control Riguroso de Memoria RAM:**
+   - Mantener procesos limpios: liberación inmediata al cerrar navegadores (`background_mode = false`) y Memory Saver activo para no comprometer Lives ni streamings.
+3. **Integridad de Portapapeles y Almacenamiento:**
+   - Historial de portapapeles (`Win + V`) activo para flujo ágil de imágenes sin sobrescrituras accidentales.
+   - Mantenimiento no destructivo (preservar sesiones, perfiles y cookies).
+   - Respeto estricto a las carpetas raíz obligatorias del disco en router Xiaomi AX9000 (Unidad `X:`: `共享`, `下载`, `摄像机监控视频`).

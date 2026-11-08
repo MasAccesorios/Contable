@@ -1320,8 +1320,7 @@ export const FacturasModule = {
                             updateRes = retryRes;
                         }
 
-                        // Finalmente, guardamos localmente en Pouch/Dexie para refrescar UI sin latencia
-                        await DB.save('facturas', factura);
+                        // Factura y detalles ya actualizados atómicamente por editar_factura_inventario_fifo
                         facturaGuardadaId = factura.id;
                         
                         if (DB.invalidateCache) {

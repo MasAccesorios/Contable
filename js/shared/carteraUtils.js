@@ -45,11 +45,14 @@ export const calcularEstadoFactura = (factura, todasLasTransacciones) => {
         return sum + monto;
     }, 0);
 
-    let saldoPendiente = startingBalance - totalPagadoNuevo;
-    if (saldoPendiente < 0) saldoPendiente = 0;
+    // CORRECCIÓN: Redondeo a 2 decimales para eliminar residuos de punto flotante (IEEE 754)
+    let saldoPendiente = Math.round((startingBalance - totalPagadoNuevo + Number.EPSILON) * 100) / 100;
+    if (saldoPendiente <= 0.01) {
+        saldoPendiente = 0;
+    }
 
     let estadoDinamico = 'pendiente';
-    if (saldoPendiente <= 0) {
+    if (saldoPendiente === 0) {
         estadoDinamico = 'pagada';
     } else if (saldoPendiente < totalFactura) {
         estadoDinamico = 'parcial';
@@ -57,10 +60,12 @@ export const calcularEstadoFactura = (factura, todasLasTransacciones) => {
         estadoDinamico = 'pendiente';
     }
 
+    const totalPagadoCalc = Math.round((totalFactura - saldoPendiente + Number.EPSILON) * 100) / 100;
+
     return {
         estado: estadoDinamico,
         saldo: saldoPendiente,
-        totalPagado: totalFactura - saldoPendiente
+        totalPagado: totalPagadoCalc
     };
 };
 

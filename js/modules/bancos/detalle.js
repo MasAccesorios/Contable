@@ -313,11 +313,11 @@ export const DetalleBancoModule = {
                         <div class="text-muted mt-1" style="font-size: var(--fs-xxs);">Nº trans: ${t.grupo_pago_id || t.id}</div>
                     </td>
                     <td class="py-3">
-                        <div style="color: var(--text-main); font-weight: 500;">${t.terceroNombre || 'Sin tercero'}</div>
-                        ${t.terceroNit ? `<div style="font-size: var(--fs-xs); color: var(--text-muted);">${t.terceroNit}</div>` : ''}
+                        <div style="color: var(--text-main); font-weight: 500;">${escapeHtml(t.terceroNombre) || 'Sin tercero'}</div>
+                        ${t.terceroNit ? `<div style="font-size: var(--fs-xs); color: var(--text-muted);">${escapeHtml(t.terceroNit)}</div>` : ''}
                     </td>
                     <td class="py-3" style="color: var(--text-main);">
-                        ${t.cuentaContable}
+                        ${escapeHtml(t.cuentaContable)}
                     </td>
                     <td class="py-3 text-end fw-medium" style="color: ${valorColor};">
                         ${formatMoney(t.monto)}
