@@ -1865,10 +1865,22 @@ $function$;
 
 
 CREATE OR REPLACE FUNCTION public.get_reconciliacion_inventario()
- RETURNS TABLE(sku text, nombre text, tiene_checkpoint boolean, checkpoint numeric, fecha_checkpoint timestamp with time zone, vendido_despues numeric, esperado numeric, actual numeric, discrepancia numeric)
+ RETURNS TABLE(
+    sku text,
+    nombre text,
+    tiene_checkpoint boolean,
+    checkpoint numeric,
+    fecha_checkpoint timestamp with time zone,
+    vendido_despues numeric,
+    esperado numeric,
+    actual numeric,
+    discrepancia numeric
+ )
  LANGUAGE sql
  SECURITY DEFINER
+ SET search_path = public, pg_temp
 AS $function$
+-- 1. PRODUCTOS CON CHECKPOINT (Ajuste histórico O Producto nuevo nacido de Factura de Compra)
 SELECT
     p.sku,
     p.nombre,
@@ -1893,12 +1905,25 @@ SELECT
     ), 0) - (c.a + COALESCE(SUM(lfm_limpia.diferencia), 0)) AS discrepancia
 FROM productos p
 CROSS JOIN LATERAL (
-    SELECT ai.created_at, item.a
-    FROM ajustes_inventario ai
-    CROSS JOIN LATERAL jsonb_to_recordset(ai.detalles) AS item(sku text, a numeric)
-    WHERE item.sku = p.sku
-      AND item.a IS NOT NULL
-    ORDER BY ai.created_at DESC
+    SELECT c_sub.created_at, c_sub.a
+    FROM (
+        -- Prioridad 1: Último ajuste de inventario registrado (conteo físico histórico)
+        SELECT ai.created_at, item.a, 1 AS prioridad
+        FROM ajustes_inventario ai
+        CROSS JOIN LATERAL jsonb_to_recordset(ai.detalles) AS item(sku text, a numeric)
+        WHERE item.sku = p.sku
+          AND item.a IS NOT NULL
+
+        UNION ALL
+
+        -- Prioridad 2: Para productos nuevos que entraron por Factura de Compra
+        -- Punto de partida = 0 al momento de creación del producto
+        SELECT p.created_at, 0::numeric AS a, 2 AS prioridad
+        WHERE EXISTS (
+            SELECT 1 FROM lotes_fifo lf WHERE lf.producto_id = p.id
+        )
+    ) c_sub
+    ORDER BY c_sub.prioridad ASC, c_sub.created_at DESC
     LIMIT 1
 ) c
 LEFT JOIN (
@@ -1921,6 +1946,8 @@ WHERE p.id NOT IN (SELECT producto_id FROM nanocarbon_factores_corte)
 GROUP BY p.sku, p.nombre, p.id, c.a, c.created_at
 
 UNION ALL
+
+-- 2. PRODUCTOS SIN CHECKPOINT (Productos creados sin ajuste y sin ningún lote de compra)
 SELECT
     p.sku,
     p.nombre,
@@ -1943,9 +1970,14 @@ WHERE NOT EXISTS (
     WHERE item.sku = p.sku
       AND item.a IS NOT NULL
 )
+AND NOT EXISTS (
+    SELECT 1 FROM lotes_fifo lf WHERE lf.producto_id = p.id
+)
 AND p.id NOT IN (SELECT producto_id FROM nanocarbon_factores_corte)
 
 UNION ALL
+
+-- 3. POOL-NANOCARBON (Rollo madre compartido)
 SELECT
     'POOL-NANOCARBON' AS sku,
     'Rollo NanoCarbón (material compartido) - reconciliación de pool' AS nombre,
