@@ -1878,9 +1878,9 @@ CREATE OR REPLACE FUNCTION public.get_reconciliacion_inventario()
  )
  LANGUAGE sql
  SECURITY DEFINER
- SET search_path = public, pg_temp
 AS $function$
--- 1. PRODUCTOS CON CHECKPOINT (Ajuste histórico O Producto nuevo nacido de Factura de Compra)
+-- 1. PRODUCTOS DISCRETOS CON CHECKPOINT (Ajuste histórico O Producto nuevo de Factura de Compra)
+-- Nota: Se excluye explícitamente el Rollo Madre 2046 ('5000-ROLLO'), ya que este se reconcilia en la Sección 3 (POOL-NANOCARBON).
 SELECT
     p.sku,
     p.nombre,
@@ -1916,7 +1916,7 @@ CROSS JOIN LATERAL (
 
         UNION ALL
 
-        -- Prioridad 2: Para productos nuevos que entraron por Factura de Compra
+        -- Prioridad 2: Para productos nuevos nacidos por Factura de Compra (ej. SKU 2329)
         -- Punto de partida = 0 al momento de creación del producto
         SELECT p.created_at, 0::numeric AS a, 2 AS prioridad
         WHERE EXISTS (
@@ -1943,6 +1943,8 @@ LEFT JOIN (
     ON lfm_limpia.producto_id = p.id
     AND lfm_limpia.creado_en >= c.created_at
 WHERE p.id NOT IN (SELECT producto_id FROM nanocarbon_factores_corte)
+  AND p.id != 2046 
+  AND COALESCE(p.sku, '') NOT IN ('5000-ROLLO', 'POOL-NANOCARBON')
 GROUP BY p.sku, p.nombre, p.id, c.a, c.created_at
 
 UNION ALL
@@ -1974,10 +1976,12 @@ AND NOT EXISTS (
     SELECT 1 FROM lotes_fifo lf WHERE lf.producto_id = p.id
 )
 AND p.id NOT IN (SELECT producto_id FROM nanocarbon_factores_corte)
+AND p.id != 2046
+AND COALESCE(p.sku, '') NOT IN ('5000-ROLLO', 'POOL-NANOCARBON')
 
 UNION ALL
 
--- 3. POOL-NANOCARBON (Rollo madre compartido)
+-- 3. POOL-NANOCARBON (Reconciliación matemática exclusiva del Rollo Madre 2046)
 SELECT
     'POOL-NANOCARBON' AS sku,
     'Rollo NanoCarbón (material compartido) - reconciliación de pool' AS nombre,
