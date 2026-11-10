@@ -121,23 +121,19 @@ AND COALESCE(p.sku, '') NOT IN ('5000-ROLLO', 'POOL-NANOCARBON')
 
 UNION ALL
 
--- 3. POOL-NANOCARBON (Reconciliación matemática exclusiva del Rollo Madre 2046)
+-- 3. POOL-NANOCARBON (Bobina madre 2046 vinculada a los lotes activos del pool)
 SELECT
     'POOL-NANOCARBON' AS sku,
     'Rollo NanoCarbón (material compartido) - reconciliación de pool' AS nombre,
     TRUE AS tiene_checkpoint,
     pool_check.cantidad_inicial AS checkpoint,
     pool_check.created_at AS fecha_checkpoint,
+    -- Vendido después (solo ventas comerciales, excluyendo ajustes)
     COALESCE((
-        SELECT SUM(
-            CASE 
-                WHEN ncf.metros_por_unidad IS NOT NULL THEN ABS(lm.diferencia) * ncf.metros_por_unidad
-                ELSE ABS(lm.diferencia)
-            END
-        )
+        SELECT SUM(ABS(lm.diferencia))
         FROM (
             SELECT DISTINCT ON (id)
-                   id, producto_id, creado_en, diferencia, origen_documento
+                   id, lote_id, producto_id, creado_en, diferencia, origen_documento
             FROM lotes_fifo_movimientos lm1
             WHERE NOT (
                 lm1.tipo_operacion = 'update'
@@ -149,22 +145,20 @@ SELECT
                 )
             )
         ) lm
-        LEFT JOIN nanocarbon_factores_corte ncf ON ncf.producto_id = lm.producto_id
-        WHERE (lm.producto_id = 2046 OR ncf.producto_id IS NOT NULL)
-          AND lm.diferencia < 0
-          AND lm.creado_en >= pool_check.created_at
-          AND (lm.origen_documento IS NULL OR lm.origen_documento NOT LIKE 'ajuste:%')
+        WHERE lm.lote_id IN (
+            SELECT lf.id FROM lotes_fifo lf 
+            WHERE lf.producto_id = 2046 
+              AND (lf.created_at >= pool_check.created_at OR lf.id = pool_check.id)
+        )
+        AND lm.diferencia < 0
+        AND (lm.origen_documento IS NULL OR lm.origen_documento NOT LIKE 'ajuste:%')
     ), 0) AS vendido_despues,
+    -- Esperado = Checkpoint menos TODAS las salidas (ventas y ajustes de nivelación)
     pool_check.cantidad_inicial - COALESCE((
-        SELECT SUM(
-            CASE 
-                WHEN ncf.metros_por_unidad IS NOT NULL THEN ABS(lm.diferencia) * ncf.metros_por_unidad
-                ELSE ABS(lm.diferencia)
-            END
-        )
+        SELECT SUM(ABS(lm.diferencia))
         FROM (
             SELECT DISTINCT ON (id)
-                   id, producto_id, creado_en, diferencia, origen_documento
+                   id, lote_id, producto_id, creado_en, diferencia, origen_documento
             FROM lotes_fifo_movimientos lm1
             WHERE NOT (
                 lm1.tipo_operacion = 'update'
@@ -176,24 +170,21 @@ SELECT
                 )
             )
         ) lm
-        LEFT JOIN nanocarbon_factores_corte ncf ON ncf.producto_id = lm.producto_id
-        WHERE (lm.producto_id = 2046 OR ncf.producto_id IS NOT NULL)
-          AND lm.diferencia < 0
-          AND lm.creado_en >= pool_check.created_at
-          AND (lm.origen_documento IS NULL OR lm.origen_documento NOT LIKE 'ajuste:%')
+        WHERE lm.lote_id IN (
+            SELECT lf.id FROM lotes_fifo lf 
+            WHERE lf.producto_id = 2046 
+              AND (lf.created_at >= pool_check.created_at OR lf.id = pool_check.id)
+        )
+        AND lm.diferencia < 0
     ), 0) AS esperado,
     (SELECT SUM(cantidad_actual) FROM lotes_fifo WHERE producto_id = 2046) AS actual,
+    -- Discrepancia = Actual - Esperado
     (SELECT SUM(cantidad_actual) FROM lotes_fifo WHERE producto_id = 2046) -
     (pool_check.cantidad_inicial - COALESCE((
-        SELECT SUM(
-            CASE 
-                WHEN ncf.metros_por_unidad IS NOT NULL THEN ABS(lm.diferencia) * ncf.metros_por_unidad
-                ELSE ABS(lm.diferencia)
-            END
-        )
+        SELECT SUM(ABS(lm.diferencia))
         FROM (
             SELECT DISTINCT ON (id)
-                   id, producto_id, creado_en, diferencia, origen_documento
+                   id, lote_id, producto_id, creado_en, diferencia, origen_documento
             FROM lotes_fifo_movimientos lm1
             WHERE NOT (
                 lm1.tipo_operacion = 'update'
@@ -205,14 +196,15 @@ SELECT
                 )
             )
         ) lm
-        LEFT JOIN nanocarbon_factores_corte ncf ON ncf.producto_id = lm.producto_id
-        WHERE (lm.producto_id = 2046 OR ncf.producto_id IS NOT NULL)
-          AND lm.diferencia < 0
-          AND lm.creado_en >= pool_check.created_at
-          AND (lm.origen_documento IS NULL OR lm.origen_documento NOT LIKE 'ajuste:%')
+        WHERE lm.lote_id IN (
+            SELECT lf.id FROM lotes_fifo lf 
+            WHERE lf.producto_id = 2046 
+              AND (lf.created_at >= pool_check.created_at OR lf.id = pool_check.id)
+        )
+        AND lm.diferencia < 0
     ), 0)) AS discrepancia
 FROM (
-    SELECT cantidad_inicial, fecha_ingreso, created_at
+    SELECT id, cantidad_inicial, fecha_ingreso, created_at
     FROM lotes_fifo
     WHERE producto_id = 2046 AND origen_movimiento = 'conteo_fisico_inicial'
     ORDER BY created_at DESC
