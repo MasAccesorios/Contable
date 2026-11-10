@@ -317,7 +317,7 @@ export const DetalleBancoModule = {
                         ${t.terceroNit ? `<div style="font-size: var(--fs-xs); color: var(--text-muted);">${escapeHtml(t.terceroNit)}</div>` : ''}
                     </td>
                     <td class="py-3" style="color: var(--text-main);">
-                        ${escapeHtml(t.cuentaContable)}
+                        ${t.cuentaContable}
                     </td>
                     <td class="py-3 text-end fw-medium" style="color: ${valorColor};">
                         ${formatMoney(t.monto)}
