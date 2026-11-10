@@ -124,6 +124,7 @@ SELECT
     TRUE AS tiene_checkpoint,
     pool_check.cantidad_inicial AS checkpoint,
     pool_check.created_at AS fecha_checkpoint,
+    -- Vendido después (solo ventas comerciales, excluyendo ajustes)
     COALESCE((
         SELECT SUM(ABS(lm.diferencia))
         FROM (
@@ -148,8 +149,9 @@ SELECT
         AND lm.diferencia < 0
         AND (lm.origen_documento IS NULL OR lm.origen_documento NOT LIKE 'ajuste:%')
     ), 0) AS vendido_despues,
-    pool_check.cantidad_inicial + COALESCE((
-        SELECT SUM(lm.diferencia)
+    -- Esperado = Checkpoint menos TODAS las salidas (ventas y ajustes de nivelación)
+    pool_check.cantidad_inicial - COALESCE((
+        SELECT SUM(ABS(lm.diferencia))
         FROM (
             SELECT DISTINCT ON (id)
                    id, lote_id, producto_id, creado_en, diferencia, origen_documento
@@ -169,11 +171,13 @@ SELECT
             WHERE lf.producto_id = 2046 
               AND (lf.created_at >= pool_check.created_at OR lf.id = pool_check.id)
         )
+        AND lm.diferencia < 0
     ), 0) AS esperado,
     (SELECT SUM(cantidad_actual) FROM lotes_fifo WHERE producto_id = 2046) AS actual,
+    -- Discrepancia = Actual - Esperado
     (SELECT SUM(cantidad_actual) FROM lotes_fifo WHERE producto_id = 2046) -
-    (pool_check.cantidad_inicial + COALESCE((
-        SELECT SUM(lm.diferencia)
+    (pool_check.cantidad_inicial - COALESCE((
+        SELECT SUM(ABS(lm.diferencia))
         FROM (
             SELECT DISTINCT ON (id)
                    id, lote_id, producto_id, creado_en, diferencia, origen_documento
@@ -193,6 +197,7 @@ SELECT
             WHERE lf.producto_id = 2046 
               AND (lf.created_at >= pool_check.created_at OR lf.id = pool_check.id)
         )
+        AND lm.diferencia < 0
     ), 0)) AS discrepancia
 FROM (
     SELECT id, cantidad_inicial, fecha_ingreso, created_at
