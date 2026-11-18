@@ -631,29 +631,41 @@ export const PrintManager = {
                     </div>
                     <span style="font-size: 11px; background: #e0f2fe; color: #0369a1; padding: 2px 8px; border-radius: 6px; font-weight: 600;">Cuentas Oficiales</span>
                 </div>
-                <div style="display: flex; gap: 16px; font-size: 12px;">
-                    <div style="flex: 1; background: #ffffff; padding: 10px 14px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                <div style="display: flex; gap: 12px; font-size: 12px;">
+                    <div style="flex: 1; background: #ffffff; padding: 10px 12px; border-radius: 8px; border: 1px solid #e2e8f0;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                            <strong style="color: #0f172a;">Bancolombia (Ahorros)</strong>
-                            <span style="font-size: 10px; color: #15803d; background: #dcfce7; padding: 1px 6px; border-radius: 4px; font-weight: 600;">Transferencia</span>
+                            <strong style="color: #0f172a; font-size: 11px;">Bancolombia (Ahorros)</strong>
+                            <span style="font-size: 9px; color: #15803d; background: #dcfce7; padding: 1px 5px; border-radius: 4px; font-weight: 600;">Transferencia</span>
                         </div>
-                        <div style="font-size: 14px; font-weight: 800; color: #1e293b; font-family: monospace, sans-serif; letter-spacing: 0.5px; margin-bottom: 2px;">
+                        <div style="font-size: 13px; font-weight: 800; color: #1e293b; font-family: monospace, sans-serif; letter-spacing: 0.5px; margin-bottom: 2px;">
                             54700050214
                         </div>
-                        <div style="font-size: 11px; color: #64748b;">
+                        <div style="font-size: 10px; color: #64748b;">
                             Titular: <strong style="color: #334155;">Diego M Izquierdo</strong>
                         </div>
                     </div>
-                    <div style="flex: 1; background: #ffffff; padding: 10px 14px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                    <div style="flex: 1; background: #ffffff; padding: 10px 12px; border-radius: 8px; border: 1px solid #e2e8f0;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                            <strong style="color: #0f172a;">Llave Transfiya / Bre-B</strong>
-                            <span style="font-size: 10px; color: #1d4ed8; background: #dbeafe; padding: 1px 6px; border-radius: 4px; font-weight: 600;">Inmediato</span>
+                            <strong style="color: #0f172a; font-size: 11px;">Nequi / DaviPlata</strong>
+                            <span style="font-size: 9px; color: #7c3aed; background: #ede9fe; padding: 1px 5px; border-radius: 4px; font-weight: 600;">Billeteras</span>
                         </div>
-                        <div style="font-size: 14px; font-weight: 800; color: #1e293b; font-family: monospace, sans-serif; letter-spacing: 0.5px; margin-bottom: 2px;">
+                        <div style="font-size: 13px; font-weight: 800; color: #1e293b; font-family: monospace, sans-serif; letter-spacing: 0.5px; margin-bottom: 2px;">
+                            3158512091
+                        </div>
+                        <div style="font-size: 10px; color: #64748b;">
+                            Titular: <strong style="color: #334155;">Diego M Izquierdo</strong>
+                        </div>
+                    </div>
+                    <div style="flex: 1; background: #ffffff; padding: 10px 12px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                            <strong style="color: #0f172a; font-size: 11px;">Llave Bre-B / Transfiya</strong>
+                            <span style="font-size: 9px; color: #1d4ed8; background: #dbeafe; padding: 1px 5px; border-radius: 4px; font-weight: 600;">Inmediato</span>
+                        </div>
+                        <div style="font-size: 13px; font-weight: 800; color: #1e293b; font-family: monospace, sans-serif; letter-spacing: 0.5px; margin-bottom: 2px;">
                             @izquierdo638
                         </div>
-                        <div style="font-size: 11px; color: #64748b;">
-                            Desde cualquier banco o billetera digital
+                        <div style="font-size: 10px; color: #64748b;">
+                            Cualquier banco o app
                         </div>
                     </div>
                 </div>
@@ -675,7 +687,7 @@ export const PrintManager = {
             fileName: `EstadoCuenta_${cliente.nombre ? cliente.nombre.replace(/[^a-zA-Z0-9]/g, '_') : 'Cliente'}.png`,
             title: 'Estado de Cuenta',
             printClass: 'hoja-dinamica',
-            shareText: `Buen día ${cliente.nombre || 'cliente'}, adjunto su estado de cuenta actualizado de MAS Accesorios.\nTotal pendiente: ${formatMoney(totalPorCobrar)}.\n\n💳 Medios de pago autorizados:\n- Bancolombia Ahorros: 54700050214 (Diego M Izquierdo)\n- Llave Bre-B/Transfiya: @izquierdo638\n\nPor favor enviar el comprobante a este chat.`
+            shareText: `Buen día ${cliente.nombre || 'cliente'}, adjunto su estado de cuenta actualizado de MAS Accesorios.\nTotal pendiente: ${formatMoney(totalPorCobrar)}.\n\n💳 Medios de pago autorizados:\n- Bancolombia Ahorros: 54700050214 (Diego M Izquierdo)\n- Nequi / Daviplata: 3158512091 (Diego M Izquierdo)\n- Llave Bre-B/Transfiya: @izquierdo638\n\nPor favor enviar el comprobante a este chat.`
         });
     }
 };
