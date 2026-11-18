@@ -17,11 +17,11 @@ export const CotizacionesModule = {
         const id = hashParts[4];
 
         if (action === 'nueva' || action === 'editar') {
-            await this.renderForm(element, id, false);
+            return await this.renderForm(element, id, false);
         } else if (action === 'ver') {
-            await this.renderForm(element, id, true);
+            return await this.renderForm(element, id, true);
         } else {
-            await this.renderList(element);
+            return await this.renderList(element);
         }
     },
 
@@ -585,8 +585,13 @@ export const CotizacionesModule = {
                         const id = btn.dataset.id;
                         const doc = await DB.get('cotizaciones', id);
                         if (doc) {
-                            const contactos = await DB.getAll('contactos');
-                            const productos = await DB.getAll('productos');
+                            const pIds = (doc.detalles || []).map(d => parseInt(d.productoId, 10)).filter(p => !isNaN(p) && p > 0);
+                            const [clienteRes, prodsRes] = await Promise.all([
+                                doc.clienteId ? supabase.from('contactos').select('*').eq('id', parseInt(doc.clienteId, 10)).single() : Promise.resolve({ data: null }),
+                                pIds.length > 0 ? supabase.from('productos').select('*').in('id', pIds) : Promise.resolve({ data: [] })
+                            ]);
+                            const contactos = clienteRes.data ? [DB._mapToFrontend('contactos', clienteRes.data)] : [];
+                            const productos = (prodsRes.data || []).map(p => DB._mapToFrontend('productos', p));
                             PrintManager.printDocument(doc, 'Cotización', contactos, productos);
                         }
                     });
@@ -762,9 +767,15 @@ export const CotizacionesModule = {
                 const btnDrawerImprimir = element.querySelector('#btn-cot-drawer-imprimir');
                 if (btnDrawerImprimir) {
                     btnDrawerImprimir.onclick = async () => {
-                        const contactos = await DB.getAll('contactos');
-                        const productos = await DB.getAll('productos');
                         const doc = await DB.get('cotizaciones', id);
+                        if (!doc) return;
+                        const pIds = (doc.detalles || []).map(d => parseInt(d.productoId, 10)).filter(p => !isNaN(p) && p > 0);
+                        const [clienteRes, prodsRes] = await Promise.all([
+                            doc.clienteId ? supabase.from('contactos').select('*').eq('id', parseInt(doc.clienteId, 10)).single() : Promise.resolve({ data: null }),
+                            pIds.length > 0 ? supabase.from('productos').select('*').in('id', pIds) : Promise.resolve({ data: [] })
+                        ]);
+                        const contactos = clienteRes.data ? [DB._mapToFrontend('contactos', clienteRes.data)] : [];
+                        const productos = (prodsRes.data || []).map(p => DB._mapToFrontend('productos', p));
                         PrintManager.printDocument(doc, 'Cotización', contactos, productos);
                     };
                 }

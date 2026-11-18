@@ -226,6 +226,24 @@ const DB = {
 
 
     /**
+     * Invalida el caché local en memoria para un store específico y sus alias relacionados.
+     */
+    _invalidateStoreCache(storeName) {
+        if (!storeName) return;
+        delete _sessionCache[storeName];
+        const table = (storeName === 'pagos' || storeName === 'transacciones') ? 'pagos_ingresos' : storeName;
+        delete _sessionCache[table];
+
+        // Manejar los alias de transacciones y pagos
+        if (storeName === 'transacciones' || storeName === 'pagos' || storeName === 'pagos_ingresos') {
+            delete _sessionCache['transacciones'];
+            delete _sessionCache['pagos'];
+            delete _sessionCache['pagos_ingresos'];
+            delete _sessionCache['_transacciones_mapped'];
+        }
+    },
+
+    /**
      * Obtiene todos los registros de una tabla. Utiliza cache en memoria.
      */
     async getAll(storeName) {
@@ -239,10 +257,10 @@ const DB = {
             if (_sessionCache[cacheKey]) {
                 // Adaptador al vuelo si el caller pide el formato 'transacciones'
                 if (storeName === 'transacciones') {
-                    console.time('db-cache-map-transacciones');
-                    const mapped = _sessionCache[cacheKey].map(mapPagoATransaccion);
-                    console.timeEnd('db-cache-map-transacciones');
-                    return mapped;
+                    if (!_sessionCache['_transacciones_mapped']) {
+                        _sessionCache['_transacciones_mapped'] = _sessionCache[cacheKey].map(mapPagoATransaccion);
+                    }
+                    return _sessionCache['_transacciones_mapped'];
                 }
                 return _sessionCache[cacheKey];
             }
@@ -323,7 +341,10 @@ const DB = {
 
             // Adaptador al vuelo si el caller pide el formato 'transacciones'
             if (storeName === 'transacciones') {
-                return adaptedData.map(mapPagoATransaccion);
+                if (!_sessionCache['_transacciones_mapped']) {
+                    _sessionCache['_transacciones_mapped'] = adaptedData.map(mapPagoATransaccion);
+                }
+                return _sessionCache['_transacciones_mapped'];
             }
 
             return adaptedData;
@@ -337,7 +358,7 @@ const DB = {
      * Fuerza una lectura directa desde la BD y actualiza la caché
      */
     async refreshCache(storeName) {
-        delete _sessionCache[storeName];
+        this._invalidateStoreCache(storeName);
         return await this.getAll(storeName);
     },
 
@@ -490,7 +511,7 @@ const DB = {
             const { error } = await supabase.from(table).delete().eq('id', parseInt(id, 10));
             if (error) throw error;
             
-            delete _sessionCache[storeName];
+            this._invalidateStoreCache(storeName);
             return true;
         } catch (error) {
             console.error(`[DB Error] delete en '${storeName}':`, error);
@@ -504,8 +525,7 @@ const DB = {
     async save(storeName, data, forceInsert = false) {
         const table = (storeName === 'pagos' || storeName === 'transacciones') ? 'pagos_ingresos' : storeName;
         // Invalidar caché de todos los alias para evitar datos stale
-        delete _sessionCache[storeName];
-        delete _sessionCache[table]; // invalida 'pagos_ingresos' cuando se guarda como 'transacciones' o 'pagos'
+        this._invalidateStoreCache(storeName);
 
         try {
             const payload = this._mapToSupabase(storeName, data);
@@ -582,14 +602,7 @@ const DB = {
      * a que la próxima lectura (getAll) pida los datos de nuevo a la base de datos.
      */
     invalidateCache(storeName) {
-        delete _sessionCache[storeName];
-        
-        // Manejar los alias de transacciones
-        if (storeName === 'transacciones' || storeName === 'pagos' || storeName === 'pagos_ingresos') {
-            delete _sessionCache['transacciones'];
-            delete _sessionCache['pagos'];
-            delete _sessionCache['pagos_ingresos'];
-        }
+        this._invalidateStoreCache(storeName);
     }
 };
 

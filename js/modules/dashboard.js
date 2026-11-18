@@ -299,19 +299,31 @@ export const DashboardModule = {
                 </div><!-- /.dash-layout -->
             </div>`;
 
+        let isAborted = false;
+        const startLoad = async () => {
+            if (isAborted) return;
+            await this.loadData(element);
+            if (isAborted) return;
+            this.setupFilters(element);
+        };
+
         // Ensure Chart.js is loaded
         if (typeof Chart === 'undefined') {
             const script = document.createElement('script');
             script.src = 'https://cdn.jsdelivr.net/npm/chart.js';
-            script.onload = async () => {
-                await this.loadData(element);
-                this.setupFilters(element);
-            };
+            script.onload = startLoad;
             document.head.appendChild(script);
         } else {
-            await this.loadData(element);
-            this.setupFilters(element);
+            await startLoad();
         }
+
+        return () => {
+            isAborted = true;
+            if (window.myVentasChart && typeof window.myVentasChart.destroy === 'function') {
+                try { window.myVentasChart.destroy(); } catch (e) {}
+                window.myVentasChart = null;
+            }
+        };
     },
 
     setLoadingSkeletons(element) {

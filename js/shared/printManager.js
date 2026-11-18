@@ -345,14 +345,14 @@ export const PrintManager = {
         const printClass = 'documento-venta';
 
         // 3. Resolutores de Datos
-        const cliente = contactos.find(c => c.id === doc.clienteId) || {};
+        const cliente = (Array.isArray(contactos) ? contactos.find(c => String(c.id) === String(doc.clienteId)) : contactos) || {};
         const formatMoney = (val) => '$ ' + parseFloat(val || 0).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         const numDisplay = doc.numero || parseInt(String(doc.id).replace(/\D/g, ''), 10) || doc.id;
         const totalUnidades = (doc.detalles || []).reduce((sum, det) => sum + (Number(det.cantidad) || 0), 0);
 
         // 4. Generar Filas de la Tabla
         const rowsHtml = (doc.detalles || []).map(det => {
-            const prod = productos.find(p => p.id === det.productoId) || {};
+            const prod = (Array.isArray(productos) ? productos.find(p => String(p.id) === String(det.productoId)) : null) || {};
             const subtotal = (det.cantidad || 0) * (det.precio || 0);
             return `
                 <tr style="border-bottom: 1px solid #dee2e6; font-size: 11px; color: #495057;">

@@ -1,4 +1,5 @@
 import DB from '../core/db.js';
+import { supabase } from '../core/supabase.js';
 
 /**
  * GESTOR DE NUMERACIÓN Y CONTROL DE DUPLICADOS (MODAL)
@@ -83,15 +84,25 @@ export const NumberingManager = {
                 return;
             }
 
-            // Duplication Guard Logic
+            // Duplication Guard Logic: Consulta puntual indexada a BD en lugar de descargar miles de documentos
             const collectionName = tipoDocumento === 'cotizacion' ? 'cotizaciones' : 'facturas';
-            const todos = await DB.getAll(collectionName);
-            
-            const isDuplicate = todos.some(doc => 
-                doc.id !== currentData.id && // Excluir actual
-                (doc.prefijo || '') === newPrefijo && 
-                parseInt(doc.numero) === newNum
-            );
+            let isDuplicate = false;
+            try {
+                let query = supabase.from(collectionName)
+                    .select('id')
+                    .eq('numero', newNum);
+                
+                const curId = parseInt(currentData.id, 10);
+                if (!isNaN(curId) && curId > 0) {
+                    query = query.neq('id', curId);
+                }
+                const { data: dupRows, error: dupErr } = await query.limit(1);
+                if (!dupErr && dupRows && dupRows.length > 0) {
+                    isDuplicate = true;
+                }
+            } catch (e) {
+                console.warn('Error validando número duplicado en BD:', e);
+            }
 
             if (isDuplicate) {
                 inpSiguiente.style.borderColor = '#ef4444';

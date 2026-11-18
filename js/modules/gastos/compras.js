@@ -26,11 +26,11 @@ export const ComprasModule = {
         const id = hashParts[4];
 
         if (action === 'nueva' || action === 'editar') {
-            await this.renderForm(element, id, false);
+            return await this.renderForm(element, id, false);
         } else if (action === 'ver') {
-            await this.renderForm(element, id, true);
+            return await this.renderForm(element, id, true);
         } else {
-            await this.renderList(element);
+            return await this.renderList(element);
         }
     },
 

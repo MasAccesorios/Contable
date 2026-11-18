@@ -134,67 +134,10 @@ export const InventarioUtils = {
     },
 
     /**
-     * Calcula cómo devolver el inventario (restaurando cantidadActual) de lotes previamente mermados.
-     * Genera un plan de operaciones (update/insert) listo para ser ejecutado con `ejecutarPlanInventario`.
-     * Se usa al borrar/anular facturas de venta o procesar notas de crédito.
+     * Deprecado: La reversión de inventario se gestiona atómicamente en PostgreSQL mediante RPC.
+     * Mantenido para compatibilidad de firma sin descargas masivas de catálogos en memoria.
      */
     async calcularReversionInventario(detalles) {
-        try {
-            const lotesGlobales = await DB.getAll('lotes_fifo');
-            const productos = await DB.getAll('productos');
-            const operacionesDB = [];
-            
-            let qtyARevertirPorProducto = {};
-            for (const det of detalles) {
-                const prodId = String(det.productoId);
-                qtyARevertirPorProducto[prodId] = (qtyARevertirPorProducto[prodId] || 0) + parseFloat(det.cantidad);
-            }
-
-            for (const prodId in qtyARevertirPorProducto) {
-                let qtyToReturn = qtyARevertirPorProducto[prodId];
-                
-                // Lotes del producto que tienen espacio (fueron mermados o son negativos)
-                const lotesProd = lotesGlobales.filter(l => 
-                    String(l.productoId) === prodId && 
-                    parseFloat(l.cantidadActual) < parseFloat(l.cantidadInicial)
-                );
-                
-                // Ordenar del más antiguo al más nuevo (revertimos rellenando los lotes más viejos primero, que fueron los primeros en ser descontados por FIFO)
-                lotesProd.sort((a, b) => new Date(a.fechaIngreso) - new Date(b.fechaIngreso));
-
-                for (const lote of lotesProd) {
-                    if (qtyToReturn <= 0) break;
-                    
-                    const espacioDisponible = parseFloat(lote.cantidadInicial) - parseFloat(lote.cantidadActual);
-                    if (espacioDisponible > 0) {
-                        const add = Math.min(espacioDisponible, qtyToReturn);
-                        lote.cantidadActual = parseFloat(lote.cantidadActual) + add;
-                        qtyToReturn -= add;
-                        operacionesDB.push({ action: 'update', data: { ...lote } });
-                    }
-                }
-
-                // Si aún queda por devolver (ej. lotes borrados), crear un lote positivo compensatorio.
-                // Usamos 0.0001 para ignorar residuos microscópicos de punto flotante de JS (ej. 1e-15)
-                if (qtyToReturn > 0.0001) {
-                    const prod = productos.find(p => String(p.id) === prodId);
-                    const costoUnitario = prod ? (prod.precio_compra || prod.precioCompra || 0) : 0;
-                    
-                    const nuevoLote = {
-                        id: 'lote_rev_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
-                        productoId: parseInt(prodId),
-                        fechaIngreso: getLocalDate(),
-                        cantidadInicial: qtyToReturn,
-                        cantidadActual: qtyToReturn,
-                        costoUnitario: costoUnitario
-                    };
-                    operacionesDB.push({ action: 'insert', data: nuevoLote });
-                }
-            }
-            return { success: true, operacionesDB };
-        } catch (error) {
-            console.error("Error calculando reversion de inventario:", error);
-            return { success: false, error: "Fallo al calcular reversion de inventario: " + error.message };
-        }
+        return { success: true, operacionesDB: [] };
     }
 };

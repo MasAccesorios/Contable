@@ -72,14 +72,25 @@ async function router() {
     const myNavId = ++currentNavId;
 
     // Limpieza de gráficos y observadores previos para evitar fugas de memoria
-    if (window.myVentasChart && typeof window.myVentasChart.destroy === 'function') {
-        try { window.myVentasChart.destroy(); } catch (e) {}
-        window.myVentasChart = null;
-    }
-    if (window.currentChartInstance && typeof window.currentChartInstance.destroy === 'function') {
-        try { window.currentChartInstance.destroy(); } catch (e) {}
-        window.currentChartInstance = null;
-    }
+    const globalCharts = [
+        window.myVentasChart,
+        window.currentChartInstance,
+        window.myPagosRecibidosChart,
+        window.myPagosRealizadosChart,
+        window.myCrudDonutChart,
+        window.myCrudColumnChart
+    ];
+    globalCharts.forEach(ch => {
+        if (ch && typeof ch.destroy === 'function') {
+            try { ch.destroy(); } catch (e) {}
+        }
+    });
+    window.myVentasChart = null;
+    window.currentChartInstance = null;
+    window.myPagosRecibidosChart = null;
+    window.myPagosRealizadosChart = null;
+    window.myCrudDonutChart = null;
+    window.myCrudColumnChart = null;
     if (typeof currentModuleCleanup === 'function') {
         try { currentModuleCleanup(); } catch (e) { console.warn('Cleanup error:', e); }
         currentModuleCleanup = null;
