@@ -1,7 +1,7 @@
 import DB, { getLocalDate } from '../core/db.js';
 import { supabase } from '../core/supabase.js';
 import { CoreActions } from '../shared/crud.js';
-import { PrintManager } from '../shared/printManager.js';
+import { PrintManager } from '../shared/printManager.js?v=20';
 import { escapeHtml, getClientAvatar } from '../shared/formatters.js';
 
 export default {
@@ -781,8 +781,7 @@ export default {
                 gridContainer.querySelectorAll('.btn-wpp-direct').forEach(b => {
                     b.addEventListener('click', (e) => {
                         const cid = e.currentTarget.dataset.id;
-                        const cliente = currentRawData.find(x => String(x.id) === String(cid));
-                        if (cliente) enviarWhatsAppCobranza(cliente);
+                        PrintManager.printEstadoCuenta(cid);
                     });
                 });
 
@@ -1209,8 +1208,7 @@ export default {
                 container.querySelectorAll('.btn-wpp-direct').forEach(b => {
                     b.addEventListener('click', (e) => {
                         const cid = e.currentTarget.dataset.id;
-                        const cliente = currentRawData.find(x => String(x.id) === String(cid));
-                        if (cliente) enviarWhatsAppCobranza(cliente);
+                        PrintManager.printEstadoCuenta(cid);
                     });
                 });
             } else {
@@ -1234,21 +1232,21 @@ export default {
             msg += `_Fecha: ${hoyFecha}_\n\n`;
             msg += `Estimado(a) *${cliente.nombre}*, un cordial saludo.\n`;
             msg += `Le compartimos el resumen de su saldo pendiente con nosotros:\n\n`;
-            msg += `💰 *Saldo Total Pendiente:* *${formatMoney(cliente.totalSaldo)}*\n`;
-            msg += `📋 *Facturas Pendientes:* ${cliente.facturas.length}\n`;
+            msg += `• *Saldo Total Pendiente:* *${formatMoney(cliente.totalSaldo)}*\n`;
+            msg += `• *Facturas Pendientes:* ${cliente.facturas.length}\n`;
             if (cliente.maxDiasMora > 0) {
-                msg += `⚠️ *Estado:* Presenta saldo en mora (hasta ${cliente.maxDiasMora} días)\n`;
+                msg += `• *Estado:* Presenta saldo en mora (hasta ${cliente.maxDiasMora} días)\n`;
             } else {
-                msg += `✓ *Estado:* Cartera al día\n`;
+                msg += `• *Estado:* Cartera al día\n`;
             }
 
             msg += `\n*Detalle de Facturas:*\n`;
             cliente.facturas.slice(0, 6).forEach(f => {
                 let moraTag = '';
                 if (f.diasMora > 0) {
-                    moraTag = ` [⚠️ Vencida +${f.diasMora}d]`;
+                    moraTag = ` [Vencida +${f.diasMora}d]`;
                 } else {
-                    moraTag = ` [✓ Al día]`;
+                    moraTag = ` [Al día]`;
                 }
                 const vStr = f.vencimiento ? String(f.vencimiento).split('T')[0] : f.fecha;
                 msg += `• *Fac #${f.numero}* | Vence: ${vStr} | Saldo: *${formatMoney(f.saldo)}*${moraTag}\n`;
@@ -1257,14 +1255,14 @@ export default {
                 msg += `• _... y ${cliente.facturas.length - 6} factura(s) más._\n`;
             }
 
-            msg += `\n💳 *MEDIOS DE PAGO AUTORIZADOS:*\n`;
+            msg += `\n*MEDIOS DE PAGO AUTORIZADOS:*\n`;
             msg += `• *Bancolombia (Ahorros):* 54700050214\n`;
             msg += `  Titular: Diego M Izquierdo\n`;
             msg += `• *Nequi / DaviPlata:* 3158512091\n`;
             msg += `  Titular: Diego M Izquierdo\n`;
             msg += `• *Llave Bre-B / Transfiya:* @izquierdo638\n`;
             msg += `  (Transferencia inmediata desde cualquier banco)\n\n`;
-            msg += `📲 *Favor enviar su comprobante a este WhatsApp (3158512091)* indicando el número de factura.\n\n`;
+            msg += `*Confirmar Pago:* Favor enviar su comprobante a este WhatsApp (3158512091) indicando el número de factura.\n\n`;
             msg += `Agradecemos regularizar el saldo pendiente a la mayor brevedad. Si ya realizó el pago, por favor compártanos el comprobante.\n¡Muchas gracias!`;
 
             const url = `https://wa.me/${finalPhone}?text=${encodeURIComponent(msg)}`;
@@ -1354,7 +1352,7 @@ export default {
                 `;
 
                 actions.querySelector('#btn-drawer-wpp')?.addEventListener('click', () => {
-                    enviarWhatsAppCobranza(cliente);
+                    PrintManager.printEstadoCuenta(cliente.id);
                 });
 
                 actions.querySelector('#btn-drawer-print')?.addEventListener('click', () => {

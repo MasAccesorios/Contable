@@ -11,7 +11,7 @@ import { escapeHtml } from './formatters.js';
 
 export const PrintManager = {
     _renderPreviewShell(innerHtmlContent, options) {
-        const { mode, fileName, title = 'Documento', printClass = 'hoja-dinamica', shareText = 'Adjunto el documento solicitado.' } = options;
+        const { mode, fileName, title = 'Documento', printClass = 'hoja-dinamica', shareText = 'Adjunto el documento solicitado.', phone = '' } = options;
 
         if (mode === 'print') {
             const oldPrintContainer = document.getElementById('print-document-render');
@@ -464,10 +464,7 @@ export const PrintManager = {
             fileName,
             title: tipoDoc,
             printClass
-        });
-    },
-
-    async printEstadoCuenta(clienteId) {
+        });    async printEstadoCuenta(clienteId) {
         const oldContainer = document.querySelector('.print-document-template');
         if (oldContainer) oldContainer.remove();
 
@@ -493,201 +490,161 @@ export const PrintManager = {
         const hoy = new Date();
         hoy.setHours(0, 0, 0, 0);
 
-        const hasAbonos = facturas.some(f => {
-            const tot = parseFloat(f.total) || 0;
-            const sal = parseFloat(f.saldo) || 0;
-            return (tot - sal) > 10;
-        });
-
-        let vencidasCount = 0;
         let rowsHtml = '';
-
         facturas.forEach(f => {
-            const fTotal = parseFloat(f.total) || 0;
-            const fSaldo = parseFloat(f.saldo) || 0;
-            const fAbono = Math.max(0, fTotal - fSaldo);
-
             const fechaCreacion = f.fecha ? String(f.fecha).split('T')[0] : hoyStr;
             const fechaVenc = f.vencimiento ? String(f.vencimiento).split('T')[0] : fechaCreacion;
-
             const dCreacion = new Date(fechaCreacion + 'T00:00:00');
-            const dVenc = new Date(fechaVenc + 'T00:00:00');
-
             const diasDespachado = Math.max(0, Math.floor((hoy - dCreacion) / (1000 * 60 * 60 * 24)));
-            const diffVenc = Math.floor((hoy - dVenc) / (1000 * 60 * 60 * 24));
-
-            let barColor = '#10b981';
-            let widthPercent = Math.min(Math.max((diasDespachado / 60) * 100, 6), 100);
-            let subMoraHtml = '';
-
-            if (diffVenc > 0) {
-                vencidasCount++;
-                barColor = diffVenc > 15 ? '#ef4444' : '#f59e0b';
-                subMoraHtml = `<div style="font-size: 10px; color: ${diffVenc > 15 ? '#dc2626' : '#d97706'}; font-weight: 700; margin-top: 2px;">Vencida (+${diffVenc}d)</div>`;
-            } else if (diffVenc === 0) {
-                barColor = '#f59e0b';
-                subMoraHtml = `<div style="font-size: 10px; color: #d97706; font-weight: 700; margin-top: 2px;">Vence hoy</div>`;
-            } else {
-                const diasRest = Math.abs(diffVenc);
-                barColor = '#10b981';
-                subMoraHtml = `<div style="font-size: 10px; color: #16a34a; font-weight: 600; margin-top: 2px;">Al día (en ${diasRest}d)</div>`;
-            }
-
+            
+            let barColor = '#198754';
+            if (diasDespachado >= 30 && diasDespachado <= 60) barColor = '#fd7e14';
+            else if (diasDespachado > 60) barColor = '#dc3545';
+            
+            let widthPercent = Math.min(Math.max((diasDespachado / 120) * 100, 2), 100);
+            
             rowsHtml += `
-                <tr style="border-bottom: 1px solid #e2e8f0; font-size: 12px; color: #475569;">
-                    <td style="padding: 10px 6px; font-weight: 700; color: #0f172a;">${escapeHtml(f.numero || f.id)}</td>
-                    <td style="padding: 10px 6px;">${fechaCreacion}</td>
-                    <td style="padding: 10px 6px;">${fechaVenc}</td>
-                    <td style="padding: 10px 6px;">
+                <tr style="border-bottom: 1px solid #dee2e6; font-size: 12px; color: #495057;">
+                    <td style="padding: 10px 4px; font-weight: 500;">${escapeHtml(f.numero || f.id)}</td>
+                    <td style="padding: 10px 4px;">${fechaCreacion}</td>
+                    <td style="padding: 10px 4px;">${fechaVenc}</td>
+                    <td style="padding: 10px 4px;">
                         <div style="display: flex; align-items: center; gap: 8px;">
-                            <div style="background-color: #e2e8f0; flex: 1; height: 6px; border-radius: 3px; overflow: hidden; min-width: 45px; max-width: 70px;">
+                            <div style="background-color: #e9ecef; flex: 1; height: 6px; border-radius: 3px; overflow: hidden; min-width: 50px; max-width: 80px;">
                                 <div style="background-color: ${barColor}; height: 100%; width: ${widthPercent}%;"></div>
                             </div>
-                            <span style="font-size: 11px; font-weight: 600; min-width: 45px; color: #1e293b;">${diasDespachado} días</span>
+                            <span style="font-size: 11px; font-weight: 500; min-width: 45px;">${diasDespachado} días</span>
                         </div>
-                        ${subMoraHtml}
                     </td>
-                    <td style="padding: 10px 6px; text-align: right; color: #334155;">${formatMoney(fTotal)}</td>
-                    ${hasAbonos ? `<td style="padding: 10px 6px; text-align: right; color: ${fAbono > 0 ? '#16a34a' : '#94a3b8'}; font-weight: ${fAbono > 0 ? '600' : 'normal'};">${formatMoney(fAbono)}</td>` : ''}
-                    <td style="padding: 10px 6px; text-align: right; font-weight: 700; color: #0f172a;">${formatMoney(fSaldo)}</td>
+                    <td style="padding: 10px 4px; text-align: right;">${formatMoney(f.total)}</td>
+                    <td style="padding: 10px 4px; text-align: right; font-weight: 600; color: #212529;">${formatMoney(f.saldo)}</td>
                 </tr>
             `;
         });
 
         const htmlContent = `
             <!-- HEADER -->
-            <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #64748b; padding-bottom: 14px; margin-bottom: 22px;">
-                <div style="width: 45%;">
-                    <img src="LogoMas.png" style="max-height: 70px; margin-bottom: 4px; object-fit: contain;" alt="MAS Accesorios" onerror="this.style.display='none'">
+            <div style="display: flex; justify-content: space-between; align-items: start; border-bottom: 2px solid #6c757d; padding-bottom: 15px; margin-bottom: 25px;">
+                <div style="width: 40%;">
+                    <img src="LogoMas.png" style="max-height: 80px; margin-bottom: 5px; object-fit: contain;" alt="MAS Accesorios" onerror="this.style.display='none'">
                 </div>
-                <div style="text-align: right; width: 45%; padding-top: 10px;">
-                    <h2 style="color: #1e293b; margin: 0 0 4px 0; font-size: 22px; font-weight: 800; letter-spacing: 0.5px;">ESTADO DE CUENTA</h2>
-                    <p style="margin: 0; font-size: 13px; color: #64748b; font-weight: 500;">Fecha: <strong style="color: #1e293b;">${hoyStr}</strong></p>
-                </div>
-            </div>
-
-            <!-- BLOQUE CLIENTE Y TOTAL PENDIENTE -->
-            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 25px;">
-                <div style="max-width: 55%;">
-                    <div style="font-size: 20px; font-weight: 800; color: #0f172a; margin-bottom: 6px; line-height: 1.2;">
-                        ${escapeHtml(cliente.nombre) || 'Cliente Genérico'}
-                    </div>
-                    <div style="display: flex; flex-wrap: wrap; gap: 12px; font-size: 12px; color: #64748b; margin-bottom: 10px;">
-                        ${cliente.identificacion ? `<span><strong style="color: #475569;">NIT/CC:</strong> ${escapeHtml(cliente.identificacion)}</span>` : ''}
-                        ${cliente.telefono ? `<span><strong style="color: #475569;">Tel:</strong> ${escapeHtml(cliente.telefono)}</span>` : ''}
-                        ${cliente.email ? `<span><strong style="color: #475569;">Email:</strong> ${escapeHtml(cliente.email)}</span>` : ''}
-                    </div>
-                    <div style="display: flex; gap: 8px; align-items: center;">
-                        <span style="display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 9999px; font-size: 11px; font-weight: 600; background-color: #f1f5f9; color: #475569; border: 1px solid #e2e8f0;">
-                            ${facturas.length} ${facturas.length === 1 ? 'Factura por cobrar' : 'Facturas por cobrar'}
-                        </span>
-                        ${vencidasCount > 0 ? `
-                            <span style="display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 9999px; font-size: 11px; font-weight: 600; background-color: #fef2f2; color: #dc2626; border: 1px solid #fecaca;">
-                                ⚠ ${vencidasCount} ${vencidasCount === 1 ? 'vencida' : 'vencidas'}
-                            </span>
-                        ` : `
-                            <span style="display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 9999px; font-size: 11px; font-weight: 600; background-color: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0;">
-                                ✓ Al día
-                            </span>
-                        `}
-                    </div>
-                </div>
-                <div style="background-color: #fff7ed; padding: 14px 22px; border-radius: 8px; border: 1px solid #fed7aa; border-left: 5px solid #f06548; text-align: right; min-width: 230px;">
-                    <p style="margin: 0 0 4px 0; font-size: 11px; color: #ea580c; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px;">Total Pendiente</p>
-                    <h3 style="margin: 0; font-size: 26px; color: #9a3412; font-weight: 800; font-family: monospace, sans-serif;">${formatMoney(totalPorCobrar)}</h3>
+                <div style="text-align: right; width: 40%; padding-top: 15px;">
+                    <h2 style="color: #495057; margin-top: 0; margin-bottom: 5px; font-size: 22px; font-weight: bold;">ESTADO DE CUENTA</h2>
+                    <p style="margin: 0; font-size: 14px; color: #6c757d;">Fecha: ${hoyStr}</p>
                 </div>
             </div>
 
-            <!-- TABLA DE FACTURAS -->
+            <!-- BLOQUE CLIENTE Y TOTAL -->
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 30px;">
+                <div style="width: 50%;">
+                    <p style="margin: 0 0 5px 0; font-weight: bold; font-size: 20px; color: #212529;">${escapeHtml(cliente.nombre) || 'Sin cliente'}</p>
+                    ${cliente.identificacion ? `<p style="margin: 0; font-size: 12px; color: #6c757d;">NIT/CC: ${escapeHtml(cliente.identificacion)}</p>` : ''}
+                </div>
+                <div style="background-color: #fdf3f2; padding: 15px 25px; border-radius: 8px; border-left: 4px solid #f06548; text-align: right; min-width: 220px;">
+                    <p style="margin: 0 0 5px 0; font-size: 13px; color: #e85335; font-weight: 600; text-transform: uppercase;">Total Pendiente</p>
+                    <h3 style="margin: 0; font-size: 26px; color: #a42c16; font-weight: bold; font-family: monospace, sans-serif;">${formatMoney(totalPorCobrar)}</h3>
+                </div>
+            </div>
+
+            <!-- TABLA FACTURAS -->
             <table style="width: 100%; border-collapse: collapse; margin-bottom: 25px;">
-                <thead>
-                    <tr style="border-bottom: 2px solid #cbd5e1; color: #334155; font-size: 12px; font-weight: 700;">
-                        <th style="text-align: left; padding: 10px 6px;">No.</th>
-                        <th style="text-align: left; padding: 10px 6px;">Creación</th>
-                        <th style="text-align: left; padding: 10px 6px;">Vencimiento</th>
-                        <th style="text-align: left; padding: 10px 6px;">Días despachado</th>
-                        <th style="text-align: right; padding: 10px 6px;">Total</th>
-                        ${hasAbonos ? '<th style="text-align: right; padding: 10px 6px;">Abonos</th>' : ''}
-                        <th style="text-align: right; padding: 10px 6px;">Saldo</th>
+                <thead style="display: table-header-group; background-color: #f8f9fa;">
+                    <tr style="border-bottom: 2px solid #dee2e6; color: #495057; font-size: 12px; font-weight: bold;">
+                        <th style="text-align: left; padding: 10px 4px;">No.</th>
+                        <th style="text-align: left; padding: 10px 4px;">Creación</th>
+                        <th style="text-align: left; padding: 10px 4px;">Vencimiento</th>
+                        <th style="text-align: left; padding: 10px 4px;">Días despachado</th>
+                        <th style="text-align: right; padding: 10px 4px;">Total</th>
+                        <th style="text-align: right; padding: 10px 4px;">Saldo</th>
                     </tr>
                 </thead>
                 <tbody>
                     ${rowsHtml}
                 </tbody>
                 <tfoot>
-                    <tr style="border-top: 2px solid #94a3b8; font-size: 13px;">
-                        <td colspan="${hasAbonos ? 6 : 5}" style="padding: 14px 6px; text-align: right; font-weight: 800; color: #1e293b; letter-spacing: 0.5px;">TOTAL POR COBRAR:</td>
-                        <td style="padding: 14px 6px; text-align: right; font-weight: 800; color: #9a3412; font-size: 15px; font-family: monospace, sans-serif;">${formatMoney(totalPorCobrar)}</td>
+                    <tr style="border-top: 2px solid #dee2e6; font-size: 14px;">
+                        <td colspan="5" style="padding: 12px 4px; text-align: right; font-weight: bold; color: #495057;">TOTAL POR COBRAR:</td>
+                        <td style="padding: 12px 4px; text-align: right; font-weight: bold; color: #a42c16; font-size: 16px; font-family: monospace, sans-serif;">${formatMoney(totalPorCobrar)}</td>
                     </tr>
                 </tfoot>
             </table>
 
             <!-- MEDIOS DE PAGO AUTORIZADOS -->
-            <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 10px; padding: 16px 20px; margin-top: 20px; margin-bottom: 25px;">
-                <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 12px;">
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                        <span style="font-size: 14px;">💳</span>
-                        <strong style="font-size: 12px; color: #1e293b; text-transform: uppercase; letter-spacing: 0.5px;">Medios de Pago Autorizados</strong>
-                    </div>
-                    <span style="font-size: 11px; background: #e0f2fe; color: #0369a1; padding: 2px 8px; border-radius: 6px; font-weight: 600;">Cuentas Oficiales</span>
+            <div style="background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 14px 18px; margin-top: 25px; margin-bottom: 25px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e9ecef; padding-bottom: 6px; margin-bottom: 10px;">
+                    <strong style="font-size: 11px; color: #495057; text-transform: uppercase; letter-spacing: 0.5px;">Cuentas y Métodos de Pago Autorizados</strong>
+                    <span style="font-size: 10px; color: #0d6efd; background-color: #e7f1ff; padding: 2px 8px; border-radius: 4px; font-weight: 600;">Cuentas Oficiales</span>
                 </div>
                 <div style="display: flex; gap: 12px; font-size: 12px;">
-                    <div style="flex: 1; background: #ffffff; padding: 10px 12px; border-radius: 8px; border: 1px solid #e2e8f0;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                            <strong style="color: #0f172a; font-size: 11px;">Bancolombia (Ahorros)</strong>
-                            <span style="font-size: 9px; color: #15803d; background: #dcfce7; padding: 1px 5px; border-radius: 4px; font-weight: 600;">Transferencia</span>
+                    <div style="flex: 1; background-color: #ffffff; padding: 10px 12px; border-radius: 6px; border: 1px solid #dee2e6;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
+                            <strong style="color: #212529; font-size: 11px;">Bancolombia (Ahorros)</strong>
+                            <span style="font-size: 9px; color: #198754; background-color: #d1e7dd; padding: 1px 5px; border-radius: 3px; font-weight: 600;">Transferencia</span>
                         </div>
-                        <div style="font-size: 13px; font-weight: 800; color: #1e293b; font-family: monospace, sans-serif; letter-spacing: 0.5px; margin-bottom: 2px;">
-                            54700050214
-                        </div>
-                        <div style="font-size: 10px; color: #64748b;">
-                            Titular: <strong style="color: #334155;">Diego M Izquierdo</strong>
-                        </div>
+                        <div style="font-size: 13px; font-weight: bold; color: #212529; font-family: monospace, sans-serif;">54700050214</div>
+                        <div style="font-size: 10px; color: #6c757d;">Titular: <strong>Diego M Izquierdo</strong></div>
                     </div>
-                    <div style="flex: 1; background: #ffffff; padding: 10px 12px; border-radius: 8px; border: 1px solid #e2e8f0;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                            <strong style="color: #0f172a; font-size: 11px;">Nequi / DaviPlata</strong>
-                            <span style="font-size: 9px; color: #7c3aed; background: #ede9fe; padding: 1px 5px; border-radius: 4px; font-weight: 600;">Billeteras</span>
+                    <div style="flex: 1; background-color: #ffffff; padding: 10px 12px; border-radius: 6px; border: 1px solid #dee2e6;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
+                            <strong style="color: #212529; font-size: 11px;">Nequi / DaviPlata</strong>
+                            <span style="font-size: 9px; color: #6f42c1; background-color: #e2d9f3; padding: 1px 5px; border-radius: 3px; font-weight: 600;">Billeteras</span>
                         </div>
-                        <div style="font-size: 13px; font-weight: 800; color: #1e293b; font-family: monospace, sans-serif; letter-spacing: 0.5px; margin-bottom: 2px;">
-                            3158512091
-                        </div>
-                        <div style="font-size: 10px; color: #64748b;">
-                            Titular: <strong style="color: #334155;">Diego M Izquierdo</strong>
-                        </div>
+                        <div style="font-size: 13px; font-weight: bold; color: #212529; font-family: monospace, sans-serif;">3158512091</div>
+                        <div style="font-size: 10px; color: #6c757d;">Titular: <strong>Diego M Izquierdo</strong></div>
                     </div>
-                    <div style="flex: 1; background: #ffffff; padding: 10px 12px; border-radius: 8px; border: 1px solid #e2e8f0;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                            <strong style="color: #0f172a; font-size: 11px;">Llave Bre-B / Transfiya</strong>
-                            <span style="font-size: 9px; color: #1d4ed8; background: #dbeafe; padding: 1px 5px; border-radius: 4px; font-weight: 600;">Inmediato</span>
+                    <div style="flex: 1; background-color: #ffffff; padding: 10px 12px; border-radius: 6px; border: 1px solid #dee2e6;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
+                            <strong style="color: #212529; font-size: 11px;">Llave Bre-B / Transfiya</strong>
+                            <span style="font-size: 9px; color: #0d6efd; background-color: #cfe2ff; padding: 1px 5px; border-radius: 3px; font-weight: 600;">Inmediato</span>
                         </div>
-                        <div style="font-size: 13px; font-weight: 800; color: #1e293b; font-family: monospace, sans-serif; letter-spacing: 0.5px; margin-bottom: 2px;">
-                            @izquierdo638
-                        </div>
-                        <div style="font-size: 10px; color: #64748b;">
-                            Cualquier banco o app
-                        </div>
+                        <div style="font-size: 13px; font-weight: bold; color: #212529; font-family: monospace, sans-serif;">@izquierdo638</div>
+                        <div style="font-size: 10px; color: #6c757d;">Cualquier banco o app</div>
                     </div>
                 </div>
-                <div style="margin-top: 10px; font-size: 11px; color: #64748b; display: flex; justify-content: space-between; align-items: center;">
-                    <span>📲 Enviar comprobante a WhatsApp: <strong style="color: #0f172a;">3158512091</strong></span>
-                    <span style="color: #94a3b8; font-size: 10px;">Favor incluir número de factura al pagar</span>
+                <div style="margin-top: 10px; font-size: 11px; color: #6c757d; display: flex; justify-content: space-between;">
+                    <span>Enviar comprobante a WhatsApp: <strong style="color: #212529;">3158512091</strong></span>
+                    <span style="color: #6c757d; font-size: 10px;">Favor incluir número de factura al pagar</span>
                 </div>
             </div>
 
             <!-- PIE DE PAGINA -->
-            <div style="margin-top: 25px; padding-top: 15px; border-top: 1px solid #e2e8f0; text-align: center; color: #64748b; font-size: 12px;">
-                <p style="margin: 0 0 4px 0; color: #475569;">Agradecemos regularizar el saldo pendiente a la mayor brevedad. Para consultas o acuerdos de pago, contáctenos directamente.</p>
-                <p style="margin: 0; font-weight: 700; color: #1e293b; font-size: 13px;">MAS Accesorios &middot; 3158512091</p>
+            <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #dee2e6; text-align: center; color: #6c757d; font-size: 12px;">
+                <p style="margin: 0 0 5px 0;">Agradecemos regularizar el saldo pendiente a la mayor brevedad. Para consultas o acuerdos de pago, contáctenos directamente.</p>
+                <p style="margin: 0; font-weight: bold;">MAS Accesorios &middot; 3158512091</p>
             </div>
         `;
+
+        const cleanTextMsg = [
+            `*ESTADO DE CUENTA - MAS ACCESORIOS*`,
+            `_Fecha: ${hoyStr}_`,
+            ``,
+            `Estimado(a) *${cliente.nombre || 'cliente'}*, un cordial saludo.`,
+            `Le compartimos el estado consolidado de su saldo pendiente:`,
+            ``,
+            `• *Saldo Total Pendiente:* *${formatMoney(totalPorCobrar)}*`,
+            `• *Facturas Pendientes:* ${facturas.length}`,
+            ``,
+            `*MEDIOS DE PAGO AUTORIZADOS:*`,
+            `• *Bancolombia (Ahorros):* 54700050214`,
+            `  Titular: Diego M Izquierdo`,
+            `• *Nequi / DaviPlata:* 3158512091`,
+            `  Titular: Diego M Izquierdo`,
+            `• *Llave Bre-B / Transfiya:* @izquierdo638`,
+            `  (Transferencia inmediata desde cualquier banco)`,
+            ``,
+            `*Confirmar Pago:* Favor enviar el comprobante a este WhatsApp (3158512091) indicando el número de factura.`,
+            ``,
+            `Agradecemos regularizar el saldo pendiente a la mayor brevedad.`,
+            `¡Muchas gracias!`
+        ].join('\n');
 
         this._renderPreviewShell(htmlContent, {
             mode: 'preview',
             fileName: `EstadoCuenta_${cliente.nombre ? cliente.nombre.replace(/[^a-zA-Z0-9]/g, '_') : 'Cliente'}.png`,
             title: 'Estado de Cuenta',
             printClass: 'hoja-dinamica',
-            shareText: `Buen día ${cliente.nombre || 'cliente'}, adjunto su estado de cuenta actualizado de MAS Accesorios.\nTotal pendiente: ${formatMoney(totalPorCobrar)}.\n\n💳 Medios de pago autorizados:\n- Bancolombia Ahorros: 54700050214 (Diego M Izquierdo)\n- Nequi / Daviplata: 3158512091 (Diego M Izquierdo)\n- Llave Bre-B/Transfiya: @izquierdo638\n\nPor favor enviar el comprobante a este chat.`
+            phone: cliente.telefono ? String(cliente.telefono).replace(/\D/g, '') : '',
+            shareText: cleanTextMsg
         });
     }
 };
