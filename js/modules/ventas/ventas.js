@@ -2,7 +2,6 @@ import DB, { getLocalDate } from '../../core/db.js';
 import { supabase } from '../../core/supabase.js';
 import { CoreActions } from '../../shared/crud.js';
 import { PrintManager } from '../../shared/printManager.js';
-import { ExportManager } from '../../shared/exportManager.js';
 import { ItemEngine } from '../../shared/itemEngine.js';
 import { NumberingManager } from '../../shared/numberingManager.js';
 import { renderTablaFacturas } from '../../shared/tablaFacturas.js';
@@ -14,7 +13,7 @@ import { AbonoModal } from '../../shared/abonoModal.js';
 import { InventarioUtils } from '../../shared/inventarioUtils.js';
 import { EstadoUtils } from '../../shared/estadoUtils.js';
 import { anularTransaccion } from '../../shared/transaccionesUtils.js';
-import { escapeHtml } from '../../shared/formatters.js';
+import { escapeHtml, getClientAvatar } from '../../shared/formatters.js';
 
 export const FacturasModule = {
     cache: { contactos: null, productos: null },
@@ -33,265 +32,1006 @@ export const FacturasModule = {
         } else if (action === 'ver') {
             await this.renderForm(element, id, true);
         } else {
-            await this.renderList(element);
+            return await this.renderList(element);
         }
     },
 
     async renderList(element) {
-        element.innerHTML = `
-            <div class="d-flex justify-content-center align-items-center" style="min-height: 400px;">
-                <div class="spinner-border" role="status" style="width: 3rem; height: 3rem; color: var(--primary);">
-                    <span class="visually-hidden">Cargando...</span>
-                </div>
-            </div>
-        `;
-        
-        let contactosMap = {}; // Caché local a la página de facturas actual
-
-        // Estado de Paginación, Ordenamiento y Filtro Server-Side
         let sortColumn = 'numero';
         let sortDirection = 'desc';
         let currentPage = 1;
         let itemsPerPage = 10;
         let searchQuery = '';
         let filterCriteria = 'todos';
-        
+        let selectedTab = 'todas'; // 'todas', 'por_cobrar', 'cobradas', 'vencidas', 'anuladas'
+        let view = 'lista'; // 'lista' o 'grafico'
+        let contactosMap = {};
         let currentItems = [];
         let totalItems = 0;
-        let totalPages = 1;
-
-        const formatMoney = (val) => '$ ' + parseFloat(val || 0).toLocaleString('es-CO', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-        
         let kpiDataCxc = null;
+        let chartInstanceVentas = null;
+        let chartInstanceCartera = null;
 
+        const formatMoney = (val) => '$ ' + parseFloat(val || 0).toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+
+        // 1. INYECTAR SHELL ESTÁTICO
+        element.innerHTML = `
+            <div class="dash-layout p-4" style="max-width: 1200px; margin: 0 auto;">
+                
+                <!-- TOP BAR DE ALTO IMPACTO -->
+                <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+                    <div>
+                        <div class="d-flex align-items-center gap-2">
+                            <a href="#" onclick="event.preventDefault(); window.history.length > 2 ? window.history.back() : window.location.hash = '#/dashboard';" class="btn btn-light bg-white border me-2" style="font-weight: var(--weight-medium); font-size: var(--fs-md); color: var(--text-body); border-radius: 8px;">
+                                <i class="bi bi-arrow-left"></i>
+                            </a>
+                            <h2 class="page-title mb-0" style="font-size: 24px; font-weight: 800; color: #0f172a; letter-spacing: -0.5px;">Facturas de venta</h2>
+                            <span class="badge" style="background-color: #eff6ff; color: #1d4ed8; font-size: 11px; font-weight: 700; border-radius: 9999px; padding: 4px 10px; border: 1px solid #bfdbfe;">
+                                <i class="bi bi-receipt me-1"></i> Ventas & Cartera
+                            </span>
+                        </div>
+                        <p class="text-muted mb-0" style="font-size: 13px; margin-top: 3px;">
+                            Gestiona las facturas generadas por ventas a tus clientes, recaudación y control de saldos.
+                        </p>
+                    </div>
+
+                    <div class="d-flex flex-wrap align-items-center gap-2">
+                        <!-- Toggle de Vistas: Lista vs Analítica -->
+                        <div class="btn-group p-1 bg-light border rounded-3" role="group">
+                            <button type="button" class="btn btn-sm ${view !== 'grafico' ? 'btn-white bg-white shadow-xs fw-bold text-dark' : 'btn-light border-0 text-muted'}" id="btn-view-lista" style="font-size: 12px; border-radius: 6px;">
+                                <i class="bi bi-table me-1"></i> Lista
+                            </button>
+                            <button type="button" class="btn btn-sm ${view === 'grafico' ? 'btn-white bg-white shadow-xs fw-bold text-primary' : 'btn-light border-0 text-muted'}" id="btn-view-grafico" style="font-size: 12px; border-radius: 6px;">
+                                <i class="bi bi-bar-chart me-1"></i> Analítica
+                            </button>
+                        </div>
+
+                        <!-- Botón Exportar Excel -->
+                        <button id="btn-export-list" class="btn btn-light bg-white border text-secondary shadow-xs" style="font-weight: 600; font-size: 13px; border-radius: 8px;" title="Descargar en Excel">
+                            <i class="bi bi-file-earmark-excel text-success me-1"></i> Exportar
+                        </button>
+
+                        <!-- Botón Refrescar -->
+                        <button id="btn-refresh-list" class="btn btn-light bg-white border text-secondary shadow-xs" style="border-radius: 8px;" title="Actualizar datos">
+                            <i class="bi bi-arrow-clockwise"></i>
+                        </button>
+
+                        <!-- Botón Nueva Factura -->
+                        <button id="btn-nueva-factura" class="btn btn-primary-action shadow-xs d-flex align-items-center gap-2" style="font-weight: 600; font-size: 13px; border-radius: 8px;">
+                            <i class="bi bi-plus-lg"></i> Nueva factura
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 4 KPI CARDS DINÁMICAS -->
+                <div class="row g-3 mb-4">
+                    <!-- KPI 1: Total Facturado -->
+                    <div class="col-12 col-sm-6 col-lg-3">
+                        <div class="payment-kpi-card">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <span class="ds-kpi-label">Total Facturado</span>
+                                <div class="payment-kpi-icon blue-bg">
+                                    <i class="bi bi-receipt"></i>
+                                </div>
+                            </div>
+                            <div class="payment-kpi-value fw-bold text-dark tnum" id="kpi-facturado" style="font-size: 22px;">$ 0</div>
+                            <div class="mt-2 text-muted" style="font-size: 11px;">
+                                <i class="bi bi-calendar-event me-1"></i> Facturación del mes actual
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- KPI 2: Total Cobrado / Recaudado -->
+                    <div class="col-12 col-sm-6 col-lg-3">
+                        <div class="payment-kpi-card" style="border-left: 3px solid #059669;">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <span class="ds-kpi-label">Total Cobrado</span>
+                                <div class="payment-kpi-icon in-bg">
+                                    <i class="bi bi-cash-stack"></i>
+                                </div>
+                            </div>
+                            <div class="payment-kpi-value fw-bold text-success tnum" id="kpi-cobrado" style="font-size: 22px;">$ 0</div>
+                            <div class="mt-2 d-flex align-items-center gap-2">
+                                <span class="payment-kpi-trend positive" id="kpi-tasa-recaudo">
+                                    <i class="bi bi-arrow-up-right"></i> 0%
+                                </span>
+                                <span class="text-muted" style="font-size: 11px;">recaudo efectivo</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- KPI 3: Cartera Pendiente (Por Cobrar) -->
+                    <div class="col-12 col-sm-6 col-lg-3">
+                        <div class="payment-kpi-card" style="border-left: 3px solid #d97706;">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <span class="ds-kpi-label">Cartera Pendiente</span>
+                                <div class="payment-kpi-icon pending-bg">
+                                    <i class="bi bi-clock-history"></i>
+                                </div>
+                            </div>
+                            <div class="payment-kpi-value fw-bold text-warning-emphasis tnum" id="kpi-pendiente" style="font-size: 22px;">$ 0</div>
+                            <div class="mt-2 text-muted" style="font-size: 11px;">
+                                Saldo en cuentas por cobrar
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- KPI 4: Total de Facturas Emitidas -->
+                    <div class="col-12 col-sm-6 col-lg-3">
+                        <div class="payment-kpi-card">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <span class="ds-kpi-label">Facturas Emitidas</span>
+                                <div class="payment-kpi-icon blue-bg">
+                                    <i class="bi bi-files"></i>
+                                </div>
+                            </div>
+                            <div class="payment-kpi-value fw-bold text-dark tnum" id="kpi-total-facturas" style="font-size: 22px;">0</div>
+                            <div class="mt-2 text-muted" style="font-size: 11px;">
+                                Documentos de venta activos
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CONTENEDOR DE ANALÍTICA GRÁFICA -->
+                <div id="facturas-analytics-container" style="display: none;"></div>
+
+                <!-- CONTENEDOR DE TABLA DE DATOS -->
+                <div id="facturas-table-view-container" style="display: block;">
+                    <div class="dash-table-container mb-4 shadow-xs" style="border-radius: 12px; border: 1px solid var(--border-color); background: #ffffff;">
+                        
+                        <!-- FILTROS Y TABS SUPERIORES -->
+                        <div class="p-3 border-bottom bg-white d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
+                            <!-- Tabs de Filtro Rápido -->
+                            <div class="payment-tabs-bar">
+                                <button type="button" class="payment-tab-btn active" data-tab="todas">
+                                    Todas
+                                </button>
+                                <button type="button" class="payment-tab-btn tab-warning" data-tab="por_cobrar">
+                                    <i class="bi bi-clock-history text-warning"></i> Por cobrar
+                                </button>
+                                <button type="button" class="payment-tab-btn tab-danger" data-tab="vencidas">
+                                    <i class="bi bi-exclamation-octagon text-danger"></i> Vencidas
+                                </button>
+                                <button type="button" class="payment-tab-btn" data-tab="cobradas">
+                                    <i class="bi bi-patch-check-fill text-success"></i> Cobradas
+                                </button>
+                                <button type="button" class="payment-tab-btn" data-tab="anuladas">
+                                    Anuladas
+                                </button>
+                            </div>
+
+                            <!-- Buscador y Criterio -->
+                            <div class="d-flex flex-wrap align-items-center gap-2">
+                                <div class="ds-search-container" style="min-width: 220px;">
+                                    <i class="bi bi-search ds-search-icon"></i>
+                                    <input type="text" class="ds-search-input" id="searchFacturas" autocomplete="off" placeholder="Buscar cliente, número..." value="${escapeHtml(searchQuery)}">
+                                </div>
+
+                                <div class="dropdown">
+                                    <button class="btn btn-light bg-white border dropdown-toggle" data-bs-toggle="dropdown" style="font-size: 13px; height: 38px; border-radius: 8px;">
+                                        <i class="bi bi-funnel me-1"></i> <span id="lbl-filtro-actual">${filterCriteria !== 'todos' ? filterCriteria : 'Filtro'}</span>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end shadow border" style="font-size: 13px; border-radius: 8px;">
+                                        <li><a class="dropdown-item filter-opt" href="#" data-criteria="todos">Todos los campos</a></li>
+                                        <li><hr class="dropdown-divider my-1"></li>
+                                        <li><a class="dropdown-item filter-opt" href="#" data-criteria="numero">Por Número</a></li>
+                                        <li><a class="dropdown-item filter-opt" href="#" data-criteria="cliente">Por Cliente</a></li>
+                                        <li><a class="dropdown-item filter-opt" href="#" data-criteria="fecha">Por Fecha</a></li>
+                                        <li><a class="dropdown-item filter-opt" href="#" data-criteria="monto">Por Monto</a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- TABLA DE FILAS INTELIGENTES -->
+                        <div class="position-relative">
+                            <div id="facturas-loading-overlay" class="position-absolute top-0 start-0 w-100 h-100 justify-content-center align-items-center bg-white bg-opacity-75" style="z-index: 10; display: none !important;">
+                                <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Cargando...</span></div>
+                            </div>
+                            <div id="grid-facturas-container">
+                                <!-- Tabla inyectada por renderGrid -->
+                            </div>
+                        </div>
+
+                        <!-- PAGINADOR -->
+                        <div class="card-footer bg-white border-top p-3 d-flex flex-column flex-sm-row justify-content-between align-items-center gap-2" style="border-radius: 0 0 12px 12px;" id="grid-pagination">
+                            <!-- Paginación inyectada -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SLIDE-OVER DRAWER DE FACTURA -->
+            <div class="payment-drawer-backdrop" id="factura-drawer-backdrop"></div>
+            <div class="payment-drawer" id="factura-drawer">
+                <div class="payment-drawer-header">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-receipt text-primary fs-5"></i>
+                        <h5 class="fw-bold mb-0" style="color: #0f172a; font-size: 16px;">Detalle de la Factura</h5>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-light border-0 text-muted" id="btn-fac-drawer-close" title="Cerrar">
+                        <i class="bi bi-x-lg fs-6"></i>
+                    </button>
+                </div>
+                <div class="payment-drawer-body" id="factura-drawer-body">
+                    <!-- Contenido dinámico del comprobante -->
+                </div>
+                <div class="payment-drawer-footer">
+                    <button type="button" class="btn btn-light border btn-sm px-3 fw-medium" id="btn-fac-drawer-close-bottom">
+                        Cerrar
+                    </button>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-light border btn-sm px-3 fw-medium text-secondary" id="btn-fac-drawer-imprimir" title="Imprimir o PDF">
+                            <i class="bi bi-printer me-1"></i> Imprimir
+                        </button>
+                        <button type="button" class="btn btn-success btn-sm px-3 fw-medium text-white shadow-xs" id="btn-fac-drawer-abonar" title="Registrar Pago / Abono">
+                            <i class="bi bi-cash-stack me-1"></i> Registrar Pago
+                        </button>
+                        <button type="button" class="btn btn-primary btn-sm px-3 fw-medium" id="btn-fac-drawer-ver" title="Ver Pantalla Completa">
+                            <i class="bi bi-eye me-1"></i> Ver
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // 2. FUNCIÓN DE RENDERIZADO DE TABLA
         const renderGrid = async () => {
-            // Spinner while loading
-            if (element.querySelector('tbody')) {
-                element.querySelector('tbody').innerHTML = `<tr><td colspan="9" class="text-center py-5"><div class="spinner-border spinner-border-sm text-primary"></div> Cargando...</td></tr>`;
-            }
+            const containerTable = element.querySelector('#grid-facturas-container');
+            const pagContainer = element.querySelector('#grid-pagination');
+            const overlay = element.querySelector('#facturas-loading-overlay');
 
-            if (!kpiDataCxc) {
-                try {
-                    const { data, error } = await supabase.rpc('get_facturas_kpis', { p_tipo: 'venta' });
-                    if (!error && data) {
-                        kpiDataCxc = {
-                            facturado: parseFloat(data.facturado) || 0,
-                            cobrado: parseFloat(data.cobrado) || 0,
-                            pendiente: parseFloat(data.pendiente) || 0
-                        };
-                    } else {
-                        kpiDataCxc = { facturado: 0, cobrado: 0, pendiente: 0 };
-                    }
-                } catch(e) {
-                    kpiDataCxc = { facturado: 0, cobrado: 0, pendiente: 0 };
+            if (overlay) overlay.style.setProperty('display', 'flex', 'important');
+
+            try {
+                // A. KPIs vía RPC si no existen
+                if (!kpiDataCxc) {
+                    const { data: kpis } = await supabase.rpc('get_facturas_kpis', { p_tipo: 'venta' });
+                    const { count: totalDocs } = await supabase.from('facturas').select('id', { count: 'exact', head: true }).eq('tipo', 'venta').neq('estado', 'anulada');
+
+                    const facturado = parseFloat(kpis?.facturado) || 0;
+                    const cobrado = parseFloat(kpis?.cobrado) || 0;
+                    const pendiente = parseFloat(kpis?.pendiente) || 0;
+                    const recaudoRate = facturado > 0 ? Math.round((cobrado / facturado) * 100) : 0;
+
+                    kpiDataCxc = { facturado, cobrado, pendiente, totalDocs: totalDocs || 0, recaudoRate };
+
+                    // Pintar en DOM
+                    const kpiFac = element.querySelector('#kpi-facturado');
+                    if (kpiFac) kpiFac.textContent = formatMoney(facturado);
+                    const kpiCob = element.querySelector('#kpi-cobrado');
+                    if (kpiCob) kpiCob.textContent = formatMoney(cobrado);
+                    const kpiPen = element.querySelector('#kpi-pendiente');
+                    if (kpiPen) kpiPen.textContent = formatMoney(pendiente);
+                    const kpiTot = element.querySelector('#kpi-total-facturas');
+                    if (kpiTot) kpiTot.textContent = totalDocs || 0;
+                    const kpiRate = element.querySelector('#kpi-tasa-recaudo');
+                    if (kpiRate) kpiRate.innerHTML = `<i class="bi bi-arrow-up-right"></i> ${recaudoRate}%`;
                 }
+
+                // B. Paginación y Filtros Server-Side / In-Memory
+                const isTabFiltered = selectedTab !== 'todas' || Boolean(searchQuery);
+
+                let pageData = [];
+
+                if (!isTabFiltered) {
+                    const { data, error } = await supabase.rpc('get_facturas_con_saldos', {
+                        p_page: currentPage,
+                        p_limit: itemsPerPage,
+                        p_sort_col: sortColumn,
+                        p_sort_dir: sortDirection,
+                        p_search: searchQuery,
+                        p_filter_criteria: filterCriteria,
+                        p_tipo: 'venta'
+                    });
+                    if (error) throw error;
+
+                    pageData = data || [];
+                    totalItems = pageData.length > 0 ? parseInt(pageData[0].total_count || 0, 10) : 0;
+                } else {
+                    // Consulta lote amplio para filtrado preciso de pestañas
+                    const { data, error } = await supabase.rpc('get_facturas_con_saldos', {
+                        p_page: 1,
+                        p_limit: 1000,
+                        p_sort_col: sortColumn,
+                        p_sort_dir: sortDirection,
+                        p_search: searchQuery,
+                        p_filter_criteria: filterCriteria,
+                        p_tipo: 'venta'
+                    });
+                    if (error) throw error;
+
+                    let allRows = data || [];
+
+                    // Filtro de Pestañas
+                    if (selectedTab === 'por_cobrar') {
+                        allRows = allRows.filter(f => Number(f.saldo_pendiente) > 0 && f.estado !== 'anulada' && f.estado !== 'void');
+                    } else if (selectedTab === 'cobradas') {
+                        allRows = allRows.filter(f => Number(f.saldo_pendiente) <= 0 && f.estado !== 'anulada' && f.estado !== 'void');
+                    } else if (selectedTab === 'vencidas') {
+                        const hoy = new Date();
+                        hoy.setHours(0, 0, 0, 0);
+                        allRows = allRows.filter(f => {
+                            if (Number(f.saldo_pendiente) <= 0 || f.estado === 'anulada') return false;
+                            const vDate = new Date(f.vencimiento || f.fecha);
+                            return vDate < hoy;
+                        });
+                    } else if (selectedTab === 'anuladas') {
+                        allRows = allRows.filter(f => f.estado === 'anulada' || f.estado === 'void' || f.estado === 'voided');
+                    }
+
+                    totalItems = allRows.length;
+                    const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
+                    if (currentPage > totalPages) currentPage = totalPages;
+                    if (currentPage < 1) currentPage = 1;
+
+                    const from = (currentPage - 1) * itemsPerPage;
+                    pageData = allRows.slice(from, from + itemsPerPage);
+                }
+
+                // Resolver nombres de clientes dinámicamente
+                const contactoIds = pageData.map(c => c.clienteId || c.contacto_id || c.contactoId).filter(Boolean);
+                if (contactoIds.length > 0) {
+                    const { data: cdata } = await supabase.from('contactos').select('id, nombre, identificacion').in('id', contactoIds);
+                    if (cdata) cdata.forEach(c => {
+                        contactosMap[c.id] = c.nombre;
+                        if (c.identificacion) contactosMap[`nit_${c.id}`] = c.identificacion;
+                    });
+                }
+
+                currentItems = pageData.map(f => ({
+                    ...f,
+                    estado: f.estado_dinamico || f.estado,
+                    saldoPendiente: f.saldo_pendiente,
+                    totalPagado: f.total_pagado
+                }));
+
+                const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
+
+                // C. Renderizar la Tabla
+                if (containerTable) {
+                    containerTable.innerHTML = renderTablaFacturas(currentItems, contactosMap, sortColumn, sortDirection, null, 'venta');
+                }
+
+                // D. Paginador
+                const fromItem = totalItems > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0;
+                const toItem = Math.min(currentPage * itemsPerPage, totalItems);
+
+                if (pagContainer) {
+                    pagContainer.innerHTML = `
+                        <div class="d-flex align-items-center gap-3" style="font-size: 13px; color: var(--text-body);">
+                            <div class="d-flex align-items-center gap-2">
+                                <span>Mostrar:</span>
+                                <select class="form-select form-select-sm text-muted select-per-page" style="width: 70px;">
+                                    <option value="10" ${itemsPerPage===10?'selected':''}>10</option>
+                                    <option value="20" ${itemsPerPage===20?'selected':''}>20</option>
+                                    <option value="50" ${itemsPerPage===50?'selected':''}>50</option>
+                                </select>
+                            </div>
+                            <span class="text-muted border-start ps-3">
+                                ${totalItems > 0 ? `<strong>${fromItem} - ${toItem}</strong> de <strong>${totalItems}</strong> facturas` : '0 facturas'}
+                            </span>
+                        </div>
+
+                        <div class="d-flex align-items-center gap-2" style="font-size: 13px;">
+                            <button class="btn btn-sm btn-light border btn-prev-page" ${currentPage <= 1 ? 'disabled' : ''}>
+                                <i class="bi bi-chevron-left me-1"></i> Anterior
+                            </button>
+                            <span class="px-2 text-muted">
+                                Página <strong>${currentPage}</strong> de <strong>${totalPages}</strong>
+                            </span>
+                            <button class="btn btn-sm btn-light border btn-next-page" ${currentPage >= totalPages ? 'disabled' : ''}>
+                                Siguiente <i class="bi bi-chevron-right ms-1"></i>
+                            </button>
+                        </div>
+                    `;
+
+                    pagContainer.querySelector('.select-per-page')?.addEventListener('change', (e) => {
+                        itemsPerPage = parseInt(e.target.value, 10);
+                        currentPage = 1;
+                        renderGrid();
+                    });
+                    pagContainer.querySelector('.btn-prev-page')?.addEventListener('click', () => {
+                        if (currentPage > 1) { currentPage--; renderGrid(); }
+                    });
+                    pagContainer.querySelector('.btn-next-page')?.addEventListener('click', () => {
+                        if (currentPage < totalPages) { currentPage++; renderGrid(); }
+                    });
+                }
+
+                // E. Eventos Dinámicos en la Tabla
+                bindDynamicEvents();
+
+            } catch (err) {
+                console.error("Error cargando facturas:", err);
+                if (containerTable) containerTable.innerHTML = `<div class="p-5 text-center text-danger">Error al cargar datos: ${err.message}</div>`;
+            } finally {
+                if (overlay) overlay.style.setProperty('display', 'none', 'important');
+            }
+        };
+
+        // 3. SLIDE-OVER DRAWER DE FACTURA
+        const mostrarDrawer = async (id) => {
+            const backdrop = element.querySelector('#factura-drawer-backdrop');
+            const drawer = element.querySelector('#factura-drawer');
+            const body = element.querySelector('#factura-drawer-body');
+            if (!drawer || !body) return;
+
+            if (backdrop) backdrop.classList.add('show');
+            drawer.classList.add('show');
+            body.innerHTML = `
+                <div class="d-flex justify-content-center align-items-center py-5">
+                    <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Cargando...</span></div>
+                </div>
+            `;
+
+            try {
+                const [facRes, itemsRes, pagosRes] = await Promise.all([
+                    supabase.from('facturas').select('*, contactos(nombre, identificacion, email, telefono)').eq('id', id).single(),
+                    supabase.from('factura_detalles').select('*, productos(nombre)').eq('factura_id', id),
+                    supabase.from('pagos_ingresos').select('id, fecha, monto, observaciones, cuentas_bancarias(nombre), conciliacion_id').eq('factura_id', id).neq('estado', 'anulado').order('fecha', { ascending: false })
+                ]);
+
+                if (facRes.error || !facRes.data) throw facRes.error || new Error('Factura no encontrada');
+
+                const fac = facRes.data;
+                const items = itemsRes.data || [];
+                const pagos = pagosRes.data || [];
+
+                const clienteNombre = fac.contactos?.nombre || contactosMap[fac.contacto_id] || 'Sin Cliente';
+                const avatar = getClientAvatar(clienteNombre);
+                const isAnulada = fac.estado === 'anulada' || fac.estado === 'void';
+                const totalPagado = pagos.reduce((sum, p) => sum + Number(p.monto || 0), 0);
+                const saldoPendiente = Math.max(0, Number(fac.total || 0) - totalPagado);
+                const isCobrada = saldoPendiente <= 0;
+
+                body.innerHTML = `
+                    <!-- Header del Comprobante -->
+                    <div class="d-flex align-items-center justify-content-between mb-4 pb-3 border-bottom">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="payment-avatar" style="background-color: ${avatar.bg}; color: ${avatar.color}; width: 44px; height: 44px; font-size: 15px;">
+                                ${avatar.initials}
+                            </div>
+                            <div>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="payment-code-badge" style="border-color: #93c5fd; color: #1d4ed8;">
+                                        FAC #${fac.numero || fac.id}
+                                    </span>
+                                    <span class="badge ${isAnulada ? 'bg-secondary-subtle text-secondary' : isCobrada ? 'bg-success-subtle text-success' : 'bg-warning-subtle text-warning-emphasis'} border rounded-pill">
+                                        ${isAnulada ? 'Anulada' : isCobrada ? 'Cobrada' : 'Por cobrar'}
+                                    </span>
+                                </div>
+                                <h4 class="fw-bold mb-0 mt-1" style="font-size: 17px; color: #0f172a;">${escapeHtml(clienteNombre)}</h4>
+                                ${fac.contactos?.identificacion ? `<span class="text-muted" style="font-size: 12px;">NIT / CC: ${escapeHtml(fac.contactos.identificacion)}</span>` : ''}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Banner de Monto y Saldos -->
+                    <div class="p-3 rounded-3 mb-4" style="background: linear-gradient(135deg, #eff6ff, #f8fafc); border: 1px solid #bfdbfe;">
+                        <div class="row g-2 align-items-center">
+                            <div class="col-12 col-sm-4">
+                                <span class="text-uppercase fw-semibold text-muted" style="font-size: 10px; letter-spacing: 0.5px;">Total Factura</span>
+                                <h3 class="fw-bold text-dark mb-0 tnum" style="font-size: 18px;">${formatMoney(fac.total)}</h3>
+                            </div>
+                            <div class="col-12 col-sm-4 border-start-sm ps-sm-3">
+                                <span class="text-uppercase fw-semibold text-muted" style="font-size: 10px; letter-spacing: 0.5px;">Total Recaudado</span>
+                                <h3 class="fw-bold text-success mb-0 tnum" style="font-size: 18px;">${formatMoney(totalPagado)}</h3>
+                            </div>
+                            <div class="col-12 col-sm-4 border-start-sm ps-sm-3">
+                                <span class="text-uppercase fw-semibold text-muted" style="font-size: 10px; letter-spacing: 0.5px;">Saldo Pendiente</span>
+                                <h3 class="fw-bold ${saldoPendiente > 0 ? 'text-danger' : 'text-success'} mb-0 tnum" style="font-size: 18px;">${formatMoney(saldoPendiente)}</h3>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Trazabilidad de la Factura -->
+                    <div class="mb-4">
+                        <h6 class="fw-bold text-uppercase text-muted mb-3" style="font-size: 11px; letter-spacing: 0.5px;">
+                            <i class="bi bi-signpost-split me-1 text-primary"></i> Trazabilidad & Cartera
+                        </h6>
+                        <div class="ps-2">
+                            <!-- Hito 1: Emisión -->
+                            <div class="payment-timeline-item">
+                                <div class="payment-timeline-dot success">
+                                    <i class="bi bi-file-earmark-check" style="font-size: 9px; color: #059669;"></i>
+                                </div>
+                                <div class="fw-semibold text-dark" style="font-size: 13px;">Factura Emitida</div>
+                                <div class="text-muted" style="font-size: 12px;">
+                                    Expedida el <strong>${fac.fecha || '---'}</strong> | Vence el <strong>${fac.vencimiento || fac.fecha || '---'}</strong>
+                                </div>
+                            </div>
+
+                            <!-- Hito 2: Historial de Abonos -->
+                            <div class="payment-timeline-item">
+                                <div class="payment-timeline-dot ${pagos.length > 0 ? 'success' : 'warning'}">
+                                    <i class="bi bi-cash-stack" style="font-size: 9px; color: ${pagos.length > 0 ? '#059669' : '#d97706'};"></i>
+                                </div>
+                                <div class="fw-semibold text-dark" style="font-size: 13px;">Recaudos y Abonos (${pagos.length})</div>
+                                <div class="text-muted" style="font-size: 12px;">
+                                    ${pagos.length > 0 
+                                        ? pagos.map(p => `<div>• <strong>${formatMoney(p.monto)}</strong> el ${p.fecha} (${escapeHtml(p.cuentas_bancarias?.nombre || 'Caja')})</div>`).join('')
+                                        : 'Aún no se registran pagos asociados a esta factura.'}
+                                </div>
+                            </div>
+
+                            <!-- Hito 3: Estado de Deuda -->
+                            <div class="payment-timeline-item">
+                                <div class="payment-timeline-dot ${isCobrada ? 'success' : 'warning'}">
+                                    <i class="bi bi-${isCobrada ? 'check-circle-fill' : 'clock'}" style="font-size: 9px; color: ${isCobrada ? '#059669' : '#d97706'};"></i>
+                                </div>
+                                <div class="fw-semibold text-dark" style="font-size: 13px;">Estado Actual de Cartera</div>
+                                <div class="text-muted" style="font-size: 12px;">
+                                    ${isCobrada 
+                                        ? `<span class="text-success"><i class="bi bi-check-circle me-1"></i> Factura totalmente saldada.</span>` 
+                                        : `<span class="text-warning-emphasis"><i class="bi bi-clock-history me-1"></i> Saldo pendiente de cobro: <strong>${formatMoney(saldoPendiente)}</strong></span>`}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tabla de Ítems / Productos -->
+                    <div class="mb-4">
+                        <h6 class="fw-bold text-uppercase text-muted mb-2" style="font-size: 11px; letter-spacing: 0.5px;">
+                            <i class="bi bi-box-seam me-1 text-primary"></i> Ítems Facturados (${items.length})
+                        </h6>
+                        <div class="table-responsive border rounded-3 bg-white">
+                            <table class="table table-sm align-middle mb-0" style="font-size: 12px;">
+                                <thead class="bg-light text-muted">
+                                    <tr>
+                                        <th class="ps-3 py-2">Producto / Servicio</th>
+                                        <th class="text-center py-2">Cant</th>
+                                        <th class="text-end py-2">Precio</th>
+                                        <th class="text-end pe-3 py-2">Subtotal</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${items.map(d => {
+                                        const prodNom = d.productos?.nombre || d.descripcion_personalizada || 'Producto';
+                                        return `
+                                            <tr>
+                                                <td class="ps-3 py-2 fw-medium text-dark">${escapeHtml(prodNom)}</td>
+                                                <td class="text-center py-2 tnum">${d.cantidad}</td>
+                                                <td class="text-end py-2 tnum">${formatMoney(d.precio_unitario)}</td>
+                                                <td class="text-end pe-3 py-2 tnum fw-semibold text-dark">${formatMoney(d.subtotal)}</td>
+                                            </tr>
+                                        `;
+                                    }).join('') || '<tr><td colspan="4" class="text-center text-muted py-3">Sin ítems</td></tr>'}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    ${fac.observaciones ? `
+                        <div class="mb-3">
+                            <h6 class="fw-bold text-uppercase text-muted mb-1" style="font-size: 11px;">Notas y Observaciones</h6>
+                            <div class="p-3 bg-light rounded-3 text-secondary" style="font-size: 12px; line-height: 1.5;">
+                                ${escapeHtml(fac.observaciones)}
+                            </div>
+                        </div>
+                    ` : ''}
+                `;
+
+                // Configurar Botones del Drawer
+                const btnDrawerImprimir = element.querySelector('#btn-fac-drawer-imprimir');
+                if (btnDrawerImprimir) {
+                    btnDrawerImprimir.onclick = async () => {
+                        const contactos = await DB.getAll('contactos');
+                        const productos = await DB.getAll('productos');
+                        const doc = await DB.get('facturas', id);
+                        PrintManager.printDocument(doc, 'Factura de venta', contactos, productos);
+                    };
+                }
+
+                const btnDrawerAbonar = element.querySelector('#btn-fac-drawer-abonar');
+                if (btnDrawerAbonar) {
+                    if (isCobrada || isAnulada) {
+                        btnDrawerAbonar.style.display = 'none';
+                    } else {
+                        btnDrawerAbonar.style.display = 'inline-block';
+                        btnDrawerAbonar.onclick = () => {
+                            cerrarDrawer();
+                            AbonoModal.show(id, async () => {
+                                kpiDataCxc = null;
+                                await renderGrid();
+                            });
+                        };
+                    }
+                }
+
+                const btnDrawerVer = element.querySelector('#btn-fac-drawer-ver');
+                if (btnDrawerVer) {
+                    btnDrawerVer.onclick = () => {
+                        cerrarDrawer();
+                        window.location.hash = `#/ingresos/facturas/ver/${id}`;
+                    };
+                }
+
+            } catch (err) {
+                console.error("Error al cargar detalle de factura para drawer:", err);
+                body.innerHTML = `<div class="p-4 text-center text-danger">Error al cargar datos del comprobante.</div>`;
+            }
+        };
+
+        const cerrarDrawer = () => {
+            const backdrop = element.querySelector('#factura-drawer-backdrop');
+            const drawer = element.querySelector('#factura-drawer');
+            if (backdrop) backdrop.classList.remove('show');
+            if (drawer) drawer.classList.remove('show');
+        };
+
+        // 4. ANALÍTICA GRÁFICA INTERACTIVA
+        const renderAnalyticsView = async () => {
+            const container = element.querySelector('#facturas-analytics-container');
+            if (!container) return;
+
+            container.innerHTML = `
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p class="text-muted mt-2" style="font-size: 13px;">Generando analítica de facturación...</p>
+                </div>
+            `;
+
+            try {
+                const now = new Date();
+                const past60 = new Date(now.getTime() - (60 * 24 * 60 * 60 * 1000)).toISOString().split('T')[0];
+
+                const { data: facturasData } = await supabase
+                    .from('facturas')
+                    .select('id, numero, fecha, total, estado, contacto_id, contactos(nombre)')
+                    .eq('tipo', 'venta')
+                    .neq('estado', 'anulada')
+                    .gte('fecha', past60)
+                    .order('fecha', { ascending: true });
+
+                const dailyMap = {};
+                const clientMap = {};
+
+                (facturasData || []).forEach(f => {
+                    const fecha = f.fecha || 'Sin fecha';
+                    const val = Number(f.total) || 0;
+                    const cliente = f.contactos?.nombre || 'General / Varios';
+
+                    dailyMap[fecha] = (dailyMap[fecha] || 0) + val;
+                    clientMap[cliente] = (clientMap[cliente] || 0) + val;
+                });
+
+                const topClients = Object.entries(clientMap)
+                    .sort((a, b) => b[1] - a[1])
+                    .slice(0, 5)
+                    .map(([nombre, total]) => ({ nombre, total }));
+
+                container.innerHTML = `
+                    <div class="row g-3 mb-4">
+                        <!-- Gráfico de Ventas Diarias -->
+                        <div class="col-12 col-lg-8">
+                            <div class="payment-kpi-card h-100 p-4">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <div>
+                                        <h6 class="fw-bold mb-0 text-dark">Evolución Diaria de Ventas (Últimos 60 días)</h6>
+                                        <span class="text-muted" style="font-size: 12px;">Monto facturado por día</span>
+                                    </div>
+                                    <span class="badge bg-light text-primary border px-2 py-1" style="font-size: 11px;">
+                                        <i class="bi bi-graph-up me-1"></i> Facturación
+                                    </span>
+                                </div>
+                                <div style="height: 260px; position: relative;">
+                                    <canvas id="facturasDailyChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Gráfico de Cartera Cobrada vs Pendiente -->
+                        <div class="col-12 col-lg-4">
+                            <div class="payment-kpi-card h-100 p-4">
+                                <div class="mb-3">
+                                    <h6 class="fw-bold mb-0 text-dark">Distribución de Cartera</h6>
+                                    <span class="text-muted" style="font-size: 12px;">Proporción cobrado vs pendiente</span>
+                                </div>
+                                <div style="height: 180px; position: relative;" class="d-flex justify-content-center">
+                                    <canvas id="facturasCarteraChart"></canvas>
+                                </div>
+                                <div class="mt-3 border-top pt-2" style="font-size: 12px;">
+                                    <div class="d-flex justify-content-between align-items-center py-1">
+                                        <span class="text-muted"><i class="bi bi-circle-fill text-success me-1" style="font-size: 9px;"></i> Total Cobrado</span>
+                                        <span class="fw-bold text-success tnum">${formatMoney(kpiDataCxc?.cobrado || 0)}</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center py-1">
+                                        <span class="text-muted"><i class="bi bi-circle-fill text-warning me-1" style="font-size: 9px;"></i> Por Cobrar</span>
+                                        <span class="fw-bold text-warning-emphasis tnum">${formatMoney(kpiDataCxc?.pendiente || 0)}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Top 5 Clientes en Facturación -->
+                        <div class="col-12">
+                            <div class="payment-kpi-card p-4">
+                                <h6 class="fw-bold mb-1 text-dark">Top 5 Clientes con Mayor Facturación</h6>
+                                <span class="text-muted d-block mb-3" style="font-size: 12px;">Clientes con mayor volumen acumulado</span>
+                                <div class="row g-2">
+                                    ${topClients.length > 0 ? topClients.map((c, i) => `
+                                        <div class="col-12 col-sm-6 col-md-4 col-lg">
+                                            <div class="p-3 bg-light rounded-3 border d-flex flex-column justify-content-between h-100">
+                                                <div class="d-flex align-items-center gap-2 mb-2">
+                                                    <span class="badge bg-primary text-white rounded-circle" style="width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; font-size: 10px;">${i + 1}</span>
+                                                    <span class="fw-bold text-dark text-truncate" style="font-size: 12px;" title="${escapeHtml(c.nombre)}">${escapeHtml(c.nombre)}</span>
+                                                </div>
+                                                <div class="fw-bold text-primary tnum" style="font-size: 14px;">${formatMoney(c.total)}</div>
+                                            </div>
+                                        </div>
+                                    `).join('') : '<p class="text-muted p-2">Sin datos recientes.</p>'}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                const initCharts = () => {
+                    if (typeof Chart === 'undefined') return;
+
+                    const ctxDaily = document.getElementById('facturasDailyChart');
+                    if (ctxDaily) {
+                        if (chartInstanceVentas) chartInstanceVentas.destroy();
+                        chartInstanceVentas = new Chart(ctxDaily, {
+                            type: 'bar',
+                            data: {
+                                labels: Object.keys(dailyMap).map(l => l.substring(5)),
+                                datasets: [{
+                                    label: 'Facturado ($)',
+                                    data: Object.values(dailyMap),
+                                    backgroundColor: '#2563eb',
+                                    borderRadius: 6
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: { legend: { display: false } },
+                                scales: {
+                                    x: { grid: { display: false } },
+                                    y: {
+                                        ticks: {
+                                            callback: v => '$' + (v >= 1000000 ? (v / 1000000).toFixed(1) + 'M' : (v / 1000).toFixed(0) + 'k')
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                    }
+
+                    const ctxCartera = document.getElementById('facturasCarteraChart');
+                    if (ctxCartera) {
+                        if (chartInstanceCartera) chartInstanceCartera.destroy();
+                        chartInstanceCartera = new Chart(ctxCartera, {
+                            type: 'doughnut',
+                            data: {
+                                labels: ['Cobrado', 'Pendiente'],
+                                datasets: [{
+                                    data: [kpiDataCxc?.cobrado || 0, kpiDataCxc?.pendiente || 0],
+                                    backgroundColor: ['#10b981', '#f59e0b']
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: { legend: { display: false } },
+                                cutout: '65%'
+                            }
+                        });
+                    }
+                };
+
+                if (typeof Chart === 'undefined') {
+                    const script = document.createElement('script');
+                    script.src = 'https://cdn.jsdelivr.net/npm/chart.js';
+                    script.onload = initCharts;
+                    document.head.appendChild(script);
+                } else {
+                    setTimeout(initCharts, 50);
+                }
+
+            } catch (err) {
+                console.error("Error generando analítica de facturas:", err);
+                container.innerHTML = `<div class="p-4 text-center text-danger">Error al generar analítica.</div>`;
+            }
+        };
+
+        // 5. EXPORTACIÓN A EXCEL (.XLSX)
+        const exportarExcel = async () => {
+            const btn = element.querySelector('#btn-export-list');
+            const originalHtml = btn ? btn.innerHTML : '';
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span>Exportando...`;
             }
 
             try {
-                const { data: pageData, error } = await supabase.rpc('get_facturas_con_saldos', {
-                    p_page: currentPage,
-                    p_limit: itemsPerPage,
+                const { data: allFiltered, error } = await supabase.rpc('get_facturas_con_saldos', {
+                    p_page: 1,
+                    p_limit: 10000,
                     p_sort_col: sortColumn,
                     p_sort_dir: sortDirection,
                     p_search: searchQuery,
                     p_filter_criteria: filterCriteria,
                     p_tipo: 'venta'
                 });
-                
                 if (error) throw error;
-                
-                totalItems = pageData && pageData.length > 0 ? pageData[0].total_count : 0;
-                totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
-                
-                if (currentPage > totalPages && totalPages > 0) {
-                    currentPage = totalPages;
-                    return renderGrid();
+
+                let allRows = allFiltered || [];
+
+                // Aplicar filtros activos
+                if (selectedTab === 'por_cobrar') {
+                    allRows = allRows.filter(f => Number(f.saldo_pendiente) > 0 && f.estado !== 'anulada');
+                } else if (selectedTab === 'cobradas') {
+                    allRows = allRows.filter(f => Number(f.saldo_pendiente) <= 0 && f.estado !== 'anulada');
+                } else if (selectedTab === 'vencidas') {
+                    const hoy = new Date();
+                    hoy.setHours(0, 0, 0, 0);
+                    allRows = allRows.filter(f => Number(f.saldo_pendiente) > 0 && f.estado !== 'anulada' && new Date(f.vencimiento || f.fecha) < hoy);
+                } else if (selectedTab === 'anuladas') {
+                    allRows = allRows.filter(f => f.estado === 'anulada' || f.estado === 'void');
                 }
 
-                // Resolver nombres de clientes dinámicamente para la página actual
-                const contactoIds = pageData.map(c => c.clienteId || c.contacto_id || c.contactoId).filter(Boolean);
-                if (contactoIds.length > 0) {
-                    const { data: cdata } = await supabase.from('contactos').select('id, nombre').in('id', contactoIds);
-                    if (cdata) cdata.forEach(c => contactosMap[c.id] = c.nombre);
+                if (allRows.length === 0) {
+                    alert('No hay facturas para exportar con los filtros seleccionados.');
+                    return;
                 }
 
-                currentItems = pageData.map(f => {
-                    // El RPC ya devuelve estado_dinamico, saldo_pendiente y total_pagado
-                    return { ...f, estado: f.estado_dinamico, saldoPendiente: f.saldo_pendiente, totalPagado: f.total_pagado };
+                // Cargar nombres de contactos
+                const exportIds = allRows.map(c => c.clienteId || c.contacto_id || c.contactoId).filter(Boolean);
+                let exportMap = {};
+                if (exportIds.length > 0) {
+                    const { data: edata } = await supabase.from('contactos').select('id, nombre').in('id', exportIds);
+                    if (edata) edata.forEach(c => exportMap[c.id] = c.nombre);
+                }
+
+                const dataToExport = allRows.map(f => {
+                    const contactId = f.clienteId || f.contacto_id || f.contactoId;
+                    return {
+                        'Número': f.numero || f.id,
+                        'Cliente': exportMap[contactId] || 'Sin Cliente',
+                        'Fecha': f.fecha || '',
+                        'Vencimiento': f.vencimiento || '',
+                        'Total ($)': Number(f.total) || 0,
+                        'Cobrado ($)': Number(f.total_pagado) || 0,
+                        'Saldo Pendiente ($)': Number(f.saldo_pendiente) || 0,
+                        'Estado': f.estado_dinamico || f.estado || 'Por cobrar'
+                    };
                 });
-            } catch (err) {
-                console.error(err);
-                if (element.querySelector('tbody')) {
-                    element.querySelector('tbody').innerHTML = `<tr><td colspan="9" class="text-center py-5 text-danger">Error al cargar datos</td></tr>`;
+
+                const dateStr = new Date().toISOString().split('T')[0];
+
+                if (window.XLSX) {
+                    const ws = window.XLSX.utils.json_to_sheet(dataToExport);
+                    const wb = window.XLSX.utils.book_new();
+                    window.XLSX.utils.book_append_sheet(wb, ws, 'Facturas_Venta');
+                    window.XLSX.writeFile(wb, `Facturas_Venta_${dateStr}.xlsx`);
+                } else {
+                    const headers = Object.keys(dataToExport[0]);
+                    let csv = headers.join(';') + '\r\n';
+                    dataToExport.forEach(row => {
+                        csv += headers.map(h => `"${String(row[h] || '').replace(/"/g, '""')}"`).join(';') + '\r\n';
+                    });
+                    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `Facturas_Venta_${dateStr}.csv`;
+                    a.click();
+                    URL.revokeObjectURL(url);
                 }
-                return;
+            } catch (err) {
+                console.error("Error exportando facturas:", err);
+                alert("Error al exportar: " + err.message);
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = originalHtml;
+                }
             }
-
-            const startIndex = (currentPage - 1) * itemsPerPage;
-
-            element.innerHTML = `
-                <div class=\"dash-layout p-4\" style=\"max-width: 1100px; margin: 0 auto;\">
-                    <!-- TOP BAR -->
-                    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
-                        <div>
-                            <div class="d-flex align-items-center gap-2">
-                                <h2 class="page-title mb-0">Facturas de venta</h2>
-                                <span class="badge" style="background-color: #eff4ff; color: var(--primary); font-size: 11px; font-weight: 600; border-radius: 9999px; padding: 4px 10px;">
-                                    Ventas e Ingresos
-                                </span>
-                            </div>
-                            <p class="text-muted mb-0" style="font-size: var(--fs-md); margin-top: 3px;">
-                                Gestiona las facturas generadas por ventas a tus clientes y recaudación.
-                            </p>
-                        </div>
-                        <div class="d-flex flex-wrap gap-2">
-                            <button id="btn-refresh-list" class="btn btn-light bg-white border" style="font-weight: var(--weight-medium); font-size: var(--fs-md); color: var(--text-body); border-radius: var(--radius-md);">
-                                <span class="material-symbols-outlined text-[17px] me-1" style="vertical-align: text-bottom;">refresh</span> Actualizar
-                            </button>
-                            <button id="btn-export-list" class="btn btn-light bg-white border" style="font-weight: var(--weight-medium); font-size: var(--fs-md); color: var(--text-body); border-radius: var(--radius-md);">
-                                <span class="material-symbols-outlined text-[17px] me-1" style="vertical-align: text-bottom;">download</span> Exportar
-                            </button>
-                            <button id="btn-nueva-factura" class="btn btn-primary-action">
-                                <span class="material-symbols-outlined text-[18px] me-1" style="vertical-align: text-bottom;">add</span> Nueva factura
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- KPI CARDS FACTURAS -->
-                    <div class="row g-3 mb-4">
-                        <div class="col-12 col-sm-6 col-lg-4">
-                            <div class="ds-kpi-card">
-                                <div class="d-flex justify-content-between align-items-start mb-2">
-                                    <span class="ds-kpi-label">Total Facturado</span>
-                                    <div class="dash-icon-box variant-blue" style="width: 32px; height: 32px; border-radius: 8px;">
-                                        <span class="material-symbols-outlined text-[18px]">request_quote</span>
-                                    </div>
-                                </div>
-                                <div class="ds-kpi-value tnum">$ ${formatMoney(kpiDataCxc.facturado).replace('$ ', '')}</div>
-                            </div>
-                        </div>
-                        <div class="col-12 col-sm-6 col-lg-4">
-                            <div class="ds-kpi-card">
-                                <div class="d-flex justify-content-between align-items-start mb-2">
-                                    <span class="ds-kpi-label">Total Cobrado</span>
-                                    <div class="dash-icon-box variant-green" style="width: 32px; height: 32px; border-radius: 8px;">
-                                        <span class="material-symbols-outlined text-[18px]">payments</span>
-                                    </div>
-                                </div>
-                                <div class="ds-kpi-value tnum">$ ${formatMoney(kpiDataCxc.cobrado).replace('$ ', '')}</div>
-                            </div>
-                        </div>
-                        <div class="col-12 col-sm-6 col-lg-4">
-                            <div class="ds-kpi-card">
-                                <div class="d-flex justify-content-between align-items-start mb-2">
-                                    <span class="ds-kpi-label">Total Pendiente</span>
-                                    <div class="dash-icon-box" style="width: 32px; height: 32px; border-radius: 8px; background-color: #fffbeb; color: #d97706;">
-                                        <span class="material-symbols-outlined text-[18px]">pending_actions</span>
-                                    </div>
-                                </div>
-                                <div class="ds-kpi-value tnum">$ ${formatMoney(kpiDataCxc.pendiente).replace('$ ', '')}</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- DATA TABLE CARD -->
-                    <div class="dash-table-container mb-4">
-                        <!-- FILTERS -->
-                        <div class="card-header bg-white border-bottom p-3 d-flex gap-3 align-items-center">
-                            <div class="ds-search-container" style="width: 250px;">
-                                <i class="bi bi-search ds-search-icon"></i>
-                                <input type="text" class="ds-search-input" id="searchFacturas" autocomplete="off" placeholder="Buscar..." value="${searchQuery}">
-                            </div>
-                            <div class="dropdown">
-                                <button class="btn btn-link text-decoration-none text-muted p-0 dropdown-toggle" data-bs-toggle="dropdown" style="font-size: var(--fs-md);">
-                                    <i class="bi bi-funnel me-1"></i> Filtrar <span id="lbl-filtro-actual" style="font-size: var(--fs-sm); font-weight: 500; color: var(--primary);">${filterCriteria !== 'todos' ? '('+filterCriteria+')' : ''}</span>
-                                </button>
-                                <ul class="dropdown-menu shadow border-0" style="font-size: var(--fs-base);">
-                                    <li><a class="dropdown-item filter-opt" href="#" data-criteria="todos">Todos los campos</a></li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item filter-opt" href="#" data-criteria="numero">Por Número</a></li>
-                                    <li><a class="dropdown-item filter-opt" href="#" data-criteria="cliente">Por Cliente</a></li>
-                                    <li><a class="dropdown-item filter-opt" href="#" data-criteria="fecha">Por Fecha de creación</a></li>
-                                    <li><a class="dropdown-item filter-opt" href="#" data-criteria="estado">Por Estado</a></li>
-                                    <li><a class="dropdown-item filter-opt" href="#" data-criteria="monto">Por Monto</a></li>
-                                </ul>
-                            </div>
-                        </div>
-
-                        <!-- GRID -->
-                        ${renderTablaFacturas(currentItems, contactosMap, sortColumn, sortDirection)}
-
-                        <!-- PAGINATION FOOTER -->
-                        <div class="card-footer bg-white border-top p-3 d-flex justify-content-between align-items-center" style="border-radius: 0 0 var(--border-radius-sm) var(--border-radius-sm);">
-                            <div class="d-flex align-items-center gap-3" style="font-size: var(--fs-base); color: var(--text-body);">
-                                <div class="d-flex align-items-center gap-2">
-                                    <span>Resultados por página:</span>
-                                    <select class="form-select form-select-sm text-muted" id="select-per-page" style="width: 70px;">
-                                        <option value="10" ${itemsPerPage===10?'selected':''}>10</option>
-                                        <option value="20" ${itemsPerPage===20?'selected':''}>20</option>
-                                        <option value="50" ${itemsPerPage===50?'selected':''}>50</option>
-                                        <option value="100" ${itemsPerPage===100?'selected':''}>100</option>
-                                    </select>
-                                </div>
-                                <span class="text-muted border-start ps-3">${totalItems > 0 ? startIndex + 1 : 0}-${Math.min(startIndex + itemsPerPage, totalItems)} de ${totalItems}</span>
-                            </div>
-
-                            <div class="d-flex align-items-center gap-2" style="font-size: var(--fs-base); color: var(--text-body);">
-                                <span>Página</span>
-                                <input type="number" id="input-page" class="form-control form-control-sm text-center text-muted" value="${currentPage}" min="1" max="${totalPages}" style="width: 50px;">
-                                <span>de ${totalPages}</span>
-                                <div class="ms-2">
-                                    <button class="btn btn-link text-muted p-0 me-1" id="btn-prev-page" ${currentPage === 1 ? 'disabled' : ''}><i class="bi bi-chevron-left"></i></button>
-                                    <button class="btn btn-link text-muted p-0" id="btn-next-page" ${currentPage === totalPages ? 'disabled' : ''}><i class="bi bi-chevron-right"></i></button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-
-            bindGridEvents();
         };
 
-        const bindGridEvents = () => {
-            // Re-aplicar focus si venimos de un re-render
+        // 6. ENLACE DE EVENTOS ESTÁTICOS
+        const bindStaticEvents = () => {
+            // Buscador con debounce
             const searchInput = element.querySelector('#searchFacturas');
             if (searchInput) {
-                searchInput.focus();
-                const val = searchInput.value;
-                searchInput.value = '';
-                searchInput.value = val;
-            }
-
-            // Buscador del servidor con debounce
-            if (searchInput) {
-                const clearSearchBtn = element.querySelector('#clearSearchBtn');
-                
                 let debounceTimer;
                 searchInput.addEventListener('input', (e) => {
-                    const val = e.target.value;
-                    if (clearSearchBtn) {
-                        clearSearchBtn.style.display = val.length > 0 ? '' : 'none';
-                    }
                     clearTimeout(debounceTimer);
                     debounceTimer = setTimeout(() => {
-                        searchQuery = val.trim();
+                        searchQuery = e.target.value.trim();
                         currentPage = 1;
                         renderGrid();
-                    }, 400);
+                    }, 350);
                 });
-
-                if (clearSearchBtn) {
-                    clearSearchBtn.addEventListener('click', () => {
-                        searchInput.value = '';
-                        clearSearchBtn.style.display = 'none';
-                        searchQuery = '';
-                        currentPage = 1;
-                        renderGrid();
-                    });
-                }
             }
 
+            // Pestañas Segmentadas
+            element.querySelectorAll('.payment-tab-btn').forEach(tabBtn => {
+                tabBtn.addEventListener('click', () => {
+                    element.querySelectorAll('.payment-tab-btn').forEach(b => b.classList.remove('active'));
+                    tabBtn.classList.add('active');
+                    selectedTab = tabBtn.dataset.tab || 'todas';
+                    currentPage = 1;
+                    renderGrid();
+                });
+            });
+
+            // Criterio de Búsqueda
+            element.querySelectorAll('.filter-opt').forEach(opt => {
+                opt.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    filterCriteria = e.target.dataset.criteria;
+                    const lbl = element.querySelector('#lbl-filtro-actual');
+                    if (lbl) lbl.textContent = filterCriteria !== 'todos' ? e.target.textContent : 'Filtro';
+                    currentPage = 1;
+                    renderGrid();
+                });
+            });
+
+            // Toggle Vista Lista vs Analítica
+            const btnViewLista = element.querySelector('#btn-view-lista');
+            const btnViewGrafico = element.querySelector('#btn-view-grafico');
+            const containerTable = element.querySelector('#facturas-table-view-container');
+            const containerAnalytics = element.querySelector('#facturas-analytics-container');
+
+            if (btnViewLista && btnViewGrafico) {
+                btnViewLista.addEventListener('click', () => {
+                    view = 'lista';
+                    btnViewLista.className = 'btn btn-sm btn-white bg-white shadow-xs fw-bold text-dark';
+                    btnViewGrafico.className = 'btn btn-sm btn-light border-0 text-muted';
+                    if (containerAnalytics) containerAnalytics.style.display = 'none';
+                    if (containerTable) containerTable.style.display = 'block';
+                    renderGrid();
+                });
+
+                btnViewGrafico.addEventListener('click', () => {
+                    view = 'grafico';
+                    btnViewGrafico.className = 'btn btn-sm btn-white bg-white shadow-xs fw-bold text-primary';
+                    btnViewLista.className = 'btn btn-sm btn-light border-0 text-muted';
+                    if (containerTable) containerTable.style.display = 'none';
+                    if (containerAnalytics) {
+                        containerAnalytics.style.display = 'block';
+                        renderAnalyticsView();
+                    }
+                });
+            }
+
+            // Botón Refrescar
+            element.querySelector('#btn-refresh-list')?.addEventListener('click', async (e) => {
+                const icon = e.currentTarget.querySelector('i');
+                if (icon) icon.classList.add('spinner-border', 'spinner-border-sm');
+                kpiDataCxc = null;
+                if (view === 'grafico') {
+                    await renderAnalyticsView();
+                } else {
+                    await renderGrid();
+                }
+                if (icon) icon.classList.remove('spinner-border', 'spinner-border-sm');
+            });
+
+            // Botón Exportar
+            element.querySelector('#btn-export-list')?.addEventListener('click', exportarExcel);
+
+            // Botón Crear Factura
+            element.querySelector('#btn-nueva-factura')?.addEventListener('click', () => {
+                window.location.hash = '#/ingresos/facturas/nueva';
+            });
+
+            // Drawer Cierres
+            const btnCloseDrawer = element.querySelector('#btn-fac-drawer-close');
+            const btnCloseDrawerB = element.querySelector('#btn-fac-drawer-close-bottom');
+            const backdropDrawer = element.querySelector('#factura-drawer-backdrop');
+            if (btnCloseDrawer) btnCloseDrawer.addEventListener('click', cerrarDrawer);
+            if (btnCloseDrawerB) btnCloseDrawerB.addEventListener('click', cerrarDrawer);
+            if (backdropDrawer) backdropDrawer.addEventListener('click', cerrarDrawer);
+        };
+
+        // 7. EVENTOS DINÁMICOS EN FILAS Y MENÚS
+        const bindDynamicEvents = () => {
             // Ordenamiento por Columnas
             element.querySelectorAll('.sortable-header').forEach(header => {
                 header.addEventListener('click', (e) => {
@@ -306,98 +1046,37 @@ export const FacturasModule = {
                 });
             });
 
-            // Cambiar Criterio de Filtro
-            element.querySelectorAll('.filter-opt').forEach(opt => {
-                opt.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    filterCriteria = e.target.dataset.criteria;
-                    currentPage = 1;
-                    renderGrid();
+            // Fila click para abrir drawer
+            element.querySelectorAll('.fila-factura').forEach(tr => {
+                tr.addEventListener('click', (e) => {
+                    if (e.target.closest('.dropdown') || e.target.closest('button') || e.target.closest('a')) return;
+                    mostrarDrawer(tr.dataset.id);
                 });
             });
 
-            // Crear Factura
-            element.querySelector('#btn-nueva-factura')?.addEventListener('click', () => {
-                window.location.hash = '#/ingresos/facturas/nueva';
+            // Quick View Button
+            element.querySelectorAll('.btn-quick-view-factura').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    mostrarDrawer(btn.dataset.id);
+                });
             });
 
-            // Exportar Lista a CSV (descarga completa de filtros actuales)
-            element.querySelector('#btn-export-list')?.addEventListener('click', async (e) => {
-                const btn = e.currentTarget;
-                const originalHtml = btn.innerHTML;
-                btn.disabled = true;
-                btn.innerHTML = `<span class="spinner-border spinner-border-sm" aria-hidden="true"></span> Generando...`;
-                
-                try {
-                    const { data: allFiltered, error } = await supabase.rpc('get_facturas_con_saldos', {
-                        p_page: 1,
-                        p_limit: 10000,
-                        p_sort_col: sortColumn,
-                        p_sort_dir: sortDirection,
-                        p_search: searchQuery,
-                        p_filter_criteria: filterCriteria,
-                        p_tipo: 'venta'
-                    });
-                    if (error) throw error;
-                    
-                    const allDecorated = allFiltered.map(f => {
-                        return { ...f, estado: f.estado_dinamico, saldoPendiente: f.saldo_pendiente, totalPagado: f.total_pagado };
-                    });
-                    
-                    const exportIds = allFiltered.map(c => c.clienteId || c.contacto_id || c.contactoId).filter(Boolean);
-                    let exportMap = {};
-                    if (exportIds.length > 0) {
-                        const { data: edata } = await supabase.from('contactos').select('id, nombre').in('id', exportIds);
-                        if (edata) edata.forEach(c => exportMap[c.id] = c.nombre);
+            // Quick Print Button
+            element.querySelectorAll('.btn-imprimir-row').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    const id = e.currentTarget.dataset.id;
+                    const doc = await DB.get('facturas', id);
+                    if (doc) {
+                        const contactos = await DB.getAll('contactos');
+                        const productos = await DB.getAll('productos');
+                        PrintManager.printDocument(doc, 'Factura de venta', contactos, productos);
                     }
-                    const getExportName = (id) => exportMap[id] || 'Sin Cliente';
-
-                    btn.innerHTML = originalHtml;
-                    btn.disabled = false;
-
-                    ExportManager.exportDataToExcel(allDecorated, 'Facturas', getExportName, btn);
-                } catch(err) { 
-                    console.error(err); 
-                    btn.innerHTML = originalHtml;
-                    btn.disabled = false;
-                }
+                });
             });
 
-            // Actualizar Caché
-            element.querySelector('#btn-refresh-list')?.addEventListener('click', async (e) => {
-                const btn = e.currentTarget;
-                const originalHtml = btn.innerHTML;
-                btn.disabled = true;
-                btn.innerHTML = `<span class="spinner-border spinner-border-sm" aria-hidden="true"></span>`;
-                
-                await renderGrid();
-                
-                btn.innerHTML = originalHtml;
-                btn.disabled = false;
-            });
-
-            // Paginación
-            element.querySelector('#select-per-page')?.addEventListener('change', (e) => {
-                itemsPerPage = parseInt(e.target.value);
-                currentPage = 1;
-                renderGrid();
-            });
-
-            element.querySelector('#input-page')?.addEventListener('change', (e) => {
-                let val = parseInt(e.target.value) || 1;
-                currentPage = val;
-                renderGrid();
-            });
-
-            element.querySelector('#btn-prev-page')?.addEventListener('click', () => {
-                if (currentPage > 1) { currentPage--; renderGrid(); }
-            });
-
-            element.querySelector('#btn-next-page')?.addEventListener('click', () => {
-                if (currentPage < totalPages) { currentPage++; renderGrid(); }
-            });
-
-            // Row Menu Actions (Popovers Flotantes)
+            // 3-dots Menu Actions
             element.querySelectorAll('.btn-menu-row').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     e.stopPropagation();
@@ -407,49 +1086,52 @@ export const FacturasModule = {
                     const id = e.currentTarget.dataset.id;
                     const rect = e.currentTarget.getBoundingClientRect();
 
-                    const factData = currentItems.find(f => f.id == id);
+                    const factData = currentItems.find(f => String(f.id) === String(id));
                     const canAbonar = factData && factData.estado !== 'pagada' && !EstadoUtils.estaAnulado(factData.estado);
                     const isAnulada = factData && EstadoUtils.estaAnulado(factData.estado);
-                    
+
                     const menuHtml = `
                         <div class="row-action-menu position-absolute bg-white shadow rounded border py-2" 
-                             style="z-index: 1060; width: 150px; top: ${rect.bottom + window.scrollY}px; left: ${rect.left - 100}px;">
+                             style="z-index: 1060; width: 160px; top: ${rect.bottom + window.scrollY}px; left: ${rect.left - 110}px;">
                             ${canAbonar ? `
-                            <a href="#" class="d-block px-3 py-1 text-decoration-none btn-abonar-factura" data-id="${id}" data-saldo="${factData.saldoPendiente}" style="color: var(--success); font-size: var(--fs-base);">
+                            <a href="#" class="d-block px-3 py-1.5 text-decoration-none btn-abonar-factura text-success fw-medium" data-id="${id}" data-saldo="${factData.saldoPendiente}" style="font-size: 13px;">
                                 <i class="bi bi-wallet2 me-2"></i> Registrar Pago
                             </a>
                             <hr class="dropdown-divider my-1">` : ''}
-                            ${!isAnulada ? `
-                            <a href="#/ingresos/facturas/editar/${id}" class="d-block px-3 py-1 text-decoration-none" style="color: var(--text-body); font-size: var(--fs-base);">
-                                <i class="bi bi-pencil me-2"></i> Editar
+                            <a href="#" class="d-block px-3 py-1.5 text-decoration-none btn-ver-drawer-menu text-primary" data-id="${id}" style="font-size: 13px;">
+                                <i class="bi bi-layout-sidebar-inset-reverse me-2"></i> Ver detalle
                             </a>
-                            ${factData.tipo === 'compra' ? `
-                            <a href="#" class="d-block px-3 py-1 text-decoration-none mt-1 btn-anular-compra" data-id="${id}" style="color: var(--danger); font-size: var(--fs-base);">
-                                <i class="bi bi-x-circle me-2"></i> Anular Compra
-                            </a>` : (factData.estado === 'anulada' ? '' : (factData.totalPagado > 0 ? `
-                            <a href="#" class="d-block px-3 py-1 text-decoration-none mt-1 btn-anular-venta" data-id="${id}" style="color: var(--danger); font-size: var(--fs-base);">
+                            ${!isAnulada ? `
+                            <a href="#/ingresos/facturas/editar/${id}" class="d-block px-3 py-1.5 text-decoration-none text-dark" style="font-size: 13px;">
+                                <i class="bi bi-pencil me-2 text-secondary"></i> Editar
+                            </a>
+                            ${factData?.totalPagado > 0 ? `
+                            <a href="#" class="d-block px-3 py-1.5 text-decoration-none text-danger btn-anular-venta" data-id="${id}" style="font-size: 13px;">
                                 <i class="bi bi-x-circle me-2"></i> Anular Venta
                             </a>` : `
-                            <a href="#" class="d-block px-3 py-1 text-decoration-none mt-1 btn-delete-row" data-id="${id}" style="color: var(--danger); font-size: var(--fs-base);">
+                            <a href="#" class="d-block px-3 py-1.5 text-decoration-none text-danger btn-delete-row" data-id="${id}" style="font-size: 13px;">
                                 <i class="bi bi-trash me-2"></i> Eliminar
-                            </a>`))}
-                            ` : `
-                            <a href="#/ingresos/facturas/editar/${id}" class="d-block px-3 py-1 text-decoration-none" style="color: var(--text-body); font-size: var(--fs-base);">
-                                <i class="bi bi-eye me-2"></i> Ver Detalles
                             </a>`}
+                            ` : ''}
                         </div>
                     `;
                     document.body.insertAdjacentHTML('beforeend', menuHtml);
 
                     const menu = document.querySelector('.row-action-menu');
-                    
+
+                    menu.querySelector('.btn-ver-drawer-menu')?.addEventListener('click', (ev) => {
+                        ev.preventDefault();
+                        menu.remove();
+                        mostrarDrawer(id);
+                    });
+
                     if (canAbonar) {
-                        menu.querySelector('.btn-abonar-factura').addEventListener('click', (ev) => {
+                        menu.querySelector('.btn-abonar-factura')?.addEventListener('click', (ev) => {
                             ev.preventDefault();
-                            const facId = ev.currentTarget.dataset.id;
                             menu.remove();
-                            AbonoModal.show(facId, () => {
-                                renderGrid(); // Recargar grid para reflejar estado
+                            AbonoModal.show(id, async () => {
+                                kpiDataCxc = null;
+                                await renderGrid();
                             });
                         });
                     }
@@ -461,20 +1143,14 @@ export const FacturasModule = {
                             if (confirm('¿Estás seguro de eliminar esta factura de forma permanente? Se devolverá el inventario asociado.')) {
                                 menu.remove();
                                 try {
-                                    // El RPC realiza la validación de pagos, la reversión atómica de inventario 
-                                    // y el borrado de la factura. Todo en una sola transacción segura.
-                                    const { data: result, error } = await supabase.rpc('eliminar_factura_venta', { 
+                                    const { error } = await supabase.rpc('eliminar_factura_venta', { 
                                         p_factura_id: parseInt(id, 10) 
                                     });
+                                    if (error) throw error;
 
-                                    if (error) {
-                                        throw new Error(error.message || "Error devuelto por la base de datos.");
-                                    }
-
-                                    // Forzar limpieza de caché
                                     DB.invalidateCache('facturas');
                                     DB.invalidateCache('lotes_fifo');
-                                    
+                                    kpiDataCxc = null;
                                     await renderGrid();
                                     CoreActions.showSuccessModal('Factura eliminada y stock devuelto exitosamente.');
                                 } catch (error) {
@@ -489,24 +1165,19 @@ export const FacturasModule = {
                     if (btnAnularVenta) {
                         btnAnularVenta.addEventListener('click', async (ev) => {
                             ev.preventDefault();
-                            if (confirm('¿Estás seguro de anular esta venta? Se revertirá el inventario y el pago asociado. Esta acción no se puede deshacer.')) {
+                            if (confirm('¿Estás seguro de anular esta venta? Se revertirá el inventario y el pago asociado.')) {
                                 menu.remove();
                                 try {
-                                    const { data: result, error } = await supabase.rpc('anular_venta_pagada', { 
+                                    const { error } = await supabase.rpc('anular_venta_pagada', { 
                                         p_factura_id: parseInt(id, 10) 
                                     });
+                                    if (error) throw error;
 
-                                    if (error) {
-                                        throw new Error(error.message || "Error devuelto por la base de datos.");
-                                    }
-
-                                    // Forzar limpieza de caché
                                     DB.invalidateCache('facturas');
                                     DB.invalidateCache('lotes_fifo');
                                     DB.invalidateCache('transacciones');
                                     DB.invalidateCache('pagos_ingresos');
-                                    DB.invalidateCache('comisiones');
-                                    
+                                    kpiDataCxc = null;
                                     await renderGrid();
                                     CoreActions.showSuccessModal('Venta anulada exitosamente.');
                                 } catch (error) {
@@ -516,51 +1187,24 @@ export const FacturasModule = {
                             }
                         });
                     }
-
-                    const btnAnularCompra = menu.querySelector('.btn-anular-compra');
-                    if (btnAnularCompra) {
-                        btnAnularCompra.addEventListener('click', async (ev) => {
-                            ev.preventDefault();
-                            if (confirm('¿Estás seguro de anular esta factura de compra? Se revertirá el inventario ingresado.')) {
-                                menu.remove();
-                                
-                                try {
-                                    const { anularFacturaCompra } = await import('../../shared/anularCompraUtils.js');
-                                    const result = await anularFacturaCompra(id, { DB, EstadoUtils, InventarioUtils, supabase, CoreActions });
-                                    
-                                    if (result.alreadyAnnulled) {
-                                        CoreActions.showWarningModal("Esta factura ya se encuentra anulada.");
-                                        return;
-                                    }
-                                    
-                                    CoreActions.showSuccessModal('Factura de compra anulada e inventario revertido con éxito.');
-                                    await renderGrid();
-                                } catch (err) {
-                                    console.error('Error al anular compra:', err);
-                                    CoreActions.showErrorModal('Error: ' + err.message);
-                                }
-                            }
-                        });
-                    }
-                });
-            });
-
-            // Imprimir rápido
-            element.querySelectorAll('.btn-imprimir-row').forEach(btn => {
-                btn.addEventListener('click', async (e) => {
-                    e.stopPropagation();
-                    const id = e.currentTarget.dataset.id;
-                    const doc = await DB.get('facturas', id);
-                    if (doc) {
-                        const contactos = await DB.getAll('contactos');
-                        const productos = await DB.getAll('productos');
-                        PrintManager.printDocument(doc, 'Factura de venta', contactos, productos);
-                    }
                 });
             });
         };
 
+        // Flujo inicial de montaje
+        bindStaticEvents();
         await renderGrid();
+
+        return () => {
+            if (chartInstanceVentas) {
+                try { chartInstanceVentas.destroy(); } catch (e) {}
+                chartInstanceVentas = null;
+            }
+            if (chartInstanceCartera) {
+                try { chartInstanceCartera.destroy(); } catch (e) {}
+                chartInstanceCartera = null;
+            }
+        };
     },
 
     async renderForm(element, id = null, isViewOnly = false) {

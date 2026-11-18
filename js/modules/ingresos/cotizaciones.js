@@ -2,12 +2,11 @@ import DB, { getLocalDate } from '../../core/db.js';
 import { supabase } from '../../core/supabase.js';
 import { CoreActions } from '../../shared/crud.js';
 import { PrintManager } from '../../shared/printManager.js';
-import { ExportManager } from '../../shared/exportManager.js';
 import { ItemEngine } from '../../shared/itemEngine.js';
 import { NumberingManager } from '../../shared/numberingManager.js';
 import { ContactosModule } from '../clientes/clientes.js';
 import { UI } from '../../shared/combobox.js';
-import { escapeHtml } from '../../shared/formatters.js';
+import { escapeHtml, getClientAvatar } from '../../shared/formatters.js';
 
 export const CotizacionesModule = {
     async init(element) {
@@ -27,315 +26,1103 @@ export const CotizacionesModule = {
     },
 
     async renderList(element) {
-        // Estado de Paginación, Ordenamiento y Filtro
         let sortColumn = 'numero';
         let sortDirection = 'desc';
         let currentPage = 1;
         let itemsPerPage = 10;
         let searchQuery = '';
-        let filterCriteria = 'todos'; // todos, numero, cliente, fecha, estado
-        let filteredData = []; // Mantenido para exportación rápida de la página actual
+        let filterCriteria = 'todos';
+        let selectedTab = 'todas'; // 'todas', 'pendientes', 'facturadas', 'recientes'
+        let view = 'lista'; // 'lista' o 'grafico'
+        let currentItems = [];
+        let totalItems = 0;
         let kpiDataCotizaciones = null;
+        let chartInstanceEvolucion = null;
+        let chartInstanceDonut = null;
 
-        const formatMoney = (val) => '$ ' + parseFloat(val || 0).toLocaleString('es-CO', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        const formatMoney = (val) => '$ ' + parseFloat(val || 0).toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
-        // 1. INYECTAR HTML ESTÁTICO (Top Bar, KPIs vacíos, Filtros, Thead)
+        // 1. INYECTAR SHELL ESTÁTICO
         element.innerHTML = `
-            <div class="dash-layout p-4" style="max-width: 1100px; margin: 0 auto;">
+            <div class="dash-layout p-4" style="max-width: 1200px; margin: 0 auto;">
                 
-                <!-- TOP BAR -->
-                <div class="d-flex justify-content-between align-items-center mb-4">
+                <!-- TOP BAR DE ALTO IMPACTO -->
+                <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
                     <div>
-                        <h2 class="page-title">Cotizaciones</h2>
-                        <p class="text-muted mb-0" style="font-size: var(--fs-md);">
-                            Crea y gestiona cotizaciones personalizadas para tus clientes potenciales. 
-                            <a href="#" style="color: var(--primary); text-decoration: none;">Saber más</a>
+                        <div class="d-flex align-items-center gap-2">
+                            <a href="#" onclick="event.preventDefault(); window.history.length > 2 ? window.history.back() : window.location.hash = '#/dashboard';" class="btn btn-light bg-white border me-2" style="font-weight: var(--weight-medium); font-size: var(--fs-md); color: var(--text-body); border-radius: 8px;">
+                                <i class="bi bi-arrow-left"></i>
+                            </a>
+                            <h2 class="page-title mb-0" style="font-size: 24px; font-weight: 800; color: #0f172a; letter-spacing: -0.5px;">Cotizaciones</h2>
+                            <span class="badge" style="background-color: #eff6ff; color: #1d4ed8; font-size: 11px; font-weight: 700; border-radius: 9999px; padding: 4px 10px; border: 1px solid #bfdbfe;">
+                                <i class="bi bi-file-earmark-text me-1"></i> Ventas & Propuestas
+                            </span>
+                        </div>
+                        <p class="text-muted mb-0" style="font-size: 13px; margin-top: 3px;">
+                            Crea, gestiona y haz seguimiento comercial a tus ofertas y propuestas para clientes.
                         </p>
                     </div>
-                    <div class="d-flex gap-2">
-                        <button id="btn-refresh-list" class="btn btn-light bg-white border me-2" style="font-weight: var(--weight-medium); font-size: var(--fs-md); color: var(--text-body);">
-                            <i class="bi bi-arrow-clockwise me-1"></i> Actualizar
+
+                    <div class="d-flex flex-wrap align-items-center gap-2">
+                        <!-- Toggle de Vistas: Lista vs Analítica -->
+                        <div class="btn-group p-1 bg-light border rounded-3" role="group">
+                            <button type="button" class="btn btn-sm ${view !== 'grafico' ? 'btn-white bg-white shadow-xs fw-bold text-dark' : 'btn-light border-0 text-muted'}" id="btn-view-lista" style="font-size: 12px; border-radius: 6px;">
+                                <i class="bi bi-table me-1"></i> Lista
+                            </button>
+                            <button type="button" class="btn btn-sm ${view === 'grafico' ? 'btn-white bg-white shadow-xs fw-bold text-primary' : 'btn-light border-0 text-muted'}" id="btn-view-grafico" style="font-size: 12px; border-radius: 6px;">
+                                <i class="bi bi-bar-chart me-1"></i> Analítica
+                            </button>
+                        </div>
+
+                        <!-- Botón Exportar Excel -->
+                        <button id="btn-export-list" class="btn btn-light bg-white border text-secondary shadow-xs" style="font-weight: 600; font-size: 13px; border-radius: 8px;" title="Descargar en Excel">
+                            <i class="bi bi-file-earmark-excel text-success me-1"></i> Exportar
                         </button>
-                        <button id="btn-export-list" class="btn btn-light bg-white border" style="font-weight: var(--weight-medium); font-size: var(--fs-md); color: var(--text-body);">
-                            <i class="bi bi-download me-1"></i> Exportar
+
+                        <!-- Botón Refrescar -->
+                        <button id="btn-refresh-list" class="btn btn-light bg-white border text-secondary shadow-xs" style="border-radius: 8px;" title="Actualizar datos">
+                            <i class="bi bi-arrow-clockwise"></i>
                         </button>
-                        <a href="#/ingresos/cotizaciones/nueva" class="btn btn-primary-action">
-                            <i class="bi bi-plus-lg me-1"></i> Nueva cotización
+
+                        <!-- Botón Nueva Cotización -->
+                        <a href="#/ingresos/cotizaciones/nueva" class="btn btn-primary-action shadow-xs d-flex align-items-center gap-2" style="font-weight: 600; font-size: 13px; border-radius: 8px;">
+                            <i class="bi bi-plus-lg"></i> Nueva cotización
                         </a>
                     </div>
                 </div>
 
-                <!-- KPI CARDS COTIZACIONES -->
+                <!-- 4 KPI CARDS DINÁMICAS -->
                 <div class="row g-3 mb-4">
-                    <div class="col-12 col-sm-6 col-lg-4">
-                        <div class="ds-kpi-card">
-                            <span class="ds-kpi-label">Total Cotizado</span>
-                            <div class="ds-kpi-value" id="kpi-cotizado">...</div>
+                    <!-- KPI 1: Total Cotizado -->
+                    <div class="col-12 col-sm-6 col-lg-3">
+                        <div class="payment-kpi-card">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <span class="ds-kpi-label">Total Cotizado</span>
+                                <div class="payment-kpi-icon blue-bg">
+                                    <i class="bi bi-journal-text"></i>
+                                </div>
+                            </div>
+                            <div class="payment-kpi-value fw-bold text-dark tnum" id="kpi-cotizado" style="font-size: 22px;">$ 0</div>
+                            <div class="mt-2 text-muted" style="font-size: 11px;">
+                                <i class="bi bi-calendar-event me-1"></i> Propuestas del mes actual
+                            </div>
                         </div>
                     </div>
-                    <div class="col-12 col-sm-6 col-lg-4">
-                        <div class="ds-kpi-card">
-                            <span class="ds-kpi-label">Cotizaciones Facturadas</span>
-                            <div class="ds-kpi-value" id="kpi-aprobado">...</div>
+
+                    <!-- KPI 2: Cotizaciones Facturadas / Aprobadas -->
+                    <div class="col-12 col-sm-6 col-lg-3">
+                        <div class="payment-kpi-card" style="border-left: 3px solid #059669;">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <span class="ds-kpi-label">Cotizaciones Facturadas</span>
+                                <div class="payment-kpi-icon in-bg">
+                                    <i class="bi bi-check-circle"></i>
+                                </div>
+                            </div>
+                            <div class="payment-kpi-value fw-bold text-success tnum" id="kpi-aprobado" style="font-size: 22px;">$ 0</div>
+                            <div class="mt-2 d-flex align-items-center gap-2">
+                                <span class="payment-kpi-trend positive" id="kpi-tasa-conversion">
+                                    <i class="bi bi-arrow-up-right"></i> 0%
+                                </span>
+                                <span class="text-muted" style="font-size: 11px;">conversión a ventas</span>
+                            </div>
                         </div>
                     </div>
-                    <div class="col-12 col-sm-6 col-lg-4">
-                        <div class="ds-kpi-card">
-                            <span class="ds-kpi-label">Cotizaciones Sin Facturar</span>
-                            <div class="ds-kpi-value" id="kpi-pendiente">...</div>
+
+                    <!-- KPI 3: Sin Facturar / Pendientes -->
+                    <div class="col-12 col-sm-6 col-lg-3">
+                        <div class="payment-kpi-card" style="border-left: 3px solid #d97706;">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <span class="ds-kpi-label">Sin Facturar (Abiertas)</span>
+                                <div class="payment-kpi-icon pending-bg">
+                                    <i class="bi bi-hourglass-split"></i>
+                                </div>
+                            </div>
+                            <div class="payment-kpi-value fw-bold text-warning-emphasis tnum" id="kpi-pendiente" style="font-size: 22px;">$ 0</div>
+                            <div class="mt-2 text-muted" style="font-size: 11px;">
+                                Oportunidades en negociación
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- KPI 4: Conteo Total de Cotizaciones -->
+                    <div class="col-12 col-sm-6 col-lg-3">
+                        <div class="payment-kpi-card">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <span class="ds-kpi-label">Volumen Comercial</span>
+                                <div class="payment-kpi-icon blue-bg">
+                                    <i class="bi bi-send-check"></i>
+                                </div>
+                            </div>
+                            <div class="payment-kpi-value fw-bold text-dark tnum" id="kpi-conteo" style="font-size: 22px;">0</div>
+                            <div class="mt-2 text-muted" style="font-size: 11px;">
+                                Total cotizaciones emitidas
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- DATA TABLE CARD -->
-                <div class="dash-table-container mb-4">
-                    
-                    <!-- FILTERS -->
-                    <div class="card-header bg-white border-bottom p-3 d-flex gap-3 align-items-center">
-                        <div class="ds-search-container" style="width: 250px;">
-                            <i class="bi bi-search ds-search-icon"></i>
-                            <input type="text" class="ds-search-input" id="searchCotizaciones" autocomplete="off" placeholder="Buscar..." value="">
+                <!-- CONTENEDOR DE ANALÍTICA GRÁFICA -->
+                <div id="cotizaciones-analytics-container" style="display: none;"></div>
+
+                <!-- CONTENEDOR DE TABLA DE DATOS -->
+                <div id="cotizaciones-table-view-container" style="display: block;">
+                    <div class="dash-table-container mb-4 shadow-xs" style="border-radius: 12px; border: 1px solid var(--border-color); background: #ffffff;">
+                        
+                        <!-- FILTROS Y TABS SUPERIORES -->
+                        <div class="p-3 border-bottom bg-white d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
+                            <!-- Tabs de Filtro Rápido -->
+                            <div class="payment-tabs-bar">
+                                <button type="button" class="payment-tab-btn active" data-tab="todas">
+                                    Todas
+                                </button>
+                                <button type="button" class="payment-tab-btn tab-warning" data-tab="pendientes">
+                                    <i class="bi bi-hourglass-split text-warning"></i> Sin facturar
+                                    <span class="payment-tab-badge" id="tab-badge-pendientes" style="display: none;">0</span>
+                                </button>
+                                <button type="button" class="payment-tab-btn" data-tab="facturadas">
+                                    <i class="bi bi-patch-check-fill text-success"></i> Facturadas
+                                </button>
+                                <button type="button" class="payment-tab-btn" data-tab="recientes">
+                                    <i class="bi bi-clock-history"></i> Últimos 30 días
+                                </button>
+                            </div>
+
+                            <!-- Buscador y Criterio -->
+                            <div class="d-flex flex-wrap align-items-center gap-2">
+                                <div class="ds-search-container" style="min-width: 220px;">
+                                    <i class="bi bi-search ds-search-icon"></i>
+                                    <input type="text" class="ds-search-input" id="searchCotizaciones" autocomplete="off" placeholder="Buscar cliente, número...">
+                                </div>
+
+                                <div class="dropdown">
+                                    <button class="btn btn-light bg-white border dropdown-toggle" data-bs-toggle="dropdown" style="font-size: 13px; height: 38px; border-radius: 8px;">
+                                        <i class="bi bi-funnel me-1"></i> <span id="lbl-filtro-actual">Filtro</span>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end shadow border" style="font-size: 13px; border-radius: 8px;">
+                                        <li><a class="dropdown-item filter-opt" href="#" data-criteria="todos">Todos los campos</a></li>
+                                        <li><hr class="dropdown-divider my-1"></li>
+                                        <li><a class="dropdown-item filter-opt" href="#" data-criteria="numero">Por Número</a></li>
+                                        <li><a class="dropdown-item filter-opt" href="#" data-criteria="cliente">Por Cliente</a></li>
+                                        <li><a class="dropdown-item filter-opt" href="#" data-criteria="fecha">Por Fecha</a></li>
+                                        <li><a class="dropdown-item filter-opt" href="#" data-criteria="monto">Por Monto</a></li>
+                                    </ul>
+                                </div>
+                            </div>
                         </div>
-                        <div class="dropdown">
-                            <button class="btn btn-link text-decoration-none text-muted p-0 dropdown-toggle" data-bs-toggle="dropdown" style="font-size: var(--fs-md);">
-                                <i class="bi bi-funnel me-1"></i> Filtrar <span id="lbl-filtro-actual" style="font-size: var(--fs-sm); font-weight: 500; color: var(--primary);"></span>
-                            </button>
-                            <ul class="dropdown-menu shadow border-0" style="font-size: var(--fs-base);">
-                                <li><a class="dropdown-item filter-opt" href="#" data-criteria="todos">Todos los campos</a></li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item filter-opt" href="#" data-criteria="numero">Por Número</a></li>
-                                <li><a class="dropdown-item filter-opt" href="#" data-criteria="cliente">Por Cliente</a></li>
-                                <li><a class="dropdown-item filter-opt" href="#" data-criteria="fecha">Por Fecha de creación</a></li>
-                                <li><a class="dropdown-item filter-opt" href="#" data-criteria="estado">Por Estado</a></li>
-                                <li><a class="dropdown-item filter-opt" href="#" data-criteria="monto">Por Monto</a></li>
-                            </ul>
+
+                        <!-- TABLA DE FILAS INTELIGENTES -->
+                        <div class="table-responsive position-relative">
+                            <div id="cotizaciones-loading-overlay" class="position-absolute top-0 start-0 w-100 h-100 justify-content-center align-items-center bg-white bg-opacity-75" style="z-index: 10; display: none !important;">
+                                <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Cargando...</span></div>
+                            </div>
+                            <table class="table table-borderless align-middle mb-0 w-100">
+                                <thead style="background-color: #f8fafc; border-bottom: 1px solid #e2e8f0;">
+                                    <tr>
+                                        <th class="py-3 ps-4 text-uppercase text-muted fw-bold sortable-header" data-column="numero" style="font-size: 11px; letter-spacing: 0.5px; width: 130px; cursor: pointer; user-select: none;">
+                                            Cotización <span id="sort-icon-numero">▼</span>
+                                        </th>
+                                        <th class="py-3 text-uppercase text-muted fw-bold sortable-header" data-column="cliente" style="font-size: 11px; letter-spacing: 0.5px; cursor: pointer; user-select: none;">
+                                            Cliente / Destinatario <span id="sort-icon-cliente"></span>
+                                        </th>
+                                        <th class="py-3 text-uppercase text-muted fw-bold sortable-header" data-column="fecha" style="font-size: 11px; letter-spacing: 0.5px; width: 140px; cursor: pointer; user-select: none;">
+                                            Fechas <span id="sort-icon-fecha"></span>
+                                        </th>
+                                        <th class="py-3 text-end text-uppercase text-muted fw-bold" style="font-size: 11px; letter-spacing: 0.5px; width: 130px;">
+                                            Total Oferta
+                                        </th>
+                                        <th class="py-3 text-center text-uppercase text-muted fw-bold" style="font-size: 11px; letter-spacing: 0.5px; width: 120px;">
+                                            Estado
+                                        </th>
+                                        <th class="py-3 pe-4 text-end text-uppercase text-muted fw-bold" style="width: 100px;">
+                                            Acciones
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody id="grid-tbody">
+                                    <!-- Filas inyectadas -->
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- PAGINADOR -->
+                        <div class="card-footer bg-white border-top p-3 d-flex flex-column flex-sm-row justify-content-between align-items-center gap-2" style="border-radius: 0 0 12px 12px;" id="grid-pagination">
+                            <!-- Paginación inyectada -->
                         </div>
                     </div>
+                </div>
+            </div>
 
-                    <!-- GRID -->
-                    <div class="table-responsive">
-                        <table class="table table-borderless align-middle mb-0">
-                            <thead style="border-bottom: 1px solid var(--border-color);" id="grid-thead">
-                                <!-- Llenado dinámicamente -->
-                            </thead>
-                            <tbody id="grid-tbody">
-                                <!-- Llenado dinámicamente -->
-                            </tbody>
-                        </table>
+            <!-- SLIDE-OVER DRAWER DE COTIZACIÓN -->
+            <div class="payment-drawer-backdrop" id="cotizacion-drawer-backdrop"></div>
+            <div class="payment-drawer" id="cotizacion-drawer">
+                <div class="payment-drawer-header">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-receipt-cutoff text-primary fs-5"></i>
+                        <h5 class="fw-bold mb-0" style="color: #0f172a; font-size: 16px;">Detalle de la Cotización</h5>
                     </div>
-
-                    <!-- PAGINATION FOOTER -->
-                    <div class="card-footer bg-white border-top p-3 d-flex justify-content-between align-items-center" style="border-radius: 0 0 var(--border-radius-sm) var(--border-radius-sm);" id="grid-pagination">
-                        <!-- Llenado dinámicamente -->
+                    <button type="button" class="btn btn-sm btn-light border-0 text-muted" id="btn-cot-drawer-close" title="Cerrar">
+                        <i class="bi bi-x-lg fs-6"></i>
+                    </button>
+                </div>
+                <div class="payment-drawer-body" id="cotizacion-drawer-body">
+                    <!-- Contenido dinámico del comprobante -->
+                </div>
+                <div class="payment-drawer-footer">
+                    <button type="button" class="btn btn-light border btn-sm px-3 fw-medium" id="btn-cot-drawer-close-bottom">
+                        Cerrar
+                    </button>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-light border btn-sm px-3 fw-medium text-secondary" id="btn-cot-drawer-imprimir" title="Imprimir o PDF">
+                            <i class="bi bi-printer me-1"></i> Imprimir
+                        </button>
+                        <button type="button" class="btn btn-outline-primary btn-sm px-3 fw-medium" id="btn-cot-drawer-editar" title="Editar">
+                            <i class="bi bi-pencil me-1"></i> Editar
+                        </button>
+                        <button type="button" class="btn btn-success btn-sm px-3 fw-medium text-white shadow-xs" id="btn-cot-drawer-convertir" title="Convertir a Factura">
+                            <i class="bi bi-arrow-right-circle me-1"></i> Facturar
+                        </button>
+                        <button type="button" class="btn btn-primary btn-sm px-3 fw-medium" id="btn-cot-drawer-ver" title="Ver Pantalla Completa">
+                            <i class="bi bi-eye me-1"></i> Ver
+                        </button>
                     </div>
                 </div>
             </div>
         `;
 
+        // 2. FUNCIÓN DE RENDERIZADO DE TABLA
         const renderGrid = async () => {
             const tbodyEl = element.querySelector('#grid-tbody');
-            if (tbodyEl) {
-                tbodyEl.innerHTML = `<tr><td colspan="6" class="text-center py-5"><div class="spinner-border spinner-border-sm text-primary"></div> Cargando...</td></tr>`;
-            }
+            const pagContainer = element.querySelector('#grid-pagination');
+            const overlay = element.querySelector('#cotizaciones-loading-overlay');
 
-            // KPIs vía RPC (Cacheado)
-            if (!kpiDataCotizaciones) {
-                const { data: kpis, error: errKpi } = await supabase.rpc('get_cotizaciones_kpis');
-                if (!errKpi && kpis) {
+            if (overlay) overlay.style.setProperty('display', 'flex', 'important');
+
+            try {
+                // A. Cargar KPIs vía RPC si no existen
+                if (!kpiDataCotizaciones) {
+                    const { data: kpis } = await supabase.rpc('get_cotizaciones_kpis');
+                    const { count: totalDocs } = await supabase.from('cotizaciones').select('id', { count: 'exact', head: true });
+
+                    const totalCotizado = parseFloat(kpis?.totalCotizado) || 0;
+                    const totalAprobado = parseFloat(kpis?.totalAprobado) || 0;
+                    const totalPendiente = parseFloat(kpis?.totalPendiente) || 0;
+                    const conversionRate = totalCotizado > 0 ? Math.round((totalAprobado / totalCotizado) * 100) : 0;
+
                     kpiDataCotizaciones = {
-                        totalCotizado: parseFloat(kpis.totalCotizado) || 0,
-                        totalAprobado: parseFloat(kpis.totalAprobado) || 0,
-                        totalPendiente: parseFloat(kpis.totalPendiente) || 0
+                        totalCotizado,
+                        totalAprobado,
+                        totalPendiente,
+                        totalCount: totalDocs || 0,
+                        conversionRate
                     };
-                } else {
-                    kpiDataCotizaciones = { totalCotizado: 0, totalAprobado: 0, totalPendiente: 0 };
+
+                    // Pintar en DOM
+                    const kpiCot = element.querySelector('#kpi-cotizado');
+                    if (kpiCot) kpiCot.textContent = formatMoney(totalCotizado);
+                    const kpiApr = element.querySelector('#kpi-aprobado');
+                    if (kpiApr) kpiApr.textContent = formatMoney(totalAprobado);
+                    const kpiPen = element.querySelector('#kpi-pendiente');
+                    if (kpiPen) kpiPen.textContent = formatMoney(totalPendiente);
+                    const kpiCon = element.querySelector('#kpi-conteo');
+                    if (kpiCon) kpiCon.textContent = totalDocs || 0;
+                    const kpiRate = element.querySelector('#kpi-tasa-conversion');
+                    if (kpiRate) kpiRate.innerHTML = `<i class="bi bi-arrow-up-right"></i> ${conversionRate}%`;
                 }
-            }
 
-            // Paginación Real vía RPC
-            const { data: response, error } = await supabase.rpc('get_cotizaciones_page', {
-                p_page: currentPage,
-                p_limit: itemsPerPage,
-                p_sort_column: sortColumn,
-                p_sort_direction: sortDirection,
-                p_search_query: searchQuery,
-                p_filter_criteria: filterCriteria
-            });
+                // B. Paginación y Filtros de Datos
+                const isTabFiltered = selectedTab !== 'todas' || Boolean(searchQuery);
 
-            if (error) {
-                console.error("Error cargando cotizaciones:", error);
-                if (tbodyEl) tbodyEl.innerHTML = `<tr><td colspan="6" class="text-center py-5 text-danger">Error al cargar cotizaciones: ${error.message}</td></tr>`;
-                return;
-            }
+                let dataToDisplay = [];
 
-            const currentItems = response?.[0]?.data || [];
-            const totalItems = parseInt(response?.[0]?.total_count || 0, 10);
-            filteredData = currentItems; // Para exportar solo la página
+                if (!isTabFiltered) {
+                    const { data: response, error } = await supabase.rpc('get_cotizaciones_page', {
+                        p_page: currentPage,
+                        p_limit: itemsPerPage,
+                        p_sort_column: sortColumn,
+                        p_sort_direction: sortDirection,
+                        p_search_query: searchQuery,
+                        p_filter_criteria: filterCriteria
+                    });
+                    if (error) throw error;
 
-            const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
-            if (currentPage > totalPages && totalPages > 0) currentPage = totalPages;
-            if (currentPage < 1) currentPage = 1;
-            const startIndex = (currentPage - 1) * itemsPerPage;
+                    dataToDisplay = response?.[0]?.data || [];
+                    totalItems = parseInt(response?.[0]?.total_count || 0, 10);
+                } else {
+                    // Consulta lote amplio para filtrado preciso de pestañas
+                    const { data: response, error } = await supabase.rpc('get_cotizaciones_page', {
+                        p_page: 1,
+                        p_limit: 1000,
+                        p_sort_column: sortColumn,
+                        p_sort_direction: sortDirection,
+                        p_search_query: searchQuery,
+                        p_filter_criteria: filterCriteria
+                    });
+                    if (error) throw error;
 
-            // Actualizar KPIs Visuales
-            if (kpiDataCotizaciones) {
-                const kpiCot = element.querySelector('#kpi-cotizado');
-                if(kpiCot) kpiCot.innerHTML = '$ ' + formatMoney(kpiDataCotizaciones.totalCotizado).replace('$ ', '');
-                
-                const kpiApr = element.querySelector('#kpi-aprobado');
-                if(kpiApr) kpiApr.innerHTML = '$ ' + formatMoney(kpiDataCotizaciones.totalAprobado).replace('$ ', '');
-                
-                const kpiPen = element.querySelector('#kpi-pendiente');
-                if(kpiPen) kpiPen.innerHTML = '$ ' + formatMoney(kpiDataCotizaciones.totalPendiente).replace('$ ', '');
-            }
+                    let allRows = response?.[0]?.data || [];
 
-            // Generar Thead (Para flechas de ordenamiento)
-            const theadHtml = `
-                <tr>
-                    <th class="py-2 fw-normal sortable-header" data-column="numero" style="cursor: pointer; user-select: none; white-space: nowrap; width: 80px;">
-                        Número ${sortColumn === 'numero' ? (sortDirection === 'asc' ? ' ▲' : ' ▼') : ''}
-                    </th>
-                    <th class="py-2 fw-normal sortable-header" data-column="cliente" style="cursor: pointer; user-select: none; min-width: 150px;">
-                        Cliente ${sortColumn === 'cliente' ? (sortDirection === 'asc' ? ' ▲' : ' ▼') : ''}
-                    </th>
-                    <th class="py-2 fw-normal sortable-header" data-column="fecha" style="cursor: pointer; user-select: none; white-space: nowrap;">
-                        Creación ${sortColumn === 'fecha' ? (sortDirection === 'asc' ? ' ▲' : ' ▼') : ''}
-                    </th>
-                    <th class="py-2 fw-normal text-end" style="white-space: nowrap; min-width: 120px;">Total</th>
-                    <th class="py-2 fw-normal text-center" style="white-space: nowrap; width: 100px;">Estado</th>
-                    <th class="py-2 fw-normal text-end" style="width: 80px; white-space: nowrap;"></th>
-                </tr>
-            `;
-
-            // Generar Tbody
-            const tbodyHtml = currentItems.length > 0 ? currentItems.map(c => {
-                const isFacturada = c.convertido_a_factura;
-                const badgeClass = isFacturada ? 'bg-success text-success bg-opacity-10 border border-success-subtle' : 'bg-warning text-warning-emphasis bg-opacity-10 border border-warning-subtle';
-                const labelEstado = isFacturada ? 'Facturada' : 'Sin facturar';
-                const numDisplay = (c.numero || c.id);
-                const clientNameDisplay = escapeHtml(c.cliente_nombre || 'Sin Cliente');
-                
-                return `
-                    <tr style="cursor: pointer; border-bottom: 1px solid var(--border-color); font-size: var(--fs-base); color: var(--text-body);" onclick="if(!event.target.closest('button')) window.location.hash = '#/ingresos/cotizaciones/ver/${c.id}'">
-                        <td class="py-2" style="white-space: nowrap;">${numDisplay}</td>
-                        <td class="py-2" style="color: var(--text-main); font-weight: var(--weight-medium); max-width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${clientNameDisplay}</td>
-                        <td class="py-2" style="white-space: nowrap;">${c.fecha}</td>
-                        <td class="py-2 text-end" style="white-space: nowrap;">${formatMoney(c.total)}</td>
-                        <td class="py-2 text-center" style="white-space: nowrap;">
-                            <span class="badge ${badgeClass} rounded-pill fw-medium" style="font-size: var(--fs-xs); padding: 5px 10px;">${labelEstado}</span>
-                        </td>
-                        <td class="py-2 text-end" style="position: relative; white-space: nowrap;">
-                            <button class="btn btn-link text-muted p-0 me-2 btn-imprimir-row" data-id="${c.id}">
-                                <i class="bi bi-printer"></i>
-                            </button>
-                            <button class="btn btn-link text-muted p-0 btn-menu-row" data-id="${c.id}">
-                                <i class="bi bi-three-dots-vertical"></i>
-                            </button>
-                        </td>
-                    </tr>
-                `;
-            }).join('') : `<tr><td colspan="6" class="text-center py-5 text-muted">No se encontraron cotizaciones</td></tr>`;
-
-            // Generar Paginador
-            const paginationHtml = `
-                <div class="d-flex align-items-center gap-3" style="font-size: var(--fs-base); color: var(--text-body);">
-                    <div class="d-flex align-items-center gap-2">
-                        <span>Resultados por página:</span>
-                        <select class="form-select form-select-sm text-muted" id="select-per-page" style="width: 70px;">
-                            <option value="10" ${itemsPerPage===10?'selected':''}>10</option>
-                            <option value="20" ${itemsPerPage===20?'selected':''}>20</option>
-                            <option value="50" ${itemsPerPage===50?'selected':''}>50</option>
-                            <option value="100" ${itemsPerPage===100?'selected':''}>100</option>
-                        </select>
-                    </div>
-                    <span class="text-muted border-start ps-3">${totalItems > 0 ? startIndex + 1 : 0}-${Math.min(startIndex + itemsPerPage, totalItems)} de ${totalItems}</span>
-                </div>
-
-                <div class="d-flex align-items-center gap-2" style="font-size: var(--fs-base); color: var(--text-body);">
-                    <span>Página</span>
-                    <input type="number" id="input-page" class="form-control form-control-sm text-center text-muted" value="${currentPage}" min="1" max="${totalPages}" style="width: 50px;">
-                    <span>de ${totalPages}</span>
-                    <div class="ms-2">
-                        <button class="btn btn-link text-muted p-0 me-1" id="btn-prev-page" ${currentPage === 1 ? 'disabled' : ''}><i class="bi bi-chevron-left"></i></button>
-                        <button class="btn btn-link text-muted p-0" id="btn-next-page" ${currentPage === totalPages ? 'disabled' : ''}><i class="bi bi-chevron-right"></i></button>
-                    </div>
-                </div>
-            `;
-
-            // Inyectar HTML Dinámico
-            if (element.querySelector('#grid-thead')) element.querySelector('#grid-thead').innerHTML = theadHtml;
-            if (element.querySelector('#grid-tbody')) element.querySelector('#grid-tbody').innerHTML = tbodyHtml;
-            if (element.querySelector('#grid-pagination')) element.querySelector('#grid-pagination').innerHTML = paginationHtml;
-
-            bindDynamicEvents();
-        };
-
-        const bindStaticEvents = () => {
-            // Búsqueda en vivo (Debounced) - El input ya no se destruye
-            const searchInput = element.querySelector('#searchCotizaciones');
-            const clearSearchBtn = element.querySelector('#clearSearchBtnCotizaciones');
-
-            if (searchInput) {
-                let debounceTimer;
-                searchInput.addEventListener('input', (e) => {
-                    const val = e.target.value;
-                    if (clearSearchBtn) {
-                        clearSearchBtn.style.display = val.length > 0 ? '' : 'none';
+                    // Filtro de Pestañas
+                    if (selectedTab === 'pendientes') {
+                        allRows = allRows.filter(c => !Boolean(c.convertido_a_factura));
+                    } else if (selectedTab === 'facturadas') {
+                        allRows = allRows.filter(c => Boolean(c.convertido_a_factura));
+                    } else if (selectedTab === 'recientes') {
+                        const now = new Date();
+                        allRows = allRows.filter(c => {
+                            if (!c.fecha) return false;
+                            const diffDays = (now - new Date(c.fecha)) / (1000 * 60 * 60 * 24);
+                            return diffDays <= 30;
+                        });
                     }
-                    clearTimeout(debounceTimer);
-                    debounceTimer = setTimeout(() => {
-                        searchQuery = val.trim();
-                        currentPage = 1;
-                        renderGrid();
-                    }, 400);
-                });
 
-                if (clearSearchBtn) {
-                    clearSearchBtn.addEventListener('click', () => {
-                        searchInput.value = '';
-                        clearSearchBtn.style.display = 'none';
-                        searchQuery = '';
+                    // Filtro de Búsqueda
+                    if (searchQuery) {
+                        const q = searchQuery.toLowerCase();
+                        allRows = allRows.filter(c => {
+                            const numStr = String(c.numero || c.id || '');
+                            const cliStr = String(c.cliente_nombre || '').toLowerCase();
+                            const fecStr = String(c.fecha || '');
+                            const totStr = String(c.total || '');
+                            return numStr.includes(q) || cliStr.includes(q) || fecStr.includes(q) || totStr.includes(q);
+                        });
+                    }
+
+                    totalItems = allRows.length;
+                    const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
+                    if (currentPage > totalPages) currentPage = totalPages;
+                    if (currentPage < 1) currentPage = 1;
+
+                    const from = (currentPage - 1) * itemsPerPage;
+                    dataToDisplay = allRows.slice(from, from + itemsPerPage);
+                }
+
+                currentItems = dataToDisplay;
+                const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
+
+                // C. Renderizar Filas de la Tabla
+                if (!dataToDisplay || dataToDisplay.length === 0) {
+                    tbodyEl.innerHTML = `
+                        <tr>
+                            <td colspan="6" class="text-center py-5 text-muted">
+                                <div class="mb-3"><i class="bi bi-file-earmark-x fs-1 text-secondary opacity-50"></i></div>
+                                <h6 class="fw-semibold text-dark">No se encontraron cotizaciones</h6>
+                                <p class="text-muted mb-0" style="font-size: 13px;">Prueba cambiando de pestaña o ajustando el criterio de búsqueda.</p>
+                            </td>
+                        </tr>
+                    `;
+                } else {
+                    tbodyEl.innerHTML = dataToDisplay.map(c => {
+                        const isFacturada = Boolean(c.convertido_a_factura);
+                        const clienteNombre = c.cliente_nombre || 'Sin Cliente';
+                        const avatar = getClientAvatar(clienteNombre);
+                        const numDisplay = c.numero || c.id;
+
+                        return `
+                            <tr class="payment-row fila-cotizacion" data-id="${c.id}" style="cursor: pointer;">
+                                <!-- Columna 1: Número & Código -->
+                                <td class="py-3 ps-4">
+                                    <div class="payment-code-badge fw-bold" style="font-size: 11px;">
+                                        # COT-${numDisplay}
+                                    </div>
+                                </td>
+
+                                <!-- Columna 2: Cliente con Avatar -->
+                                <td class="py-3">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="payment-avatar" style="background-color: ${avatar.bg}; color: ${avatar.color}; width: 34px; height: 34px; font-size: 12px; flex-shrink: 0;">
+                                            ${avatar.initials}
+                                        </div>
+                                        <div class="text-truncate" style="max-width: 250px;">
+                                            <div class="fw-bold text-dark text-truncate" style="font-size: 13px;" title="${escapeHtml(clienteNombre)}">
+                                                ${escapeHtml(clienteNombre)}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+
+                                <!-- Columna 3: Fechas -->
+                                <td class="py-3">
+                                    <div class="fw-semibold text-dark tnum" style="font-size: 13px;">
+                                        <i class="bi bi-calendar3 me-1 text-secondary"></i> ${c.fecha || '---'}
+                                    </div>
+                                    ${c.vencimiento ? `
+                                        <div class="text-muted tnum" style="font-size: 11px; margin-top: 2px;">
+                                            <i class="bi bi-clock me-1"></i> Vence: ${c.vencimiento}
+                                        </div>
+                                    ` : ''}
+                                </td>
+
+                                <!-- Columna 4: Monto Total -->
+                                <td class="py-3 text-end">
+                                    <div class="fw-bold text-dark tnum" style="font-size: 14px;">
+                                        ${formatMoney(c.total)}
+                                    </div>
+                                </td>
+
+                                <!-- Columna 5: Estado -->
+                                <td class="py-3 text-center">
+                                    ${isFacturada ? `
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill fw-semibold px-2 py-1" style="font-size: 11px;">
+                                            <i class="bi bi-patch-check-fill me-1"></i> Facturada
+                                        </span>
+                                    ` : `
+                                        <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill fw-semibold px-2 py-1" style="font-size: 11px;">
+                                            <i class="bi bi-hourglass-split me-1"></i> Sin facturar
+                                        </span>
+                                    `}
+                                </td>
+
+                                <!-- Columna 6: Acciones Rápidas -->
+                                <td class="py-3 pe-4 text-end">
+                                    <div class="payment-row-actions">
+                                        <button class="btn btn-sm btn-light border-0 p-1 btn-quick-view-cot" data-id="${c.id}" title="Ver Detalle">
+                                            <i class="bi bi-eye text-primary"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-light border-0 p-1 btn-imprimir-row" data-id="${c.id}" title="Imprimir">
+                                            <i class="bi bi-printer text-secondary"></i>
+                                        </button>
+                                        <div class="dropdown d-inline-block">
+                                            <button class="btn btn-sm btn-link text-muted p-1 border-0" data-bs-toggle="dropdown">
+                                                <i class="bi bi-three-dots-vertical"></i>
+                                            </button>
+                                            <ul class="dropdown-menu dropdown-menu-end shadow border" style="font-size: 13px; border-radius: 8px;">
+                                                <li>
+                                                    <a class="dropdown-item py-2 d-flex align-items-center gap-2 btn-menu-ver-cot" href="javascript:void(0)" data-id="${c.id}">
+                                                        <i class="bi bi-layout-sidebar-inset-reverse text-primary"></i> Ver detalle
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item py-2 d-flex align-items-center gap-2" href="#/ingresos/cotizaciones/editar/${c.id}">
+                                                        <i class="bi bi-pencil text-secondary"></i> Editar
+                                                    </a>
+                                                </li>
+                                                ${!isFacturada ? `
+                                                    <li>
+                                                        <a class="dropdown-item py-2 d-flex align-items-center gap-2 text-success btn-menu-convertir-cot" href="javascript:void(0)" data-id="${c.id}">
+                                                            <i class="bi bi-arrow-right-circle"></i> Convertir a Factura
+                                                        </a>
+                                                    </li>
+                                                ` : ''}
+                                                <li><hr class="dropdown-divider my-1"></li>
+                                                <li>
+                                                    <a class="dropdown-item py-2 d-flex align-items-center gap-2 text-danger btn-menu-eliminar-cot" href="javascript:void(0)" data-id="${c.id}">
+                                                        <i class="bi bi-trash"></i> Eliminar
+                                                    </a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        `;
+                    }).join('');
+                }
+
+                // D. Paginador
+                const fromItem = totalItems > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0;
+                const toItem = Math.min(currentPage * itemsPerPage, totalItems);
+
+                if (pagContainer) {
+                    pagContainer.innerHTML = `
+                        <div class="d-flex align-items-center gap-3" style="font-size: 13px; color: var(--text-body);">
+                            <div class="d-flex align-items-center gap-2">
+                                <span>Mostrar:</span>
+                                <select class="form-select form-select-sm text-muted select-per-page" style="width: 70px;">
+                                    <option value="10" ${itemsPerPage===10?'selected':''}>10</option>
+                                    <option value="20" ${itemsPerPage===20?'selected':''}>20</option>
+                                    <option value="50" ${itemsPerPage===50?'selected':''}>50</option>
+                                </select>
+                            </div>
+                            <span class="text-muted border-start ps-3">
+                                ${totalItems > 0 ? `<strong>${fromItem} - ${toItem}</strong> de <strong>${totalItems}</strong> cotizaciones` : '0 cotizaciones'}
+                            </span>
+                        </div>
+
+                        <div class="d-flex align-items-center gap-2" style="font-size: 13px;">
+                            <button class="btn btn-sm btn-light border btn-prev-page" ${currentPage <= 1 ? 'disabled' : ''}>
+                                <i class="bi bi-chevron-left me-1"></i> Anterior
+                            </button>
+                            <span class="px-2 text-muted">
+                                Página <strong>${currentPage}</strong> de <strong>${totalPages}</strong>
+                            </span>
+                            <button class="btn btn-sm btn-light border btn-next-page" ${currentPage >= totalPages ? 'disabled' : ''}>
+                                Siguiente <i class="bi bi-chevron-right ms-1"></i>
+                            </button>
+                        </div>
+                    `;
+
+                    pagContainer.querySelector('.select-per-page')?.addEventListener('change', (e) => {
+                        itemsPerPage = parseInt(e.target.value, 10);
                         currentPage = 1;
                         renderGrid();
                     });
+                    pagContainer.querySelector('.btn-prev-page')?.addEventListener('click', () => {
+                        if (currentPage > 1) { currentPage--; renderGrid(); }
+                    });
+                    pagContainer.querySelector('.btn-next-page')?.addEventListener('click', () => {
+                        if (currentPage < totalPages) { currentPage++; renderGrid(); }
+                    });
                 }
+
+                // E. Eventos en Filas
+                tbodyEl.querySelectorAll('.fila-cotizacion').forEach(tr => {
+                    tr.addEventListener('click', (e) => {
+                        if (e.target.closest('.dropdown') || e.target.closest('button') || e.target.closest('a')) return;
+                        mostrarDrawer(tr.dataset.id);
+                    });
+                });
+
+                tbodyEl.querySelectorAll('.btn-quick-view-cot, .btn-menu-ver-cot').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        mostrarDrawer(btn.dataset.id);
+                    });
+                });
+
+                tbodyEl.querySelectorAll('.btn-imprimir-row').forEach(btn => {
+                    btn.addEventListener('click', async (e) => {
+                        e.stopPropagation();
+                        const id = btn.dataset.id;
+                        const doc = await DB.get('cotizaciones', id);
+                        if (doc) {
+                            const contactos = await DB.getAll('contactos');
+                            const productos = await DB.getAll('productos');
+                            PrintManager.printDocument(doc, 'Cotización', contactos, productos);
+                        }
+                    });
+                });
+
+                tbodyEl.querySelectorAll('.btn-menu-convertir-cot').forEach(btn => {
+                    btn.addEventListener('click', async (e) => {
+                        e.stopPropagation();
+                        const id = btn.dataset.id;
+                        await CoreActions.convertirCotizacionAFactura(id, () => {
+                            kpiDataCotizaciones = null;
+                            renderGrid();
+                        });
+                    });
+                });
+
+                tbodyEl.querySelectorAll('.btn-menu-eliminar-cot').forEach(btn => {
+                    btn.addEventListener('click', async (e) => {
+                        e.stopPropagation();
+                        const id = btn.dataset.id;
+                        if (confirm('¿Estás seguro de eliminar esta cotización de forma permanente?')) {
+                            await DB.delete('cotizaciones', id);
+                            kpiDataCotizaciones = null;
+                            renderGrid();
+                        }
+                    });
+                });
+
+            } catch (err) {
+                console.error("Error renderizando lista de cotizaciones:", err);
+                if (tbodyEl) tbodyEl.innerHTML = `<tr><td colspan="6" class="text-center py-5 text-danger">Error al cargar cotizaciones: ${err.message}</td></tr>`;
+            } finally {
+                if (overlay) overlay.style.setProperty('display', 'none', 'important');
+            }
+        };
+
+        // 3. SLIDE-OVER DRAWER
+        const mostrarDrawer = async (id) => {
+            const backdrop = element.querySelector('#cotizacion-drawer-backdrop');
+            const drawer = element.querySelector('#cotizacion-drawer');
+            const body = element.querySelector('#cotizacion-drawer-body');
+            if (!drawer || !body) return;
+
+            if (backdrop) backdrop.classList.add('show');
+            drawer.classList.add('show');
+            body.innerHTML = `
+                <div class="d-flex justify-content-center align-items-center py-5">
+                    <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Cargando...</span></div>
+                </div>
+            `;
+
+            try {
+                const { data: cot, error } = await supabase
+                    .from('cotizaciones')
+                    .select('*, contactos(nombre, identificacion, telefono, email), cotizacion_detalles(*, productos(nombre))')
+                    .eq('id', id)
+                    .single();
+
+                if (error || !cot) throw error || new Error('Cotización no encontrada');
+
+                const clienteNombre = cot.contactos?.nombre || 'Sin Cliente';
+                const avatar = getClientAvatar(clienteNombre);
+                const isFacturada = Boolean(cot.estado === 'billed' || cot.facturaDestinoId);
+
+                body.innerHTML = `
+                    <!-- Header del Comprobante -->
+                    <div class="d-flex align-items-center justify-content-between mb-4 pb-3 border-bottom">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="payment-avatar" style="background-color: ${avatar.bg}; color: ${avatar.color}; width: 44px; height: 44px; font-size: 15px;">
+                                ${avatar.initials}
+                            </div>
+                            <div>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="payment-code-badge" style="border-color: #93c5fd; color: #1d4ed8;">
+                                        COT #${cot.numero || cot.id}
+                                    </span>
+                                    <span class="badge ${isFacturada ? 'bg-success-subtle text-success' : 'bg-warning-subtle text-warning-emphasis'} border rounded-pill">
+                                        ${isFacturada ? 'Facturada' : 'Sin facturar'}
+                                    </span>
+                                </div>
+                                <h4 class="fw-bold mb-0 mt-1" style="font-size: 17px; color: #0f172a;">${escapeHtml(clienteNombre)}</h4>
+                                ${cot.contactos?.identificacion ? `<span class="text-muted" style="font-size: 12px;">NIT / CC: ${escapeHtml(cot.contactos.identificacion)}</span>` : ''}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Banner de Monto -->
+                    <div class="p-3 rounded-3 mb-4 d-flex justify-content-between align-items-center" style="background: linear-gradient(135deg, #eff6ff, #f8fafc); border: 1px solid #bfdbfe;">
+                        <div>
+                            <span class="text-uppercase fw-semibold text-muted" style="font-size: 11px; letter-spacing: 0.5px;">Monto Total Ofertado</span>
+                            <h2 class="fw-bold text-primary mb-0 tnum" style="letter-spacing: -0.5px;">
+                                ${formatMoney(cot.total)}
+                            </h2>
+                        </div>
+                        <div class="text-end">
+                            <span class="badge bg-white text-dark border px-3 py-2 rounded-3 shadow-xs" style="font-size: 12px;">
+                                <i class="bi bi-calendar3 me-1 text-primary"></i> ${cot.fecha || 'Sin fecha'}
+                            </span>
+                            ${cot.vencimiento ? `<div class="text-muted mt-1" style="font-size: 11px;">Válida hasta: <strong>${cot.vencimiento}</strong></div>` : ''}
+                        </div>
+                    </div>
+
+                    <!-- Trazabilidad Comercial -->
+                    <div class="mb-4">
+                        <h6 class="fw-bold text-uppercase text-muted mb-3" style="font-size: 11px; letter-spacing: 0.5px;">
+                            <i class="bi bi-signpost-split me-1 text-primary"></i> Trazabilidad Comercial
+                        </h6>
+                        <div class="ps-2">
+                            <div class="payment-timeline-item">
+                                <div class="payment-timeline-dot success">
+                                    <i class="bi bi-file-earmark-text" style="font-size: 9px; color: #059669;"></i>
+                                </div>
+                                <div class="fw-semibold text-dark" style="font-size: 13px;">Oferta Comercial Emitida</div>
+                                <div class="text-muted" style="font-size: 12px;">Fecha de emisión: <strong>${cot.fecha || '---'}</strong></div>
+                            </div>
+                            <div class="payment-timeline-item">
+                                <div class="payment-timeline-dot ${isFacturada ? 'success' : 'warning'}">
+                                    <i class="bi bi-${isFacturada ? 'check-circle-fill' : 'hourglass-split'}" style="font-size: 9px; color: ${isFacturada ? '#059669' : '#d97706'};"></i>
+                                </div>
+                                <div class="fw-semibold text-dark" style="font-size: 13px;">Conversión a Factura de Venta</div>
+                                <div class="text-muted" style="font-size: 12px;">
+                                    ${isFacturada 
+                                        ? `<span class="text-success"><i class="bi bi-check-circle me-1"></i> Aprobada y convertida en factura de venta activa.</span>` 
+                                        : `<span class="text-warning-emphasis"><i class="bi bi-clock me-1"></i> Cotización abierta pendiente de cierre/aprobación.</span>`}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tabla de Ítems / Productos -->
+                    <div class="mb-4">
+                        <h6 class="fw-bold text-uppercase text-muted mb-2" style="font-size: 11px; letter-spacing: 0.5px;">
+                            <i class="bi bi-box-seam me-1 text-primary"></i> Ítems Ofertados (${(cot.cotizacion_detalles || []).length})
+                        </h6>
+                        <div class="table-responsive border rounded-3 bg-white">
+                            <table class="table table-sm align-middle mb-0" style="font-size: 12px;">
+                                <thead class="bg-light text-muted">
+                                    <tr>
+                                        <th class="ps-3 py-2">Producto / Concepto</th>
+                                        <th class="text-center py-2">Cant</th>
+                                        <th class="text-end py-2">Precio</th>
+                                        <th class="text-end pe-3 py-2">Subtotal</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${(cot.cotizacion_detalles || []).map(d => {
+                                        const prodNom = d.productos?.nombre || d.descripcion_personalizada || 'Producto';
+                                        return `
+                                            <tr>
+                                                <td class="ps-3 py-2 fw-medium text-dark">${escapeHtml(prodNom)}</td>
+                                                <td class="text-center py-2 tnum">${d.cantidad}</td>
+                                                <td class="text-end py-2 tnum">${formatMoney(d.precio_unitario)}</td>
+                                                <td class="text-end pe-3 py-2 tnum fw-semibold text-dark">${formatMoney(d.subtotal)}</td>
+                                            </tr>
+                                        `;
+                                    }).join('') || '<tr><td colspan="4" class="text-center text-muted py-3">Sin ítems</td></tr>'}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    ${cot.observaciones || cot.notas ? `
+                        <div class="mb-3">
+                            <h6 class="fw-bold text-uppercase text-muted mb-1" style="font-size: 11px;">Notas y Condiciones</h6>
+                            <div class="p-3 bg-light rounded-3 text-secondary" style="font-size: 12px; line-height: 1.5;">
+                                ${escapeHtml(cot.observaciones || cot.notas)}
+                            </div>
+                        </div>
+                    ` : ''}
+                `;
+
+                // Acciones de los botones del drawer
+                const btnDrawerImprimir = element.querySelector('#btn-cot-drawer-imprimir');
+                if (btnDrawerImprimir) {
+                    btnDrawerImprimir.onclick = async () => {
+                        const contactos = await DB.getAll('contactos');
+                        const productos = await DB.getAll('productos');
+                        const doc = await DB.get('cotizaciones', id);
+                        PrintManager.printDocument(doc, 'Cotización', contactos, productos);
+                    };
+                }
+
+                const btnDrawerEditar = element.querySelector('#btn-cot-drawer-editar');
+                if (btnDrawerEditar) {
+                    btnDrawerEditar.onclick = () => {
+                        cerrarDrawer();
+                        window.location.hash = `#/ingresos/cotizaciones/editar/${id}`;
+                    };
+                }
+
+                const btnDrawerVer = element.querySelector('#btn-cot-drawer-ver');
+                if (btnDrawerVer) {
+                    btnDrawerVer.onclick = () => {
+                        cerrarDrawer();
+                        window.location.hash = `#/ingresos/cotizaciones/ver/${id}`;
+                    };
+                }
+
+                const btnDrawerConvertir = element.querySelector('#btn-cot-drawer-convertir');
+                if (btnDrawerConvertir) {
+                    if (isFacturada) {
+                        btnDrawerConvertir.style.display = 'none';
+                    } else {
+                        btnDrawerConvertir.style.display = 'inline-block';
+                        btnDrawerConvertir.onclick = async () => {
+                            cerrarDrawer();
+                            await CoreActions.convertirCotizacionAFactura(id, () => {
+                                kpiDataCotizaciones = null;
+                                renderGrid();
+                            });
+                        };
+                    }
+                }
+            } catch (err) {
+                console.error("Error al cargar cotización en drawer:", err);
+                body.innerHTML = `<div class="p-4 text-center text-danger">Error al cargar datos del comprobante.</div>`;
+            }
+        };
+
+        const cerrarDrawer = () => {
+            const backdrop = element.querySelector('#cotizacion-drawer-backdrop');
+            const drawer = element.querySelector('#cotizacion-drawer');
+            if (backdrop) backdrop.classList.remove('show');
+            if (drawer) drawer.classList.remove('show');
+        };
+
+        // 4. ANALÍTICA GRÁFICA INTERACTIVA
+        const renderAnalyticsView = async () => {
+            const container = element.querySelector('#cotizaciones-analytics-container');
+            if (!container) return;
+
+            container.innerHTML = `
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p class="text-muted mt-2" style="font-size: 13px;">Generando analítica de cotizaciones...</p>
+                </div>
+            `;
+
+            try {
+                const now = new Date();
+                const past60 = new Date(now.getTime() - (60 * 24 * 60 * 60 * 1000)).toISOString().split('T')[0];
+
+                const { data: cotizacionesData } = await supabase
+                    .from('cotizaciones')
+                    .select('id, numero, fecha, total, estado, contacto_id, contactos(nombre)')
+                    .gte('fecha', past60)
+                    .order('fecha', { ascending: true });
+
+                const dailyMap = {};
+                const clientMap = {};
+                let facturadasCount = 0;
+                let pendientesCount = 0;
+
+                (cotizacionesData || []).forEach(c => {
+                    const f = c.fecha || 'Sin fecha';
+                    const val = Number(c.total) || 0;
+                    const cliente = c.contactos?.nombre || 'General / Varios';
+
+                    dailyMap[f] = (dailyMap[f] || 0) + val;
+                    clientMap[cliente] = (clientMap[cliente] || 0) + val;
+
+                    if (c.estado === 'billed') {
+                        facturadasCount++;
+                    } else {
+                        pendientesCount++;
+                    }
+                });
+
+                const topClients = Object.entries(clientMap)
+                    .sort((a, b) => b[1] - a[1])
+                    .slice(0, 5)
+                    .map(([nombre, total]) => ({ nombre, total }));
+
+                container.innerHTML = `
+                    <div class="row g-3 mb-4">
+                        <!-- Evolución de Cotizaciones -->
+                        <div class="col-12 col-lg-8">
+                            <div class="payment-kpi-card h-100 p-4">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <div>
+                                        <h6 class="fw-bold mb-0 text-dark">Evolución de Ofertas Comerciales (Últimos 60 días)</h6>
+                                        <span class="text-muted" style="font-size: 12px;">Volumen cotizado en el tiempo</span>
+                                    </div>
+                                    <span class="badge bg-light text-primary border px-2 py-1" style="font-size: 11px;">
+                                        <i class="bi bi-graph-up me-1"></i> Comercial
+                                    </span>
+                                </div>
+                                <div style="height: 260px; position: relative;">
+                                    <canvas id="cotizacionesDailyChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Distribución de Efectividad / Conversión -->
+                        <div class="col-12 col-lg-4">
+                            <div class="payment-kpi-card h-100 p-4">
+                                <div class="mb-3">
+                                    <h6 class="fw-bold mb-0 text-dark">Tasa de Conversión</h6>
+                                    <span class="text-muted" style="font-size: 12px;">Facturadas vs Pendientes</span>
+                                </div>
+                                <div style="height: 180px; position: relative;" class="d-flex justify-content-center">
+                                    <canvas id="cotizacionesConversionChart"></canvas>
+                                </div>
+                                <div class="mt-3 border-top pt-2" style="font-size: 12px;">
+                                    <div class="d-flex justify-content-between align-items-center py-1">
+                                        <span class="text-muted"><i class="bi bi-circle-fill text-success me-1" style="font-size: 9px;"></i> Facturadas</span>
+                                        <span class="fw-bold text-success">${facturadasCount}</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center py-1">
+                                        <span class="text-muted"><i class="bi bi-circle-fill text-warning me-1" style="font-size: 9px;"></i> Sin facturar</span>
+                                        <span class="fw-bold text-warning-emphasis">${pendientesCount}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Top 5 Clientes en Cotizaciones -->
+                        <div class="col-12">
+                            <div class="payment-kpi-card p-4">
+                                <h6 class="fw-bold mb-1 text-dark">Top 5 Clientes con Mayor Volumen Cotizado</h6>
+                                <span class="text-muted d-block mb-3" style="font-size: 12px;">Principales oportunidades registradas</span>
+                                <div class="row g-2">
+                                    ${topClients.length > 0 ? topClients.map((c, i) => `
+                                        <div class="col-12 col-sm-6 col-md-4 col-lg">
+                                            <div class="p-3 bg-light rounded-3 border d-flex flex-column justify-content-between h-100">
+                                                <div class="d-flex align-items-center gap-2 mb-2">
+                                                    <span class="badge bg-primary text-white rounded-circle" style="width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; font-size: 10px;">${i + 1}</span>
+                                                    <span class="fw-bold text-dark text-truncate" style="font-size: 12px;" title="${escapeHtml(c.nombre)}">${escapeHtml(c.nombre)}</span>
+                                                </div>
+                                                <div class="fw-bold text-primary tnum" style="font-size: 14px;">${formatMoney(c.total)}</div>
+                                            </div>
+                                        </div>
+                                    `).join('') : '<p class="text-muted p-2">Sin datos recientes.</p>'}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                const initCharts = () => {
+                    if (typeof Chart === 'undefined') return;
+
+                    const ctxDaily = document.getElementById('cotizacionesDailyChart');
+                    if (ctxDaily) {
+                        if (chartInstanceEvolucion) chartInstanceEvolucion.destroy();
+                        chartInstanceEvolucion = new Chart(ctxDaily, {
+                            type: 'bar',
+                            data: {
+                                labels: Object.keys(dailyMap).map(l => l.substring(5)),
+                                datasets: [{
+                                    label: 'Cotizado ($)',
+                                    data: Object.values(dailyMap),
+                                    backgroundColor: '#3b82f6',
+                                    borderRadius: 6
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: { legend: { display: false } },
+                                scales: {
+                                    x: { grid: { display: false } },
+                                    y: {
+                                        ticks: {
+                                            callback: v => '$' + (v >= 1000000 ? (v / 1000000).toFixed(1) + 'M' : (v / 1000).toFixed(0) + 'k')
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                    }
+
+                    const ctxDonut = document.getElementById('cotizacionesConversionChart');
+                    if (ctxDonut) {
+                        if (chartInstanceDonut) chartInstanceDonut.destroy();
+                        chartInstanceDonut = new Chart(ctxDonut, {
+                            type: 'doughnut',
+                            data: {
+                                labels: ['Facturadas', 'Sin facturar'],
+                                datasets: [{
+                                    data: [facturadasCount, pendientesCount],
+                                    backgroundColor: ['#10b981', '#f59e0b']
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: { legend: { display: false } },
+                                cutout: '65%'
+                            }
+                        });
+                    }
+                };
+
+                if (typeof Chart === 'undefined') {
+                    const script = document.createElement('script');
+                    script.src = 'https://cdn.jsdelivr.net/npm/chart.js';
+                    script.onload = initCharts;
+                    document.head.appendChild(script);
+                } else {
+                    setTimeout(initCharts, 50);
+                }
+
+            } catch (err) {
+                console.error("Error generando analítica de cotizaciones:", err);
+                container.innerHTML = `<div class="p-4 text-center text-danger">Error al generar analítica.</div>`;
+            }
+        };
+
+        // 5. EXPORTACIÓN A EXCEL (.XLSX)
+        const exportarExcel = async () => {
+            const btn = element.querySelector('#btn-export-list');
+            const originalHtml = btn ? btn.innerHTML : '';
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span>Exportando...`;
             }
 
-            // Cambiar Criterio de Filtro
-            element.querySelectorAll('.filter-opt').forEach(opt => {
-                opt.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    filterCriteria = e.target.dataset.criteria;
-                    const lbl = element.querySelector('#lbl-filtro-actual');
-                    if (lbl) lbl.textContent = filterCriteria !== 'todos' ? `(${e.target.textContent})` : '';
+            try {
+                const { data: response, error } = await supabase.rpc('get_cotizaciones_page', {
+                    p_page: 1,
+                    p_limit: 10000,
+                    p_sort_column: sortColumn,
+                    p_sort_direction: sortDirection,
+                    p_search_query: searchQuery,
+                    p_filter_criteria: filterCriteria
+                });
+                if (error) throw error;
+
+                let allRows = response?.[0]?.data || [];
+
+                // Aplicar filtros activos
+                if (selectedTab === 'pendientes') {
+                    allRows = allRows.filter(c => !Boolean(c.convertido_a_factura));
+                } else if (selectedTab === 'facturadas') {
+                    allRows = allRows.filter(c => Boolean(c.convertido_a_factura));
+                } else if (selectedTab === 'recientes') {
+                    const now = new Date();
+                    allRows = allRows.filter(c => (now - new Date(c.fecha)) / (1000 * 60 * 60 * 24) <= 30);
+                }
+
+                if (searchQuery) {
+                    const q = searchQuery.toLowerCase();
+                    allRows = allRows.filter(c => {
+                        const numStr = String(c.numero || c.id || '');
+                        const cliStr = String(c.cliente_nombre || '').toLowerCase();
+                        return numStr.includes(q) || cliStr.includes(q);
+                    });
+                }
+
+                if (allRows.length === 0) {
+                    alert('No hay cotizaciones para exportar con los filtros seleccionados.');
+                    return;
+                }
+
+                const dataToExport = allRows.map(c => ({
+                    'Número': c.numero || c.id,
+                    'Cliente': c.cliente_nombre || 'Sin Cliente',
+                    'Fecha de Creación': c.fecha || '',
+                    'Fecha de Vencimiento': c.vencimiento || '',
+                    'Total ($)': Number(c.total) || 0,
+                    'Estado': c.convertido_a_factura ? 'Facturada' : 'Sin facturar'
+                }));
+
+                const dateStr = new Date().toISOString().split('T')[0];
+
+                if (window.XLSX) {
+                    const ws = window.XLSX.utils.json_to_sheet(dataToExport);
+                    const wb = window.XLSX.utils.book_new();
+                    window.XLSX.utils.book_append_sheet(wb, ws, 'Cotizaciones');
+                    window.XLSX.writeFile(wb, `Cotizaciones_${dateStr}.xlsx`);
+                } else {
+                    const headers = Object.keys(dataToExport[0]);
+                    let csv = headers.join(';') + '\r\n';
+                    dataToExport.forEach(row => {
+                        csv += headers.map(h => `"${String(row[h] || '').replace(/"/g, '""')}"`).join(';') + '\r\n';
+                    });
+                    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `Cotizaciones_${dateStr}.csv`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                }
+            } catch (err) {
+                console.error("Error exportando cotizaciones:", err);
+                alert("Error al exportar: " + err.message);
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = originalHtml;
+                }
+            }
+        };
+
+        // 6. ENLACE DE EVENTOS ESTÁTICOS
+        const bindStaticEvents = () => {
+            // Buscador con debounce
+            const searchInput = element.querySelector('#searchCotizaciones');
+            if (searchInput) {
+                let debounceTimer;
+                searchInput.addEventListener('input', (e) => {
+                    clearTimeout(debounceTimer);
+                    debounceTimer = setTimeout(() => {
+                        searchQuery = e.target.value.trim();
+                        currentPage = 1;
+                        renderGrid();
+                    }, 350);
+                });
+            }
+
+            // Pestañas Segmentadas
+            element.querySelectorAll('.payment-tab-btn').forEach(tabBtn => {
+                tabBtn.addEventListener('click', () => {
+                    element.querySelectorAll('.payment-tab-btn').forEach(b => b.classList.remove('active'));
+                    tabBtn.classList.add('active');
+                    selectedTab = tabBtn.dataset.tab || 'todas';
                     currentPage = 1;
                     renderGrid();
                 });
             });
 
-            // Exportar Lista a CSV
-            element.querySelector('#btn-export-list')?.addEventListener('click', (e) => {
-                ExportManager.exportDataToExcel(filteredData, 'Cotizaciones', (id, c) => c ? c.cliente_nombre : 'Sin Cliente', e.currentTarget);
+            // Criterio de Búsqueda
+            element.querySelectorAll('.filter-opt').forEach(opt => {
+                opt.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    filterCriteria = e.target.dataset.criteria;
+                    const lbl = element.querySelector('#lbl-filtro-actual');
+                    if (lbl) lbl.textContent = filterCriteria !== 'todos' ? e.target.textContent : 'Filtro';
+                    currentPage = 1;
+                    renderGrid();
+                });
             });
 
-            // Actualizar Caché
-            element.querySelector('#btn-refresh-list')?.addEventListener('click', async (e) => {
-                const btn = e.currentTarget;
-                const originalHtml = btn.innerHTML;
-                btn.disabled = true;
-                btn.innerHTML = `<span class="spinner-border spinner-border-sm" aria-hidden="true"></span>`;
-                
-                // Forzamos actualización de KPIs también
-                kpiDataCotizaciones = null;
-                await renderGrid();
-                
-                btn.innerHTML = originalHtml;
-                btn.disabled = false;
-            });
-        };
-
-        const bindDynamicEvents = () => {
-            // Ordenamiento por Columnas (Thead es dinámico)
+            // Ordenamiento por Columnas
             element.querySelectorAll('.sortable-header').forEach(header => {
                 header.addEventListener('click', (e) => {
                     const col = e.currentTarget.dataset.column;
@@ -345,84 +1132,82 @@ export const CotizacionesModule = {
                         sortColumn = col;
                         sortDirection = 'desc';
                     }
+                    // Actualizar flechas
+                    ['numero', 'cliente', 'fecha'].forEach(c => {
+                        const icon = element.querySelector(`#sort-icon-${c}`);
+                        if (icon) icon.textContent = sortColumn === c ? (sortDirection === 'asc' ? ' ▲' : ' ▼') : '';
+                    });
                     renderGrid();
                 });
             });
 
-            // Paginación (Footer es dinámico)
-            element.querySelector('#select-per-page')?.addEventListener('change', (e) => {
-                itemsPerPage = parseInt(e.target.value);
-                currentPage = 1;
-                renderGrid();
-            });
+            // Toggle Vista Lista vs Analítica
+            const btnViewLista = element.querySelector('#btn-view-lista');
+            const btnViewGrafico = element.querySelector('#btn-view-grafico');
+            const containerTable = element.querySelector('#cotizaciones-table-view-container');
+            const containerAnalytics = element.querySelector('#cotizaciones-analytics-container');
 
-            element.querySelector('#input-page')?.addEventListener('change', (e) => {
-                let val = parseInt(e.target.value) || 1;
-                currentPage = val;
-                renderGrid();
-            });
-
-            element.querySelector('#btn-prev-page')?.addEventListener('click', () => {
-                if (currentPage > 1) { currentPage--; renderGrid(); }
-            });
-
-            element.querySelector('#btn-next-page')?.addEventListener('click', () => {
-                currentPage++; renderGrid();
-            });
-
-            // Row Menu Actions (Popovers Flotantes)
-            element.querySelectorAll('.btn-menu-row').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const existing = document.querySelector('.row-action-menu');
-                    if (existing) existing.remove();
-
-                    const id = e.currentTarget.dataset.id;
-                    const rect = e.currentTarget.getBoundingClientRect();
-
-                    const menuHtml = `
-                        <div class="row-action-menu position-absolute bg-white shadow rounded border py-2" 
-                             style="z-index: 1060; width: 140px; top: ${rect.bottom + window.scrollY}px; left: ${rect.left - 100}px;">
-                            <a href="#/ingresos/cotizaciones/editar/${id}" class="d-block px-3 py-1 text-decoration-none" style="color: var(--text-body); font-size: var(--fs-base);">
-                                <i class="bi bi-pencil me-2"></i> Editar
-                            </a>
-                            <a href="#" class="d-block px-3 py-1 text-decoration-none mt-1 btn-delete-row" data-id="${id}" style="color: var(--danger); font-size: var(--fs-base);">
-                                <i class="bi bi-trash me-2"></i> Eliminar
-                            </a>
-                        </div>
-                    `;
-                    document.body.insertAdjacentHTML('beforeend', menuHtml);
-
-                    const menu = document.querySelector('.row-action-menu');
-                    menu.querySelector('.btn-delete-row').addEventListener('click', async (ev) => {
-                        ev.preventDefault();
-                        if (confirm('¿Estás seguro de eliminar esta cotización de forma permanente?')) {
-                            await DB.delete('cotizaciones', id);
-                            menu.remove();
-                            renderGrid();
-                        }
-                    });
+            if (btnViewLista && btnViewGrafico) {
+                btnViewLista.addEventListener('click', () => {
+                    view = 'lista';
+                    btnViewLista.className = 'btn btn-sm btn-white bg-white shadow-xs fw-bold text-dark';
+                    btnViewGrafico.className = 'btn btn-sm btn-light border-0 text-muted';
+                    if (containerAnalytics) containerAnalytics.style.display = 'none';
+                    if (containerTable) containerTable.style.display = 'block';
+                    renderGrid();
                 });
-            });
 
-            // Imprimir rápido
-            element.querySelectorAll('.btn-imprimir-row').forEach(btn => {
-                btn.addEventListener('click', async (e) => {
-                    e.stopPropagation();
-                    const id = e.currentTarget.dataset.id;
-                    const doc = await DB.get('cotizaciones', id);
-                    if (doc) {
-                        const contactos = await DB.getAll('contactos');
-                        const productos = await DB.getAll('productos');
-                        PrintManager.printDocument(doc, 'Cotización', contactos, productos);
+                btnViewGrafico.addEventListener('click', () => {
+                    view = 'grafico';
+                    btnViewGrafico.className = 'btn btn-sm btn-white bg-white shadow-xs fw-bold text-primary';
+                    btnViewLista.className = 'btn btn-sm btn-light border-0 text-muted';
+                    if (containerTable) containerTable.style.display = 'none';
+                    if (containerAnalytics) {
+                        containerAnalytics.style.display = 'block';
+                        renderAnalyticsView();
                     }
                 });
+            }
+
+            // Botón Refrescar
+            element.querySelector('#btn-refresh-list')?.addEventListener('click', async (e) => {
+                const icon = e.currentTarget.querySelector('i');
+                if (icon) icon.classList.add('spinner-border', 'spinner-border-sm');
+                kpiDataCotizaciones = null;
+                if (view === 'grafico') {
+                    await renderAnalyticsView();
+                } else {
+                    await renderGrid();
+                }
+                if (icon) icon.classList.remove('spinner-border', 'spinner-border-sm');
             });
+
+            // Botón Exportar
+            element.querySelector('#btn-export-list')?.addEventListener('click', exportarExcel);
+
+            // Drawer Cierres
+            const btnCloseDrawer = element.querySelector('#btn-cot-drawer-close');
+            const btnCloseDrawerB = element.querySelector('#btn-cot-drawer-close-bottom');
+            const backdropDrawer = element.querySelector('#cotizacion-drawer-backdrop');
+            if (btnCloseDrawer) btnCloseDrawer.addEventListener('click', cerrarDrawer);
+            if (btnCloseDrawerB) btnCloseDrawerB.addEventListener('click', cerrarDrawer);
+            if (backdropDrawer) backdropDrawer.addEventListener('click', cerrarDrawer);
         };
 
         // Flujo inicial de montaje
         bindStaticEvents();
-        renderGrid();
+        await renderGrid();
+
+        return () => {
+            if (chartInstanceEvolucion) {
+                try { chartInstanceEvolucion.destroy(); } catch (e) {}
+                chartInstanceEvolucion = null;
+            }
+            if (chartInstanceDonut) {
+                try { chartInstanceDonut.destroy(); } catch (e) {}
+                chartInstanceDonut = null;
+            }
+        };
     },
     async renderForm(element, id = null, isViewOnly = false) {
         // Carga de DB
