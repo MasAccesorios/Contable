@@ -1964,6 +1964,11 @@ export const FacturasModule = {
                             updateRes = retryRes;
                         }
 
+                        // Sincronizar el costo final recalculado atómicamente por la BD
+                        if (updateRes && updateRes.total_costo !== undefined) {
+                            factura.total_costo = updateRes.total_costo;
+                        }
+
                         // Factura y detalles ya actualizados atómicamente por editar_factura_inventario_fifo
                         facturaGuardadaId = factura.id;
                         

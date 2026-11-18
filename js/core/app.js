@@ -33,7 +33,7 @@ document.addEventListener('click', (e) => {
 });
 
 const routes = {
-    'inicio': () => import('../modules/dashboard.js'),
+    'inicio': () => import('../modules/dashboard.js?v=2'),
     'contactos': () => import('../modules/clientes/clientes.js'),
     'bancos': () => import('../modules/bancos/bancos.js'),
     'gastos/pagos': () => import('../modules/gastos/gastos.js'),
@@ -61,7 +61,7 @@ const routes = {
     'auditoria': () => import('../modules/auditoria.js'),
     'vendedores': () => import('../modules/vendedores/vendedores.js'),
     // Soporte para alias de compatibilidad con módulos anteriores
-    'dashboard': () => import('../modules/dashboard.js'),
+    'dashboard': () => import('../modules/dashboard.js?v=2'),
     'tesoreria': () => import('../modules/bancos/bancos.js')
 };
 

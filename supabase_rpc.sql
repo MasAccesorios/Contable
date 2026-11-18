@@ -465,7 +465,19 @@ DECLARE
     v_item RECORD;
     v_metros_por_unidad NUMERIC;
     v_delta_operar NUMERIC;
+    v_costo_actual NUMERIC := 0;
+    v_costo_delta NUMERIC := 0;
+    v_nuevo_total_costo NUMERIC := 0;
 BEGIN
+    SELECT COALESCE(total_costo, 0) INTO v_costo_actual
+    FROM facturas
+    WHERE id = p_factura_id
+    FOR UPDATE;
+
+    IF NOT FOUND THEN
+        RETURN jsonb_build_object('success', false, 'error', 'Factura no encontrada (ID: ' || p_factura_id || ')');
+    END IF;
+
     CREATE TEMP TABLE IF NOT EXISTS temp_deltas (
         producto_id BIGINT,
         delta_cantidad NUMERIC
@@ -533,6 +545,7 @@ BEGIN
             v_delta_operar := v_item.delta_cantidad;
             SELECT COALESCE(costo_base, 0) INTO v_costo_unitario FROM productos WHERE id = v_producto_id;
         END IF;
+        v_costo_unitario := COALESCE(v_costo_unitario, 0);
 
         v_qty_restante := ABS(v_delta_operar);
 
@@ -548,6 +561,7 @@ BEGIN
                 PERFORM set_config('kardex.tipo', '', true);
                 PERFORM set_config('kardex.origen', '', true);
 
+                v_costo_delta := v_costo_delta + (v_a_operar * COALESCE(v_lote.costo_unitario, v_costo_unitario, 0));
                 v_qty_restante := v_qty_restante - v_a_operar;
             END LOOP;
 
@@ -558,6 +572,8 @@ BEGIN
                 VALUES (v_producto_operar, CURRENT_DATE, 0, -v_qty_restante, v_costo_unitario, p_origen_movimiento) RETURNING id INTO v_nuevo_lote_id;
                 PERFORM set_config('kardex.tipo', '', true);
                 PERFORM set_config('kardex.origen', '', true);
+
+                v_costo_delta := v_costo_delta + (v_qty_restante * v_costo_unitario);
             END IF;
 
         ELSE
@@ -573,6 +589,7 @@ BEGIN
                 PERFORM set_config('kardex.tipo', '', true);
                 PERFORM set_config('kardex.origen', '', true);
 
+                v_costo_delta := v_costo_delta - (v_a_operar * COALESCE(v_lote.costo_unitario, v_costo_unitario, 0));
                 v_qty_restante := v_qty_restante - v_a_operar;
             END LOOP;
 
@@ -583,13 +600,17 @@ BEGIN
                 VALUES (v_producto_operar, CURRENT_DATE, v_qty_restante, v_qty_restante, v_costo_unitario, p_origen_movimiento) RETURNING id INTO v_nuevo_lote_id;
                 PERFORM set_config('kardex.tipo', '', true);
                 PERFORM set_config('kardex.origen', '', true);
+
+                v_costo_delta := v_costo_delta - (v_qty_restante * v_costo_unitario);
             END IF;
         END IF;
     END LOOP;
 
+    v_nuevo_total_costo := GREATEST(0, ROUND(v_costo_actual + v_costo_delta, 2));
+
     UPDATE facturas SET
         total = (p_factura_header->>'total')::NUMERIC,
-        total_costo = (p_factura_header->>'total_costo')::NUMERIC,
+        total_costo = v_nuevo_total_costo,
         vencimiento = (p_factura_header->>'vencimiento')::DATE,
         observaciones = p_factura_header->>'observaciones',
         contacto_id = (p_factura_header->>'contacto_id')::BIGINT,
@@ -609,7 +630,7 @@ BEGIN
         (value->>'descripcion_personalizada')
     FROM jsonb_array_elements(p_nuevos_detalles);
 
-    RETURN jsonb_build_object('success', true);
+    RETURN jsonb_build_object('success', true, 'total_costo', v_nuevo_total_costo, 'costo_delta', v_costo_delta);
 END;
 $function$;
 
