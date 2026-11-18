@@ -507,8 +507,8 @@ export const PrintManager = {
             const fSaldo = parseFloat(f.saldo) || 0;
             const fAbono = Math.max(0, fTotal - fSaldo);
 
-            const fechaCreacion = f.fecha || hoyStr;
-            const fechaVenc = f.vencimiento || f.fecha || hoyStr;
+            const fechaCreacion = f.fecha ? String(f.fecha).split('T')[0] : hoyStr;
+            const fechaVenc = f.vencimiento ? String(f.vencimiento).split('T')[0] : fechaCreacion;
 
             const dCreacion = new Date(fechaCreacion + 'T00:00:00');
             const dVenc = new Date(fechaVenc + 'T00:00:00');
