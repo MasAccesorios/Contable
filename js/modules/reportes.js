@@ -721,60 +721,88 @@ export default {
 
             // B. Pestaña: Cartera y Cobranza WhatsApp
             else if (activeTab === 'cartera_wpp') {
-                gridContainer.innerHTML = `
-                    <div class="row g-3">
-                        ${pageData.map(c => {
-                            const avatar = getClientAvatar(c.nombre);
-                            const moraBadgeClass = c.maxDiasMora > 60 ? 'bg-danger text-white' : (c.maxDiasMora > 0 ? 'bg-warning text-dark' : 'bg-success text-white');
-                            const moraText = c.maxDiasMora > 0 ? `Vencida (+${c.maxDiasMora} días)` : 'Al día';
+                const totalSaldoPagina = pageData.reduce((acc, c) => acc + (Number(c.totalSaldo) || 0), 0);
+                const totalFacturasPagina = pageData.reduce((acc, c) => acc + (c.facturas ? c.facturas.length : 0), 0);
 
-                            return `
-                                <div class="col-12 col-md-6 col-lg-4">
-                                    <div class="card border shadow-xs h-100 p-3" style="border-radius: 12px; transition: transform 0.15s ease;">
-                                        <div class="d-flex justify-content-between align-items-start mb-2">
+                gridContainer.innerHTML = `
+                    <table class="table table-borderless align-middle mb-0">
+                        <thead style="background-color: #f8fafc; border-bottom: 1px solid #e2e8f0;">
+                            <tr>
+                                <th class="py-2.5 px-3 text-uppercase text-muted fw-bold" style="font-size: 11px;">Cliente</th>
+                                <th class="py-2.5 px-3 text-uppercase text-muted fw-bold text-center" style="font-size: 11px; width: 145px;">Estado de Mora</th>
+                                <th class="py-2.5 px-3 text-uppercase text-muted fw-bold text-center" style="font-size: 11px; width: 125px;">Facturas</th>
+                                <th class="py-2.5 px-3 text-uppercase text-muted fw-bold text-end" style="font-size: 11px; width: 165px;">Saldo Pendiente</th>
+                                <th class="py-2.5 px-3 text-uppercase text-muted fw-bold text-end" style="font-size: 11px; width: 180px;">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${pageData.map(c => {
+                                const avatar = getClientAvatar(c.nombre);
+                                const isMora = c.maxDiasMora > 0;
+                                const isCritica = c.maxDiasMora > 60;
+                                
+                                const moraBadge = isCritica
+                                    ? `<span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill fw-semibold" style="font-size: 11px; padding: 4px 9px;"><i class="bi bi-exclamation-triangle-fill me-1"></i>+${c.maxDiasMora} días</span>`
+                                    : (isMora
+                                        ? `<span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill fw-semibold" style="font-size: 11px; padding: 4px 9px;"><i class="bi bi-clock-history me-1"></i>+${c.maxDiasMora} días</span>`
+                                        : `<span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill fw-semibold" style="font-size: 11px; padding: 4px 9px;"><i class="bi bi-check-circle-fill me-1"></i>Al día</span>`
+                                    );
+
+                                return `
+                                    <tr style="border-bottom: 1px solid var(--border-color); font-size: 13px;">
+                                        <td class="py-2.5 px-3">
                                             <div class="d-flex align-items-center gap-2.5">
-                                                <div class="payment-avatar" style="background-color: ${avatar.bg}; color: ${avatar.color}; width: 38px; height: 38px; font-size: 13px;">
+                                                <div class="payment-avatar" style="background-color: ${avatar.bg}; color: ${avatar.color}; width: 34px; height: 34px; font-size: 12px; flex-shrink: 0;">
                                                     ${avatar.initials}
                                                 </div>
-                                                <div class="text-truncate" style="max-width: 170px;">
-                                                    <h6 class="fw-bold text-dark mb-0 text-truncate" title="${escapeHtml(c.nombre)}" style="font-size: 13.5px;">
+                                                <div class="text-truncate" style="max-width: 280px;">
+                                                    <div class="fw-bold text-dark text-truncate" title="${escapeHtml(c.nombre)}" style="font-size: 13.5px;">
                                                         ${escapeHtml(c.nombre)}
-                                                    </h6>
-                                                    <span class="text-muted" style="font-size: 11px;">NIT/CC: ${escapeHtml(c.identificacion)}</span>
+                                                    </div>
+                                                    <div class="text-muted d-flex align-items-center gap-2" style="font-size: 11px;">
+                                                        <span>NIT/CC: ${escapeHtml(c.identificacion || 'N/A')}</span>
+                                                        ${c.telefono ? `<span>• Tel: ${escapeHtml(c.telefono)}</span>` : ''}
+                                                    </div>
                                                 </div>
                                             </div>
-                                            <span class="badge ${moraBadgeClass} rounded-pill" style="font-size: 10px; padding: 4px 8px;">
-                                                ${moraText}
+                                        </td>
+                                        <td class="py-2.5 px-3 text-center">
+                                            ${moraBadge}
+                                        </td>
+                                        <td class="py-2.5 px-3 text-center">
+                                            <span class="badge bg-light text-secondary border rounded-pill fw-medium" style="font-size: 11px; padding: 4px 8px;">
+                                                ${c.facturas.length} ${c.facturas.length === 1 ? 'factura' : 'facturas'}
                                             </span>
-                                        </div>
-
-                                        <div class="p-2.5 my-2 rounded-3 bg-light border d-flex justify-content-between align-items-center">
-                                            <div>
-                                                <span class="text-muted text-uppercase d-block" style="font-size: 10px; letter-spacing: 0.5px;">Saldo Pendiente</span>
-                                                <span class="fw-bold text-danger tnum" style="font-size: 16px;">${formatMoney(c.totalSaldo)}</span>
+                                        </td>
+                                        <td class="py-2.5 px-3 text-end fw-bold text-danger tnum" style="font-size: 14.5px;">
+                                            ${formatMoney(c.totalSaldo)}
+                                        </td>
+                                        <td class="py-2.5 px-3 text-end">
+                                            <div class="d-inline-flex align-items-center gap-1.5">
+                                                <button class="btn btn-sm btn-success d-inline-flex align-items-center gap-1.5 btn-wpp-direct" data-id="${c.id}" title="Cobrar por WhatsApp con Hoja de Estado de Cuenta" style="border-radius: 6px; font-size: 12px; font-weight: 600; padding: 4px 10px;">
+                                                    <i class="bi bi-whatsapp"></i> Cobrar
+                                                </button>
+                                                <button class="btn btn-sm btn-light border d-inline-flex align-items-center justify-content-center btn-print-estado" data-id="${c.id}" title="Imprimir Estado de Cuenta" style="border-radius: 6px; width: 32px; height: 30px; padding: 0;">
+                                                    <i class="bi bi-printer text-secondary"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-light border d-inline-flex align-items-center justify-content-center btn-drawer-cartera" data-id="${c.id}" title="Ver Facturas" style="border-radius: 6px; width: 32px; height: 30px; padding: 0;">
+                                                    <i class="bi bi-eye text-primary"></i>
+                                                </button>
                                             </div>
-                                            <div class="text-end">
-                                                <span class="text-muted text-uppercase d-block" style="font-size: 10px; letter-spacing: 0.5px;">Facturas</span>
-                                                <span class="fw-bold text-dark" style="font-size: 14px;">${c.facturas.length}</span>
-                                            </div>
-                                        </div>
-
-                                        <div class="d-flex gap-2 mt-auto pt-2">
-                                            <button class="btn btn-sm btn-success d-flex align-items-center justify-content-center gap-1.5 flex-grow-1 btn-wpp-direct" data-id="${c.id}" style="border-radius: 8px; font-size: 12.5px; font-weight: 600;">
-                                                <i class="bi bi-whatsapp"></i> Cobrar
-                                            </button>
-                                            <button class="btn btn-sm btn-light border d-flex align-items-center justify-content-center btn-print-estado" data-id="${c.id}" title="Imprimir Estado de Cuenta" style="border-radius: 8px; width: 36px;">
-                                                <i class="bi bi-printer text-secondary"></i>
-                                            </button>
-                                            <button class="btn btn-sm btn-light border d-flex align-items-center justify-content-center btn-drawer-cartera" data-id="${c.id}" title="Ver Facturas" style="border-radius: 8px; width: 36px;">
-                                                <i class="bi bi-eye text-primary"></i>
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            `;
-                        }).join('')}
-                    </div>
+                                        </td>
+                                    </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                        <tfoot style="background-color: #f8fafc; border-top: 2px solid #cbd5e1; font-size: 13px;">
+                            <tr class="fw-bold">
+                                <td colspan="2" class="py-2.5 px-3 text-dark text-uppercase" style="letter-spacing: 0.5px;">Total Cartera Página:</td>
+                                <td class="py-2.5 px-3 text-center text-dark tnum">${totalFacturasPagina} facturas</td>
+                                <td class="py-2.5 px-3 text-end text-danger tnum" style="font-size: 14.5px;">${formatMoney(totalSaldoPagina)}</td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
                 `;
 
                 // Eventos de botones Cartera

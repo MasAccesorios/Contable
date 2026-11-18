@@ -56,7 +56,7 @@ const routes = {
     'cartera': () => import('../modules/cartera/cartera.js'),
     'bancos/conciliacion': () => import('../modules/bancos/conciliacion.js'),
     'bancos/detalle': () => import('../modules/bancos/detalle.js'),
-    'reportes': () => import('../modules/reportes.js?v=21'),
+    'reportes': () => import('../modules/reportes.js?v=22'),
     'configuracion': () => import('../modules/configuracion.js'),
     'auditoria': () => import('../modules/auditoria.js'),
     'vendedores': () => import('../modules/vendedores/vendedores.js'),
