@@ -464,7 +464,10 @@ export const PrintManager = {
             fileName,
             title: tipoDoc,
             printClass
-        });    async printEstadoCuenta(clienteId) {
+        });
+    },
+
+    async printEstadoCuenta(clienteId) {
         const oldContainer = document.querySelector('.print-document-template');
         if (oldContainer) oldContainer.remove();
 

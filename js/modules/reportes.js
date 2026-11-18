@@ -1,7 +1,7 @@
 import DB, { getLocalDate } from '../core/db.js';
 import { supabase } from '../core/supabase.js';
 import { CoreActions } from '../shared/crud.js';
-import { PrintManager } from '../shared/printManager.js?v=20';
+import { PrintManager } from '../shared/printManager.js?v=21';
 import { escapeHtml, getClientAvatar } from '../shared/formatters.js';
 
 export default {
