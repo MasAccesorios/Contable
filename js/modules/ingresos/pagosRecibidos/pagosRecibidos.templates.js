@@ -1,5 +1,28 @@
 import { escapeHtml } from '../../../shared/formatters.js';
 
+function getClientAvatar(name) {
+    if (!name || name === 'Sin cliente') return { initials: '?', bg: '#f1f5f9', color: '#64748b' };
+    const clean = name.trim();
+    const parts = clean.split(/\s+/);
+    let initials = parts[0][0] || '';
+    if (parts.length > 1 && parts[1][0]) initials += parts[1][0];
+    initials = initials.toUpperCase();
+    
+    const colors = [
+        { bg: '#eff6ff', color: '#1d4ed8' },
+        { bg: '#ecfdf5', color: '#059669' },
+        { bg: '#fef3c7', color: '#d97706' },
+        { bg: '#f3e8ff', color: '#7e22ce' },
+        { bg: '#fce7f3', color: '#be185d' },
+        { bg: '#e0f2fe', color: '#0369a1' },
+        { bg: '#ccfbf1', color: '#0f766e' }
+    ];
+    let hash = 0;
+    for (let i = 0; i < clean.length; i++) hash = clean.charCodeAt(i) + ((hash << 5) - hash);
+    const index = Math.abs(hash) % colors.length;
+    return { initials: initials.substring(0, 2), ...colors[index] };
+}
+
 export const PagosRecibidosTemplates = {
     getComprobanteHTML(t, isPrintMode = false) {
         return `
@@ -139,7 +162,6 @@ export const PagosRecibidosTemplates = {
                     </div>
 
                     <div class="mas-receipt-body position-relative" style="z-index: 1;">
-                        <!-- Marca de agua opcional -->
                         <div class="mas-receipt-stamp">PAGO RECIBIDO</div>
                         
                         <div class="row mb-3 align-items-start">
@@ -224,7 +246,6 @@ export const PagosRecibidosTemplates = {
                             <span class="mas-receipt-total-amount">$${Number(t.monto).toLocaleString('es-CO')}</span>
                         </div>
                         
-                        <!-- Sección de firmas para impresión -->
                         <div class="mt-2 pt-2 border-top" style="display: ${isPrintMode ? 'flex' : 'none'}; justify-content: space-between; border-color: #cbd5e1 !important;">
                             <div style="width: 45%; text-align: center;">
                                 <div style="border-bottom: 1px solid #94a3b8; height: 20px; margin-bottom: 4px;"></div>
@@ -270,78 +291,384 @@ export const PagosRecibidosTemplates = {
         this.bindDetailEvents(container);
     },
 
-    renderList() {
-        const formatMoney = val => '$ ' + parseFloat(val || 0).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        
-        this.element.innerHTML = `
-            <div class="dash-layout p-4" id="pagos-list-container" style="max-width: 1100px; margin: 0 auto;">
-                <!-- TOP BAR -->
-                <div class="d-flex justify-content-between align-items-center mb-4">
+    renderDrawerContent(t) {
+        const formatMoney = val => '$ ' + parseFloat(val || 0).toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+        const formatFecha = dateStr => {
+            if (!dateStr) return '---';
+            const partes = dateStr.split('-');
+            return partes.length === 3 ? `${partes[2]}/${partes[1]}/${partes[0]}` : dateStr;
+        };
+
+        const clienteNombre = t.contactos?.nombre || t.facturas?.contactos?.nombre || 'Cliente General / Contado';
+        const clienteNit = t.contactos?.identificacion || t.facturas?.contactos?.identificacion || '';
+        const numComprobante = t.grupo_pago_id ? (t.numero_recibo ? String(t.numero_recibo).padStart(4, '0') : t.grupo_pago_id) : (t.numero || t.id);
+        const avatar = getClientAvatar(clienteNombre);
+
+        return `
+            <!-- Header del Recibo -->
+            <div class="d-flex align-items-center justify-content-between mb-4 pb-3 border-bottom">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="payment-avatar" style="background-color: ${avatar.bg}; color: ${avatar.color}; width: 44px; height: 44px; font-size: 15px;">
+                        ${avatar.initials}
+                    </div>
                     <div>
-                        <h2 class="h3 fw-bold mb-1" style="color: var(--text-main);">Pagos Recibidos</h2>
-                        <p class="text-muted mb-0" style="font-size: var(--fs-md);">
-                            Historial de todos los ingresos de dinero (tipo "Entrada").
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="payment-code-badge">RECIBO #${numComprobante}</span>
+                            ${t.estado === 'anulado'
+                                ? '<span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle rounded-pill">Anulado</span>'
+                                : '<span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill">Recibido</span>'
+                            }
+                        </div>
+                        <h4 class="fw-bold mb-0 mt-1" style="font-size: 17px; color: #0f172a;">${escapeHtml(clienteNombre)}</h4>
+                        ${clienteNit ? `<span class="text-muted" style="font-size: 12px;">NIT / CC: ${escapeHtml(clienteNit)}</span>` : ''}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Banner de Monto -->
+            <div class="p-3 rounded-3 mb-4 d-flex justify-content-between align-items-center" style="background: linear-gradient(135deg, #ecfdf5, #f0fdf4); border: 1px solid #a7f3d0;">
+                <div>
+                    <span class="text-uppercase fw-semibold text-muted" style="font-size: 11px; letter-spacing: 0.5px;">Monto Total Recibido</span>
+                    <h2 class="fw-bold text-success mb-0 tnum" style="letter-spacing: -0.5px;">+${formatMoney(t.monto)}</h2>
+                </div>
+                <div class="text-end">
+                    <span class="badge bg-white text-dark border px-3 py-2 rounded-3 shadow-xs" style="font-size: 12px;">
+                        <i class="bi bi-calendar3 me-1 text-primary"></i> ${formatFecha(t.fecha)}
+                    </span>
+                </div>
+            </div>
+
+            <!-- Línea de Tiempo de Trazabilidad Contable -->
+            <div class="mb-4">
+                <h6 class="fw-bold text-uppercase text-muted mb-3" style="font-size: 11px; letter-spacing: 0.5px;">
+                    <i class="bi bi-signpost-split me-1 text-primary"></i> Trazabilidad del Movimiento
+                </h6>
+                <div class="ps-2">
+                    <!-- Hito 1: Facturación / Origen -->
+                    <div class="payment-timeline-item">
+                        <div class="payment-timeline-dot success">
+                            <i class="bi bi-file-earmark-text" style="font-size: 9px; color: #059669;"></i>
+                        </div>
+                        <div class="fw-semibold text-dark" style="font-size: 13px;">Origen del Ingreso</div>
+                        <div class="text-muted" style="font-size: 12px; margin-top: 2px;">
+                            ${t.factura_id ? `
+                                Vinculado a <a href="#/ingresos/facturas/ver/${t.factura_id}" class="text-primary fw-medium text-decoration-none">Factura #${t.facturas?.numero || t.factura_id}</a>
+                                ${t.facturas?.total ? `<span class="badge bg-light text-secondary border ms-1">Total Factura: ${formatMoney(t.facturas.total)}</span>` : ''}
+                            ` : (t.itemsGrupo && t.itemsGrupo.length > 1 ? `
+                                Pago múltiple aplicado a <strong>${t.itemsGrupo.length} facturas</strong>
+                            ` : 'Ingreso directo / Anticipo a favor (sin factura previa).')}
+                        </div>
+                    </div>
+
+                    <!-- Hito 2: Cuenta y Tesorería -->
+                    <div class="payment-timeline-item">
+                        <div class="payment-timeline-dot">
+                            <i class="bi bi-bank" style="font-size: 9px; color: #2563eb;"></i>
+                        </div>
+                        <div class="fw-semibold text-dark" style="font-size: 13px;">Destino en Tesorería</div>
+                        <div class="text-muted" style="font-size: 12px; margin-top: 2px;">
+                            Ingresado a <strong>${escapeHtml(t.cuentas_bancarias?.nombre || 'Efectivo / Caja')}</strong>
+                            ${t.categoria ? `<span class="ms-1 text-secondary">(${escapeHtml(t.categoria)})</span>` : ''}
+                        </div>
+                    </div>
+
+                    <!-- Hito 3: Conciliación Bancaria -->
+                    <div class="payment-timeline-item">
+                        <div class="payment-timeline-dot ${t.conciliado_en || t.conciliacion_id ? 'success' : 'warning'}">
+                            <i class="bi bi-${t.conciliado_en || t.conciliacion_id ? 'check-circle-fill' : 'clock'}" style="font-size: 9px; color: ${t.conciliado_en || t.conciliacion_id ? '#059669' : '#d97706'};"></i>
+                        </div>
+                        <div class="fw-semibold text-dark" style="font-size: 13px;">Estado Bancario</div>
+                        <div class="text-muted" style="font-size: 12px; margin-top: 2px;">
+                            ${t.conciliado_en || t.conciliacion_id 
+                                ? `<span class="text-success"><i class="bi bi-check-circle me-1"></i> Conciliado con el extracto bancario.</span>`
+                                : `<span class="text-warning-emphasis"><i class="bi bi-clock-history me-1"></i> Pendiente de conciliar en Tesorería > Bancos.</span>`
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Desglose de Facturas Si es Agrupado -->
+            ${t.itemsGrupo && t.itemsGrupo.length > 1 ? `
+            <div class="mb-4">
+                <h6 class="fw-bold text-uppercase text-muted mb-2" style="font-size: 11px; letter-spacing: 0.5px;">
+                    Facturas Pagadas en este Recibo (${t.itemsGrupo.length})
+                </h6>
+                <div class="table-responsive rounded-3 border">
+                    <table class="table table-sm align-middle mb-0" style="font-size: 12px;">
+                        <thead class="bg-light">
+                            <tr>
+                                <th class="py-2 ps-3">Factura</th>
+                                <th class="py-2">Concepto</th>
+                                <th class="py-2 text-end pe-3">Abono</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${t.itemsGrupo.map(p => `
+                            <tr>
+                                <td class="py-2 ps-3">
+                                    ${p.factura_id ? `<a href="#/ingresos/facturas/ver/${p.factura_id}" class="text-primary fw-medium text-decoration-none"># ${p.facturas?.numero || p.factura_id}</a>` : 'Sin factura'}
+                                </td>
+                                <td class="py-2 text-muted">${escapeHtml(p.categoria || 'Abono')}</td>
+                                <td class="py-2 text-end pe-3 fw-bold text-dark tnum">${formatMoney(p.monto)}</td>
+                            </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            ` : ''}
+
+            <!-- Observaciones -->
+            <div class="mb-4">
+                <h6 class="fw-bold text-uppercase text-muted mb-1" style="font-size: 11px; letter-spacing: 0.5px;">Notas y Observaciones</h6>
+                <div class="p-3 bg-light rounded-3 text-secondary" style="font-size: 12px; line-height: 1.5;">
+                    ${t.observaciones ? escapeHtml(t.observaciones) : 'Sin notas u observaciones adicionales registradas.'}
+                </div>
+            </div>
+        `;
+    },
+
+    renderList() {
+        const formatMoney = val => '$ ' + parseFloat(val || 0).toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+        const kpis = this.state.kpis || {};
+        const variacion = kpis.variacion || 0;
+        const cuentas = this.state.cuentasBancarias || [];
+
+        this.element.innerHTML = `
+            <div class="dash-layout p-4" id="pagos-list-container" style="max-width: 1200px; margin: 0 auto;">
+                
+                <!-- TOP BAR DE ALTO IMPACTO -->
+                <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+                    <div>
+                        <div class="d-flex align-items-center gap-2">
+                            <h2 class="page-title mb-0" style="font-size: 24px; font-weight: 800; color: #0f172a; letter-spacing: -0.5px;">Pagos Recibidos</h2>
+                            <span class="badge" style="background-color: #ecfdf5; color: #059669; font-size: 11px; font-weight: 700; border-radius: 9999px; padding: 4px 10px; border: 1px solid #a7f3d0;">
+                                <i class="bi bi-wallet2 me-1"></i> Recaudo & Caja
+                            </span>
+                        </div>
+                        <p class="text-muted mb-0" style="font-size: 13px; margin-top: 3px;">
+                            Monitorea los ingresos, cobro de facturas y trazabilidad bancaria en tiempo real.
                         </p>
                     </div>
-                    <div class="d-flex gap-2">
-                        <a href="#" onclick="event.preventDefault(); window.history.length > 2 ? window.history.back() : window.location.hash = '#/dashboard';" class="btn btn-light bg-white border me-2" style="font-weight: var(--weight-medium); font-size: var(--fs-md); color: var(--text-body);">
-                            <i class="bi bi-arrow-left me-1"></i> Volver
-                        </a>
-                        <button id="btn-nuevo-pago" class="btn btn-primary-action">
-                            <i class="bi bi-plus-lg me-1"></i> Registrar Pago
+                    
+                    <div class="d-flex flex-wrap align-items-center gap-2">
+                        <!-- Toggle de Vistas: Lista vs Gráficos -->
+                        <div class="btn-group p-1 bg-light border rounded-3" role="group">
+                            <button type="button" class="btn btn-sm ${this.state.view !== 'grafico' ? 'btn-white bg-white shadow-xs fw-bold' : 'btn-light border-0 text-muted'}" id="btn-view-lista" style="font-size: 12px; border-radius: 6px;">
+                                <i class="bi bi-table me-1"></i> Lista
+                            </button>
+                            <button type="button" class="btn btn-sm ${this.state.view === 'grafico' ? 'btn-white bg-white shadow-xs fw-bold text-primary' : 'btn-light border-0 text-muted'}" id="btn-view-grafico" style="font-size: 12px; border-radius: 6px;">
+                                <i class="bi bi-bar-chart me-1"></i> Analítica
+                            </button>
+                        </div>
+
+                        <!-- Botón Exportar Excel -->
+                        <button id="btn-export-excel" class="btn btn-light bg-white border text-secondary shadow-xs" style="font-weight: 600; font-size: 13px; border-radius: 8px;" title="Descargar en Excel">
+                            <i class="bi bi-file-earmark-excel text-success me-1"></i> Exportar
+                        </button>
+
+                        <!-- Botón Refrescar -->
+                        <button id="btn-refresh-pagos" class="btn btn-light bg-white border text-secondary shadow-xs" style="border-radius: 8px;" title="Actualizar datos">
+                            <i class="bi bi-arrow-clockwise"></i>
+                        </button>
+
+                        <!-- Botón Principal: Registrar Pago -->
+                        <button id="btn-nuevo-pago" class="btn btn-primary-action shadow-xs d-flex align-items-center gap-2" style="font-weight: 600; font-size: 13px; border-radius: 8px;">
+                            <i class="bi bi-plus-lg"></i> Registrar Pago
                         </button>
                     </div>
                 </div>
 
-                <!-- KPI CARDS PAGOS RECIBIDOS -->
+                <!-- 4 KPI CARDS DINÁMICAS (CON TEXTOS Y TENDENCIAS REALES) -->
                 <div class="row g-3 mb-4">
-                    <div class="col-12 col-sm-6 col-lg-4">
-                        <div class="ds-kpi-card">
-                            <span class="ds-kpi-label">Total Recibido (Este mes)</span>
-                            <div class="ds-kpi-value text-success">$ ${formatMoney(this.state.kpis?.total || 0).replace('$ ', '')}</div>
+                    <!-- KPI 1: Total Recaudado Este Mes -->
+                    <div class="col-12 col-sm-6 col-lg-3">
+                        <div class="payment-kpi-card">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <span class="ds-kpi-label">Total Recaudado (Mes)</span>
+                                <div class="payment-kpi-icon in-bg">
+                                    <i class="bi bi-arrow-down-left"></i>
+                                </div>
+                            </div>
+                            <div class="payment-kpi-value fw-bold text-success tnum" style="font-size: 22px;">
+                                ${formatMoney(kpis.total)}
+                            </div>
+                            <div class="mt-2 d-flex align-items-center gap-2">
+                                <span class="payment-kpi-trend ${variacion >= 0 ? 'positive' : 'negative'}">
+                                    <i class="bi ${variacion >= 0 ? 'bi-arrow-up-right' : 'bi-arrow-down-right'}"></i>
+                                    ${variacion >= 0 ? '+' : ''}${variacion}%
+                                </span>
+                                <span class="text-muted" style="font-size: 11px;">vs mes anterior</span>
+                            </div>
                         </div>
                     </div>
-                    <div class="col-12 col-sm-6 col-lg-4">
-                        <div class="ds-kpi-card">
-                            <span class="ds-kpi-label">Mes Anterior</span>
-                            <div class="ds-kpi-value text-muted">$ 0.00</div>
+
+                    <!-- KPI 2: Recaudo de Hoy -->
+                    <div class="col-12 col-sm-6 col-lg-3">
+                        <div class="payment-kpi-card">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <span class="ds-kpi-label">Ingresos de Hoy</span>
+                                <div class="payment-kpi-icon blue-bg">
+                                    <i class="bi bi-sun"></i>
+                                </div>
+                            </div>
+                            <div class="payment-kpi-value fw-bold text-dark tnum" style="font-size: 22px;">
+                                ${formatMoney(kpis.totalHoy)}
+                            </div>
+                            <div class="mt-2 text-muted" style="font-size: 11px;">
+                                <i class="bi bi-check2-circle text-primary me-1"></i> Caja del día activa
+                            </div>
                         </div>
                     </div>
-                    <div class="col-12 col-sm-6 col-lg-4">
-                        <div class="ds-kpi-card">
-                            <span class="ds-kpi-label">Transacciones (Mes)</span>
-                            <div class="ds-kpi-value text-muted">0</div>
+
+                    <!-- KPI 3: Pendiente por Conciliar -->
+                    <div class="col-12 col-sm-6 col-lg-3">
+                        <div class="payment-kpi-card" style="border-left: 3px solid #d97706;">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <span class="ds-kpi-label">Por Conciliar en Banco</span>
+                                <div class="payment-kpi-icon pending-bg">
+                                    <i class="bi bi-clock-history"></i>
+                                </div>
+                            </div>
+                            <div class="payment-kpi-value fw-bold text-warning-emphasis tnum" style="font-size: 22px;">
+                                ${formatMoney(kpis.montoPendiente)}
+                            </div>
+                            <div class="mt-2 text-muted" style="font-size: 11px;">
+                                <strong>${kpis.conteoPendiente}</strong> transacciones sin cruzar
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- KPI 4: Conteo Total del Mes -->
+                    <div class="col-12 col-sm-6 col-lg-3">
+                        <div class="payment-kpi-card">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <span class="ds-kpi-label">Operaciones del Mes</span>
+                                <div class="payment-kpi-icon blue-bg">
+                                    <i class="bi bi-receipt"></i>
+                                </div>
+                            </div>
+                            <div class="payment-kpi-value fw-bold text-dark tnum" style="font-size: 22px;">
+                                ${kpis.transaccionesMes || 0}
+                            </div>
+                            <div class="mt-2 text-muted" style="font-size: 11px;">
+                                Recibos de caja emitidos
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- DATA TABLE CARD -->
-                <div class="dash-table-container mb-4">
-                    <!-- FILTERS -->
-                    <div class="card-header bg-white border-bottom p-3 d-flex gap-3 align-items-center">
-                        <div class="ds-search-container" style="width: 250px;">
-                            <i class="bi bi-search ds-search-icon"></i>
-                            <input type="text" class="ds-search-input" id="search-pagos" autocomplete="off" placeholder="Buscar por número o cliente..." value="${this.state.searchQuery}">
-                        </div>
-                    </div>
+                <!-- CONTENEDOR DE ANALÍTICA GRÁFICA (SI SE ACTIVA) -->
+                <div id="analytics-view-container" style="display: ${this.state.view === 'grafico' ? 'block' : 'none'};"></div>
 
-                    <!-- GRID -->
-                    <div id="grid-container">
-                        <!-- La grilla se inyecta aquí -->
+                <!-- CONTENEDOR DE TABLA DE DATOS -->
+                <div id="table-view-container" style="display: ${this.state.view !== 'grafico' ? 'block' : 'none'};">
+                    <div class="dash-table-container mb-4 shadow-xs" style="border-radius: 12px; border: 1px solid var(--border-color); background: #ffffff;">
+                        
+                        <!-- FILTRO SUPERIOR Y SEGMENTED CONTROL TABS -->
+                        <div class="p-3 border-bottom bg-white d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
+                            <!-- Tabs de Filtro Rápido -->
+                            <div class="payment-tabs-bar">
+                                <button type="button" class="payment-tab-btn ${this.state.selectedTab === 'todos' ? 'active' : ''}" data-tab="todos">
+                                    Todos
+                                </button>
+                                <button type="button" class="payment-tab-btn tab-warning ${this.state.selectedTab === 'pendientes' ? 'active' : ''}" data-tab="pendientes">
+                                    <i class="bi bi-clock-history text-warning"></i> Por conciliar
+                                    ${kpis.conteoPendiente > 0 ? `<span class="payment-tab-badge">${kpis.conteoPendiente}</span>` : ''}
+                                </button>
+                                <button type="button" class="payment-tab-btn ${this.state.selectedTab === 'conciliados' ? 'active' : ''}" data-tab="conciliados">
+                                    <i class="bi bi-patch-check-fill text-success"></i> Conciliados
+                                </button>
+                                <button type="button" class="payment-tab-btn ${this.state.selectedTab === 'con_factura' ? 'active' : ''}" data-tab="con_factura">
+                                    <i class="bi bi-file-earmark-text text-primary"></i> Con factura
+                                </button>
+                                <button type="button" class="payment-tab-btn ${this.state.selectedTab === 'directos' ? 'active' : ''}" data-tab="directos">
+                                    <i class="bi bi-lightning-charge"></i> Anticipos
+                                </button>
+                                <button type="button" class="payment-tab-btn ${this.state.selectedTab === 'anulados' ? 'active' : ''}" data-tab="anulados">
+                                    Anulados
+                                </button>
+                            </div>
+
+                            <!-- Buscador y Filtro por Cuenta Bancaria -->
+                            <div class="d-flex align-items-center gap-2 flex-grow-1 flex-lg-grow-0">
+                                <!-- Buscador Universal -->
+                                <div class="ds-search-container" style="min-width: 220px; width: 100%;">
+                                    <i class="bi bi-search ds-search-icon"></i>
+                                    <input type="text" class="ds-search-input" id="search-pagos" autocomplete="off" placeholder="Buscar cliente, recibo, factura..." value="${escapeHtml(this.state.searchQuery || '')}">
+                                </div>
+
+                                <!-- Selector de Cuenta Bancaria -->
+                                <select class="form-select form-select-sm" id="filter-cuenta-bancaria" style="width: auto; min-width: 150px; font-size: 13px; height: 38px; border-radius: 8px;">
+                                    <option value="todas" ${this.state.selectedAccount === 'todas' ? 'selected' : ''}>🏦 Todas las cuentas</option>
+                                    ${cuentas.map(c => `
+                                        <option value="${escapeHtml(c.nombre)}" ${this.state.selectedAccount.toLowerCase() === c.nombre.toLowerCase() ? 'selected' : ''}>
+                                            ${escapeHtml(c.nombre)}
+                                        </option>
+                                    `).join('')}
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- GRILLA DE PAGOS (Filas Inteligentes) -->
+                        <div id="grid-container" class="position-relative">
+                            <!-- Inyectado por renderGrid -->
+                        </div>
                     </div>
                 </div>
             </div>
+
+            <!-- SLIDE-OVER DRAWER (PANEL LATERAL DERECHO) -->
+            <div class="payment-drawer-backdrop" id="payment-drawer-backdrop"></div>
+            <div class="payment-drawer" id="payment-drawer">
+                <div class="payment-drawer-header">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-receipt-cutoff text-primary fs-5"></i>
+                        <h5 class="fw-bold mb-0" style="color: #0f172a; font-size: 16px;">Detalle del Comprobante</h5>
+                    </div>
+                    <div class="d-flex align-items-center gap-1">
+                        <button type="button" class="btn btn-sm btn-light border" id="btn-drawer-print" title="Imprimir Comprobante">
+                            <i class="bi bi-printer"></i>
+                        </button>
+                        <button type="button" class="btn btn-sm btn-light border" id="btn-drawer-preview" title="Vista Previa Oficial">
+                            <i class="bi bi-file-earmark-image"></i>
+                        </button>
+                        <button type="button" class="btn btn-sm btn-light border-0 ms-2 text-muted" id="btn-drawer-close" title="Cerrar panel">
+                            <i class="bi bi-x-lg fs-6"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="payment-drawer-body" id="payment-drawer-body">
+                    <!-- Contenido dinámico del comprobante -->
+                </div>
+                <div class="payment-drawer-footer">
+                    <button type="button" class="btn btn-light border btn-sm px-3 fw-medium" id="btn-drawer-close-bottom">
+                        Cerrar
+                    </button>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-outline-danger btn-sm px-3 fw-medium" id="btn-drawer-anular">
+                            <i class="bi bi-x-circle me-1"></i> Anular
+                        </button>
+                        <button type="button" class="btn btn-primary btn-sm px-3 fw-medium" id="btn-drawer-editar">
+                            <i class="bi bi-pencil me-1"></i> Editar
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CONTENEDOR LEGACY / PANTALLA COMPLETA SI SE REQUIERE -->
             <div id="pagos-detail-container" style="display: none;"></div>
         `;
-        
+
         this.bindStaticEvents();
     },
 
     renderGrid() {
         const gridContainer = this.element.querySelector('#grid-container');
         if (!gridContainer) return;
-        
-        const formatMoney = val => '$ ' + parseFloat(val || 0).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+        const formatMoney = val => '$ ' + parseFloat(val || 0).toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
         const formatFecha = dateStr => {
             if (!dateStr) return '---';
             const partes = dateStr.split('-');
@@ -354,105 +681,310 @@ export const PagosRecibidosTemplates = {
 
         let tableHtml = `
             ${this.state.isLoading ? `
-                <div class="position-absolute top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center bg-white bg-opacity-75" style="z-index: 10;">
+                <div class="position-absolute top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center bg-white bg-opacity-75" style="z-index: 10; min-height: 250px;">
                     <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Cargando...</span></div>
                 </div>
             ` : ''}
+
             <div class="table-responsive">
-                <table class="table table-borderless align-middle mb-0">
-                    <thead>
+                <table class="table table-borderless align-middle mb-0 w-100">
+                    <thead style="background-color: #f8fafc; border-bottom: 1px solid #e2e8f0;">
                         <tr>
-                            <th class="py-3 fw-normal ms-2" style="white-space: nowrap;">Número</th>
-                            <th class="py-3 fw-normal" style="white-space: nowrap;">Cliente</th>
-                            <th class="py-3 fw-normal" style="white-space: nowrap;">Detalles</th>
-                            <th class="py-3 fw-normal" style="white-space: nowrap;">Creación</th>
-                            <th class="py-3 fw-normal" style="white-space: nowrap;">Cuenta bancaria</th>
-                            <th class="py-3 fw-normal text-center" style="white-space: nowrap;">Estado</th>
-                            <th class="py-3 fw-normal text-end" style="white-space: nowrap;">Monto</th>
-                            <th class="py-3 fw-normal" style="width: 50px;"></th>
+                            <th class="py-3 ps-4 text-uppercase text-muted fw-bold" style="font-size: 11px; letter-spacing: 0.5px; width: 140px;">Comprobante</th>
+                            <th class="py-3 text-uppercase text-muted fw-bold" style="font-size: 11px; letter-spacing: 0.5px;">Cliente / Tercero</th>
+                            <th class="py-3 text-uppercase text-muted fw-bold" style="font-size: 11px; letter-spacing: 0.5px;">Trazabilidad / Factura</th>
+                            <th class="py-3 text-uppercase text-muted fw-bold" style="font-size: 11px; letter-spacing: 0.5px;">Cuenta Destino</th>
+                            <th class="py-3 text-center text-uppercase text-muted fw-bold" style="font-size: 11px; letter-spacing: 0.5px;">Conciliación</th>
+                            <th class="py-3 text-end text-uppercase text-muted fw-bold" style="font-size: 11px; letter-spacing: 0.5px;">Monto Recibido</th>
+                            <th class="py-3 pe-4 text-end text-uppercase text-muted fw-bold" style="width: 100px;">Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
                     ${this.state.pagos.length > 0 ? this.state.pagos.map(pago => {
-                        let detallesHtml = pago.categoria || 'Sin detalle';
-                        if (pago.factura_id) {
-                            detallesHtml = `<a href="#/ingresos/facturas/ver/${pago.factura_id}" class="text-decoration-none text-primary" onclick="event.stopPropagation()">Factura #${pago.factura_numero || pago.factura_id}</a>`;
-                        }
-                        
                         let clienteNombre = pago.cliente;
                         if (!clienteNombre) {
                             const obs = String(pago.observaciones || '').trim();
                             if (obs.includes(' — ')) {
                                 clienteNombre = obs.split(' — ').pop().trim();
                             } else if (obs.length > 0) {
-                                clienteNombre = obs.length > 50 ? obs.substring(0, 47) + '...' : obs;
+                                clienteNombre = obs.length > 40 ? obs.substring(0, 37) + '...' : obs;
                             } else {
-                                clienteNombre = pago.referencia || 'Sin cliente';
+                                clienteNombre = pago.referencia || 'Cliente General';
                             }
                         }
-                        
+
+                        const avatar = getClientAvatar(clienteNombre);
+                        const isAnulado = pago.estado_transaccion === 'anulado';
+                        const isConciliado = !!pago.estado_conciliacion;
+
                         return `
-                        <tr style="cursor: pointer; border-bottom: 1px solid var(--border-color);" class="row-pago" data-id="${pago.id}">
-                            <td class="py-3 fw-medium ms-2" style="color: var(--text-main);">${pago.numero}</td>
-                            <td class="py-3 text-truncate" style="color: var(--text-body); max-width: 200px;">${escapeHtml(clienteNombre)}</td>
-                            <td class="py-3 text-truncate" style="color: var(--text-body); max-width: 200px;">${detallesHtml}</td>
-                            <td class="py-3" style="color: var(--text-muted);">${formatFecha(pago.fecha)}</td>
-                            <td class="py-3 text-truncate" style="color: var(--text-body); max-width: 150px;">${pago.cuenta_bancaria}</td>
+                        <tr class="payment-row row-pago" data-id="${pago.id}">
+                            <!-- Columna 1: Comprobante & Fecha -->
+                            <td class="py-3 ps-4">
+                                <div class="payment-code-badge mb-1"># ${pago.numero}</div>
+                                <div class="text-muted" style="font-size: 11px;">
+                                    <i class="bi bi-calendar3 me-1"></i> ${formatFecha(pago.fecha)}
+                                </div>
+                            </td>
+
+                            <!-- Columna 2: Cliente con Avatar -->
+                            <td class="py-3">
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="payment-avatar" style="background-color: ${avatar.bg}; color: ${avatar.color};">
+                                        ${avatar.initials}
+                                    </div>
+                                    <div class="text-truncate" style="max-width: 220px;">
+                                        <div class="fw-bold text-dark text-truncate" style="font-size: 13px;" title="${escapeHtml(clienteNombre)}">
+                                            ${escapeHtml(clienteNombre)}
+                                        </div>
+                                        <div class="text-muted" style="font-size: 11px;">
+                                            ${pago.categoria ? escapeHtml(pago.categoria) : 'Cobro ordinario'}
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+
+                            <!-- Columna 3: Trazabilidad / Factura -->
+                            <td class="py-3">
+                                ${pago.factura_id ? `
+                                    <a href="#/ingresos/facturas/ver/${pago.factura_id}" class="payment-invoice-tag" onclick="event.stopPropagation()" title="Ver factura relacionada">
+                                        <i class="bi bi-file-earmark-text"></i> Factura #${pago.factura_numero || pago.factura_id}
+                                    </a>
+                                ` : `
+                                    <span class="badge bg-light text-secondary border fw-medium" style="font-size: 11px;">
+                                        <i class="bi bi-lightning-charge me-1"></i> Anticipo / Directo
+                                    </span>
+                                `}
+                            </td>
+
+                            <!-- Columna 4: Cuenta Bancaria -->
+                            <td class="py-3">
+                                <span class="payment-bank-tag text-truncate" style="max-width: 170px;" title="${escapeHtml(pago.cuenta_bancaria)}">
+                                    <i class="bi bi-bank text-secondary"></i> ${escapeHtml(pago.cuenta_bancaria || 'Caja / Efectivo')}
+                                </span>
+                            </td>
+
+                            <!-- Columna 5: Estado de Conciliación -->
                             <td class="py-3 text-center">
-                                ${pago.estado_transaccion === 'anulado' 
-                                    ? `<span class="badge bg-secondary text-secondary bg-opacity-10 border border-secondary-subtle rounded-pill fw-medium px-2 py-1">Anulado</span>`
-                                    : pago.estado_conciliacion
-                                        ? `<span class="badge bg-success text-success bg-opacity-10 border border-success-subtle rounded-pill fw-medium px-2 py-1">Conciliado</span>`
-                                        : `<span class="badge bg-warning text-warning-emphasis bg-opacity-10 border border-warning-subtle rounded-pill fw-medium px-2 py-1">No conciliado</span>`
-                                }
+                                ${isAnulado ? `
+                                    <span class="badge bg-secondary text-secondary bg-opacity-10 border border-secondary-subtle rounded-pill fw-medium px-2 py-1">Anulado</span>
+                                ` : isConciliado ? `
+                                    <span class="payment-reconciled-badge">
+                                        <i class="bi bi-patch-check-fill"></i> Conciliado
+                                    </span>
+                                ` : `
+                                    <span class="payment-pending-badge">
+                                        <i class="bi bi-clock-history"></i> Por conciliar
+                                    </span>
+                                `}
                             </td>
-                            <td class="py-3 text-end pe-3 text-success ${pago.estado_transaccion === 'anulado' ? 'text-muted text-decoration-line-through opacity-50' : ''}" style="font-weight: var(--weight-semibold);">
-                                ${formatMoney(pago.monto)}
+
+                            <!-- Columna 6: Monto -->
+                            <td class="py-3 text-end">
+                                <div class="fw-bold tnum ${isAnulado ? 'text-muted text-decoration-line-through opacity-50' : 'text-success'}" style="font-size: 14px;">
+                                    +${formatMoney(pago.monto)}
+                                </div>
                             </td>
-                            <td class="py-3 text-end pe-3 position-relative">
-                                <button class="btn btn-sm btn-link text-muted p-0 border-0 btn-menu-row" data-id="${pago.id}" data-conciliado="${pago.estado_conciliacion}"
-                                    data-grupo="${pago.grupo_pago_id || ''}" data-anulado="${pago.estado_transaccion === 'anulado'}" style="text-decoration: none; font-size: var(--fs-lg);"><i class="bi bi-three-dots-vertical"></i></button>
+
+                            <!-- Columna 7: Acciones Rápidas -->
+                            <td class="py-3 pe-4 text-end">
+                                <div class="payment-row-actions">
+                                    <button class="btn btn-sm btn-light border-0 p-1 btn-quick-preview" data-id="${pago.id}" title="Ver Comprobante">
+                                        <i class="bi bi-eye text-primary"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-light border-0 p-1 btn-quick-print" data-id="${pago.id}" title="Imprimir">
+                                        <i class="bi bi-printer text-secondary"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-link text-muted p-1 border-0 btn-menu-row" data-id="${pago.id}" data-conciliado="${isConciliado}"
+                                        data-grupo="${pago.grupo_pago_id || ''}" data-anulado="${isAnulado}">
+                                        <i class="bi bi-three-dots-vertical"></i>
+                                    </button>
+                                </div>
                             </td>
                         </tr>
                         `;
                     }).join('') : `
                         <tr>
-                            <td colspan="8" class="text-center text-muted py-5">
+                            <td colspan="7" class="text-center text-muted py-5">
                                 <div class="mb-3"><i class="bi bi-inbox fs-1 text-secondary opacity-50"></i></div>
-                                <p class="mb-0">No se encontraron pagos recibidos.</p>
+                                <h6 class="fw-semibold text-dark">No se encontraron pagos recibidos</h6>
+                                <p class="text-muted mb-0" style="font-size: 13px;">Prueba ajustando los filtros de búsqueda o cambia de pestaña.</p>
                             </td>
                         </tr>
                     `}
-                </tbody>
-            </table>
+                    </tbody>
+                </table>
             </div>
-            
-            <div class="card-footer bg-white border-top p-3 d-flex justify-content-between align-items-center" style="border-radius: 0 0 var(--border-radius-sm) var(--border-radius-sm);">
-                <div class="d-flex align-items-center gap-3" style="font-size: var(--fs-base); color: var(--text-body);">
+
+            <!-- PAGINADOR REFINADO -->
+            <div class="card-footer bg-white border-top p-3 d-flex flex-column flex-sm-row justify-content-between align-items-center gap-2" style="border-radius: 0 0 12px 12px;">
+                <div class="d-flex align-items-center gap-3" style="font-size: 13px; color: var(--text-body);">
                     <div class="d-flex align-items-center gap-2">
-                        <span>Resultados por página:</span>
+                        <span>Mostrar:</span>
                         <select class="form-select form-select-sm text-muted" id="select-limit" style="width: 70px;">
                             <option value="10" ${this.state.itemsPerPage===10?'selected':''}>10</option>
                             <option value="20" ${this.state.itemsPerPage===20?'selected':''}>20</option>
                             <option value="50" ${this.state.itemsPerPage===50?'selected':''}>50</option>
                         </select>
                     </div>
-                    <span class="text-muted border-start ps-3" id="showing-count">${this.state.totalItems > 0 ? `${startItem}-${endItem}` : '0'} de ${this.state.totalItems}</span>
+                    <span class="text-muted border-start ps-3" id="showing-count">
+                        ${this.state.totalItems > 0 ? `<strong>${startItem} - ${endItem}</strong> de <strong>${this.state.totalItems}</strong> pagos` : '0 pagos'}
+                    </span>
                 </div>
 
-                <div class="d-flex align-items-center gap-2" style="font-size: var(--fs-base); color: var(--text-body);">
-                    <span>Página</span>
-                    <span id="current-page" class="fw-medium text-center" style="min-width: 20px;">${this.state.currentPage}</span>
-                    <span>de <span id="total-pages">${totalPages}</span></span>
-                    <div class="ms-2">
-                        <button class="btn btn-link text-muted p-0 me-1" id="btn-prev" ${this.state.currentPage <= 1 ? 'disabled' : ''}><i class="bi bi-chevron-left"></i></button>
-                        <button class="btn btn-link text-muted p-0" id="btn-next" ${this.state.currentPage >= totalPages ? 'disabled' : ''}><i class="bi bi-chevron-right"></i></button>
+                <div class="d-flex align-items-center gap-2" style="font-size: 13px;">
+                    <button class="btn btn-sm btn-light border" id="btn-prev" ${this.state.currentPage <= 1 ? 'disabled' : ''}>
+                        <i class="bi bi-chevron-left me-1"></i> Anterior
+                    </button>
+                    <span class="px-2 text-muted">
+                        Página <strong>${this.state.currentPage}</strong> de <strong>${totalPages}</strong>
+                    </span>
+                    <button class="btn btn-sm btn-light border" id="btn-next" ${this.state.currentPage >= totalPages ? 'disabled' : ''}>
+                        Siguiente <i class="bi bi-chevron-right ms-1"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+
+        gridContainer.innerHTML = tableHtml;
+        this.bindDynamicEvents(gridContainer);
+    },
+
+    renderAnalyticsView(container, data) {
+        if (!container || !data) return;
+
+        const formatMoney = val => '$ ' + parseFloat(val || 0).toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+
+        container.innerHTML = `
+            <div class="row g-3 mb-4">
+                <!-- Gráfico de Ingresos Diarios -->
+                <div class="col-12 col-lg-8">
+                    <div class="payment-kpi-card h-100 p-4">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div>
+                                <h6 class="fw-bold mb-0 text-dark">Evolución de Recaudo Diario (Últimos 30 días)</h6>
+                                <span class="text-muted" style="font-size: 12px;">Comportamiento de entrada de dinero por fecha</span>
+                            </div>
+                            <span class="badge bg-light text-primary border px-2 py-1" style="font-size: 11px;">
+                                <i class="bi bi-graph-up me-1"></i> Tendencia
+                            </span>
+                        </div>
+                        <div style="height: 260px; position: relative;">
+                            <canvas id="pagosDailyChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Gráfico de Cuentas / Métodos -->
+                <div class="col-12 col-lg-4">
+                    <div class="payment-kpi-card h-100 p-4">
+                        <div class="mb-3">
+                            <h6 class="fw-bold mb-0 text-dark">Distribución por Cuenta</h6>
+                            <span class="text-muted" style="font-size: 12px;">Participación según banco receptor</span>
+                        </div>
+                        <div style="height: 180px; position: relative;" class="d-flex justify-content-center">
+                            <canvas id="pagosAccountChart"></canvas>
+                        </div>
+                        <div class="mt-3 border-top pt-2" style="font-size: 12px;">
+                            ${data.accountLabels.slice(0, 3).map((lbl, idx) => `
+                                <div class="d-flex justify-content-between align-items-center py-1">
+                                    <span class="text-muted text-truncate" style="max-width: 150px;">${escapeHtml(lbl)}</span>
+                                    <span class="fw-bold text-dark tnum">${formatMoney(data.accountValues[idx])}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Ranking Top 5 Clientes -->
+                <div class="col-12">
+                    <div class="payment-kpi-card p-4">
+                        <h6 class="fw-bold mb-1 text-dark">Top 5 Clientes por Volumen Pagado (Últimos 30 días)</h6>
+                        <span class="text-muted d-block mb-3" style="font-size: 12px;">Clientes con mayor aporte a la caja</span>
+                        
+                        <div class="row g-2">
+                            ${data.topClients.length > 0 ? data.topClients.map((c, i) => `
+                                <div class="col-12 col-sm-6 col-md-4 col-lg">
+                                    <div class="p-3 bg-light rounded-3 border d-flex flex-column justify-content-between h-100">
+                                        <div class="d-flex align-items-center gap-2 mb-2">
+                                            <span class="badge bg-primary text-white rounded-circle" style="width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; font-size: 10px;">${i + 1}</span>
+                                            <span class="fw-bold text-dark text-truncate" style="font-size: 12px;" title="${escapeHtml(c.nombre)}">${escapeHtml(c.nombre)}</span>
+                                        </div>
+                                        <div class="fw-bold text-success tnum" style="font-size: 14px;">${formatMoney(c.total)}</div>
+                                    </div>
+                                </div>
+                            `).join('') : '<p class="text-muted p-2">Sin datos en el período.</p>'}
+                        </div>
                     </div>
                 </div>
             </div>
         `;
-        
-        gridContainer.innerHTML = tableHtml;
-        this.bindDynamicEvents(gridContainer);
+
+        // Renderizar con Chart.js
+        const initCharts = () => {
+            if (typeof Chart === 'undefined') return;
+
+            // Gráfico diario
+            const ctxDaily = document.getElementById('pagosDailyChart');
+            if (ctxDaily) {
+                if (window.myPagosDailyChart) window.myPagosDailyChart.destroy();
+                window.myPagosDailyChart = new Chart(ctxDaily, {
+                    type: 'bar',
+                    data: {
+                        labels: data.dailyLabels.map(l => l.substring(5)),
+                        datasets: [{
+                            label: 'Recaudo ($)',
+                            data: data.dailyValues,
+                            backgroundColor: '#10b981',
+                            borderRadius: 6
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            x: { grid: { display: false } },
+                            y: {
+                                ticks: {
+                                    callback: v => '$' + (v >= 1000000 ? (v / 1000000).toFixed(1) + 'M' : (v / 1000).toFixed(0) + 'k')
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Gráfico cuentas (Donut)
+            const ctxAccount = document.getElementById('pagosAccountChart');
+            if (ctxAccount) {
+                if (window.myPagosAccountChart) window.myPagosAccountChart.destroy();
+                window.myPagosAccountChart = new Chart(ctxAccount, {
+                    type: 'doughnut',
+                    data: {
+                        labels: data.accountLabels,
+                        datasets: [{
+                            data: data.accountValues,
+                            backgroundColor: ['#2563eb', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#64748b']
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        cutout: '65%'
+                    }
+                });
+            }
+        };
+
+        if (typeof Chart === 'undefined') {
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/chart.js';
+            script.onload = initCharts;
+            document.head.appendChild(script);
+        } else {
+            setTimeout(initCharts, 50);
+        }
     }
 };

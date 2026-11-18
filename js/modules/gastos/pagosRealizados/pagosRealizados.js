@@ -1,4 +1,4 @@
-
+import { supabase } from '../../../core/supabase.js';
 import { CoreActions } from '../../../shared/crud.js';
 import { PagosRealizadosData } from './pagosRealizados.data.js';
 import { PagosRealizadosTemplates } from './pagosRealizados.templates.js';
@@ -6,15 +6,27 @@ import { PagosRealizadosEvents } from './pagosRealizados.events.js';
 
 export const PagosRealizadosModule = {
     state: {
-        view: 'lista',
+        view: 'lista', // 'lista', 'grafico', 'detalle'
         currentComprobanteData: null,
         pagos: [],
         currentPage: 1,
         itemsPerPage: 10,
         searchQuery: '',
+        selectedAccount: 'todas',
+        selectedTab: 'todos',
         totalItems: 0,
         isLoading: false,
-        kpis: { total: 0 }
+        kpis: {
+            total: 0,
+            totalAnterior: 0,
+            variacion: 0,
+            transaccionesMes: 0,
+            totalHoy: 0,
+            montoPendiente: 0,
+            conteoPendiente: 0
+        },
+        cuentasBancarias: [],
+        activeDrawerId: null
     },
 
     async init(element) {
@@ -23,6 +35,97 @@ export const PagosRealizadosModule = {
         await this.calcularKPIs();
         this.renderList();
         await this.cargarPagos();
+    },
+
+    async mostrarDrawer(id) {
+        const backdrop = this.element.querySelector('#payment-drawer-backdrop');
+        const drawer = this.element.querySelector('#payment-drawer');
+        const body = this.element.querySelector('#payment-drawer-body');
+        if (!drawer || !body) return;
+
+        body.innerHTML = `
+            <div class="d-flex justify-content-center align-items-center py-5">
+                <div class="spinner-border text-danger" role="status"><span class="visually-hidden">Cargando...</span></div>
+            </div>
+        `;
+        if (backdrop) backdrop.classList.add('show');
+        drawer.classList.add('show');
+        this.state.activeDrawerId = id;
+
+        try {
+            const t = await this._cargarComprobanteAgrupado(id);
+            if (t) {
+                this.state.currentComprobanteData = t;
+                body.innerHTML = this.renderDrawerContent(t);
+
+                // Configurar eventos del drawer
+                const btnEdit = this.element.querySelector('#btn-drawer-editar');
+                if (btnEdit) {
+                    btnEdit.onclick = () => {
+                        this.cerrarDrawer();
+                        import('../../../shared/transaccionModal.js').then(m => {
+                            m.mostrarDetalleTransaccion(t, async () => {
+                                await this.calcularKPIs();
+                                await this.cargarPagos();
+                            });
+                            setTimeout(() => {
+                                const btnActivar = document.getElementById('btn-activar-edicion');
+                                if (btnActivar) btnActivar.click();
+                            }, 200);
+                        });
+                    };
+                }
+
+                const btnAnular = this.element.querySelector('#btn-drawer-anular');
+                if (btnAnular) {
+                    if (t.estado === 'anulado') {
+                        btnAnular.style.display = 'none';
+                    } else {
+                        btnAnular.style.display = 'inline-block';
+                        btnAnular.onclick = async () => {
+                            if (confirm('¿Estás seguro de anular este egreso? Esta acción no se puede deshacer.')) {
+                                try {
+                                    if (t.categoria === 'Transferencia') {
+                                        const { error } = await supabase.rpc('anular_transferencia_pareja', { p_id: t.id });
+                                        if (error) throw error;
+                                    } else {
+                                        const { anularTransaccion } = await import('../../../shared/transaccionesUtils.js');
+                                        await anularTransaccion(t.id, false);
+                                    }
+                                    CoreActions.showWarningModal('Egreso anulado con éxito', 'success');
+                                    this.cerrarDrawer();
+                                    await this.calcularKPIs();
+                                    await this.cargarPagos();
+                                } catch (err) {
+                                    CoreActions.showWarningModal('Error al anular: ' + err.message);
+                                }
+                            }
+                        };
+                    }
+                }
+
+                const btnPrint = this.element.querySelector('#btn-drawer-print');
+                if (btnPrint) {
+                    btnPrint.onclick = () => this.mostrarDetalle(id, 'print');
+                }
+
+                const btnPrev = this.element.querySelector('#btn-drawer-preview');
+                if (btnPrev) {
+                    btnPrev.onclick = () => this.mostrarDetalle(id, 'vista-previa');
+                }
+            }
+        } catch (err) {
+            console.error('Error cargando comprobante para drawer:', err);
+            body.innerHTML = `<div class="p-4 text-center text-danger">Error al cargar datos del comprobante.</div>`;
+        }
+    },
+
+    cerrarDrawer() {
+        const backdrop = this.element.querySelector('#payment-drawer-backdrop');
+        const drawer = this.element.querySelector('#payment-drawer');
+        if (backdrop) backdrop.classList.remove('show');
+        if (drawer) drawer.classList.remove('show');
+        this.state.activeDrawerId = null;
     },
 
     async mostrarDetalle(id, mode = 'preview') {
@@ -73,8 +176,7 @@ export const PagosRealizadosModule = {
                 this.renderGrid();
             }
         }
-    },
-
+    }
 };
 
 Object.assign(PagosRealizadosModule, PagosRealizadosData, PagosRealizadosTemplates, PagosRealizadosEvents);
