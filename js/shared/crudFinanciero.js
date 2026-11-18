@@ -446,7 +446,7 @@ export class CrudFinanciero {
 
                         <!-- TABLA DE FILAS INTELIGENTES -->
                         <div class="table-responsive position-relative">
-                            <div id="crud-loading-overlay" class="position-absolute top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center bg-white bg-opacity-75" style="z-index: 10; display: none;">
+                            <div id="crud-loading-overlay" class="position-absolute top-0 start-0 w-100 h-100 justify-content-center align-items-center bg-white bg-opacity-75" style="z-index: 10; display: none !important;">
                                 <div class="spinner-border ${esIngreso ? 'text-primary' : 'text-danger'}" role="status"><span class="visually-hidden">Cargando...</span></div>
                             </div>
                             <table class="table table-borderless align-middle mb-0 w-100">
@@ -777,7 +777,7 @@ export class CrudFinanciero {
         const overlay = element.querySelector('#crud-loading-overlay');
         const esIngreso = this.config.tipoFiltroDb === 'in';
 
-        if (overlay) overlay.style.display = 'flex';
+        if (overlay) overlay.style.setProperty('display', 'flex', 'important');
 
         try {
             // 1. Obtener IDs conciliados para estado
@@ -1075,7 +1075,7 @@ export class CrudFinanciero {
         } catch (error) {
             console.error("Error cargando tabla en CrudFinanciero:", error);
         } finally {
-            if (overlay) overlay.style.display = 'none';
+            if (overlay) overlay.style.setProperty('display', 'none', 'important');
         }
     }
 
