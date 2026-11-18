@@ -618,27 +618,8 @@ export const PrintManager = {
         `;
 
         const cleanTextMsg = [
-            `*ESTADO DE CUENTA - MAS ACCESORIOS*`,
-            `_Fecha: ${hoyStr}_`,
-            ``,
             `Estimado(a) *${cliente.nombre || 'cliente'}*, un cordial saludo.`,
-            `Le compartimos el estado consolidado de su saldo pendiente:`,
-            ``,
-            `• *Saldo Total Pendiente:* *${formatMoney(totalPorCobrar)}*`,
-            `• *Facturas Pendientes:* ${facturas.length}`,
-            ``,
-            `*MEDIOS DE PAGO AUTORIZADOS:*`,
-            `• *Bancolombia (Ahorros):* 54700050214`,
-            `  Titular: Diego M Izquierdo`,
-            `• *Nequi / DaviPlata:* 3158512091`,
-            `  Titular: Diego M Izquierdo`,
-            `• *Llave Bre-B / Transfiya:* @izquierdo638`,
-            `  (Transferencia inmediata desde cualquier banco)`,
-            ``,
-            `*Confirmar Pago:* Favor enviar el comprobante a este WhatsApp (3158512091) indicando el número de factura.`,
-            ``,
-            `Agradecemos regularizar el saldo pendiente a la mayor brevedad.`,
-            `¡Muchas gracias!`
+            `Le compartimos el estado consolidado de su saldo.`
         ].join('\n');
 
         this._renderPreviewShell(htmlContent, {
