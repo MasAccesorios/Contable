@@ -13,13 +13,37 @@ import { InventarioUtils } from '../../shared/inventarioUtils.js';
 import { EstadoUtils } from '../../shared/estadoUtils.js';
 import { escapeHtml } from '../../shared/formatters.js';
 
+import { ComprasData } from './compras.data.js';
+import { ComprasTemplates } from './compras.templates.js';
+import { ComprasEvents } from './compras.events.js';
+
 export const ComprasModule = {
     cache: { contactos: null, productos: null },
+    element: null,
+
+    state: {
+        sortColumn: 'numero',
+        sortDirection: 'desc',
+        currentPage: 1,
+        itemsPerPage: 10,
+        searchQuery: '',
+        filterCriteria: 'todos',
+        selectedTab: 'todas',
+        currentItems: [],
+        contactosMap: {},
+        totalItems: 0,
+        totalPages: 1,
+        kpis: {},
+        tabCounts: {},
+        activeDrawerId: null
+    },
     
     async init(element) {
         if (!element) return;
-
-        // Ya no cargamos catálogos completos (Fase 2)
+        this.element = element;
+        this.state.searchQuery = '';
+        this.state.currentPage = 1;
+        this.state.selectedTab = 'todas';
 
         const hashParts = window.location.hash.split('/');
         const action = hashParts[3];
@@ -34,8 +58,8 @@ export const ComprasModule = {
         }
     },
 
-
     async renderList(element) {
+        this.element = element;
         element.innerHTML = `
             <div class="d-flex justify-content-center align-items-center" style="min-height: 400px;">
                 <div class="spinner-border" role="status" style="width: 3rem; height: 3rem; color: var(--primary);">
@@ -43,554 +67,255 @@ export const ComprasModule = {
                 </div>
             </div>
         `;
-        
-        let contactosMap = {}; // Caché local a la página de facturas actual
-        
-        // Estado de Paginación, Ordenamiento y Filtro Server-Side
-        let sortColumn = 'numero';
-        let sortDirection = 'desc';
-        let currentPage = 1;
-        let itemsPerPage = 10;
-        let searchQuery = '';
-        let filterCriteria = 'todos';
-        
-        let currentItems = [];
-        let totalItems = 0;
-        let totalPages = 1;
-        const formatMoney = (val) => '$ ' + parseFloat(val || 0).toLocaleString('es-CO', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-        
-        let kpiDataCxp = null;
 
-        // PRELOAD KPIs just once
         try {
-            const { data: cxpData } = await supabase.rpc('get_cartera_con_saldos', { p_tipo_cartera: 'cxp' });
-            if (cxpData) {
-                let total = 0, vigente = 0, vencido = 0;
-                cxpData.forEach(f => {
-                    const saldo = parseFloat(f.saldo !== undefined ? f.saldo : f.total) || 0;
-                    total += saldo;
-                    let diasVencida = calcularDiasVencida(f.vencimiento);
-                    if (diasVencida >= 1) vencido += saldo;
-                    else vigente += saldo;
-                });
-                kpiDataCxp = { total, vigente, vencido };
-            } else {
-                kpiDataCxp = { total: 0, vigente: 0, vencido: 0 };
-            }
-        } catch(e) {
-            kpiDataCxp = { total: 0, vigente: 0, vencido: 0 };
-        }
+            // Cargar en paralelo KPIs y conteos de tabs
+            const [kpis, tabCounts] = await Promise.all([
+                ComprasData.fetchKpis(),
+                ComprasData.fetchTabCounts()
+            ]);
+            this.state.kpis = kpis;
+            this.state.tabCounts = tabCounts;
 
-        // DRAW STATIC SHELL
-        element.innerHTML = `
-                <div class="dash-layout p-4" style="max-width: 1100px; margin: 0 auto;">
-                    <!-- TOP BAR -->
-                    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
-                        <div>
-                            <div class="d-flex align-items-center gap-2">
-                                <h2 class="page-title mb-0">Facturas de Compra</h2>
-                                <span class="badge" style="background-color: #eff4ff; color: var(--primary); font-size: 11px; font-weight: 600; border-radius: 9999px; padding: 4px 10px;">
-                                    Gastos y Proveedores
-                                </span>
-                            </div>
-                            <p class="text-muted mb-0" style="font-size: var(--fs-md); margin-top: 3px;">
-                                Registro contable, trazabilidad de egresos y amortización a proveedores.
-                            </p>
-                        </div>
-                        <div class="d-flex flex-wrap gap-2">
-                            <a href="#" onclick="event.preventDefault(); window.history.length > 2 ? window.history.back() : window.location.hash = '#/dashboard';" class="btn btn-light bg-white border" style="font-weight: var(--weight-medium); font-size: var(--fs-md); color: var(--text-body); border-radius: var(--radius-md);">
-                                <span class="material-symbols-outlined text-[17px] me-1" style="vertical-align: text-bottom;">arrow_back</span> Volver
-                            </a>
-                            <button id="btn-refresh-list" class="btn btn-light bg-white border" style="font-weight: var(--weight-medium); font-size: var(--fs-md); color: var(--text-body); border-radius: var(--radius-md);">
-                                <span class="material-symbols-outlined text-[17px] me-1" style="vertical-align: text-bottom;">refresh</span> Actualizar
-                            </button>
-                            <button id="btn-export-list" class="btn btn-light bg-white border" style="font-weight: var(--weight-medium); font-size: var(--fs-md); color: var(--text-body); border-radius: var(--radius-md);">
-                                <span class="material-symbols-outlined text-[17px] me-1" style="vertical-align: text-bottom;">download</span> Exportar
-                            </button>
-                            <button id="btn-nueva-factura" class="btn btn-primary-action">
-                                <span class="material-symbols-outlined text-[18px] me-1" style="vertical-align: text-bottom;">add</span> Nueva factura
-                            </button>
-                        </div>
-                    </div>
+            // Renderizar Shell Estático
+            element.innerHTML = ComprasTemplates.renderShell(this.state.kpis, this.state.tabCounts, this.state.selectedTab, this.state.searchQuery);
 
-                    <!-- KPI CARDS COMPRAS -->
-                    <div class="row g-3 mb-4">
-                        <div class="col-12 col-sm-6 col-lg-4">
-                            <div class="ds-kpi-card">
-                                <div class="d-flex justify-content-between align-items-start mb-2">
-                                    <span class="ds-kpi-label">Total por Pagar</span>
-                                    <div class="dash-icon-box variant-blue" style="width: 32px; height: 32px; border-radius: 8px;">
-                                        <span class="material-symbols-outlined text-[18px]">payments</span>
-                                    </div>
-                                </div>
-                                <div class="ds-kpi-value tnum">$ ${formatMoney(kpiDataCxp.total).replace('$ ', '')}</div>
-                            </div>
-                        </div>
-                        <div class="col-12 col-sm-6 col-lg-4">
-                            <div class="ds-kpi-card">
-                                <div class="d-flex justify-content-between align-items-start mb-2">
-                                    <span class="ds-kpi-label">Cuentas Vigentes</span>
-                                    <div class="dash-icon-box variant-green" style="width: 32px; height: 32px; border-radius: 8px;">
-                                        <span class="material-symbols-outlined text-[18px]">check_circle</span>
-                                    </div>
-                                </div>
-                                <div class="ds-kpi-value tnum" style="color: var(--success);">$ ${formatMoney(kpiDataCxp.vigente).replace('$ ', '')}</div>
-                            </div>
-                        </div>
-                        <div class="col-12 col-sm-6 col-lg-4">
-                            <div class="ds-kpi-card">
-                                <div class="d-flex justify-content-between align-items-start mb-2">
-                                    <span class="ds-kpi-label">Cuentas Vencidas</span>
-                                    <div class="dash-icon-box" style="width: 32px; height: 32px; border-radius: 8px; background-color: #fef2f2; color: #dc2626;">
-                                        <span class="material-symbols-outlined text-[18px]">warning</span>
-                                    </div>
-                                </div>
-                                <div class="ds-kpi-value tnum" style="color: var(--danger);">$ ${formatMoney(kpiDataCxp.vencido).replace('$ ', '')}</div>
-                            </div>
-                        </div>
-                    </div>
+            // Enlazar eventos estáticos
+            ComprasEvents.bindStaticEvents(element, this);
 
-                    <!-- DATA TABLE CARD -->
-                    <div class="dash-table-container">
-                        <!-- FILTERS -->
-                        <div class="card-header bg-white border-bottom p-3 d-flex gap-3 align-items-center">
-                            <div class="ds-search-container" style="width: 250px;">
-                                <i class="bi bi-search ds-search-icon"></i>
-                                <input type="text" class="ds-search-input" id="searchCompras" placeholder="Buscar compras..." autocomplete="off">
-                            </div>
-                            <div class="dropdown">
-                                <button class="btn btn-link text-decoration-none text-muted p-0 dropdown-toggle" data-bs-toggle="dropdown" style="font-size: var(--fs-md);">
-                                    <i class="bi bi-funnel me-1"></i> Filtrar <span id="lbl-filtro-actual" style="font-size: var(--fs-sm); font-weight: 500; color: var(--primary);"></span>
-                                </button>
-                                <ul class="dropdown-menu shadow border-0" style="font-size: var(--fs-base);">
-                                    <li><a class="dropdown-item filter-opt" href="#" data-criteria="todos">Todos los campos</a></li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item filter-opt" href="#" data-criteria="numero">Por Número</a></li>
-                                    <li><a class="dropdown-item filter-opt" href="#" data-criteria="proveedor">Por Proveedor</a></li>
-                                    <li><a class="dropdown-item filter-opt" href="#" data-criteria="fecha">Por Fecha de creación</a></li>
-                                    <li><a class="dropdown-item filter-opt" href="#" data-criteria="estado">Por Estado</a></li>
-                                </ul>
-                            </div>
-                        </div>
+            // Cargar y renderizar primera página del grid
+            await this.renderGrid();
 
-                        <!-- GRID -->
-                        <div class="table-responsive">
-                            <table class="table table-borderless align-middle mb-0 text-nowrap">
-                                <thead id="compras-thead" style="background-color: #f8fafc; border-bottom: 1px solid var(--border-color);">
-                                    <tr>
-                                        <th class="py-2.5 px-3 fw-semibold text-uppercase sortable-header" data-column="numero" style="font-size: 11px; letter-spacing: 0.5px; color: var(--text-muted); cursor: pointer; user-select: none;">Número</th>
-                                        <th class="py-2.5 px-3 fw-semibold text-uppercase sortable-header" data-column="fecha" style="font-size: 11px; letter-spacing: 0.5px; color: var(--text-muted); cursor: pointer; user-select: none;">Creación</th>
-                                        <th class="py-2.5 px-3 fw-semibold text-uppercase" style="font-size: 11px; letter-spacing: 0.5px; color: var(--text-muted);">Vencimiento</th>
-                                        <th class="py-2.5 px-3 fw-semibold text-uppercase sortable-header" data-column="proveedor" style="font-size: 11px; letter-spacing: 0.5px; color: var(--text-muted); cursor: pointer; user-select: none;">Proveedor</th>
-                                        <th class="py-2.5 px-3 fw-semibold text-uppercase text-end" style="font-size: 11px; letter-spacing: 0.5px; color: var(--text-muted);">Total</th>
-                                        <th class="py-2.5 px-3 fw-semibold text-uppercase text-end" style="font-size: 11px; letter-spacing: 0.5px; color: var(--text-muted);">Pagado</th>
-                                        <th class="py-2.5 px-3 fw-semibold text-uppercase text-end" style="font-size: 11px; letter-spacing: 0.5px; color: var(--text-muted);">Por pagar</th>
-                                        <th class="py-2.5 px-3 fw-semibold text-uppercase text-center" style="font-size: 11px; letter-spacing: 0.5px; color: var(--text-muted);">Estado</th>
-                                        <th class="py-2.5 px-3 fw-semibold text-uppercase text-end" style="width: 80px; font-size: 11px; letter-spacing: 0.5px; color: var(--text-muted);"></th>
-                                    </tr>
-                                </thead>
-                                <tbody id="compras-tbody">
-                                </tbody>
-                            </table>
-                        </div>
-
-                        <!-- PAGINATION FOOTER -->
-                        <div class="card-footer bg-white border-top p-3 d-flex justify-content-between align-items-center" style="border-radius: 0 0 var(--border-radius-sm) var(--border-radius-sm);" id="compras-footer">
-                        </div>
-                    </div>
+            return () => {
+                ComprasEvents.cleanup();
+            };
+        } catch (err) {
+            console.error('[ComprasModule] Error en renderList:', err);
+            element.innerHTML = `
+                <div class="alert alert-danger m-4" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i> Error al cargar Facturas de Compra: ${escapeHtml(err.message)}
                 </div>
-        `;
+            `;
+        }
+    },
 
-        const tbodyElement = element.querySelector('#compras-tbody');
-        const theadElement = element.querySelector('#compras-thead');
-        const footerElement = element.querySelector('#compras-footer');
-        const filterLbl = element.querySelector('#lbl-filtro-actual');
+    async renderGrid() {
+        if (!this.element) return;
+        const tbody = this.element.querySelector('#compras-tbody');
+        const footer = this.element.querySelector('#compras-footer');
+        const thead = this.element.querySelector('#compras-thead');
+        if (!tbody) return;
 
-        const updateSortHeaders = () => {
-            theadElement.querySelectorAll('.sortable-header').forEach(th => {
+        // Actualizar indicadores visuales de ordenamiento
+        if (thead) {
+            thead.querySelectorAll('.sortable-header').forEach(th => {
                 const col = th.dataset.column;
                 let text = th.innerText.replace(' ▲', '').replace(' ▼', '');
-                if (sortColumn === col) {
-                    text += sortDirection === 'asc' ? ' ▲' : ' ▼';
+                if (this.state.sortColumn === col) {
+                    text += this.state.sortDirection === 'asc' ? ' ▲' : ' ▼';
                 }
                 th.innerText = text;
             });
-        };
+        }
 
-        const renderGrid = async () => {
-            // Spinner while loading
-            tbodyElement.innerHTML = `<tr><td colspan="9" class="text-center py-5"><div class="spinner-border spinner-border-sm text-primary"></div> Cargando...</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="9" class="text-center py-5"><div class="spinner-border spinner-border-sm text-primary"></div> Cargando datos...</td></tr>`;
 
-            updateSortHeaders();
-            filterLbl.innerText = filterCriteria !== 'todos' ? `(${filterCriteria})` : '';
+        try {
+            const { items, totalItems, contactosMap } = await ComprasData.fetchComprasPage({
+                page: this.state.currentPage,
+                limit: this.state.itemsPerPage,
+                sortCol: this.state.sortColumn,
+                sortDir: this.state.sortDirection,
+                search: this.state.searchQuery,
+                filterCriteria: this.state.filterCriteria,
+                tab: this.state.selectedTab
+            });
 
-            try {
-                const { data: pageData, error } = await supabase.rpc('get_facturas_con_saldos', {
-                    p_page: currentPage,
-                    p_limit: itemsPerPage,
-                    p_sort_col: sortColumn,
-                    p_sort_dir: sortDirection,
-                    p_search: searchQuery,
-                    p_filter_criteria: filterCriteria,
-                    p_tipo: 'compra'
-                });
-                
-                if (error) throw error;
-                
-                totalItems = pageData && pageData.length > 0 ? pageData[0].total_count : 0;
-                totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
-                
-                if (currentPage > totalPages && totalPages > 0) {
-                    currentPage = totalPages;
-                    return renderGrid();
-                }
+            this.state.currentItems = items;
+            this.state.totalItems = totalItems;
+            this.state.totalPages = Math.ceil(totalItems / this.state.itemsPerPage) || 1;
+            Object.assign(this.state.contactosMap, contactosMap);
 
-                // Resolver nombres de proveedores dinámicamente para la página actual
-                const contactoIds = pageData.map(c => c.proveedorId || c.contacto_id || c.contactoId).filter(Boolean);
-                if (contactoIds.length > 0) {
-                    const { data: cdata } = await supabase.from('contactos').select('id, nombre').in('id', contactoIds);
-                    if (cdata) cdata.forEach(c => contactosMap[c.id] = c.nombre);
-                }
+            tbody.innerHTML = ComprasTemplates.renderGrid(
+                this.state.currentItems,
+                this.state.contactosMap,
+                this.state.sortColumn,
+                this.state.sortDirection
+            );
 
-                currentItems = pageData.map(f => {
-                    // El RPC ya devuelve estado_dinamico, saldo_pendiente y total_pagado
-                    return { ...f, estado: f.estado_dinamico, saldoPendiente: f.saldo_pendiente, totalPagado: f.total_pagado };
-                });
-            } catch (err) {
-                console.error(err);
-                tbodyElement.innerHTML = `<tr><td colspan="9" class="text-center py-5 text-danger">Error al cargar datos</td></tr>`;
-                return;
+            if (footer) {
+                footer.innerHTML = ComprasTemplates.renderPagination(
+                    this.state.totalItems,
+                    this.state.currentPage,
+                    this.state.itemsPerPage,
+                    this.state.totalPages
+                );
             }
 
-            const tbodyHtml = currentItems.length > 0 ? currentItems.map(c => {
-                const estado = c.estado || 'por_pagar';
-                let labelEstado = '';
-                let badgeClass = '';
-                
-                let isVencida = false;
-                if (c.vencimiento) {
-                    const vDate = new Date(c.vencimiento);
-                    const hoy = new Date();
-                    hoy.setHours(0,0,0,0);
-                    if (vDate < hoy) isVencida = true;
-                }
-                
-                if (estado === 'anulada' || estado === 'voided' || estado === 'void') {
-                    labelEstado = 'Anulada';
-                    badgeClass = 'badge-stitch-anulado';
-                } else if (c.saldoPendiente <= 0) {
-                    labelEstado = 'Pagada';
-                    badgeClass = 'badge-stitch-cobrado';
-                } else if (isVencida) {
-                    labelEstado = 'Vencida';
-                    badgeClass = 'badge-stitch-vencido';
-                } else {
-                    labelEstado = 'Por pagar';
-                    badgeClass = 'badge-stitch-pendiente';
-                }
+            // Enlazar eventos dinámicos en filas y paginador
+            ComprasEvents.bindDynamicEvents(this.element, this);
 
-                const numDisplay = c.numero || parseInt(String(c.id).replace(/\D/g, ''), 10) || c.id;
-                const rowOpacity = (estado === 'anulada' || estado === 'voided' || estado === 'void') ? '0.5' : '1';
-                
-                return `
-                    <tr style="cursor: pointer; border-bottom: 1px solid var(--border-color); font-size: 13.5px; color: var(--text-body); opacity: ${rowOpacity}; transition: background-color 0.15s ease;" onclick="if(!event.target.closest('button')) window.location.hash = '#/gastos/proveedores/ver/${c.id}'">
-                        <td class="py-2.5 px-3 fw-semibold text-primary" style="white-space: nowrap;">${numDisplay}</td>
-                        <td class="py-2.5 px-3 tnum text-muted" style="white-space: nowrap;">${c.fecha || ''}</td>
-                        <td class="py-2.5 px-3 tnum ${isVencida && c.saldoPendiente > 0 ? 'text-danger fw-semibold' : 'text-muted'}" style="white-space: nowrap;">${c.vencimiento || ''}</td>
-                        <td class="py-2.5 px-3" style="color: var(--text-main); font-weight: var(--weight-medium); max-width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(contactosMap[c.proveedorId || c.contacto_id || c.contactoId]) || 'Sin Proveedor'}</td>
-                        <td class="py-2.5 px-3 text-end tnum cell-numeric" style="white-space: nowrap;">${formatMoney(c.total)}</td>
-                        <td class="py-2.5 px-3 text-end tnum cell-numeric text-muted" style="white-space: nowrap;">${formatMoney(c.totalPagado)}</td>
-                        <td class="py-2.5 px-3 text-end tnum cell-numeric fw-bold text-dark" style="white-space: nowrap;">${formatMoney(c.saldoPendiente)}</td>
-                        <td class="py-2.5 px-3 text-center">
-                            <span class="badge ${badgeClass} rounded-pill fw-semibold" style="font-size: 11px; padding: 4px 10px;">${labelEstado}</span>
-                        </td>
-                        <td class="py-2.5 px-3 text-end" style="position: relative; white-space: nowrap;">
-                            <button class="btn btn-link text-muted p-1 me-1 btn-imprimir-row" data-id="${c.id}" title="Imprimir">
-                                <span class="material-symbols-outlined text-[18px]">print</span>
-                            </button>
-                            <button class="btn btn-link text-muted p-1 btn-menu-row" data-id="${c.id}" title="Opciones">
-                                <span class="material-symbols-outlined text-[18px]">more_vert</span>
-                            </button>
-                        </td>
-                    </tr>
-                `;
-            }).join('') : `<tr><td colspan="9" class="text-center py-5 text-muted">No se encontraron facturas</td></tr>`;
+        } catch (err) {
+            console.error('[ComprasModule] Error en renderGrid:', err);
+            tbody.innerHTML = `<tr><td colspan="9" class="text-center py-5 text-danger"><i class="bi bi-exclamation-triangle me-1"></i> Error al cargar facturas</td></tr>`;
+        }
+    },
 
-            tbodyElement.innerHTML = tbodyHtml;
+    async refreshAll() {
+        const [kpis, tabCounts] = await Promise.all([
+            ComprasData.fetchKpis(),
+            ComprasData.fetchTabCounts()
+        ]);
+        this.state.kpis = kpis;
+        this.state.tabCounts = tabCounts;
 
-            const startIndex = (currentPage - 1) * itemsPerPage;
-            footerElement.innerHTML = `
-                <div class="d-flex align-items-center gap-3" style="font-size: var(--fs-base); color: var(--text-body);">
-                    <div class="d-flex align-items-center gap-2">
-                        <span>Resultados por página:</span>
-                        <select class="form-select form-select-sm text-muted" id="select-per-page" style="width: 70px;">
-                            <option value="10" ${itemsPerPage===10?'selected':''}>10</option>
-                            <option value="20" ${itemsPerPage===20?'selected':''}>20</option>
-                            <option value="50" ${itemsPerPage===50?'selected':''}>50</option>
-                            <option value="100" ${itemsPerPage===100?'selected':''}>100</option>
-                        </select>
-                    </div>
-                    <span class="text-muted border-start ps-3">${totalItems > 0 ? startIndex + 1 : 0}-${Math.min(startIndex + itemsPerPage, totalItems)} de ${totalItems}</span>
-                </div>
+        const fmtMoney = (v) => ComprasTemplates.formatMoney(v).replace('$ ', '');
 
-                <div class="d-flex align-items-center gap-2" style="font-size: var(--fs-base); color: var(--text-body);">
-                    <span>Página</span>
-                    <input type="number" id="input-page" class="form-control form-control-sm text-center text-muted" value="${currentPage}" min="1" max="${totalPages}" style="width: 50px;">
-                    <span>de ${totalPages}</span>
-                    <div class="ms-2">
-                        <button class="btn btn-link text-muted p-0 me-1" id="btn-prev-page" ${currentPage === 1 ? 'disabled' : ''}><i class="bi bi-chevron-left"></i></button>
-                        <button class="btn btn-link text-muted p-0" id="btn-next-page" ${currentPage === totalPages ? 'disabled' : ''}><i class="bi bi-chevron-right"></i></button>
-                    </div>
+        // Actualizar badges de tabs si existen en el DOM
+        if (this.element) {
+            const tabTodas = this.element.querySelector('#tab-count-todas');
+            if (tabTodas) tabTodas.textContent = tabCounts.todas || 0;
+            const tabPorPagar = this.element.querySelector('#tab-count-por-pagar');
+            if (tabPorPagar) tabPorPagar.textContent = tabCounts.por_pagar || 0;
+            const tabVencidas = this.element.querySelector('#tab-count-vencidas');
+            if (tabVencidas) tabVencidas.textContent = tabCounts.vencidas || 0;
+            const tabPagadas = this.element.querySelector('#tab-count-pagadas');
+            if (tabPagadas) tabPagadas.textContent = tabCounts.pagadas || 0;
+            const tabAnuladas = this.element.querySelector('#tab-count-anuladas');
+            if (tabAnuladas) tabAnuladas.textContent = tabCounts.anuladas || 0;
+
+            const elPorPagar = this.element.querySelector('#kpi-cxp-por-pagar');
+            if (elPorPagar) elPorPagar.textContent = '$ ' + fmtMoney(kpis.totalPorPagar);
+            const elPorPagarSub = this.element.querySelector('#kpi-cxp-por-pagar-sub');
+            if (elPorPagarSub) elPorPagarSub.innerHTML = `<span class="fw-semibold text-dark">${kpis.conteoPorPagar || 0}</span> facturas pendientes`;
+
+            const elVencidas = this.element.querySelector('#kpi-cxp-vencidas');
+            if (elVencidas) elVencidas.textContent = '$ ' + fmtMoney(kpis.cuentasVencidas);
+            const elVencidasSub = this.element.querySelector('#kpi-cxp-vencidas-sub');
+            if (elVencidasSub) {
+                elVencidasSub.innerHTML = kpis.cuentasVencidas > 0 
+                    ? `<span class="badge bg-danger-subtle text-danger border border-danger-subtle px-1.5 py-0.5 rounded">${kpis.conteoVencidas || 0} en mora</span>` 
+                    : '<span class="text-success"><i class="bi bi-check-circle me-1"></i>Sin saldos vencidos</span>';
+            }
+
+            const elVigentes = this.element.querySelector('#kpi-cxp-vigentes');
+            if (elVigentes) elVigentes.textContent = '$ ' + fmtMoney(kpis.cuentasVigentes);
+            const elVigentesSub = this.element.querySelector('#kpi-cxp-vigentes-sub');
+            if (elVigentesSub) elVigentesSub.innerHTML = `<span class="fw-semibold text-dark">${kpis.conteoVigentes || 0}</span> facturas al día`;
+
+            const elPagado = this.element.querySelector('#kpi-cxp-pagado');
+            if (elPagado) elPagado.textContent = '$ ' + fmtMoney(kpis.totalPagado);
+            const elPagadoSub = this.element.querySelector('#kpi-cxp-pagado-sub');
+            if (elPagadoSub) elPagadoSub.innerHTML = `<span class="badge bg-primary-subtle text-primary border border-primary-subtle px-1.5 py-0.5 rounded">${kpis.porcentajeAmortizado || 0}% liquidado</span>`;
+        }
+
+        await this.renderGrid();
+    },
+
+    async mostrarDrawer(id) {
+        const drawer = document.getElementById('compras-drawer');
+        const backdrop = document.getElementById('compras-drawer-backdrop');
+        const drawerBody = document.getElementById('compras-drawer-body');
+        const drawerFooter = document.getElementById('compras-drawer-footer');
+
+        if (!drawer || !backdrop || !drawerBody || !drawerFooter) return;
+
+        this.state.activeDrawerId = id;
+        backdrop.classList.add('show');
+        drawer.classList.add('show');
+
+        // Limpieza defensiva del contenido previo
+        drawerBody.innerHTML = `
+            <div class="d-flex flex-column align-items-center justify-content-center py-5">
+                <div class="spinner-border text-primary mb-2" role="status" style="width: 2.5rem; height: 2.5rem;"></div>
+                <span class="text-muted" style="font-size: 13px;">Cargando información contable...</span>
+            </div>
+        `;
+        drawerFooter.innerHTML = '';
+
+        try {
+            const data = await ComprasData.fetchFacturaDetalleDrawer(id);
+
+            drawerBody.innerHTML = ComprasTemplates.renderDrawerContent(data);
+            drawerFooter.innerHTML = ComprasTemplates.renderDrawerFooter({
+                fac: data.fac,
+                isPagada: data.saldoPendiente <= 0,
+                isAnulada: (data.fac.estado || '').toLowerCase() === 'anulada' || (data.fac.estado || '').toLowerCase() === 'void',
+                saldoPendiente: data.saldoPendiente
+            });
+
+            ComprasEvents.bindDrawerEvents(drawerFooter, drawerBody, this, data);
+        } catch (err) {
+            console.error('[ComprasModule] Error al abrir drawer:', err);
+            drawerBody.innerHTML = `
+                <div class="alert alert-danger" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i> Error al cargar detalle: ${escapeHtml(err.message)}
                 </div>
             `;
+            drawerFooter.innerHTML = `<button type="button" class="btn btn-light border" onclick="document.getElementById('btn-close-drawer').click()">Cerrar</button>`;
+        }
+    },
 
-            bindDynamicEvents();
-        };
+    cerrarDrawer() {
+        const drawer = document.getElementById('compras-drawer');
+        const backdrop = document.getElementById('compras-drawer-backdrop');
+        if (drawer) drawer.classList.remove('show');
+        if (backdrop) backdrop.classList.remove('show');
+        this.state.activeDrawerId = null;
+    },
 
-        const bindStaticEvents = () => {
-            const searchInput = element.querySelector('#searchCompras');
-            const clearBtn = element.querySelector('#clearSearchBtnCompras');
-            let debounceTimer;
+    async imprimirDocumento(id) {
+        try {
+            const doc = await DB.get('facturas', id);
+            if (!doc) throw new Error('No se pudo encontrar el documento');
 
-            if (searchInput && clearBtn) {
-                searchInput.addEventListener('input', (e) => {
-                    const val = e.target.value;
-                    if (val.length > 0) clearBtn.classList.remove('d-none');
-                    else clearBtn.classList.add('d-none');
+            const pIds = (doc.detalles || []).map(d => parseInt(d.productoId, 10)).filter(p => !isNaN(p) && p > 0);
+            const contactId = doc.clienteId || doc.proveedorId || doc.contacto_id;
 
-                    clearTimeout(debounceTimer);
-                    debounceTimer = setTimeout(() => {
-                        searchQuery = val.toLowerCase().trim();
-                        currentPage = 1;
-                        renderGrid();
-                    }, 400);
-                });
+            const [cRes, pRes] = await Promise.all([
+                contactId ? supabase.from('contactos').select('*').eq('id', contactId) : Promise.resolve({ data: [] }),
+                pIds.length > 0 ? supabase.from('productos').select('*').in('id', pIds) : Promise.resolve({ data: [] })
+            ]);
 
-                clearBtn.addEventListener('click', () => {
-                    searchInput.value = '';
-                    clearBtn.classList.add('d-none');
-                    searchInput.focus();
-                    searchQuery = '';
-                    currentPage = 1;
-                    renderGrid();
-                });
+            const cList = (cRes.data || []).map(c => DB._mapToFrontend('contactos', c));
+            const pList = (pRes.data || []).map(p => DB._mapToFrontend('productos', p));
+            PrintManager.printDocument(doc, 'Factura de Compra', cList, pList);
+        } catch (err) {
+            console.error('[ComprasModule] Error al imprimir:', err);
+            CoreActions.showWarningModal('Error al imprimir factura: ' + err.message);
+        }
+    },
+            PrintManager.printDocument(doc, 'Factura de Compra', cList, pList);
+        } catch (err) {
+            console.error('[ComprasModule] Error al imprimir:', err);
+            CoreActions.showWarningModal('Error al imprimir factura: ' + err.message);
+        }
+    },
+
+    async anularFactura(id) {
+        try {
+            const result = await ComprasData.anularCompra(id);
+            if (result && result.alreadyAnnulled) {
+                CoreActions.showWarningModal('Esta factura ya se encuentra anulada.');
+                return;
             }
+            CoreActions.showSuccessModal('Factura de compra anulada e inventario revertido con éxito.');
+            await this.refreshAll();
+        } catch (error) {
+            console.error('[ComprasModule] Error al anular factura de compra:', error);
+            CoreActions.showWarningModal('Error crítico al anular: ' + error.message);
+        }
+    },
 
-            // Ordenamiento por Columnas
-            element.querySelectorAll('.sortable-header').forEach(header => {
-                header.addEventListener('click', (e) => {
-                    const col = e.currentTarget.dataset.column;
-                    if (sortColumn === col) {
-                        sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
-                    } else {
-                        sortColumn = col;
-                        sortDirection = 'desc';
-                    }
-                    renderGrid();
-                });
-            });
-
-            // Cambiar Criterio de Filtro
-            element.querySelectorAll('.filter-opt').forEach(opt => {
-                opt.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    filterCriteria = e.target.dataset.criteria;
-                    currentPage = 1;
-                    renderGrid();
-                });
-            });
-
-            // Crear Factura
-            const btnNuevaFactura = element.querySelector('#btn-nueva-factura');
-            if (btnNuevaFactura) {
-                btnNuevaFactura.addEventListener('click', () => {
-                    window.location.hash = '#/gastos/proveedores/nueva';
-                });
-            }
-
-            // Exportar Lista a CSV
-            const btnExportList = element.querySelector('#btn-export-list');
-            if (btnExportList) {
-                btnExportList.addEventListener('click', async (e) => {
-                    const btn = e.currentTarget;
-                    const originalHtml = btn.innerHTML;
-                    btn.disabled = true;
-                    btn.innerHTML = `<span class="spinner-border spinner-border-sm" aria-hidden="true"></span> Generando...`;
-                    
-                    try {
-                        const { data: allFiltered, error } = await supabase.rpc('get_facturas_con_saldos', {
-                            p_page: 1,
-                            p_limit: 10000,
-                            p_sort_col: sortColumn,
-                            p_sort_dir: sortDirection,
-                            p_search: searchQuery,
-                            p_filter_criteria: filterCriteria,
-                            p_tipo: 'compra'
-                        });
-                        if (error) throw error;
-                        
-                        const allDecorated = allFiltered.map(f => {
-                            return { 
-                                ...f, 
-                                estado: f.estado_dinamico, 
-                                saldoPendiente: f.saldo_pendiente, 
-                                totalPagado: f.total_pagado,
-                                cliente_id: f.contacto_id || f.proveedorId || f.contactoId
-                            };
-                        });
-                        
-                        const exportIds = allFiltered.map(c => c.proveedorId || c.contacto_id || c.contactoId).filter(Boolean);
-                        let exportMap = {};
-                        if (exportIds.length > 0) {
-                            const { data: edata } = await supabase.from('contactos').select('id, nombre').in('id', exportIds);
-                            if (edata) edata.forEach(c => exportMap[c.id] = c.nombre);
-                        }
-                        const getExportName = (id) => exportMap[id] || 'Sin Proveedor';
-
-                        btn.innerHTML = originalHtml;
-                        btn.disabled = false;
-
-                        ExportManager.exportDataToExcel(allDecorated, 'Facturas_Compras', getExportName, btn);
-                    } catch(err) { 
-                        console.error(err); 
-                        btn.innerHTML = originalHtml;
-                        btn.disabled = false;
-                    }
-                });
-            }
-
-            // Actualizar Caché
-            const btnRefreshList = element.querySelector('#btn-refresh-list');
-            if (btnRefreshList) {
-                btnRefreshList.addEventListener('click', async (e) => {
-                    const btn = e.currentTarget;
-                    const originalHtml = btn.innerHTML;
-                    btn.disabled = true;
-                    btn.innerHTML = `<span class="spinner-border spinner-border-sm" aria-hidden="true"></span>`;
-                    
-                    await renderGrid();
-                    
-                    btn.innerHTML = originalHtml;
-                    btn.disabled = false;
-                });
-            }
-        };
-
-        const bindDynamicEvents = () => {
-            // Paginación
-            element.querySelector('#select-per-page')?.addEventListener('change', (e) => {
-                itemsPerPage = parseInt(e.target.value);
-                currentPage = 1;
-                renderGrid();
-            });
-
-            element.querySelector('#input-page')?.addEventListener('change', (e) => {
-                let val = parseInt(e.target.value) || 1;
-                currentPage = val;
-                renderGrid();
-            });
-
-            element.querySelector('#btn-prev-page')?.addEventListener('click', () => {
-                if (currentPage > 1) { currentPage--; renderGrid(); }
-            });
-
-            element.querySelector('#btn-next-page')?.addEventListener('click', () => {
-                if (currentPage < totalPages) { currentPage++; renderGrid(); }
-            });
-
-            // Row Menu Actions (Popovers Flotantes)
-            element.querySelectorAll('.btn-menu-row').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const existing = document.querySelector('.row-action-menu');
-                    if (existing) existing.remove();
-
-                    const id = e.currentTarget.dataset.id;
-                    const rect = e.currentTarget.getBoundingClientRect();
-
-                    const factData = currentItems.find(f => f.id == id);
-                    const canAbonar = factData && factData.estado !== 'pagada' && !EstadoUtils.estaAnulado(factData.estado);
-                    const isAnulada = factData && EstadoUtils.estaAnulado(factData.estado);
-                    
-                    const menuHtml = `
-                        <div class="row-action-menu position-absolute bg-white shadow rounded border py-2" 
-                             style="z-index: 1060; width: 150px; top: ${rect.bottom + window.scrollY}px; left: ${rect.left - 100}px;">
-                            ${canAbonar ? `
-                            <a href="#" class="d-block px-3 py-1 text-decoration-none btn-abonar-factura" data-id="${id}" data-saldo="${factData.saldoPendiente}" style="color: var(--success); font-size: var(--fs-base);">
-                                <i class="bi bi-wallet2 me-2"></i> Registrar Pago
-                            </a>
-                            <hr class="dropdown-divider my-1">` : ''}
-                            ${!isAnulada ? `
-                            <a href="#/gastos/proveedores/editar/${id}" class="d-block px-3 py-1 text-decoration-none" style="color: var(--text-body); font-size: var(--fs-base);">
-                                <i class="bi bi-pencil me-2"></i> Editar
-                            </a>
-                            <a href="#" class="d-block px-3 py-1 text-decoration-none mt-1 btn-delete-row" data-id="${id}" style="color: var(--danger); font-size: var(--fs-base);">
-                                <i class="bi bi-x-circle me-2"></i> Anular
-                            </a>` : `
-                            <a href="#/gastos/proveedores/ver/${id}" class="d-block px-3 py-1 text-decoration-none" style="color: var(--text-body); font-size: var(--fs-base);">
-                                <i class="bi bi-eye me-2"></i> Ver Detalles
-                            </a>`}
-                        </div>
-                    `;
-                    document.body.insertAdjacentHTML('beforeend', menuHtml);
-
-                    const menu = document.querySelector('.row-action-menu');
-                    
-                    if (canAbonar) {
-                        menu.querySelector('.btn-abonar-factura').addEventListener('click', (ev) => {
-                            ev.preventDefault();
-                            const facId = ev.currentTarget.dataset.id;
-                            menu.remove();
-                            AbonoModal.show(facId, () => {
-                                renderGrid(); // Recargar grid para reflejar estado
-                            });
-                        });
-                    }
-
-                    if (!isAnulada) {
-                        menu.querySelector('.btn-delete-row').addEventListener('click', async (ev) => {
-                            ev.preventDefault();
-                            if (confirm('¿Estás seguro de anular esta factura de compra? Se revertirá el inventario ingresado.')) {
-                                menu.remove();
-
-                                try {
-                                    const { anularFacturaCompra } = await import('../../shared/anularCompraUtils.js');
-                                    const result = await anularFacturaCompra(id, { DB, EstadoUtils, InventarioUtils, supabase, CoreActions });
-
-                                    if (result.alreadyAnnulled) {
-                                        CoreActions.showWarningModal("Esta factura ya se encuentra anulada.");
-                                        return;
-                                    }
-
-                                    CoreActions.showSuccessModal('Factura de compra anulada e inventario revertido con éxito.');
-                                    await renderGrid();
-                                } catch (error) {
-                                    console.error("Error al anular factura de compra:", error);
-                                    CoreActions.showWarningModal("Error crítico al anular: " + error.message);
-                                }
-                            }
-                        });
-                    }
-                });
-            });
-
-            // Imprimir rápido
-            element.querySelectorAll('.btn-imprimir-row').forEach(btn => {
-                btn.addEventListener('click', async (e) => {
-                    e.stopPropagation();
-                    const id = e.currentTarget.dataset.id;
-                    const doc = await DB.get('facturas', id);
-                    if (doc) {
-                        const { data: cList } = await supabase.from('contactos').select('*').limit(2000);
-                        const { data: pList } = await supabase.from('productos').select('*').limit(2000);
-                        PrintManager.printDocument(doc, 'Factura de Compra', cList, pList);
-                    }
-                });
-            });
-        };
-
-        bindStaticEvents();
-        await renderGrid();
+    async exportarExcel(btn) {
+        await ComprasData.exportarExcel({
+            sortCol: this.state.sortColumn,
+            sortDir: this.state.sortDirection,
+            search: this.state.searchQuery,
+            filterCriteria: this.state.filterCriteria,
+            tab: this.state.selectedTab,
+            btn
+        });
     },
 
     async renderForm(element, id = null, isViewOnly = false) {
@@ -677,7 +402,7 @@ export const ComprasModule = {
                 <div class="d-flex justify-content-between align-items-start mb-4">
                     <div>
                         ${headerHtml}
-                        <h2 class="h3 fw-bold mb-0" style="color: var(--text-main);">${id ? 'Factura No. ' + factura.numero : 'Nueva factura'}</h2>
+                        <h2 class="h3 fw-bold mb-0" style="color: var(--text-main);">${id ? 'Factura No. ' + escapeHtml(String(factura.numero || '')) : 'Nueva factura'}</h2>
                     </div>
                     <div class="d-flex align-items-center gap-2">
                         ${isViewOnly && id && factura.estado !== 'pagada' && !EstadoUtils.estaAnulado(factura.estado) ? 
@@ -702,7 +427,7 @@ export const ComprasModule = {
                                     <option>Factura de Compra</option>
                                 </select>
                                 <div class="d-flex justify-content-center justify-content-md-end align-items-center text-muted" style="font-size: var(--fs-md);">
-                                    <span id="lbl-numero">No. <strong style="color: var(--text-main);">${factura.numero || '[Autogenerado al guardar]'}</strong></span>
+                                    <span id="lbl-numero">No. <strong style="color: var(--text-main);">${escapeHtml(String(factura.numero || '[Autogenerado al guardar]'))}</strong></span>
                                     ${!isViewOnly ? `<i class="bi bi-gear ms-2" id="btn-config-num" style="cursor: pointer;"></i>` : ''}
                                 </div>
                             </div>
@@ -821,8 +546,8 @@ export const ComprasModule = {
                                         ${(transacciones && transacciones.length > 0) ? transacciones.map(p => `
                                         <tr style="border-bottom: 1px solid #f0f0f0;">
                                             <td class="py-2 text-muted">${p.fecha || p.created_at?.split('T')[0] || ''}</td>
-                                            <td class="py-2">${p.cuentaId || p.cuenta_id || '-'}</td>
-                                            <td class="py-2">${p.metodo_pago || p.metodoPago || '-'}</td>
+                                            <td class="py-2">${escapeHtml(String(p.cuentaId || p.cuenta_id || '-'))}</td>
+                                            <td class="py-2">${escapeHtml(String(p.metodo_pago || p.metodoPago || '-'))}</td>
                                             <td class="py-2 text-end fw-medium">$${Number(p.monto || p.valor || 0).toLocaleString()}</td>
                                         </tr>`).join('') : `
                                         <tr><td colspan="4" class="text-muted text-center py-4">No hay pagos registrados para esta factura</td></tr>
@@ -834,7 +559,7 @@ export const ComprasModule = {
                         
                         ${factura.cotizacion_origen_id ? `
                         <div class="tab-pane fade" id="tab-cotizacion" role="tabpanel">
-                            <div class="card border border-light shadow-sm" style="max-width:300px; cursor:pointer;" onclick="sessionStorage.setItem('origenVolver', JSON.stringify({hash: '#/gastos/proveedores/ver/${factura.id}', label: 'Volver a la factura'})); window.location.hash='#/ingresos/cotizaciones/ver/${factura.cotizacion_origen_id}'">
+                            <div class="card border border-light shadow-sm btn-nav-cotizacion" data-fac-id="${encodeURIComponent(factura.id)}" data-cot-id="${encodeURIComponent(factura.cotizacion_origen_id)}" style="max-width:300px; cursor:pointer;">
                                 <div class="card-body py-3 px-3 d-flex justify-content-between align-items-center">
                                     <div>
                                         <small class="text-muted d-block" style="font-size: var(--fs-xs);">Ver documento origen</small>
@@ -1178,6 +903,15 @@ export const ComprasModule = {
         // Inicializar UI
         factura.detalles.forEach(det => addRow(det));
         calcEngine(); // Primer cálculo
+        element.querySelector('.btn-nav-cotizacion')?.addEventListener('click', (e) => {
+            const card = e.currentTarget;
+            sessionStorage.setItem('origenVolver', JSON.stringify({
+                hash: '#/gastos/proveedores/ver/' + card.dataset.facId,
+                label: 'Volver a la factura'
+            }));
+            window.location.hash = '#/ingresos/cotizaciones/ver/' + card.dataset.cotId;
+        });
+
 
         if (!isViewOnly) {
             window.hayCambiosSinGuardar = false;
@@ -1206,7 +940,7 @@ export const ComprasModule = {
                         <div class="modal-body">
                             <div class="mb-3">
                                 <label class="form-label text-muted small">Nombre del Producto</label>
-                                <input type="text" id="cp-nombre" class="form-control" value="${query}">
+                                <input type="text" id="cp-nombre" class="form-control" value="${escapeHtml(query || '')}">
                             </div>
                             <div class="row mb-3">
                                 <div class="col-6">
