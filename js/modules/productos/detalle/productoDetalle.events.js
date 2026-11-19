@@ -29,7 +29,37 @@ export const ProductoDetalleEvents = {
             };
         }
 
-        // 3. Tab de Kardex Continuo Embebido
+        // 3. Pestañas del Hub Principal (soporte visual y alternancia activa)
+        const tabButtons = element.querySelectorAll('#tabs-producto-principal button[data-bs-toggle="tab"]');
+        if (tabButtons && tabButtons.length > 0) {
+            tabButtons.forEach(btn => {
+                const switchTabVisuals = () => {
+                    tabButtons.forEach(b => {
+                        b.classList.remove('active', 'fw-bold', 'border-bottom', 'border-primary', 'border-2', 'text-primary');
+                        b.classList.add('fw-semibold', 'text-muted');
+                    });
+                    btn.classList.remove('text-muted', 'fw-semibold');
+                    btn.classList.add('active', 'fw-bold', 'border-bottom', 'border-primary', 'border-2', 'text-primary');
+
+                    const targetSel = (typeof btn.getAttribute === 'function' ? btn.getAttribute('data-bs-target') : null) || btn.dataset?.bsTarget;
+                    if (targetSel) {
+                        const panes = element.querySelectorAll('#tabs-producto-content .tab-pane');
+                        panes.forEach(p => p.classList.remove('show', 'active'));
+                        const targetPane = element.querySelector(targetSel);
+                        if (targetPane) {
+                            targetPane.classList.add('show', 'active');
+                        }
+                    }
+                };
+
+                if (typeof btn.addEventListener === 'function') {
+                    btn.addEventListener('shown.bs.tab', switchTabVisuals);
+                    btn.addEventListener('click', switchTabVisuals);
+                }
+            });
+        }
+
+        // 4. Tab de Kardex Continuo Embebido
         const tabKardexBtn = element.querySelector('#tab-kardex-btn');
         if (tabKardexBtn) {
             tabKardexBtn.onclick = async (e) => {
@@ -52,7 +82,7 @@ export const ProductoDetalleEvents = {
             };
         }
 
-        // 4. Filtro de Lotes ('todos' | 'activos' | 'agotados')
+        // 5. Filtro de Lotes ('todos' | 'activos' | 'agotados')
         const filtroGroup = element.querySelector('#filtro-lotes-group');
         if (filtroGroup) {
             const buttons = filtroGroup.querySelectorAll('button[data-filtro]');

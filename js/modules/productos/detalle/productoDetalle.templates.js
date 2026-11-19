@@ -518,136 +518,34 @@ export const ProductoDetalleTemplates = {
                     ${this.renderKpiCards(kpis)}
                 </div>
 
-                <!-- FRANJA 2: MASTER CONTEXT PANEL (UN SOLO CONTENEDOR CON 3 COLUMNAS SIMÉTRICAS DIVIDIDAS POR BORDES) -->
-                <div id="panel-maestro-producto" class="card border-0 shadow-sm mb-4 master-context-panel" style="border-radius: var(--border-radius-sm); border: 1px solid var(--border-color); overflow: hidden;">
-                    <div class="card-body p-0">
-                        <div class="row g-0">
-                            
-                            <!-- COLUMNA 1: FICHA DE PRECIOS -->
-                            <div class="col-12 col-lg-4 border-end" style="border-color: var(--border-color) !important;">
-                                <div class="p-3.5 h-100 d-flex flex-column justify-content-between">
-                                    <div>
-                                        <h6 class="fw-bold mb-3 d-flex align-items-center text-dark" style="font-size: 14px;">
-                                            <span class="material-symbols-outlined me-1.5 text-primary" style="font-size: 18px;">payments</span>Ficha de Precios
-                                        </h6>
-                                        <ul class="list-unstyled mb-0" style="font-size: 12.5px;">
-                                            <li class="mb-2 pb-1.5 border-bottom d-flex justify-content-between align-items-center">
-                                                <span class="text-muted">PVP Catálogo:</span>
-                                                <strong class="tnum text-dark" style="font-size: 13.5px;">${this.formatMoney(prod.precioVenta)}</strong>
-                                            </li>
-                                            <li class="mb-2 pb-1.5 border-bottom d-flex justify-content-between align-items-center">
-                                                <span class="text-muted">PVP Promedio Real Ventas:</span>
-                                                <span class="tnum text-primary fw-semibold">${this.formatMoney(historico.precioPromedioPonderado || prod.precioVenta)}</span>
-                                            </li>
-                                            <li class="mb-2 pb-1.5 border-bottom d-flex justify-content-between align-items-center">
-                                                <span class="text-muted">Costo Base Fijo:</span>
-                                                <span class="tnum text-muted">${this.formatMoney(prod.costoBase)}</span>
-                                            </li>
-                                            <li class="mb-2 pb-1.5 border-bottom d-flex justify-content-between align-items-center">
-                                                <span class="text-muted">Costo Promedio FIFO:</span>
-                                                <strong class="tnum text-dark">${this.formatMoney(valorizacion.costoPromedioPonderado)}</strong>
-                                            </li>
-                                            <li class="mb-2 pb-1.5 border-bottom d-flex justify-content-between align-items-center">
-                                                <span class="text-muted">Utilidad Unitaria Bruta:</span>
-                                                <span class="tnum fw-bold ${margen.margenPorcentual > 0 ? 'text-success' : 'text-danger'}">
-                                                    ${this.formatMoney(margen.utilidadMonetaria)} (${margen.margenPorcentual}%)
-                                                </span>
-                                            </li>
-                                            <li class="d-flex justify-content-between align-items-center">
-                                                <span class="text-muted">Régimen IVA / Impuesto:</span>
-                                                <span class="badge bg-light text-dark border">${prod.impuesto != null && prod.impuesto !== '' ? escapeHtml(String(prod.impuesto)) + '%' : '0% Exento'}</span>
-                                            </li>
-                                        </ul>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- COLUMNA 2: PARÁMETROS DE BODEGA & REABASTECIMIENTO -->
-                            <div class="col-12 col-lg-4 border-end" style="border-color: var(--border-color) !important;">
-                                <div class="p-3.5 h-100 d-flex flex-column justify-content-between">
-                                    <div>
-                                        <h6 class="fw-bold mb-3 d-flex align-items-center text-dark" style="font-size: 14px;">
-                                            <span class="material-symbols-outlined me-1.5 text-warning" style="font-size: 18px;">warehouse</span>Parámetros de Bodega
-                                        </h6>
-                                        <ul class="list-unstyled mb-0" style="font-size: 12.5px;">
-                                            <li class="mb-2 pb-1.5 border-bottom d-flex justify-content-between align-items-center">
-                                                <span class="text-muted">Stock Mínimo Registrado:</span>
-                                                <strong class="tnum text-dark">${parseFloat(prod.stockMinimo) || 0} und</strong>
-                                            </li>
-                                            <li class="mb-2 pb-1.5 border-bottom d-flex justify-content-between align-items-center">
-                                                <span class="text-muted">Punto de Reorden Sugerido (ROP):</span>
-                                                <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle fw-bold px-2 py-1">${rotacion.puntoReordenSugerido || 5} und</span>
-                                            </li>
-                                            <li class="mb-2 pb-1.5 border-bottom d-flex justify-content-between align-items-center">
-                                                <span class="text-muted">Velocidad Diaria (30d):</span>
-                                                <span class="tnum text-muted">${rotacion.velocidadDiaria || 0} und/día</span>
-                                            </li>
-                                            <li class="mb-2 pb-1.5 border-bottom d-flex justify-content-between align-items-center">
-                                                <span class="text-muted">Días de Cobertura:</span>
-                                                <strong class="tnum ${rotacion.alertaRecompra ? 'text-danger' : 'text-success'}">${rotacion.diasCobertura >= 999 ? '> 90 días' : rotacion.diasCobertura + ' días'}</strong>
-                                            </li>
-                                            <li class="d-flex justify-content-between align-items-center">
-                                                <span class="text-muted">Valor Total en Bodega:</span>
-                                                <strong class="tnum text-dark">${this.formatMoney(valorizacion.valorTotal)}</strong>
-                                            </li>
-                                        </ul>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- COLUMNA 3: CONCENTRACIÓN DE CANALES & TOP CLIENTES -->
-                            <div class="col-12 col-lg-4">
-                                <div class="p-3.5 h-100 d-flex flex-column justify-content-between">
-                                    <div>
-                                        <div class="d-flex justify-content-between align-items-center mb-3">
-                                            <h6 class="fw-bold mb-0 d-flex align-items-center text-dark" style="font-size: 14px;">
-                                                <span class="material-symbols-outlined me-1.5 text-info" style="font-size: 18px;">pie_chart</span>Concentración de Canales
-                                            </h6>
-                                            <span class="badge bg-light text-muted border" style="font-size: 10px;">Pareto Top 3</span>
-                                        </div>
-                                        
-                                        ${canalesHtml}
-                                    </div>
-
-                                    <div>
-                                        ${linkTodosClientes}
-                                        <div class="p-2.5 mt-2 rounded-2" style="background-color: #f8fafc; border: 1px solid var(--border-color); font-size: 11.5px;">
-                                            <div class="d-flex justify-content-between align-items-center">
-                                                <span class="text-muted">Total Ventas Históricas:</span>
-                                                <strong class="text-primary tnum">${historico.totalUnidadesVendidas || 0} und (${this.formatMoney(historico.totalRecaudo)})</strong>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                        </div>
-                    </div>
-                </div>
-
-                <!-- FRANJA 3: HUB TRANSACCIONAL OPERATIVO AL 100% DE ANCHO (12 COLUMNAS) -->
+                <!-- HUB TRANSACCIONAL OPERATIVO AL 100% DE ANCHO (5 PESTAÑAS) -->
                 <div class="row g-4 mb-4">
                     <div class="col-12">
                         <div class="card border-0 shadow-sm" style="border-radius: var(--border-radius-sm); border: 1px solid var(--border-color);">
                             <div class="card-header bg-white border-bottom p-0">
                                 <ul class="nav nav-tabs card-header-tabs m-0 border-bottom-0 flex-nowrap" id="tabs-producto-principal" role="tablist" style="overflow-x: auto; white-space: nowrap;">
                                     <li class="nav-item" role="presentation">
-                                        <button class="nav-link active fw-bold text-nowrap py-3 px-3.5 border-0 border-bottom border-primary border-2 text-primary" id="tab-lotes-fifo-btn" data-bs-toggle="tab" data-bs-target="#tab-lotes-fifo-pane" type="button" role="tab" style="font-size: 13px;">
+                                        <button class="nav-link active fw-bold text-nowrap py-3 px-3 border-0 border-bottom border-primary border-2 text-primary" id="tab-lotes-fifo-btn" data-bs-toggle="tab" data-bs-target="#tab-lotes-fifo-pane" type="button" role="tab" style="font-size: 13px;">
                                             <span class="material-symbols-outlined align-middle me-1" style="font-size: 18px;">layers</span>Capas FIFO <span class="badge rounded-pill bg-light text-secondary border ms-1">${lotes.length}</span>
                                         </button>
                                     </li>
                                     <li class="nav-item" role="presentation">
-                                        <button class="nav-link fw-semibold text-nowrap py-3 px-3.5 border-0 text-muted" id="tab-kardex-btn" data-bs-toggle="tab" data-bs-target="#tab-kardex-pane" type="button" role="tab" style="font-size: 13px;">
+                                        <button class="nav-link fw-semibold text-nowrap py-3 px-3 border-0 text-muted" id="tab-kardex-btn" data-bs-toggle="tab" data-bs-target="#tab-kardex-pane" type="button" role="tab" style="font-size: 13px;">
                                             <span class="material-symbols-outlined align-middle me-1" style="font-size: 18px;">receipt_long</span>Kardex Continuo <span class="badge rounded-pill bg-light text-secondary border ms-1">${kardex.length}</span>
                                         </button>
                                     </li>
                                     <li class="nav-item" role="presentation">
-                                        <button class="nav-link fw-semibold text-nowrap py-3 px-3.5 border-0 text-muted" id="tab-facturas-venta-btn" data-bs-toggle="tab" data-bs-target="#tab-facturas-venta-pane" type="button" role="tab" style="font-size: 13px;">
+                                        <button class="nav-link fw-semibold text-nowrap py-3 px-3 border-0 text-muted" id="tab-precios-btn" data-bs-toggle="tab" data-bs-target="#tab-precios-pane" type="button" role="tab" style="font-size: 13px;">
+                                            <span class="material-symbols-outlined align-middle me-1" style="font-size: 18px;">payments</span>Precios y Costos
+                                        </button>
+                                    </li>
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link fw-semibold text-nowrap py-3 px-3 border-0 text-muted" id="tab-facturas-venta-btn" data-bs-toggle="tab" data-bs-target="#tab-facturas-venta-pane" type="button" role="tab" style="font-size: 13px;">
                                             <span class="material-symbols-outlined align-middle me-1" style="font-size: 18px;">shopping_bag</span>Ventas del Ítem <span class="badge rounded-pill bg-light text-secondary border ms-1">${ventas.length}</span>
                                         </button>
                                     </li>
                                     <li class="nav-item" role="presentation">
-                                        <button class="nav-link fw-semibold text-nowrap py-3 px-3.5 border-0 text-muted" id="tab-facturas-compra-btn" data-bs-toggle="tab" data-bs-target="#tab-facturas-compra-pane" type="button" role="tab" style="font-size: 13px;">
+                                        <button class="nav-link fw-semibold text-nowrap py-3 px-3 border-0 text-muted" id="tab-facturas-compra-btn" data-bs-toggle="tab" data-bs-target="#tab-facturas-compra-pane" type="button" role="tab" style="font-size: 13px;">
                                             <span class="material-symbols-outlined align-middle me-1" style="font-size: 18px;">local_shipping</span>Compras del Ítem <span class="badge rounded-pill bg-light text-secondary border ms-1">${facturasCompra.length}</span>
                                         </button>
                                     </li>
@@ -659,6 +557,32 @@ export const ProductoDetalleTemplates = {
                                     
                                     <!-- TAB 1: CAPAS FIFO (100% ANCHO) -->
                                     <div class="tab-pane fade show active p-3" id="tab-lotes-fifo-pane" role="tabpanel">
+                                        <!-- BARRA INTEGRADA DE PARÁMETROS DE BODEGA -->
+                                        <div id="parametros-bodega-strip" class="p-3 mb-3 rounded-2" style="background-color: #f8fafc; border: 1px solid var(--border-color);">
+                                            <div class="row g-3 align-items-center">
+                                                <div class="col-6 col-md-auto pe-md-3 border-end">
+                                                    <span class="text-muted d-block" style="font-size: 11px; text-transform: uppercase; font-weight: 600;">Stock Mínimo</span>
+                                                    <strong class="tnum text-dark" style="font-size: 13px;">${parseFloat(prod.stockMinimo) || 0} und</strong>
+                                                </div>
+                                                <div class="col-6 col-md-auto pe-md-3 border-end">
+                                                    <span class="text-muted d-block" style="font-size: 11px; text-transform: uppercase; font-weight: 600;">Punto de Reorden (ROP)</span>
+                                                    <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle fw-bold px-2 py-0.5" style="font-size: 11.5px;">${rotacion.puntoReordenSugerido || 5} und</span>
+                                                </div>
+                                                <div class="col-6 col-md-auto pe-md-3 border-end">
+                                                    <span class="text-muted d-block" style="font-size: 11px; text-transform: uppercase; font-weight: 600;">Velocidad Diaria (30d)</span>
+                                                    <span class="tnum text-dark fw-medium" style="font-size: 13px;">${rotacion.velocidadDiaria || 0} und/día</span>
+                                                </div>
+                                                <div class="col-6 col-md-auto pe-md-3 border-end">
+                                                    <span class="text-muted d-block" style="font-size: 11px; text-transform: uppercase; font-weight: 600;">Días de Cobertura</span>
+                                                    <strong class="tnum ${rotacion.alertaRecompra ? 'text-danger' : 'text-success'}" style="font-size: 13px;">${rotacion.diasCobertura >= 999 ? '> 90 días' : rotacion.diasCobertura + ' días'}</strong>
+                                                </div>
+                                                <div class="col-12 col-md-auto">
+                                                    <span class="text-muted d-block" style="font-size: 11px; text-transform: uppercase; font-weight: 600;">Valor Total en Bodega</span>
+                                                    <strong class="tnum text-primary" style="font-size: 13px;">${this.formatMoney(valorizacion.valorTotal)}</strong>
+                                                </div>
+                                            </div>
+                                        </div>
+
                                         <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2 mb-3">
                                             <div>
                                                 <h6 class="fw-bold mb-0 text-dark" style="font-size: 14px;">Capas de Inventario (Lotes FIFO)</h6>
@@ -722,8 +646,103 @@ export const ProductoDetalleTemplates = {
                                         </div>
                                     </div>
 
-                                    <!-- TAB 3: VENTAS ASOCIADAS (100% ANCHO) -->
+                                    <!-- TAB 3: PRECIOS Y ESTRUCTURA DE COSTOS (100% ANCHO) -->
+                                    <div class="tab-pane fade p-3 p-md-4" id="tab-precios-pane" role="tabpanel">
+                                        <div id="ficha-precios-content" style="max-width: 950px; margin: 0 auto;">
+                                            <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2 mb-3 pb-2 border-bottom">
+                                                <div>
+                                                    <h6 class="fw-bold mb-0 text-dark d-flex align-items-center" style="font-size: 15px;">
+                                                        <span class="material-symbols-outlined me-1.5 text-primary" style="font-size: 20px;">payments</span>Ficha de Precios y Estructura de Costos
+                                                    </h6>
+                                                    <span class="text-muted" style="font-size: 12.5px;">Estructura de fijación comercial y rentabilidad sobre capas valoradas.</span>
+                                                </div>
+                                                <span class="badge bg-light text-dark border px-2.5 py-1" style="font-size: 12px;">
+                                                    Régimen IVA: ${prod.impuesto != null && prod.impuesto !== '' ? escapeHtml(String(prod.impuesto)) + '%' : '0% Exento'}
+                                                </span>
+                                            </div>
+
+                                            <div class="row g-3">
+                                                <!-- BLOQUE 1: PRECIOS COMERCIALES -->
+                                                <div class="col-12 col-md-6">
+                                                    <div class="p-3 p-md-4 rounded-2 h-100" style="background-color: #f8fafc; border: 1px solid var(--border-color);">
+                                                        <h6 class="fw-bold text-dark mb-3 d-flex align-items-center" style="font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em;">
+                                                            <span class="material-symbols-outlined me-1 text-primary" style="font-size: 16px;">sell</span>Precios de Venta
+                                                        </h6>
+                                                        <ul class="list-unstyled mb-0" style="font-size: 13px;">
+                                                            <li class="mb-2 pb-2 border-bottom d-flex justify-content-between align-items-center">
+                                                                <span class="text-muted">PVP Catálogo:</span>
+                                                                <strong class="tnum text-dark" style="font-size: 14px;">${this.formatMoney(prod.precioVenta)}</strong>
+                                                            </li>
+                                                            <li class="mb-2 pb-2 border-bottom d-flex justify-content-between align-items-center">
+                                                                <span class="text-muted">PVP Promedio Real Ventas:</span>
+                                                                <span class="tnum text-primary fw-semibold">${this.formatMoney(historico.precioPromedioPonderado || prod.precioVenta)}</span>
+                                                            </li>
+                                                            <li class="d-flex justify-content-between align-items-center">
+                                                                <span class="text-muted">Régimen IVA / Impuesto:</span>
+                                                                <span class="badge bg-light text-dark border">${prod.impuesto != null && prod.impuesto !== '' ? escapeHtml(String(prod.impuesto)) + '%' : '0% Exento'}</span>
+                                                            </li>
+                                                        </ul>
+                                                    </div>
+                                                </div>
+
+                                                <!-- BLOQUE 2: ESTRUCTURA DE COSTOS Y RENTABILIDAD -->
+                                                <div class="col-12 col-md-6">
+                                                    <div class="p-3 p-md-4 rounded-2 h-100" style="background-color: #f8fafc; border: 1px solid var(--border-color);">
+                                                        <h6 class="fw-bold text-dark mb-3 d-flex align-items-center" style="font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em;">
+                                                            <span class="material-symbols-outlined me-1 text-success" style="font-size: 16px;">trending_up</span>Costos y Rentabilidad
+                                                        </h6>
+                                                        <ul class="list-unstyled mb-0" style="font-size: 13px;">
+                                                            <li class="mb-2 pb-2 border-bottom d-flex justify-content-between align-items-center">
+                                                                <span class="text-muted">Costo Base Fijo:</span>
+                                                                <span class="tnum text-muted">${this.formatMoney(prod.costoBase)}</span>
+                                                            </li>
+                                                            <li class="mb-2 pb-2 border-bottom d-flex justify-content-between align-items-center">
+                                                                <span class="text-muted">Costo Promedio FIFO:</span>
+                                                                <strong class="tnum text-dark">${this.formatMoney(valorizacion.costoPromedioPonderado)}</strong>
+                                                            </li>
+                                                            <li class="d-flex justify-content-between align-items-center">
+                                                                <span class="text-muted">Utilidad Unitaria Bruta:</span>
+                                                                <span class="tnum fw-bold ${margen.margenPorcentual > 0 ? 'text-success' : 'text-danger'}" style="font-size: 13.5px;">
+                                                                    ${this.formatMoney(margen.utilidadMonetaria)} (${margen.margenPorcentual}%)
+                                                                </span>
+                                                            </li>
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- TAB 4: VENTAS ASOCIADAS (100% ANCHO) -->
                                     <div class="tab-pane fade p-3" id="tab-facturas-venta-pane" role="tabpanel">
+                                        <!-- BLOQUE SUPERIOR: CONCENTRACIÓN DE CANALES PARETO -->
+                                        <div id="concentracion-canales-content" class="p-3 p-md-4 mb-3 rounded-2" style="background-color: #f8fafc; border: 1px solid var(--border-color);">
+                                            <div class="row g-3 align-items-center">
+                                                <div class="col-12 col-lg-7 pe-lg-4 pb-3 pb-lg-0">
+                                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                                        <h6 class="fw-bold mb-0 d-flex align-items-center text-dark" style="font-size: 13px;">
+                                                            <span class="material-symbols-outlined me-1.5 text-info" style="font-size: 18px;">pie_chart</span>Concentración de Canales de Venta
+                                                        </h6>
+                                                        <span class="badge bg-light text-muted border" style="font-size: 10px;">Pareto Top 3</span>
+                                                    </div>
+                                                    ${canalesHtml}
+                                                    ${linkTodosClientes}
+                                                </div>
+                                                <div class="col-12 col-lg-5 ps-lg-4">
+                                                    <div class="p-3 rounded-2 bg-white border" style="font-size: 12.5px;">
+                                                        <div class="d-flex justify-content-between align-items-center mb-2 pb-1 border-bottom">
+                                                            <span class="text-muted">Total Ventas Históricas:</span>
+                                                            <strong class="text-primary tnum">${historico.totalUnidadesVendidas || 0} und (${this.formatMoney(historico.totalRecaudo)})</strong>
+                                                        </div>
+                                                        <div class="d-flex justify-content-between align-items-center">
+                                                            <span class="text-muted">Precio Promedio Real:</span>
+                                                            <strong class="text-dark tnum">${this.formatMoney(historico.precioPromedioPonderado || prod.precioVenta)}</strong>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
                                         <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2 mb-3">
                                             <div class="input-group input-group-sm" style="max-width: 320px;">
                                                 <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
@@ -752,7 +771,7 @@ export const ProductoDetalleTemplates = {
                                         </div>
                                     </div>
 
-                                    <!-- TAB 4: COMPRAS ASOCIADAS (100% ANCHO) -->
+                                    <!-- TAB 5: COMPRAS ASOCIADAS (100% ANCHO) -->
                                     <div class="tab-pane fade p-3" id="tab-facturas-compra-pane" role="tabpanel">
                                         <div class="d-flex justify-content-between align-items-center mb-3">
                                             <h6 class="fw-bold mb-0 text-dark" style="font-size: 14px;">Órdenes y Facturas de Compra</h6>

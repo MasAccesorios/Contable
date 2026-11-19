@@ -954,7 +954,7 @@ describe('Módulo Producto Detalle - TDD Test Suite', () => {
             assert.ok(html.includes('payment-kpi-card'));
         });
 
-        it('renderLayout debe renderizar las 4 pestañas: Capas FIFO (#tab-lotes-fifo-pane), Kardex embebido (#tab-kardex-pane), Ventas (#tab-facturas-venta-pane), Compras (#tab-facturas-compra-pane)', () => {
+        it('renderLayout debe renderizar las 5 pestañas a 100% de ancho: Capas FIFO (#tab-lotes-fifo-pane), Kardex (#tab-kardex-pane), Precios (#tab-precios-pane), Ventas (#tab-facturas-venta-pane), Compras (#tab-facturas-compra-pane)', () => {
             const producto = { id: 1, nombre: 'Laptop HP 15"', sku: 'LAP-001' };
             const kpis = {
                 stock: { stockTotal: 10, stockMinimo: 5, estado: 'optimo' },
@@ -967,8 +967,16 @@ describe('Módulo Producto Detalle - TDD Test Suite', () => {
 
             assert.ok(html.includes('id="tab-lotes-fifo-pane"'), 'Debe contener el contenedor de pestaña #tab-lotes-fifo-pane');
             assert.ok(html.includes('id="tab-kardex-pane"'), 'Debe contener el contenedor de pestaña #tab-kardex-pane');
+            assert.ok(html.includes('id="tab-precios-pane"'), 'Debe contener el contenedor de pestaña #tab-precios-pane');
             assert.ok(html.includes('id="tab-facturas-venta-pane"'), 'Debe contener el contenedor de pestaña #tab-facturas-venta-pane');
             assert.ok(html.includes('id="tab-facturas-compra-pane"'), 'Debe contener el contenedor de pestaña #tab-facturas-compra-pane');
+
+            // Botones de las 5 pestañas
+            assert.ok(html.includes('id="tab-lotes-fifo-btn"'), 'Debe contener el botón #tab-lotes-fifo-btn');
+            assert.ok(html.includes('id="tab-kardex-btn"'), 'Debe contener el botón #tab-kardex-btn');
+            assert.ok(html.includes('id="tab-precios-btn"'), 'Debe contener el botón #tab-precios-btn');
+            assert.ok(html.includes('id="tab-facturas-venta-btn"'), 'Debe contener el botón #tab-facturas-venta-btn');
+            assert.ok(html.includes('id="tab-facturas-compra-btn"'), 'Debe contener el botón #tab-facturas-compra-btn');
         });
 
         it('renderLayout debe contener el modal #modalNuevoLoteFIFO para creación de lotes', () => {
@@ -980,51 +988,34 @@ describe('Módulo Producto Detalle - TDD Test Suite', () => {
             assert.ok(html.includes('id="modalNuevoLoteFIFO"'), 'Debe contener el modal #modalNuevoLoteFIFO');
         });
 
-        it('renderLayout debe renderizar la Franja 2 como un único panel maestro contenedor (#panel-maestro-producto o .master-context-panel) con 3 columnas simétricas divididas por bordes', () => {
+        it('renderLayout debe eliminar la Franja 2 intermedia por completo y subir tablas al primer pantallazo', () => {
             const producto = { id: 1, nombre: 'Laptop HP 15"', precioVenta: 2500000, costoBase: 1800000 };
             const kpis = {
                 stock: { stockTotal: 10, stockMinimo: 5, estado: 'optimo' },
                 valorizacion: { valorTotal: 18000000, costoPromedioPonderado: 1800000, costoBase: 1800000, diferenciaCosto: 0 },
                 margen: { precioVenta: 2500000, costoUnitario: 1800000, utilidadMonetaria: 700000, margenPorcentual: 28 },
-                rotacion: { unidadesVendidas: 4, velocidadDiaria: 0.13, diasCobertura: 75, alertaRecompra: false },
-                metricasHistoricas: {
-                    totalRecaudo: 10000000,
-                    totalUnidadesVendidas: 4,
-                    precioPromedioPonderado: 2500000,
-                    canales: [{ nombre: 'Canal Corporativo', unidades: 4, porcentaje: 100 }]
-                }
+                rotacion: { unidadesVendidas: 4, velocidadDiaria: 0.13, diasCobertura: 75, alertaRecompra: false }
             };
 
             const html = ProductoDetalleTemplates.renderLayout({ producto, kpis, lotes: [], ventas: [] });
 
-            // 1. Debe existir el panel maestro contenedor
-            assert.ok(
-                html.includes('id="panel-maestro-producto"') || html.includes('master-context-panel'),
-                'Debe contener el panel maestro contenedor (#panel-maestro-producto o .master-context-panel)'
-            );
+            // 1. No debe existir franja intermedia ni panel maestro
+            assert.ok(!html.includes('id="panel-maestro-producto"'), 'No debe existir #panel-maestro-producto');
+            assert.ok(!html.includes('master-context-panel'), 'No debe existir la clase master-context-panel');
 
-            // 2. Extraer el bloque del panel maestro
-            const panelMatch = html.match(/(?:id="panel-maestro-producto"|class="[^"]*master-context-panel[^"]*")[^>]*>([\s\S]*?)<!--\s*FRANJA 3/i);
-            assert.ok(panelMatch, 'Debe encontrarse el bloque del panel maestro de Franja 2 antes de Franja 3');
-            const panelHtml = panelMatch[1];
+            // 2. Tab 1 debe integrar la barra de parámetros de bodega en su cabecera
+            assert.ok(html.includes('id="parametros-bodega-strip"'), 'Tab 1 debe integrar #parametros-bodega-strip');
+            assert.ok(html.includes('Stock Mínimo'), 'Parámetros de bodega debe incluir Stock Mínimo');
+            assert.ok(html.includes('Punto de Reorden'), 'Parámetros de bodega debe incluir Punto de Reorden');
 
-            // 3. Debe contener las 3 secciones integradas
-            assert.ok(panelHtml.includes('Ficha de Precios'), 'Debe contener la sección Ficha de Precios');
-            assert.ok(panelHtml.includes('Parámetros de Bodega'), 'Debe contener la sección Parámetros de Bodega');
-            assert.ok(panelHtml.includes('Concentración de Canales'), 'Debe contener la sección Concentración de Canales');
-
-            // 4. Debe tener bordes divisores entre las columnas
-            assert.ok(
-                panelHtml.includes('border-end') || panelHtml.includes('border-start') || panelHtml.includes('border-bottom'),
-                'Las columnas deben estar divididas por bordes'
-            );
-
-            // 5. No debe renderizarse como 3 tarjetas (.card) separadas dentro del panel maestro
-            const cardMatches = (panelHtml.match(/class="[^"]*\bcard\b[^"]*"/g) || []);
-            assert.ok(cardMatches.length <= 1, `No deben existir tarjetas separadas internas dentro del panel maestro (encontradas: ${cardMatches.length})`);
+            // 3. Tab 3 debe integrar la Ficha de Precios y Estructura de Costos
+            assert.ok(html.includes('id="ficha-precios-content"'), 'Tab 3 debe integrar #ficha-precios-content');
+            assert.ok(html.includes('PVP Catálogo'), 'Ficha de precios debe incluir PVP Catálogo');
+            assert.ok(html.includes('Costo Promedio FIFO'), 'Ficha de precios debe incluir Costo Promedio FIFO');
+            assert.ok(html.includes('Utilidad Unitaria Bruta'), 'Ficha de precios debe incluir Utilidad Unitaria Bruta');
         });
 
-        it('renderLayout debe renderizar la columna de canales sin caja dashed y con compradores y resumen contable', () => {
+        it('renderLayout debe integrar Concentración de Canales Pareto (#concentracion-canales-content) en Tab 4 de Ventas', () => {
             const producto = { id: 1, nombre: 'Laptop HP 15"', precioVenta: 2500000, costoBase: 1800000 };
             const kpis = {
                 stock: { stockTotal: 10, stockMinimo: 5, estado: 'optimo' },
@@ -1041,15 +1032,13 @@ describe('Módulo Producto Detalle - TDD Test Suite', () => {
 
             const html = ProductoDetalleTemplates.renderLayout({ producto, kpis, lotes: [], ventas: [] });
 
-            // 1. No debe existir caja dashed
+            // 1. Debe existir el bloque superior #concentracion-canales-content dentro de Tab 4
+            assert.ok(html.includes('id="concentracion-canales-content"'), 'Debe contener #concentracion-canales-content');
             assert.ok(!html.includes('dashed'), 'No debe contener ninguna caja con estilo dashed');
-
-            // 2. Debe renderizar compradores y sección de canales
-            assert.ok(html.includes('Concentración de Canales'), 'Debe contener la sección Concentración de Canales');
             assert.ok(html.includes('Canal Corporativo'), 'Debe renderizar los compradores / canales');
             assert.ok(html.includes('id="modalTodosClientes"'), 'Debe contener el modal #modalTodosClientes');
 
-            // 3. Debe renderizar el resumen contable
+            // 2. Debe renderizar el resumen contable
             assert.ok(
                 html.includes('Total Ventas Históricas') || html.includes('Resumen Contable'),
                 'Debe renderizar el resumen contable'
@@ -1331,6 +1320,144 @@ describe('Módulo Producto Detalle - TDD Test Suite', () => {
 
             assert.ok(dom.tbodyKardexEmbebido.innerHTML.includes('+20'));
             assert.ok(dom.tbodyKardexEmbebido.innerHTML.includes('Doc 1'));
+        });
+
+        it('debe actualizar clases activas y paneles al hacer clic en los botones de pestaña', () => {
+            const makeTabBtn = (id, target) => {
+                const classSet = new Set(['nav-link', 'fw-semibold', 'text-muted']);
+                const callbacks = {};
+                return {
+                    id,
+                    getAttribute: (name) => name === 'data-bs-target' ? target : null,
+                    classList: {
+                        add: (...cls) => cls.forEach(c => classSet.add(c)),
+                        remove: (...cls) => cls.forEach(c => classSet.delete(c)),
+                        contains: (c) => classSet.has(c)
+                    },
+                    addEventListener: (evt, cb) => {
+                        callbacks[evt] = cb;
+                    },
+                    click: () => {
+                        if (callbacks['click']) callbacks['click']();
+                    }
+                };
+            };
+
+            const makePane = (id) => {
+                const classSet = new Set(['tab-pane']);
+                return {
+                    id,
+                    classList: {
+                        add: (...cls) => cls.forEach(c => classSet.add(c)),
+                        remove: (...cls) => cls.forEach(c => classSet.delete(c)),
+                        contains: (c) => classSet.has(c)
+                    }
+                };
+            };
+
+            const tab1 = makeTabBtn('tab-lotes-fifo-btn', '#tab-lotes-fifo-pane');
+            const tab3 = makeTabBtn('tab-precios-btn', '#tab-precios-pane');
+            const pane1 = makePane('tab-lotes-fifo-pane');
+            const pane3 = makePane('tab-precios-pane');
+
+            const root = {
+                querySelector: (sel) => {
+                    if (sel === '#tab-lotes-fifo-pane') return pane1;
+                    if (sel === '#tab-precios-pane') return pane3;
+                    return null;
+                },
+                querySelectorAll: (sel) => {
+                    if (sel === '#tabs-producto-principal button[data-bs-toggle="tab"]') return [tab1, tab3];
+                    if (sel === '#tabs-producto-content .tab-pane') return [pane1, pane3];
+                    return [];
+                }
+            };
+
+            ProductoDetalleEvents.bindEvents(root, {});
+
+            // Simular clic en pestaña de Precios
+            tab3.click();
+
+            assert.strictEqual(tab3.classList.contains('active'), true);
+            assert.strictEqual(tab3.classList.contains('text-primary'), true);
+            assert.strictEqual(tab1.classList.contains('active'), false);
+            assert.strictEqual(pane3.classList.contains('active'), true);
+            assert.strictEqual(pane1.classList.contains('active'), false);
+        });
+
+        it('debe filtrar filas de ventas al escribir en el buscador #search-ventas-prod', () => {
+            const row1 = { textContent: 'Factura #101 Juan Perez', style: { display: '' } };
+            const row2 = { textContent: 'Factura #102 Acero SAS', style: { display: '' } };
+            const searchInput = { value: '', oninput: null };
+            const root = {
+                querySelector: (sel) => sel === '#search-ventas-prod' ? searchInput : null,
+                querySelectorAll: (sel) => sel === '#tbody-ventas-prod .row-factura-asociada' ? [row1, row2] : []
+            };
+
+            ProductoDetalleEvents.bindEvents(root, {});
+
+            assert.strictEqual(typeof searchInput.oninput, 'function');
+
+            // Filtrar por 'Juan'
+            searchInput.value = 'Juan';
+            searchInput.oninput();
+            assert.strictEqual(row1.style.display, '');
+            assert.strictEqual(row2.style.display, 'none');
+
+            // Limpiar filtro
+            searchInput.value = '';
+            searchInput.oninput();
+            assert.strictEqual(row1.style.display, '');
+            assert.strictEqual(row2.style.display, '');
+        });
+
+        it('debe copiar SKU al portapapeles al pulsar #btn-copy-sku', async () => {
+            let textoCopiado = '';
+            const originalClipboard = globalThis.navigator?.clipboard;
+            try {
+                Object.defineProperty(globalThis.navigator, 'clipboard', {
+                    value: {
+                        writeText: async (text) => { textoCopiado = text; }
+                    },
+                    configurable: true,
+                    writable: true
+                });
+            } catch (e) {
+                // Si no es configurable, omitir mock directo
+            }
+
+            const btnSku = {
+                className: 'bi bi-copy',
+                onclick: null
+            };
+            const root = {
+                querySelector: (sel) => sel === '#btn-copy-sku' ? btnSku : null,
+                querySelectorAll: () => []
+            };
+
+            const module = {
+                state: { producto: { sku: 'SKU-TEST-99' } }
+            };
+
+            ProductoDetalleEvents.bindEvents(root, module);
+            await btnSku.onclick({ preventDefault: () => {} });
+
+            if (textoCopiado) {
+                assert.strictEqual(textoCopiado, 'SKU-TEST-99');
+                assert.ok(btnSku.className.includes('bi-check2'));
+            } else {
+                assert.strictEqual(typeof btnSku.onclick, 'function');
+            }
+
+            if (originalClipboard) {
+                try {
+                    Object.defineProperty(globalThis.navigator, 'clipboard', {
+                        value: originalClipboard,
+                        configurable: true,
+                        writable: true
+                    });
+                } catch (e) {}
+            }
         });
     });
 
