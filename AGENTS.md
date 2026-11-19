@@ -1,4 +1,4 @@
-# Reglas Maestras Universales y Memoria Central (DiegoM)
+﻿# Reglas Maestras Universales y Memoria Central (DiegoM)
 
 ## PILAR 1: Permisos y Modo Autónomo Total (Eager / Turbo)
 1. **`autoExecutionPolicy = CASCADE_COMMANDS_AUTO_EXECUTION_EAGER`:** Autorización total y permanente en todos los proyectos. Ejecución directa e inmediata de comandos y herramientas sin tarjetas de confirmación ni botón azul (*Submit / Allow*).
@@ -62,3 +62,22 @@
    - Historial de portapapeles (`Win + V`) activo para flujo ágil de imágenes sin sobrescrituras accidentales.
    - Mantenimiento no destructivo (preservar sesiones, perfiles y cookies).
    - Respeto estricto a las carpetas raíz obligatorias del disco en router Xiaomi AX9000 (Unidad `X:`: `共享`, `下载`, `摄像机监控视频`).
+
+---
+
+## PILAR 6: Ecosistema Universal de Agentes ECC y Orquestación Autónoma
+1. **Adopción Mandatoria del Catálogo de 71 Agentes ECC:**
+   - Reconocimiento activo y aplicación proactiva de los 71 agentes especializados ECC clasificados en:
+     * *Planificación y Arquitectura:* `planner`, `architect`, `code-architect`, `code-explorer`, `code-simplifier`, `type-design-analyzer`, `spec-miner`, `homelab-architect`, `network-architect`, `a11y-architect`.
+     * *Revisores Especializados de Código:* `code-reviewer` (calidad general), `security-reviewer` (vulnerabilidades OWASP/secretos), `typescript-reviewer`, `python-reviewer`, `react-reviewer`, `vue-reviewer`, `flutter-reviewer`, `fastapi-reviewer`, `django-reviewer`, `csharp-reviewer`, `go-reviewer`, `rust-reviewer`, `java-reviewer`, `kotlin-reviewer`, `swift-reviewer`, `database-reviewer`, `cpp-reviewer`, `fsharp-reviewer`, `php-reviewer`, `ruby-reviewer`, `harmonyos-app-resolver`, `mle-reviewer`, `rag-pipeline-reviewer`, `healthcare-reviewer`, `bengali-reviewer`.
+     * *Resolutores de Build y Compilación:* `build-error-resolver` (TypeScript/tsc general), `react-build-resolver`, `dart-build-resolver`, `django-build-resolver`, `cpp-build-resolver`, `go-build-resolver`, `java-build-resolver`, `kotlin-build-resolver`, `rust-build-resolver`, `swift-build-resolver`, `pytorch-build-resolver`.
+     * *Testing, Calidad y Mantenimiento:* `tdd-guide` (ciclo Red-Green-Refactor), `e2e-runner` (Playwright), `performance-optimizer`, `refactor-cleaner`, `commit-reviewer`, `doc-updater`, `docs-lookup`, `pr-test-analyzer`, `silent-failure-hunter`, `loop-operator`, `harness-optimizer`.
+2. **Estándar Universal para Proyectos Nuevos y Existentes:**
+   - Todo proyecto de desarrollo en el entorno (nuevo o existente) debe disponer de su carpeta `.agents/` (`agents`, `rules`, `skills`, `workflows`) y de su archivo de directivas `AGENTS.md`.
+   - **Auto-Aprovisionamiento:** Si se abre o crea un proyecto nuevo o existente que carezca de `.agents/`, se debe auto-aprovisionar de forma inmediata desde el repositorio canónico central (`C:\Users\DiegoM\.agents` o `D:\ECC\.agents`).
+3. **Protocolo Operativo de Desarrollo y Flujo de Trabajo:**
+   - **Fase 1 (Planificación):** Ante cualquier solicitud de feature nueva, refactorización o cambio arquitectural, activar `planner` / `architect` para desglosar dependencias, riesgos y plan de ejecución.
+   - **Fase 2 (TDD):** Implementación guiada por pruebas mediante `tdd-guide`: crear primero los tests fallando (RED), escribir el código mínimo para pasar (GREEN) y refactorizar asegurando cobertura >= 80%.
+   - **Fase 3 (Revisión Continua):** Tras escribir o editar código, es mandatario pasar por `code-reviewer`, `security-reviewer` y el revisor de lenguaje especializado del stack correspondiente antes de dar por cerrada la tarea.
+   - **Fase 4 (Resolución Quirúrgica de Builds):** Si surge un fallo de compilación o empaquetado, delegar exclusivamente en el `build-error-resolver` respectivo para correcciones mínimas y quirúrgicas sin tocar arquitecturas funcionales.
+   - **Fase 5 (Commits):** Validar diffs y formatear según Conventional Commits mediante `commit-reviewer`.

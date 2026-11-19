@@ -6,10 +6,38 @@ import { EstadoUtils } from '../../shared/estadoUtils.js';
 import { escapeHtml } from '../../shared/formatters.js';
 
 import { NotasCreditoData } from './notasCredito.data.js';
+import { NotasCreditoTemplates } from './notasCredito.templates.js';
+import { NotasCreditoEvents } from './notasCredito.events.js';
 import { AplicarSaldoNCModal } from './notasCredito.aplicarSaldo.js';
+
 export const NotasCreditoModule = {
+    state: {
+        notas: [],
+        notasFiltradas: [],
+        currentPage: 1,
+        itemsPerPage: 20,
+        searchQuery: '',
+        selectedTab: 'todas',
+        totalItems: 0,
+        isLoading: false,
+        activeDrawerId: null,
+        kpis: {
+            saldoFavorPendiente: 0,
+            totalAplicadasMes: 0,
+            totalEmitidoMes: 0,
+            totalAnuladasMes: 0,
+            totalEmitidoHistorico: 0,
+            conteoTotal: 0,
+            conteoSaldoFavor: 0,
+            conteoAplicadas: 0,
+            conteoAnuladas: 0,
+            clientesConSaldo: 0
+        }
+    },
+
     async init(element) {
         if (!element) return;
+        this.element = element;
 
         const hashParts = window.location.hash.split('/');
         const action = hashParts[3];
@@ -22,346 +50,90 @@ export const NotasCreditoModule = {
         } else if (action === 'ver') {
             await this.renderForm(element, id, true, false);
         } else {
-            await this.renderList(element);
+            return await this.renderList(element);
         }
     },
 
-
     async renderList(element) {
-        let currentPage = 1;
-        let itemsPerPage = 50;
-        let searchQuery = '';
-        let sortColumn = 'numero';
-        let sortDirection = 'desc';
-        let kpiDataNC = null;
+        this.element = element;
+        this.state.currentPage = 1;
+        this.state.searchQuery = '';
+        this.state.selectedTab = 'todas';
 
-        const renderGrid = async () => {
-            element.innerHTML = `
-                <div class="d-flex justify-content-center align-items-center" style="min-height: 400px;">
-                    <div class="spinner-border" style="color: var(--primary);" role="status"></div>
+        this.element.innerHTML = `
+            <div class="d-flex justify-content-center align-items-center py-5" style="min-height: 400px;">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Cargando notas de crédito...</span>
                 </div>
-            `;
+            </div>
+        `;
 
-            if (!kpiDataNC) {
-                try {
-                    const { data, error } = await supabase.rpc('get_notas_credito_kpis');
-                    if (!error && data) {
-                        kpiDataNC = {
-                            totalAnulada: parseFloat(data.totalAnulada) || 0,
-                            totalAplicadas: parseFloat(data.totalAplicadas) || 0,
-                            totalPendientes: parseFloat(data.totalPendientes) || 0
-                        };
-                    } else {
-                        kpiDataNC = { totalAnulada: 0, totalAplicadas: 0, totalPendientes: 0 };
-                    }
-                } catch(e) {
-                    kpiDataNC = { totalAnulada: 0, totalAplicadas: 0, totalPendientes: 0 };
-                }
+        await this.cargarNotasCredito();
+        this.renderLayoutActual();
+
+        return () => {
+            if (this._onKeyDown) {
+                document.removeEventListener('keydown', this._onKeyDown);
             }
+        };
+    },
 
-            let totalItems = 0;
-            let totalPages = 1;
-            let currentItems = [];
+    renderLayoutActual() {
+        if (!this.element) return;
+        this.element.innerHTML = this.renderLayout();
+        this.bindStaticEvents();
+        this.render();
+    },
 
-            try {
-                const { data: pageData, error } = await supabase.rpc('get_notas_credito_paginadas', {
-                    p_page: currentPage,
-                    p_limit: itemsPerPage,
-                    p_sort_col: sortColumn,
-                    p_sort_dir: sortDirection,
-                    p_search: searchQuery
-                });
+    render() {
+        const container = this.element.querySelector('#nc-grid-container');
+        if (!container) return;
 
-                if (error) throw error;
-                
-                totalItems = pageData && pageData.length > 0 ? pageData[0].total_count : 0;
-                totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
-                
-                if (currentPage > totalPages && totalPages > 0) {
-                    currentPage = totalPages;
-                    return renderGrid();
-                }
+        container.innerHTML = this.renderGrid();
+        this.bindDynamicEvents(container);
+    },
 
-                currentItems = pageData || [];
-            } catch (e) {
-                console.error("Error cargando notas de credito:", e);
-                element.innerHTML = `<div class="p-4 text-danger">Error cargando lista: ${e.message}</div>`;
+    async mostrarDrawer(id) {
+        const backdrop = this.element.querySelector('#nc-drawer-backdrop');
+        const drawer = this.element.querySelector('#nc-drawer');
+        const body = this.element.querySelector('#nc-drawer-body');
+        const actionsContainer = this.element.querySelector('#nc-drawer-action-buttons');
+        if (actionsContainer) actionsContainer.innerHTML = '';
+        if (!drawer || !body) return;
+
+        body.innerHTML = `
+            <div class="d-flex justify-content-center align-items-center py-5">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Cargando comprobante...</span>
+                </div>
+            </div>
+        `;
+
+        if (backdrop) backdrop.classList.add('show');
+        drawer.classList.add('show');
+        this.state.activeDrawerId = id;
+
+        try {
+            const detalle = await this.cargarDetalleNotaDrawer(id);
+            if (!detalle) {
+                this.cerrarDrawer();
                 return;
             }
 
-            const startIndex = (currentPage - 1) * itemsPerPage;
+            body.innerHTML = this.renderDrawerContent(detalle);
+            this.bindDrawerActionEvents(detalle, actionsContainer);
+        } catch (err) {
+            console.error('[NotasCreditoModule] Error cargando drawer:', err);
+            body.innerHTML = `<div class="p-4 text-center text-danger">Error cargando detalle de la nota.</div>`;
+        }
+    },
 
-            const tbodyHtml = currentItems.length > 0 ? currentItems.map(n => {
-                let badgeClass = '';
-                let labelEstado = '';
-                if (EstadoUtils.estaAnulado(n.estado)) {
-                    badgeClass = 'bg-secondary text-secondary bg-opacity-10 border border-secondary-subtle';
-                    labelEstado = 'Anulada';
-                } else if (Number(n.saldo_a_favor) > 0) {
-                    badgeClass = 'bg-warning text-warning bg-opacity-10 border border-warning-subtle';
-                    labelEstado = 'Saldo a favor';
-                } else {
-                    badgeClass = 'bg-success text-success bg-opacity-10 border border-success-subtle';
-                    labelEstado = 'Aplicada';
-                }
-                const estadoLabel = `<span class="badge ${badgeClass} rounded-pill fw-medium" style="font-size: var(--fs-xs); padding: 5px 10px;">${labelEstado}</span>`;
-                const opacity = EstadoUtils.estaAnulado(n.estado) ? '0.5' : '1';
-                
-                return `
-                    <tr style="cursor: pointer; opacity: ${opacity}; transition: opacity 0.2s;" onclick="if(!event.target.closest('button')) window.location.hash = '#/ingresos/notas-credito/ver/${n.id}'">
-                        <td class="py-3">${n.numero || n.id}</td>
-                        <td class="py-3">${n.fecha || ''}</td>
-                        <td class="py-3 fw-medium">${escapeHtml(n.contacto_nombre) || 'Sin cliente'}</td>
-                        <td class="py-3 text-end fw-medium">$${Number(n.total || 0).toLocaleString('es-CO', {minimumFractionDigits: 2})}</td>
-                        <td class="py-3 text-center">${estadoLabel}</td>
-                        <td class="py-3 text-end" style="position: relative;">
-                            <button class="btn btn-link text-muted p-0 btn-menu-row" data-id="${n.id}" data-estado="${n.estado}" data-numero="${n.numero}" data-contacto-id="${n.contacto_id}" data-contacto-nombre="${escapeHtml(n.contacto_nombre || '')}" data-saldo-favor="${n.saldo_a_favor}">
-                                <i class="bi bi-three-dots-vertical"></i>
-                            </button>
-                        </td>
-                    </tr>
-                `;
-            }).join('') : '<tr><td colspan="6" class="text-center py-5 text-muted">No se encontraron notas de crédito</td></tr>';
-
-            element.innerHTML = `
-                <div class="dash-layout p-4">
-                    <div class="d-flex justify-content-between align-items-center mb-4">
-                        <div>
-                            <h2 class="page-title">Notas de Crédito</h2>
-                            <p class="text-muted mb-0" style="font-size: var(--fs-md);">Gestiona las devoluciones y saldos a favor de tus clientes.</p>
-                        </div>
-                        <button class="btn btn-primary-action" onclick="window.location.hash='#/ingresos/notas-credito/nueva'">
-                            <i class="bi bi-plus-lg me-1"></i> Nueva Nota
-                        </button>
-                    </div>
-
-                    <!-- KPI CARDS NOTAS CREDITO -->
-                    <div class="row g-3 mb-4">
-                        <div class="col-12 col-sm-6 col-lg-4">
-                            <div class="dash-kpi-card d-flex flex-column justify-content-between" style="min-height: 90px;">
-                                <div class="d-flex justify-content-between align-items-start">
-                                    <span class="dash-kpi-label">Notas Aplicadas (este mes)</span>
-                                    <div class="dash-icon-box variant-green">
-                                        <i class="bi bi-check2-all"></i>
-                                    </div>
-                                </div>
-                                <div class="dash-kpi-value">$ ${Number(kpiDataNC.totalAplicadas).toLocaleString('es-CO', {minimumFractionDigits: 2})}</div>
-                            </div>
-                        </div>
-                        <div class="col-12 col-sm-6 col-lg-4">
-                            <div class="dash-kpi-card d-flex flex-column justify-content-between" style="min-height: 90px;">
-                                <div class="d-flex justify-content-between align-items-start">
-                                    <span class="dash-kpi-label">Saldo a Favor Pendiente</span>
-                                    <div class="dash-icon-box variant-yellow">
-                                        <i class="bi bi-clock-history"></i>
-                                    </div>
-                                </div>
-                                <div class="dash-kpi-value">$ ${Number(kpiDataNC.totalPendientes).toLocaleString('es-CO', {minimumFractionDigits: 2})}</div>
-                            </div>
-                        </div>
-                        <div class="col-12 col-sm-6 col-lg-4">
-                            <div class="dash-kpi-card d-flex flex-column justify-content-between" style="min-height: 90px;">
-                                <div class="d-flex justify-content-between align-items-start">
-                                    <span class="dash-kpi-label">Total Anuladas (este mes)</span>
-                                    <div class="dash-icon-box variant-red">
-                                        <i class="bi bi-x-circle"></i>
-                                    </div>
-                                </div>
-                                <div class="dash-kpi-value">$ ${Number(kpiDataNC.totalAnulada).toLocaleString('es-CO', {minimumFractionDigits: 2})}</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="dash-table-container">
-                        <!-- FILTERS -->
-                        <div class="card-header bg-white border-bottom p-3 d-flex gap-3 align-items-center" style="border-radius: 8px 8px 0 0;">
-                            <div class="input-group input-group-sm" style="width: 250px;">
-                                <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
-                                <input type="text" class="form-control border-start-0 ps-0 text-muted" id="search-input" placeholder="Buscar..." value="${searchQuery}" style="font-size: var(--fs-base); box-shadow: none;">
-                            </div>
-                        </div>
-
-                        <!-- GRID -->
-                        <div class="table-responsive">
-                            <table class="table table-borderless align-middle mb-0">
-                                <thead style="border-bottom: 1px solid var(--border-color);">
-                                    <tr style="color: var(--text-muted); font-size: var(--fs-base); font-weight: 500;">
-                                        <th class="py-3">Número</th>
-                                        <th class="py-3">Fecha</th>
-                                        <th class="py-3">Cliente</th>
-                                        <th class="py-3 text-end">Total</th>
-                                        <th class="py-3 text-center">Estado</th>
-                                        <th class="py-3 text-end">Acciones</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    ${tbodyHtml}
-                                </tbody>
-                            </table>
-                        </div>
-
-                        <!-- PAGINATION FOOTER -->
-                        <div class="card-footer bg-white border-top p-3 d-flex justify-content-between align-items-center" style="border-radius: 0 0 8px 8px;">
-                            <div class="d-flex align-items-center gap-3" style="font-size: var(--fs-base); color: var(--text-body);">
-                                <div class="d-flex align-items-center gap-2">
-                                    <span>Resultados por página:</span>
-                                    <select class="form-select form-select-sm text-muted" id="select-per-page" style="width: 70px;">
-                                        <option value="10" ${itemsPerPage===10?'selected':''}>10</option>
-                                        <option value="20" ${itemsPerPage===20?'selected':''}>20</option>
-                                        <option value="50" ${itemsPerPage===50?'selected':''}>50</option>
-                                        <option value="100" ${itemsPerPage===100?'selected':''}>100</option>
-                                    </select>
-                                </div>
-                                <span class="text-muted border-start ps-3">${totalItems > 0 ? startIndex + 1 : 0}-${Math.min(startIndex + itemsPerPage, totalItems)} de ${totalItems}</span>
-                            </div>
-
-                            <div class="d-flex align-items-center gap-2" style="font-size: var(--fs-base); color: var(--text-body);">
-                                <span>Página</span>
-                                <input type="number" id="input-page" class="form-control form-control-sm text-center text-muted" value="${currentPage}" min="1" max="${totalPages}" style="width: 50px;">
-                                <span>de ${totalPages}</span>
-                                <div class="ms-2">
-                                    <button class="btn btn-link text-muted p-0 me-1" id="btn-prev-page" ${currentPage === 1 ? 'disabled' : ''}><i class="bi bi-chevron-left"></i></button>
-                                    <button class="btn btn-link text-muted p-0" id="btn-next-page" ${currentPage === totalPages ? 'disabled' : ''}><i class="bi bi-chevron-right"></i></button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-
-            bindGridEvents();
-        };
-
-        const bindGridEvents = () => {
-            // Búsqueda
-            const searchInput = element.querySelector('#search-input');
-            if (searchInput) {
-                searchInput.focus();
-                const val = searchInput.value;
-                searchInput.value = '';
-                searchInput.value = val;
-
-                let debounceTimer;
-                searchInput.addEventListener('input', (e) => {
-                    clearTimeout(debounceTimer);
-                    debounceTimer = setTimeout(() => {
-                        searchQuery = e.target.value;
-                        currentPage = 1;
-                        renderGrid();
-                    }, 400);
-                });
-            }
-
-            // Paginación
-            element.querySelector('#select-per-page')?.addEventListener('change', (e) => {
-                itemsPerPage = parseInt(e.target.value);
-                currentPage = 1;
-                renderGrid();
-            });
-
-            element.querySelector('#input-page')?.addEventListener('change', (e) => {
-                let val = parseInt(e.target.value) || 1;
-                currentPage = val;
-                renderGrid();
-            });
-
-            element.querySelector('#btn-prev-page')?.addEventListener('click', () => {
-                if (currentPage > 1) { currentPage--; renderGrid(); }
-            });
-
-            element.querySelector('#btn-next-page')?.addEventListener('click', () => {
-                const inputPage = element.querySelector('#input-page');
-                const max = parseInt(inputPage.max);
-                if (currentPage < max) { currentPage++; renderGrid(); }
-            });
-
-            // Acciones de Fila
-            element.querySelectorAll('.btn-menu-row').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const existing = document.querySelector('.row-action-menu');
-                    if (existing) existing.remove();
-
-                    const id = e.currentTarget.dataset.id;
-                    const estado = e.currentTarget.dataset.estado;
-                    const numero = e.currentTarget.dataset.numero;
-                    const contactoId = e.currentTarget.dataset.contactoId;
-                    const contactoNombre = e.currentTarget.dataset.contactoNombre;
-                    const saldoAFavor = parseFloat(e.currentTarget.dataset.saldoFavor) || 0;
-                    const rect = e.currentTarget.getBoundingClientRect();
-                    const isAnulada = EstadoUtils.estaAnulado(estado);
-                    
-                    const menuHtml = `
-                        <div class="row-action-menu position-absolute bg-white shadow rounded border py-2" 
-                             style="z-index: 1060; width: 175px; top: ${rect.bottom + window.scrollY}px; left: ${rect.left - 125}px;">
-                            <a href="#/ingresos/notas-credito/ver/${id}" class="d-block px-3 py-1 text-decoration-none text-body hover-bg-light" style="font-size: var(--fs-base);">Ver Detalle</a>
-                            ${!isAnulada ? `
-                                <a href="#/ingresos/notas-credito/editar/${id}" class="d-block px-3 py-1 text-decoration-none text-body hover-bg-light" style="font-size: var(--fs-base);">Editar</a>
-                                ${saldoAFavor > 0 ? `
-                                    <a href="#" class="d-block px-3 py-1 text-decoration-none text-body hover-bg-light btn-action-aplicar-saldo" data-id="${id}" style="font-size: var(--fs-base);">Aplicar saldo a favor</a>
-                                ` : ''}
-                                <div class="dropdown-divider my-1"></div>
-                                <a href="#" class="d-block px-3 py-1 text-decoration-none text-danger hover-bg-light btn-action-anular" data-id="${id}" style="font-size: var(--fs-base);">Anular</a>
-                            ` : ''}
-                        </div>
-                    `;
-                    document.body.insertAdjacentHTML('beforeend', menuHtml);
-                    
-                    const menu = document.querySelector('.row-action-menu');
-
-                    const btnAplicar = menu.querySelector('.btn-action-aplicar-saldo');
-                    if (btnAplicar) {
-                        btnAplicar.addEventListener('click', (ev) => {
-                            ev.preventDefault();
-                            menu.remove();
-                            AplicarSaldoNCModal.abrir({
-                                ncId: id,
-                                ncNumero: numero,
-                                contactoId: contactoId,
-                                clienteNombre: contactoNombre,
-                                saldoAFavor: saldoAFavor,
-                                onSuccess: () => {
-                                    kpiDataNC = null;
-                                    renderGrid();
-                                }
-                            });
-                        });
-                    }
-                    
-                    if (!isAnulada) {
-                        menu.querySelector('.btn-action-anular').addEventListener('click', async (ev) => {
-                            ev.preventDefault();
-                            menu.remove();
-                            if (confirm('¿Estás seguro de anular esta Nota de Crédito? Esto deshará la devolución de inventario y restaurará el saldo pendiente de la factura.')) {
-                                try {
-                                    CoreActions.showLoadingOverlay?.("Anulando nota de crédito...");
-                                    await NotasCreditoModule.anularNotaCredito(id);
-                                    if (CoreActions.hideLoadingOverlay) CoreActions.hideLoadingOverlay();
-                                    CoreActions.showSuccessModal("Nota de Crédito anulada correctamente.");
-                                    
-                                    kpiDataNC = null; // Refrescar KPIs
-                                    renderGrid();
-                                } catch (err) {
-                                    if (CoreActions.hideLoadingOverlay) CoreActions.hideLoadingOverlay();
-                                    CoreActions.showErrorModal("Error anulando: " + err.message);
-                                }
-                            }
-                        });
-                    }
-
-                    const botonMenu = e.currentTarget;
-                    const closeMenu = (evt) => {
-                        if (menu && !menu.contains(evt.target) && !botonMenu.contains(evt.target)) {
-                            menu.remove();
-                            document.removeEventListener('click', closeMenu);
-                        }
-                    };
-                    document.addEventListener('click', closeMenu);
-                });
-            });
-        };
-
-        renderGrid();
+    cerrarDrawer() {
+        const backdrop = this.element.querySelector('#nc-drawer-backdrop');
+        const drawer = this.element.querySelector('#nc-drawer');
+        if (backdrop) backdrop.classList.remove('show');
+        if (drawer) drawer.classList.remove('show');
+        this.state.activeDrawerId = null;
     },
 
     async renderForm(element, id, isViewOnly, isEditMode = false) {
@@ -380,7 +152,15 @@ export const NotasCreditoModule = {
 
             if (id) {
                 // Cargar nota existente
-                const { data: nData } = await supabase.from('notas_credito').select('*').eq('id', id).single();
+                const { data: nData, error: nErr } = await supabase.from('notas_credito').select('*').eq('id', id).single();
+                if (nErr || !nData) {
+                    element.innerHTML = `
+                        <div class="p-4 text-center">
+                            <p class="text-danger mb-2">No se encontró la nota de crédito solicitada.</p>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="window.location.hash='#/ingresos/notas-credito'">Volver a Notas de Crédito</button>
+                        </div>`;
+                    return;
+                }
                 nota = nData;
                 
                 const { data: detData } = await supabase.from('nota_credito_detalles').select('*').eq('nota_credito_id', id);
@@ -396,11 +176,10 @@ export const NotasCreditoModule = {
                     }
                 }
 
-                if (nota && nota.numero) {
-                    const { data: pagosNC } = await supabase.from('pagos_ingresos').select('monto').eq('referencia', 'NC-' + nota.numero).neq('estado', 'anulado');
-                    const sumaMontos = (pagosNC || []).reduce((sum, p) => sum + (parseFloat(p.monto) || 0), 0);
-                    saldoAFavorNC = Math.max(0, Number(nota.total || 0) - sumaMontos);
-                }
+                const refNC = 'NC-' + String(nota.numero || nota.id).trim();
+                const { data: pagosNC } = await supabase.from('pagos_ingresos').select('monto').ilike('referencia', refNC).neq('estado', 'anulado');
+                const sumaMontos = (pagosNC || []).reduce((sum, p) => sum + (parseFloat(p.monto) || 0), 0);
+                saldoAFavorNC = Math.max(0, Number(nota.total || 0) - sumaMontos);
             } else {
                 nota = {
                     fecha: getLocalDate(),
@@ -645,7 +424,7 @@ export const NotasCreditoModule = {
                                     <tbody>
                                         ${detallesNota.map(d => `
                                             <tr>
-                                                <td class="text-start fw-medium text-dark">${productosMap[d.producto_id] || 'Ítem ' + d.producto_id}</td>
+                                                <td class="text-start fw-medium text-dark">${escapeHtml(productosMap[d.producto_id] || ('Ítem ' + d.producto_id))}</td>
                                                 <td class="text-center">${d.cantidad}</td>
                                                 <td class="text-end">$${Number(d.precio_unitario || 0).toLocaleString()}</td>
                                                 <td class="text-end fw-bold text-dark">$${Number(d.subtotal || 0).toLocaleString()}</td>
@@ -989,9 +768,11 @@ export const NotasCreditoModule = {
             }
         } catch (e) {
             console.error(e);
-            element.innerHTML = `<div class="p-4 text-danger">Error: ${e.message}</div>`;
+            element.innerHTML = `<div class="p-4 text-danger">Error: ${escapeHtml(e.message)}</div>`;
         }
     }
 };
 
-Object.assign(NotasCreditoModule, NotasCreditoData);
+Object.assign(NotasCreditoModule, NotasCreditoData, NotasCreditoTemplates, NotasCreditoEvents);
+
+export default NotasCreditoModule;
