@@ -375,6 +375,25 @@ export const ProductoDetalleTemplates = {
     },
 
     /**
+     * Renderiza las filas de la tabla de todos los compradores / canales para el modal.
+     * @param {Array} canales 
+     * @returns {string}
+     */
+    renderFilasModalClientes(canales = []) {
+        if (!Array.isArray(canales) || canales.length === 0) {
+            return `<tr><td colspan="4" class="py-4 text-center text-muted">Sin compradores registrados.</td></tr>`;
+        }
+        return canales.map(c => `
+            <tr style="border-bottom: 1px solid var(--border-color); font-size: 13px;">
+                <td class="py-2 ps-4 fw-medium text-dark">${escapeHtml(c.nombre)}</td>
+                <td class="py-2 text-end tnum">${c.unidades || 0} und</td>
+                <td class="py-2 text-end tnum"><span class="badge bg-light text-dark border">${c.porcentaje || 0}%</span></td>
+                <td class="py-2 pe-4 text-end tnum text-primary fw-semibold">${this.formatMoney(c.total)}</td>
+            </tr>
+        `).join('');
+    },
+
+    /**
      * Renderiza el layout completo del detalle de producto.
      * @param {Object} state 
      * @returns {string}
@@ -414,35 +433,49 @@ export const ProductoDetalleTemplates = {
             stockBadgeBg = 'bg-warning-subtle text-warning-emphasis border-warning-subtle';
         }
 
-        // Renderizado de Canales de Venta
+        // Renderizado Pareto de Canales de Venta (Top 3 + Otros)
         let canalesHtml = '';
-        const canales = Array.isArray(historico.canales) && historico.canales.length > 0
-            ? historico.canales
-            : [
-                { nombre: 'Mercado Libre / Online', unidades: Math.round((historico.totalUnidadesVendidas || 0) * 0.85) || 0, porcentaje: 85 },
-                { nombre: 'Venta Directa / POS', unidades: Math.round((historico.totalUnidadesVendidas || 0) * 0.15) || 0, porcentaje: 15 }
-            ];
+        const canalesPareto = Array.isArray(historico.canalesPareto) && historico.canalesPareto.length > 0
+            ? historico.canalesPareto
+            : (Array.isArray(historico.canales) && historico.canales.length > 0
+                ? historico.canales.slice(0, 3)
+                : [
+                    { nombre: 'Mercado Libre / Online', unidades: Math.round((historico.totalUnidadesVendidas || 0) * 0.85) || 0, porcentaje: 85 },
+                    { nombre: 'Venta Directa / POS', unidades: Math.round((historico.totalUnidadesVendidas || 0) * 0.15) || 0, porcentaje: 15 }
+                ]);
 
-        canales.forEach((c, idx) => {
-            const barColors = ['#0284c7', '#8b5cf6', '#10b981', '#f59e0b'];
-            const barColor = barColors[idx % barColors.length];
+        canalesPareto.forEach((c, idx) => {
+            const barColors = ['#0284c7', '#8b5cf6', '#10b981', '#94a3b8'];
+            const barColor = c.esOtros ? '#94a3b8' : barColors[idx % barColors.length];
             canalesHtml += `
-                <div class="mb-3">
+                <div class="mb-2">
                     <div class="d-flex justify-content-between align-items-center mb-1" style="font-size: 12px;">
-                        <span class="text-dark fw-medium">${escapeHtml(c.nombre)}</span>
-                        <span class="text-muted tnum"><strong>${c.unidades || 0} und</strong> (${c.porcentaje || 0}%)</span>
+                        <span class="text-dark fw-medium text-truncate" style="max-width: 170px;" title="${escapeHtml(c.nombre)}">${escapeHtml(c.nombre)}</span>
+                        <span class="text-muted tnum" style="font-size: 11px;"><strong>${c.unidades || 0} und</strong> (${c.porcentaje || 0}%)</span>
                     </div>
-                    <div class="progress" style="height: 6px; background-color: #f1f5f9; border-radius: 4px;">
+                    <div class="progress" style="height: 5px; background-color: #f1f5f9; border-radius: 4px;">
                         <div class="progress-bar" role="progressbar" style="width: ${c.porcentaje || 0}%; background-color: ${barColor};" aria-valuenow="${c.porcentaje || 0}" aria-valuemin="0" aria-valuemax="100"></div>
                     </div>
                 </div>
             `;
         });
 
+        const totalClientes = historico.totalClientesUnicos || (historico.canales ? historico.canales.length : 0);
+        let linkTodosClientes = '';
+        if (totalClientes > 3) {
+            linkTodosClientes = `
+                <div class="text-center mt-2 pt-1 border-top">
+                    <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none fw-semibold" data-bs-toggle="modal" data-bs-target="#modalTodosClientes" style="font-size: 12px; color: var(--primary);">
+                        Ver todos los compradores (${totalClientes}) <i class="bi bi-arrow-right ms-1"></i>
+                    </button>
+                </div>
+            `;
+        }
+
         return `
             <div class="dash-layout p-4" style="max-width: 1400px; margin: 0 auto; font-family: 'Inter', system-ui, sans-serif;">
                 
-                <!-- BREADCRUMB & HEADER -->
+                <!-- FRANJA 1: BREADCRUMB, HEADER DE PRODUCTO & ACCIONES -->
                 <div class="d-flex justify-content-between align-items-center mb-2">
                     <div style="font-size: var(--fs-sm);" class="text-muted">
                         <span>Inventario</span> &gt; <span>Productos</span> &gt; <span class="text-dark fw-bold">Detalle</span>
@@ -483,19 +516,126 @@ export const ProductoDetalleTemplates = {
                     </div>
                 </div>
 
-                <!-- 5 KPI CARDS EJECUTIVAS -->
+                <!-- STRIP DE 5 KPI CARDS EJECUTIVAS -->
                 <div id="kpi-cards-container">
                     ${this.renderKpiCards(kpis)}
                 </div>
 
-                <!-- CONTENIDO PRINCIPAL: 2 COLUMNAS (8 / 4) -->
-                <div class="row g-4">
+                <!-- FRANJA 2: MASTER CONTEXT GRID (3 COLUMNAS SIMÉTRICAS DE IGUAL ALTURA) -->
+                <div class="row g-3 mb-4">
                     
-                    <!-- Columna Izquierda: 4 Pestañas Principales (8 columnas) -->
-                    <div class="col-12 col-xl-8">
-                        <div class="card border-0 shadow-sm mb-4" style="border-radius: var(--border-radius-sm); border: 1px solid var(--border-color);">
+                    <!-- CARD 1: FICHA DE PRECIOS -->
+                    <div class="col-12 col-md-6 col-lg-4">
+                        <div class="card border-0 shadow-sm h-100" style="border-radius: var(--border-radius-sm); border: 1px solid var(--border-color);">
+                            <div class="card-body p-3.5 d-flex flex-column justify-content-between">
+                                <div>
+                                    <h6 class="fw-bold mb-3 d-flex align-items-center text-dark" style="font-size: 14px;">
+                                        <span class="material-symbols-outlined me-1.5 text-primary" style="font-size: 18px;">payments</span>Ficha de Precios
+                                    </h6>
+                                    <ul class="list-unstyled mb-0" style="font-size: 12.5px;">
+                                        <li class="mb-2 pb-1.5 border-bottom d-flex justify-content-between align-items-center">
+                                            <span class="text-muted">PVP Catálogo:</span>
+                                            <strong class="tnum text-dark" style="font-size: 13.5px;">${this.formatMoney(prod.precioVenta)}</strong>
+                                        </li>
+                                        <li class="mb-2 pb-1.5 border-bottom d-flex justify-content-between align-items-center">
+                                            <span class="text-muted">PVP Promedio Real Ventas:</span>
+                                            <span class="tnum text-primary fw-semibold">${this.formatMoney(historico.precioPromedioPonderado || prod.precioVenta)}</span>
+                                        </li>
+                                        <li class="mb-2 pb-1.5 border-bottom d-flex justify-content-between align-items-center">
+                                            <span class="text-muted">Costo Base Fijo:</span>
+                                            <span class="tnum text-muted">${this.formatMoney(prod.costoBase)}</span>
+                                        </li>
+                                        <li class="mb-2 pb-1.5 border-bottom d-flex justify-content-between align-items-center">
+                                            <span class="text-muted">Costo Promedio FIFO:</span>
+                                            <strong class="tnum text-dark">${this.formatMoney(valorizacion.costoPromedioPonderado)}</strong>
+                                        </li>
+                                        <li class="mb-2 pb-1.5 border-bottom d-flex justify-content-between align-items-center">
+                                            <span class="text-muted">Utilidad Unitaria Bruta:</span>
+                                            <span class="tnum fw-bold ${margen.margenPorcentual > 0 ? 'text-success' : 'text-danger'}">
+                                                ${this.formatMoney(margen.utilidadMonetaria)} (${margen.margenPorcentual}%)
+                                            </span>
+                                        </li>
+                                        <li class="d-flex justify-content-between align-items-center">
+                                            <span class="text-muted">Régimen IVA / Impuesto:</span>
+                                            <span class="badge bg-light text-dark border">${prod.impuesto != null && prod.impuesto !== '' ? escapeHtml(String(prod.impuesto)) + '%' : '0% Exento'}</span>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- CARD 2: PARÁMETROS DE BODEGA & REABASTECIMIENTO -->
+                    <div class="col-12 col-md-6 col-lg-4">
+                        <div class="card border-0 shadow-sm h-100" style="border-radius: var(--border-radius-sm); border: 1px solid var(--border-color);">
+                            <div class="card-body p-3.5 d-flex flex-column justify-content-between">
+                                <div>
+                                    <h6 class="fw-bold mb-3 d-flex align-items-center text-dark" style="font-size: 14px;">
+                                        <span class="material-symbols-outlined me-1.5 text-warning" style="font-size: 18px;">warehouse</span>Parámetros de Bodega
+                                    </h6>
+                                    <ul class="list-unstyled mb-0" style="font-size: 12.5px;">
+                                        <li class="mb-2 pb-1.5 border-bottom d-flex justify-content-between align-items-center">
+                                            <span class="text-muted">Stock Mínimo Registrado:</span>
+                                            <strong class="tnum text-dark">${parseFloat(prod.stockMinimo) || 0} und</strong>
+                                        </li>
+                                        <li class="mb-2 pb-1.5 border-bottom d-flex justify-content-between align-items-center">
+                                            <span class="text-muted">Punto de Reorden Sugerido (ROP):</span>
+                                            <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle fw-bold px-2 py-1">${rotacion.puntoReordenSugerido || 5} und</span>
+                                        </li>
+                                        <li class="mb-2 pb-1.5 border-bottom d-flex justify-content-between align-items-center">
+                                            <span class="text-muted">Velocidad Diaria (30d):</span>
+                                            <span class="tnum text-muted">${rotacion.velocidadDiaria || 0} und/día</span>
+                                        </li>
+                                        <li class="mb-2 pb-1.5 border-bottom d-flex justify-content-between align-items-center">
+                                            <span class="text-muted">Días de Cobertura:</span>
+                                            <strong class="tnum ${rotacion.alertaRecompra ? 'text-danger' : 'text-success'}">${rotacion.diasCobertura >= 999 ? '> 90 días' : rotacion.diasCobertura + ' días'}</strong>
+                                        </li>
+                                        <li class="d-flex justify-content-between align-items-center">
+                                            <span class="text-muted">Valor Total en Bodega:</span>
+                                            <strong class="tnum text-dark">${this.formatMoney(valorizacion.valorTotal)}</strong>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- CARD 3: CONCENTRACIÓN DE CANALES & TOP CLIENTES -->
+                    <div class="col-12 col-md-12 col-lg-4">
+                        <div class="card border-0 shadow-sm h-100" style="border-radius: var(--border-radius-sm); border: 1px solid var(--border-color);">
+                            <div class="card-body p-3.5 d-flex flex-column justify-content-between">
+                                <div>
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h6 class="fw-bold mb-0 d-flex align-items-center text-dark" style="font-size: 14px;">
+                                            <span class="material-symbols-outlined me-1.5 text-info" style="font-size: 18px;">pie_chart</span>Concentración de Canales
+                                        </h6>
+                                        <span class="badge bg-light text-muted border" style="font-size: 10px;">Pareto Top 3</span>
+                                    </div>
+                                    
+                                    ${canalesHtml}
+                                </div>
+
+                                <div>
+                                    ${linkTodosClientes}
+                                    <div class="p-2 mt-2 rounded-2" style="background-color: #f8fafc; border: 1px dashed var(--border-color); font-size: 11.5px;">
+                                        <div class="d-flex justify-content-between">
+                                            <span class="text-muted">Total Ventas Históricas:</span>
+                                            <strong class="text-primary tnum">${historico.totalUnidadesVendidas || 0} und (${this.formatMoney(historico.totalRecaudo)})</strong>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- FRANJA 3: HUB TRANSACCIONAL OPERATIVO AL 100% DE ANCHO (12 COLUMNAS) -->
+                <div class="row g-4 mb-4">
+                    <div class="col-12">
+                        <div class="card border-0 shadow-sm" style="border-radius: var(--border-radius-sm); border: 1px solid var(--border-color);">
                             <div class="card-header bg-white border-bottom p-0">
-                                <ul class="nav nav-tabs card-header-tabs m-0 border-bottom-0" id="tabs-producto-principal" role="tablist">
+                                <ul class="nav nav-tabs card-header-tabs m-0 border-bottom-0 flex-nowrap" id="tabs-producto-principal" role="tablist" style="overflow-x: auto; white-space: nowrap;">
                                     <li class="nav-item" role="presentation">
                                         <button class="nav-link active fw-bold text-nowrap py-3 px-3.5 border-0 border-bottom border-primary border-2 text-primary" id="tab-lotes-fifo-btn" data-bs-toggle="tab" data-bs-target="#tab-lotes-fifo-pane" type="button" role="tab" style="font-size: 13px;">
                                             <span class="material-symbols-outlined align-middle me-1" style="font-size: 18px;">layers</span>Capas FIFO <span class="badge rounded-pill bg-light text-secondary border ms-1">${lotes.length}</span>
@@ -522,7 +662,7 @@ export const ProductoDetalleTemplates = {
                             <div class="card-body p-0">
                                 <div class="tab-content" id="tabs-producto-content">
                                     
-                                    <!-- TAB 1: CAPAS FIFO -->
+                                    <!-- TAB 1: CAPAS FIFO (100% ANCHO) -->
                                     <div class="tab-pane fade show active p-3" id="tab-lotes-fifo-pane" role="tabpanel">
                                         <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2 mb-3">
                                             <div>
@@ -540,14 +680,14 @@ export const ProductoDetalleTemplates = {
                                             <table class="table align-middle mb-0">
                                                 <thead style="background-color: #f8fafc; border-bottom: 1px solid var(--border-color);">
                                                     <tr style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">
-                                                        <th class="py-2 ps-3">Fecha Ingreso</th>
-                                                        <th class="py-2">Referencia</th>
-                                                        <th class="py-2 text-center">Antigüedad</th>
-                                                        <th class="py-2 text-end">Costo Unitario</th>
-                                                        <th class="py-2 text-end">Inicial</th>
-                                                        <th class="py-2 text-end">Disponible</th>
-                                                        <th class="py-2 text-center">Consumo FIFO</th>
-                                                        <th class="py-2 pe-3 text-center">Estado / Capa</th>
+                                                        <th class="py-2.5 ps-3">Fecha Ingreso</th>
+                                                        <th class="py-2.5">Referencia</th>
+                                                        <th class="py-2.5 text-center">Antigüedad</th>
+                                                        <th class="py-2.5 text-end">Costo Unitario</th>
+                                                        <th class="py-2.5 text-end">Inicial</th>
+                                                        <th class="py-2.5 text-end">Disponible</th>
+                                                        <th class="py-2.5 text-center">Consumo FIFO</th>
+                                                        <th class="py-2.5 pe-3 text-center">Estado / Capa</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody id="tbody-lotes-fifo">
@@ -557,7 +697,7 @@ export const ProductoDetalleTemplates = {
                                         </div>
                                     </div>
 
-                                    <!-- TAB 2: KARDEX CONTINUO EMBEBIDO -->
+                                    <!-- TAB 2: KARDEX CONTINUO EMBEBIDO (100% ANCHO) -->
                                     <div class="tab-pane fade p-3" id="tab-kardex-pane" role="tabpanel">
                                         <div class="d-flex justify-content-between align-items-center mb-3">
                                             <div>
@@ -571,13 +711,13 @@ export const ProductoDetalleTemplates = {
                                             <table class="table align-middle mb-0 text-center">
                                                 <thead style="background-color: #f8fafc; border-bottom: 1px solid var(--border-color);">
                                                     <tr style="color: var(--text-muted); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">
-                                                        <th class="py-2 ps-4 text-start">Fecha &amp; Hora</th>
-                                                        <th class="py-2">Operación</th>
-                                                        <th class="py-2 text-end">Cant. Anterior</th>
-                                                        <th class="py-2 text-end">Diferencia</th>
-                                                        <th class="py-2 text-end">Cant. Nueva</th>
-                                                        <th class="py-2">Documento Origen</th>
-                                                        <th class="py-2 pe-4">Referencia</th>
+                                                        <th class="py-2.5 ps-4 text-start">Fecha &amp; Hora</th>
+                                                        <th class="py-2.5">Operación</th>
+                                                        <th class="py-2.5 text-end">Cant. Anterior</th>
+                                                        <th class="py-2.5 text-end">Diferencia</th>
+                                                        <th class="py-2.5 text-end">Cant. Nueva</th>
+                                                        <th class="py-2.5">Documento Origen</th>
+                                                        <th class="py-2.5 pe-4">Referencia</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody id="tbody-kardex-embebido">
@@ -587,7 +727,7 @@ export const ProductoDetalleTemplates = {
                                         </div>
                                     </div>
 
-                                    <!-- TAB 3: VENTAS ASOCIADAS -->
+                                    <!-- TAB 3: VENTAS ASOCIADAS (100% ANCHO) -->
                                     <div class="tab-pane fade p-3" id="tab-facturas-venta-pane" role="tabpanel">
                                         <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2 mb-3">
                                             <div class="input-group input-group-sm" style="max-width: 320px;">
@@ -601,13 +741,13 @@ export const ProductoDetalleTemplates = {
                                             <table class="table align-middle mb-0">
                                                 <thead style="background-color: #f8fafc; border-bottom: 1px solid var(--border-color);">
                                                     <tr style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">
-                                                        <th class="py-2 ps-3">Documento</th>
-                                                        <th class="py-2">Fecha</th>
-                                                        <th class="py-2">Cliente</th>
-                                                        <th class="py-2 text-end">Cantidad</th>
-                                                        <th class="py-2 text-end">Precio Unitario</th>
-                                                        <th class="py-2 text-end">Total Ítem</th>
-                                                        <th class="py-2 pe-3 text-center">Estado</th>
+                                                        <th class="py-2.5 ps-3">Documento</th>
+                                                        <th class="py-2.5">Fecha</th>
+                                                        <th class="py-2.5">Cliente</th>
+                                                        <th class="py-2.5 text-end">Cantidad</th>
+                                                        <th class="py-2.5 text-end">Precio Unitario</th>
+                                                        <th class="py-2.5 text-end">Total Ítem</th>
+                                                        <th class="py-2.5 pe-3 text-center">Estado</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody id="tbody-ventas-prod">
@@ -617,7 +757,7 @@ export const ProductoDetalleTemplates = {
                                         </div>
                                     </div>
 
-                                    <!-- TAB 4: COMPRAS ASOCIADAS -->
+                                    <!-- TAB 4: COMPRAS ASOCIADAS (100% ANCHO) -->
                                     <div class="tab-pane fade p-3" id="tab-facturas-compra-pane" role="tabpanel">
                                         <div class="d-flex justify-content-between align-items-center mb-3">
                                             <h6 class="fw-bold mb-0 text-dark" style="font-size: 14px;">Órdenes y Facturas de Compra</h6>
@@ -628,13 +768,13 @@ export const ProductoDetalleTemplates = {
                                             <table class="table align-middle mb-0">
                                                 <thead style="background-color: #f8fafc; border-bottom: 1px solid var(--border-color);">
                                                     <tr style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">
-                                                        <th class="py-2 ps-3">Documento</th>
-                                                        <th class="py-2">Fecha</th>
-                                                        <th class="py-2">Proveedor</th>
-                                                        <th class="py-2 text-end">Cantidad</th>
-                                                        <th class="py-2 text-end">Costo Unitario</th>
-                                                        <th class="py-2 text-end">Total Ítem</th>
-                                                        <th class="py-2 pe-3 text-center">Estado</th>
+                                                        <th class="py-2.5 ps-3">Documento</th>
+                                                        <th class="py-2.5">Fecha</th>
+                                                        <th class="py-2.5">Proveedor</th>
+                                                        <th class="py-2.5 text-end">Cantidad</th>
+                                                        <th class="py-2.5 text-end">Costo Unitario</th>
+                                                        <th class="py-2.5 text-end">Total Ítem</th>
+                                                        <th class="py-2.5 pe-3 text-center">Estado</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody id="tbody-compras-prod">
@@ -648,98 +788,6 @@ export const ProductoDetalleTemplates = {
                             </div>
                         </div>
                     </div>
-
-                    <!-- Columna Derecha: Ficha de Precios, Concentración de Canales y Parámetros (4 columnas) -->
-                    <div class="col-12 col-xl-4">
-                        
-                        <!-- CARD 1: FICHA DE PRECIOS -->
-                        <div class="card border-0 shadow-sm mb-4" style="border-radius: var(--border-radius-sm); border: 1px solid var(--border-color);">
-                            <div class="card-body p-4">
-                                <h5 class="fw-bold mb-3 d-flex align-items-center" style="font-size: 15px; color: var(--text-main);">
-                                    <span class="material-symbols-outlined me-2" style="font-size: 18px; color: #2563eb;">payments</span>Ficha de Precios
-                                </h5>
-                                <ul class="list-unstyled mb-0" style="font-size: 13px;">
-                                    <li class="mb-2 pb-2 border-bottom d-flex justify-content-between align-items-center">
-                                        <span class="text-muted">PVP Catálogo:</span>
-                                        <strong class="tnum text-dark" style="font-size: 14px;">${this.formatMoney(prod.precioVenta)}</strong>
-                                    </li>
-                                    <li class="mb-2 pb-2 border-bottom d-flex justify-content-between align-items-center">
-                                        <span class="text-muted">PVP Promedio Real Ventas:</span>
-                                        <span class="tnum text-primary fw-semibold">${this.formatMoney(historico.precioPromedioPonderado || prod.precioVenta)}</span>
-                                    </li>
-                                    <li class="mb-2 pb-2 border-bottom d-flex justify-content-between align-items-center">
-                                        <span class="text-muted">Costo Base Fijo:</span>
-                                        <span class="tnum text-muted">${this.formatMoney(prod.costoBase)}</span>
-                                    </li>
-                                    <li class="mb-2 pb-2 border-bottom d-flex justify-content-between align-items-center">
-                                        <span class="text-muted">Costo Promedio FIFO:</span>
-                                        <strong class="tnum text-dark">${this.formatMoney(valorizacion.costoPromedioPonderado)}</strong>
-                                    </li>
-                                    <li class="mb-2 pb-2 border-bottom d-flex justify-content-between align-items-center">
-                                        <span class="text-muted">Utilidad Unitaria Bruta:</span>
-                                        <span class="tnum fw-bold ${margen.margenPorcentual > 0 ? 'text-success' : 'text-danger'}">
-                                            ${this.formatMoney(margen.utilidadMonetaria)} (${margen.margenPorcentual}%)
-                                        </span>
-                                    </li>
-                                    <li class="d-flex justify-content-between align-items-center">
-                                        <span class="text-muted">Régimen IVA / Impuesto:</span>
-                                        <span class="badge bg-light text-dark border">${prod.impuesto != null && prod.impuesto !== '' ? escapeHtml(String(prod.impuesto)) + '%' : '0% Exento'}</span>
-                                    </li>
-                                </ul>
-                            </div>
-                        </div>
-
-                        <!-- CARD 2: CONCENTRACIÓN DE CANALES -->
-                        <div class="card border-0 shadow-sm mb-4" style="border-radius: var(--border-radius-sm); border: 1px solid var(--border-color);">
-                            <div class="card-body p-4">
-                                <h5 class="fw-bold mb-3 d-flex align-items-center" style="font-size: 15px; color: var(--text-main);">
-                                    <span class="material-symbols-outlined me-2" style="font-size: 18px; color: #8b5cf6;">pie_chart</span>Concentración de Canales
-                                </h5>
-                                
-                                ${canalesHtml}
-
-                                <div class="p-2.5 mt-3 rounded-2" style="background-color: #f8fafc; border: 1px dashed var(--border-color); font-size: 12px;">
-                                    <div class="d-flex justify-content-between mb-1">
-                                        <span class="text-muted">Total Unidades Vendidas:</span>
-                                        <strong class="text-dark tnum">${historico.totalUnidadesVendidas || 0} und</strong>
-                                    </div>
-                                    <div class="d-flex justify-content-between">
-                                        <span class="text-muted">Recaudo Histórico Global:</span>
-                                        <strong class="text-primary tnum">${this.formatMoney(historico.totalRecaudo)}</strong>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- CARD 3: PARÁMETROS DE BODEGA & REORDEN -->
-                        <div class="card border-0 shadow-sm" style="border-radius: var(--border-radius-sm); border: 1px solid var(--border-color);">
-                            <div class="card-body p-4">
-                                <h5 class="fw-bold mb-3 d-flex align-items-center" style="font-size: 15px; color: var(--text-main);">
-                                    <span class="material-symbols-outlined me-2" style="font-size: 18px; color: #d97706;">warehouse</span>Parámetros de Bodega
-                                </h5>
-                                <ul class="list-unstyled mb-0" style="font-size: 13px;">
-                                    <li class="mb-2 pb-2 border-bottom d-flex justify-content-between align-items-center">
-                                        <span class="text-muted">Stock Mínimo Registrado:</span>
-                                        <strong class="tnum text-dark">${parseFloat(prod.stockMinimo) || 0} und</strong>
-                                    </li>
-                                    <li class="mb-2 pb-2 border-bottom d-flex justify-content-between align-items-center">
-                                        <span class="text-muted">Punto de Reorden Sugerido (ROP):</span>
-                                        <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle fw-bold px-2 py-1">${rotacion.puntoReordenSugerido || 5} und</span>
-                                    </li>
-                                    <li class="mb-2 pb-2 border-bottom d-flex justify-content-between align-items-center">
-                                        <span class="text-muted">Velocidad Diaria (30d):</span>
-                                        <span class="tnum text-muted">${rotacion.velocidadDiaria || 0} und/día</span>
-                                    </li>
-                                    <li class="d-flex justify-content-between align-items-center">
-                                        <span class="text-muted">Días de Cobertura:</span>
-                                        <strong class="tnum ${rotacion.alertaRecompra ? 'text-danger' : 'text-success'}">${rotacion.diasCobertura >= 999 ? '> 90 días' : rotacion.diasCobertura + ' días'}</strong>
-                                    </li>
-                                </ul>
-                            </div>
-                        </div>
-
-                    </div>
-
                 </div>
 
                 <!-- MODAL NUEVO LOTE FIFO (#modalNuevoLoteFIFO) -->
@@ -814,6 +862,40 @@ export const ProductoDetalleTemplates = {
                                         </thead>
                                         <tbody id="tbody-kardex-modal">
                                             <tr><td colspan="7" class="py-4 text-muted"><span class="spinner-border spinner-border-sm me-2"></span>Cargando kardex...</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="modal-footer border-top py-2">
+                                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- MODAL TODOS LOS COMPRADORES / CLIENTES (#modalTodosClientes) -->
+                <div class="modal fade" id="modalTodosClientes" tabindex="-1" aria-labelledby="modalTodosClientesLabel" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+                        <div class="modal-content" style="border-radius: var(--border-radius-sm); border: 1px solid var(--border-color);">
+                            <div class="modal-header border-bottom py-3">
+                                <h5 class="modal-title fw-bold d-flex align-items-center" id="modalTodosClientesLabel" style="font-size: 16px; color: var(--text-main);">
+                                    <span class="material-symbols-outlined me-2 text-info" style="font-size: 20px;">pie_chart</span>Todos los Clientes &amp; Canales: ${escapeHtml(prod.nombre || '')}
+                                </h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body p-0">
+                                <div class="table-responsive">
+                                    <table class="table align-middle mb-0">
+                                        <thead style="background-color: #f8fafc; border-bottom: 1px solid var(--border-color); font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-muted);">
+                                            <tr>
+                                                <th class="py-2.5 ps-4">Cliente / Canal</th>
+                                                <th class="py-2.5 text-end">Unidades</th>
+                                                <th class="py-2.5 text-end">Participación</th>
+                                                <th class="py-2.5 pe-4 text-end">Total Recaudado</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${this.renderFilasModalClientes(historico.canales || [])}
                                         </tbody>
                                     </table>
                                 </div>

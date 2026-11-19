@@ -318,6 +318,28 @@ export const ProductoDetalleData = {
                 : 0
         }));
 
+        // Distribución Pareto (Top 3 clientes/canales + Otros)
+        const top3 = canales.slice(0, 3);
+        const resto = canales.slice(3);
+        const canalesPareto = [...top3];
+        if (resto.length > 0) {
+            const restoUnidades = resto.reduce((acc, c) => acc + (c.unidades || 0), 0);
+            const restoTotal = resto.reduce((acc, c) => acc + (c.total || 0), 0);
+            const restoPct = totalUnidadesVendidas > 0
+                ? Math.round(((restoUnidades / totalUnidadesVendidas) * 100) * 10) / 10
+                : 0;
+            canalesPareto.push({
+                nombre: `Otros (${resto.length} clientes)`,
+                cliente: `Otros (${resto.length} clientes)`,
+                canal: `Otros (${resto.length} clientes)`,
+                unidades: restoUnidades,
+                totalUnidades: restoUnidades,
+                total: restoTotal,
+                porcentaje: restoPct,
+                esOtros: true
+            });
+        }
+
         return {
             totalRecaudo: Math.round(totalRecaudo * 100) / 100,
             totalUnidadesVendidas,
@@ -326,6 +348,9 @@ export const ProductoDetalleData = {
             precioPromedioPonderado,
             canales,
             concentracionCanales: canales,
+            canalesPareto,
+            topCanales: top3,
+            totalClientesUnicos: rawCanales.length,
             topCanal: canales[0] || null
         };
     },

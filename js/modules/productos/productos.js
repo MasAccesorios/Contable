@@ -27,7 +27,7 @@ export const ProductosModule = {
         element.innerHTML = `
             <div class="dash-layout p-4">
                 <!-- TOP BAR -->
-                <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+                <div id="productos-list-header" class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
                     <div>
                         <div class="d-flex align-items-center gap-2 mb-1">
                             <h2 class="page-title mb-0" style="font-size: 20px; font-weight: 700; color: var(--text-main);">Ítems de venta</h2>
@@ -206,6 +206,9 @@ export const ProductosModule = {
     },
 
     async renderGrid(element) {
+        const listHeader = element.querySelector('#productos-list-header');
+        if (listHeader) listHeader.classList.remove('d-none');
+
         const gridCard = element.querySelector('.dash-table-container');
         if (gridCard) gridCard.classList.remove('d-none');
         
@@ -533,6 +536,9 @@ export const ProductosModule = {
     },
 
     async renderDetalle(element, id) {
+        const listHeader = element.querySelector('#productos-list-header');
+        if (listHeader) listHeader.classList.add('d-none');
+
         const gridCard = element.querySelector('.dash-table-container');
         if (gridCard) gridCard.classList.add('d-none');
 
@@ -546,6 +552,8 @@ export const ProductosModule = {
             if (typeof window !== 'undefined') {
                 window.location.hash = '#/inventario/items';
             }
+            const header = element.querySelector('#productos-list-header');
+            if (header) header.classList.remove('d-none');
             this.renderGrid(element);
         });
     }

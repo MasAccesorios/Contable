@@ -273,7 +273,7 @@ export const ProductoDetalleEvents = {
             this._alertTimeout = null;
         }
         if (!element) return;
-        ['#modalKardexProducto', '#modalNuevoLoteFIFO'].forEach(sel => {
+        ['#modalKardexProducto', '#modalNuevoLoteFIFO', '#modalTodosClientes'].forEach(sel => {
             const modalEl = element.querySelector(sel);
             if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
                 const instance = bootstrap.Modal.getInstance(modalEl);

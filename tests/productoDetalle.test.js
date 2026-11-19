@@ -359,6 +359,28 @@ describe('Módulo Producto Detalle - TDD Test Suite', () => {
             assert.strictEqual(segundo.unidades ?? segundo.totalUnidades, 20);
         });
 
+        it('debe aplicar agrupamiento Pareto (Top 3 + Otros) cuando existen más de 3 clientes compradores', () => {
+            const ventasMultiples = [
+                { id: 1, clienteNombre: 'Cliente A', cantidadItem: 100, precioUnitarioItem: 1000, totalItem: 100000, estado: 'cobrada' },
+                { id: 2, clienteNombre: 'Cliente B', cantidadItem: 50, precioUnitarioItem: 1000, totalItem: 50000, estado: 'cobrada' },
+                { id: 3, clienteNombre: 'Cliente C', cantidadItem: 30, precioUnitarioItem: 1000, totalItem: 30000, estado: 'cobrada' },
+                { id: 4, clienteNombre: 'Cliente D', cantidadItem: 10, precioUnitarioItem: 1000, totalItem: 10000, estado: 'cobrada' },
+                { id: 5, clienteNombre: 'Cliente E', cantidadItem: 5, precioUnitarioItem: 1000, totalItem: 5000, estado: 'cobrada' },
+                { id: 6, clienteNombre: 'Cliente F', cantidadItem: 5, precioUnitarioItem: 1000, totalItem: 5000, estado: 'cobrada' }
+            ];
+
+            const res = ProductoDetalleData.calcularMetricasHistoricas(ventasMultiples);
+
+            assert.strictEqual(res.canales.length, 6, 'La lista completa debe retener los 6 clientes');
+            assert.strictEqual(res.canalesPareto.length, 4, 'canalesPareto debe contener 3 top + 1 fila Otros');
+            assert.strictEqual(res.canalesPareto[0].nombre, 'Cliente A');
+            assert.strictEqual(res.canalesPareto[1].nombre, 'Cliente B');
+            assert.strictEqual(res.canalesPareto[2].nombre, 'Cliente C');
+            assert.strictEqual(res.canalesPareto[3].esOtros, true);
+            assert.strictEqual(res.canalesPareto[3].unidades, 20); // 10 + 5 + 5
+            assert.strictEqual(res.canalesPareto[3].total, 20000);
+        });
+
         it('edge case: lista de ventas vacía o nula debe retornar ceros seguros', () => {
             const resVacio = ProductoDetalleData.calcularMetricasHistoricas([]);
             assert.strictEqual(resVacio.totalRecaudo, 0);
@@ -975,6 +997,27 @@ describe('Módulo Producto Detalle - TDD Test Suite', () => {
 
             assert.ok(html.includes('Ficha de Precios'), 'Debe contener el encabezado o sección Ficha de Precios');
             assert.ok(html.includes('Concentración de Canales'), 'Debe contener la sección Concentración de Canales');
+            assert.ok(html.includes('id="modalTodosClientes"'), 'Debe contener el modal #modalTodosClientes');
+        });
+
+        it('renderFilasModalClientes debe renderizar filas de clientes con sanitización XSS', () => {
+            const canales = [
+                { nombre: 'Cliente Seguro', unidades: 20, porcentaje: 60, total: 200000 },
+                { nombre: '<img src=x onerror=alert(1)> Inyector', unidades: 10, porcentaje: 40, total: 100000 }
+            ];
+
+            const html = ProductoDetalleTemplates.renderFilasModalClientes(canales);
+
+            assert.ok(!html.includes('<img src=x onerror=alert(1)>'));
+            assert.ok(html.includes('&lt;img src=x onerror=alert(1)&gt;'));
+            assert.ok(html.includes('Cliente Seguro'));
+            assert.ok(html.includes('20 und'));
+            assert.ok(html.includes('$ 200.000'));
+        });
+
+        it('renderFilasModalClientes con lista vacía debe retornar mensaje amigable', () => {
+            const html = ProductoDetalleTemplates.renderFilasModalClientes([]);
+            assert.ok(html.includes('Sin compradores registrados'));
         });
     });
 
