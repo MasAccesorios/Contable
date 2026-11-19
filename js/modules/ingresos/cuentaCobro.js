@@ -5,7 +5,38 @@ import { PrintManager } from '../../shared/printManager.js';
 import { ItemEngine } from '../../shared/itemEngine.js';
 import { applyCurrencyFormatting, parseCurrencyValue, escapeHtml } from '../../shared/formatters.js';
 
+import { CuentaCobroData } from './cuentaCobro.data.js';
+import { CuentaCobroTemplates } from './cuentaCobro.templates.js';
+import { CuentaCobroEvents } from './cuentaCobro.events.js';
+
+// Inyectar cliente Supabase en el módulo de datos
+CuentaCobroData.setSupabase(supabase);
+
 export const CuentaCobroModule = {
+    state: {
+        cuentas: [],
+        cuentasFiltradas: [],
+        currentPage: 1,
+        itemsPerPage: 15,
+        searchQuery: '',
+        selectedTab: 'todas',
+        totalItems: 0,
+        totalPages: 1,
+        isLoading: false,
+        activeDrawerId: null,
+        kpis: {
+            totalEmitido: 0,
+            totalCobrado: 0,
+            totalPendiente: 0,
+            totalVencido: 0,
+            conteoTotal: 0,
+            conteoCobradas: 0,
+            conteoPendientes: 0,
+            conteoVencidas: 0,
+            conteoAnuladas: 0
+        }
+    },
+
     async init(element) {
         if (!element) return;
 
@@ -18,147 +49,100 @@ export const CuentaCobroModule = {
         } else if (subAction === 'ver') {
             await this.renderForm(element, id, true);
         } else {
-            await this.renderList(element);
+            return await this.renderList(element);
         }
     },
 
     async renderList(element) {
-        element.innerHTML = `
-            <div class="d-flex justify-content-center align-items-center" style="min-height: 400px;">
-                <div class="spinner-border" role="status" style="width: 3rem; height: 3rem; color: var(--primary);">
-                    <span class="visually-hidden">Cargando...</span>
-                </div>
-            </div>
-        `;
-        
-        const { data, error } = await supabase.from('cuentas_cobro').select('*').order('numero', { ascending: false });
-        const listData = data || [];
+        this.element = element;
+        this.state.currentPage = 1;
+        this.state.searchQuery = '';
+        this.state.selectedTab = 'todas';
 
-        const formatMoney = (val) => '$ ' + parseFloat(val || 0).toLocaleString('es-CO', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-
-        let totalFacturado = 0, totalCobrado = 0, totalPendiente = 0;
-        listData.forEach(c => {
-            const tot = parseFloat(c.total) || 0;
-            const sal = parseFloat(c.saldo !== undefined ? c.saldo : tot) || 0;
-            const cob = parseFloat(c.total_pagado !== undefined ? c.total_pagado : (tot - sal)) || 0;
-            totalFacturado += tot;
-            totalPendiente += sal;
-            totalCobrado += cob;
-        });
-
-        const rowsHtml = listData.map(c => `
-            <tr class="row-cuenta-cobro" data-id="${c.id}" style="border-bottom: 1px solid var(--border-color); font-size: var(--fs-base); color: var(--text-body); cursor: pointer;">
-                <td style="padding: 12px 16px; font-weight: 500;">No. ${c.numero}</td>
-                <td style="padding: 12px 16px;">${c.fecha}</td>
-                <td style="padding: 12px 16px;">
-                    <div style="font-weight: 500; color: var(--text-main);">${escapeHtml(c.cliente_razon_social)}</div>
-                </td>
-                <td style="padding: 12px 16px; text-align: right; font-weight: 600;">${formatMoney(c.total)}</td>
-                <td style="padding: 12px 16px; text-align: center;">
-                    <span class="badge bg-warning text-warning-emphasis bg-opacity-10 border border-warning-subtle rounded-pill fw-medium" style="font-size: var(--fs-xs); padding: 5px 10px;">Pendiente</span>
-                </td>
-                <td style="padding: 12px 16px; text-align: right;">
-                    <button class="btn btn-sm btn-light border ms-1 btn-imprimir-row" data-id="${c.id}" title="Imprimir"><i class="bi bi-printer"></i></button>
-                    <button class="btn btn-sm btn-outline-danger ms-1 btn-delete-row" data-id="${c.id}" title="Eliminar"><i class="bi bi-trash"></i></button>
-                </td>
-            </tr>
-        `).join('');
-
-        element.innerHTML = `
-            <div class="dash-layout p-4">
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h2 class="h3 fw-bold mb-0" style="color: var(--text-main);">Cuentas de Cobro</h2>
-                    <a href="#/ingresos/cuenta-cobro/nueva" class="btn btn-primary-action px-4">
-                        <i class="bi bi-plus-lg me-2"></i>Nueva Cuenta de Cobro
-                    </a>
-                </div>
-
-                <!-- KPI CARDS CUENTA DE COBRO -->
-                <div class="row g-3 mb-4">
-                    <div class="col-12 col-sm-6 col-lg-4">
-                        <div class="dash-kpi-card d-flex flex-column justify-content-between" style="min-height: 90px;">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <span class="dash-kpi-label">Total Emitido</span>
-                                <div class="dash-icon-box variant-blue">
-                                    <i class="bi bi-receipt"></i>
-                                </div>
-                            </div>
-                            <div class="dash-kpi-value">$ ${formatMoney(totalFacturado).replace('$ ', '')}</div>
-                        </div>
-                    </div>
-                    <div class="col-12 col-sm-6 col-lg-4">
-                        <div class="dash-kpi-card d-flex flex-column justify-content-between" style="min-height: 90px;">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <span class="dash-kpi-label">Total Cobrado</span>
-                                <div class="dash-icon-box variant-green">
-                                    <i class="bi bi-check-circle"></i>
-                                </div>
-                            </div>
-                            <div class="dash-kpi-value">$ ${formatMoney(totalCobrado).replace('$ ', '')}</div>
-                        </div>
-                    </div>
-                    <div class="col-12 col-sm-6 col-lg-4">
-                        <div class="dash-kpi-card d-flex flex-column justify-content-between" style="min-height: 90px;">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <span class="dash-kpi-label">Total Pendiente</span>
-                                <div class="dash-icon-box variant-yellow">
-                                    <i class="bi bi-clock-history"></i>
-                                </div>
-                            </div>
-                            <div class="dash-kpi-value">$ ${formatMoney(totalPendiente).replace('$ ', '')}</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="dash-table-container">
-                    <div class="table-responsive">
-                        <table class="table table-hover mb-0" style="width: 100%; border-collapse: collapse;">
-                            <thead style="background-color: var(--bg-main);">
-                                <tr style="border-bottom: 2px solid var(--border-color); color: var(--text-muted); font-size: var(--fs-sm); text-transform: uppercase; letter-spacing: 0.5px;">
-                                    <th style="padding: 12px 16px; font-weight: 600;">Número</th>
-                                    <th style="padding: 12px 16px; font-weight: 600;">Fecha</th>
-                                    <th style="padding: 12px 16px; font-weight: 600;">Cliente</th>
-                                    <th style="padding: 12px 16px; text-align: right; font-weight: 600;">Total</th>
-                                    <th style="padding: 12px 16px; text-align: center; font-weight: 600;">Estado</th>
-                                    <th style="padding: 12px 16px; text-align: right; font-weight: 600;">Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${rowsHtml || '<tr><td colspan="5" class="text-center py-4 text-muted">No hay cuentas de cobro registradas.</td></tr>'}
-                            </tbody>
-                        </table>
-                    </div>
+        this.element.innerHTML = `
+            <div class="d-flex justify-content-center align-items-center py-5" style="min-height: 400px;">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Cargando cuentas de cobro...</span>
                 </div>
             </div>
         `;
 
-        element.querySelector('tbody').addEventListener('click', (e) => {
-            const row = e.target.closest('.row-cuenta-cobro');
-            if (!row) return;
-            if (e.target.closest('button')) return;
-            
-            window.location.hash = `#/ingresos/cuenta-cobro/ver/${row.dataset.id}`;
-        });
+        await this.cargarCuentasCobro();
+        this.renderLayoutActual();
 
-        element.querySelectorAll('.btn-imprimir-row').forEach(btn => {
-            btn.addEventListener('click', async (e) => {
-                const id = e.currentTarget.dataset.id;
-                const doc = listData.find(c => String(c.id) === String(id));
-                if (doc) {
-                    PrintManager.printCuentaCobro(doc);
-                }
-            });
-        });
+        return () => {
+            this.cleanup();
+        };
+    },
 
-        element.querySelectorAll('.btn-delete-row').forEach(btn => {
-            btn.addEventListener('click', async (e) => {
-                if (confirm('¿Estás seguro de eliminar esta cuenta de cobro?')) {
-                    const id = e.currentTarget.dataset.id;
-                    await supabase.from('cuentas_cobro').delete().eq('id', id);
-                    this.renderList(element);
-                }
-            });
-        });
+    renderLayoutActual() {
+        if (!this.element) return;
+        this.element.innerHTML = this.renderLayout();
+        this.bindStaticEvents();
+        this.render();
+    },
+
+    render() {
+        const container = this.element?.querySelector('#cc-grid-container');
+        if (!container) return;
+        container.innerHTML = this.renderGrid();
+        this.bindDynamicEvents(container);
+    },
+
+    async mostrarDrawer(id) {
+        if (this._drawerCloseTimer) {
+            clearTimeout(this._drawerCloseTimer);
+            this._drawerCloseTimer = null;
+        }
+
+        const backdrop = this.element?.querySelector('#cc-drawer-backdrop');
+        const drawer = this.element?.querySelector('#cc-drawer');
+        const body = this.element?.querySelector('#cc-drawer-body');
+        const actionsContainer = this.element?.querySelector('#cc-drawer-actions');
+        if (actionsContainer) actionsContainer.innerHTML = '';
+        if (!drawer || !body) return;
+
+        body.innerHTML = `
+            <div class="d-flex justify-content-center align-items-center py-5">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Cargando comprobante...</span>
+                </div>
+            </div>
+        `;
+
+        if (backdrop) backdrop.style.display = 'block';
+        drawer.style.visibility = 'visible';
+        drawer.style.transform = 'none';
+        this.state.activeDrawerId = id;
+
+        try {
+            const detalle = await this.cargarDetalleCuentaCobro(id);
+            if (this.state.activeDrawerId !== id) return;
+            if (!detalle) {
+                this.cerrarDrawer();
+                return;
+            }
+            body.innerHTML = this.renderDrawerContent(detalle);
+            this.bindDrawerActionEvents(detalle, actionsContainer);
+        } catch (err) {
+            console.error('[CuentaCobroModule] Error cargando drawer:', err);
+            body.innerHTML = `<div class="p-4 text-center text-danger">Error cargando detalle de la cuenta de cobro.</div>`;
+        }
+    },
+
+    cerrarDrawer() {
+        const backdrop = this.element?.querySelector('#cc-drawer-backdrop');
+        const drawer = this.element?.querySelector('#cc-drawer');
+        if (backdrop) backdrop.style.display = 'none';
+        if (drawer) {
+            drawer.style.transform = 'translateX(100%)';
+            if (this._drawerCloseTimer) clearTimeout(this._drawerCloseTimer);
+            this._drawerCloseTimer = setTimeout(() => {
+                drawer.style.visibility = 'hidden';
+                this._drawerCloseTimer = null;
+            }, 300);
+        }
+        if (this.state) this.state.activeDrawerId = null;
     },
 
     async renderForm(element, id = null, isViewOnly = false) {
@@ -285,7 +269,7 @@ export const CuentaCobroModule = {
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label text-muted small fw-medium">Medio de Pago</label>
-                                <input type="text" id="cc-medio-pago" class="form-control" value="${doc.medio_pago || 'Instrumento no definido'}" ${isViewOnly ? 'disabled' : ''}>
+                                <input type="text" id="cc-medio-pago" class="form-control" value="${escapeHtml(doc.medio_pago || 'Instrumento no definido')}" ${isViewOnly ? 'disabled' : ''}>
                             </div>
                         </div>
                     </div>
@@ -345,17 +329,6 @@ export const CuentaCobroModule = {
         `;
 
         const tbody = element.querySelector('#cc-items-table tbody');
-        
-        const getProductsFn = async () => {
-            const { data } = await supabase.from('productos').select('*').limit(2000);
-            return data.map(p => ({
-                ...p,
-                id: p.id,
-                nombre: p.nombre,
-                sku: p.sku,
-                precio_base: p.precio_base || p.precio_venta || 0
-            }));
-        };
 
         const renderLine = (lineData, index) => {
             const tr = document.createElement('tr');
@@ -455,11 +428,16 @@ export const CuentaCobroModule = {
 
                 updateTotals();
                 
-                const { data: prods, error: prodsErr } = await supabase.from('productos').select('id, nombre, sku');
-                if (prodsErr) console.error("Error cargando productos para guardar:", prodsErr);
+                const pIdsToFetch = doc.detalles.map(d => d.producto_id).filter(Boolean);
+                let prods = [];
+                if (pIdsToFetch.length > 0) {
+                    const { data: prodsData, error: prodsErr } = await supabase.from('productos').select('id, nombre, sku').in('id', pIdsToFetch);
+                    if (prodsErr) console.error("Error cargando productos para guardar:", prodsErr);
+                    if (prodsData) prods = prodsData;
+                }
                 
                 doc.detalles = doc.detalles.map(d => {
-                    if (d.producto_id && prods) {
+                    if (d.producto_id && prods.length > 0) {
                         const p = prods.find(x => String(x.id) === String(d.producto_id));
                         if (p) {
                             d.nombre = p.nombre;
@@ -492,16 +470,17 @@ export const CuentaCobroModule = {
                 try {
                     let resultId = null;
                     if (id) {
-                        await supabase.from('cuentas_cobro').update(payload).eq('id', id);
+                        const { error: updateError } = await supabase.from('cuentas_cobro').update(payload).eq('id', id);
+                        if (updateError) throw updateError;
                         resultId = id;
                     } else {
-                        const { data, error } = await supabase.from('cuentas_cobro').insert(payload).select('id').single();
-                        if (error) throw error;
+                        const { data, error: insertError } = await supabase.from('cuentas_cobro').insert(payload).select('id').single();
+                        if (insertError) throw insertError;
                         resultId = data.id;
                     }
 
                     CoreActions.showSuccessModal('Cuenta de Cobro guardada con éxito.');
-                    setTimeout(() => window.location.hash = `#/ingresos/cuenta-cobro/ver/${resultId}`, 1500);
+                    setTimeout(() => window.location.hash = `#/ingresos/cuenta-cobro/ver/${encodeURIComponent(resultId)}`, 1500);
                 } catch (e) {
                     console.error("Error saving cuenta cobro:", e);
                     CoreActions.showErrorModal('Error al guardar: ' + e.message);
@@ -528,3 +507,7 @@ export const CuentaCobroModule = {
         }
     }
 };
+
+Object.assign(CuentaCobroModule, CuentaCobroData, CuentaCobroTemplates, CuentaCobroEvents);
+
+export default CuentaCobroModule;

@@ -45,7 +45,7 @@ const routes = {
     'inventario/analisis-nanocarbon': () => import('../modules/inventario/analisisNanocarbon.js'),
     'inventario/ajustes': () => import('../modules/inventario/ajustes.js'),
     'ingresos/cotizaciones': () => import('../modules/ingresos/cotizaciones.js'),
-    'ingresos/cuenta-cobro': () => import('../modules/ingresos/cuentaCobro.js'),
+    'ingresos/cuenta-cobro': () => import('../modules/ingresos/cuentaCobro.js?v=2'),
     'ingresos/operativos': () => import('../modules/gastos/ingresos_operativos.js'),
     'ingresos/facturas': () => import('../modules/ventas/ventas.js'),
     'ingresos/notas-credito': () => import('../modules/ingresos/notasCredito.js'),
