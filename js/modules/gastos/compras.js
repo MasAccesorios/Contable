@@ -285,12 +285,6 @@ export const ComprasModule = {
             CoreActions.showWarningModal('Error al imprimir factura: ' + err.message);
         }
     },
-            PrintManager.printDocument(doc, 'Factura de Compra', cList, pList);
-        } catch (err) {
-            console.error('[ComprasModule] Error al imprimir:', err);
-            CoreActions.showWarningModal('Error al imprimir factura: ' + err.message);
-        }
-    },
 
     async anularFactura(id) {
         try {
