@@ -497,7 +497,7 @@ export const ProductoDetalleTemplates = {
                                 SKU: ${escapeHtml(prod.sku || 'N/A')}
                                 <i id="btn-copy-sku" class="bi bi-copy ms-1 text-muted cursor-pointer" title="Copiar SKU" style="cursor: pointer;"></i>
                             </span>
-                            <span class="badge border rounded-pill px-2.5 py-1 ${stockBadgeBg}" style="font-size: 12px;">
+                            <span class="badge border rounded-pill px-2 py-1 ${stockBadgeBg}" style="font-size: 12px;">
                                 <span class="d-inline-block rounded-circle ${stockDotClass} me-1" style="width: 7px; height: 7px;"></span>
                                 ${stockBadgeText}
                             </span>
@@ -566,7 +566,7 @@ export const ProductoDetalleTemplates = {
                                                 </div>
                                                 <div class="col-6 col-md-auto pe-md-3 border-end">
                                                     <span class="text-muted d-block" style="font-size: 11px; text-transform: uppercase; font-weight: 600;">Punto de Reorden (ROP)</span>
-                                                    <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle fw-bold px-2 py-0.5" style="font-size: 11.5px;">${rotacion.puntoReordenSugerido || 5} und</span>
+                                                    <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle fw-bold px-2 py-1" style="font-size: 11.5px;">${rotacion.puntoReordenSugerido || 5} und</span>
                                                 </div>
                                                 <div class="col-6 col-md-auto pe-md-3 border-end">
                                                     <span class="text-muted d-block" style="font-size: 11px; text-transform: uppercase; font-weight: 600;">Velocidad Diaria (30d)</span>
@@ -599,14 +599,14 @@ export const ProductoDetalleTemplates = {
                                             <table class="table align-middle mb-0">
                                                 <thead style="background-color: #f8fafc; border-bottom: 1px solid var(--border-color);">
                                                     <tr style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">
-                                                        <th class="py-2.5 ps-3">Fecha Ingreso</th>
-                                                        <th class="py-2.5">Referencia</th>
-                                                        <th class="py-2.5 text-center">Antigüedad</th>
-                                                        <th class="py-2.5 text-end">Costo Unitario</th>
-                                                        <th class="py-2.5 text-end">Inicial</th>
-                                                        <th class="py-2.5 text-end">Disponible</th>
-                                                        <th class="py-2.5 text-center">Consumo FIFO</th>
-                                                        <th class="py-2.5 pe-3 text-center">Estado / Capa</th>
+                                                        <th class="py-2 ps-3">Fecha Ingreso</th>
+                                                        <th class="py-2">Referencia</th>
+                                                        <th class="py-2 text-center">Antigüedad</th>
+                                                        <th class="py-2 text-end">Costo Unitario</th>
+                                                        <th class="py-2 text-end">Inicial</th>
+                                                        <th class="py-2 text-end">Disponible</th>
+                                                        <th class="py-2 text-center">Consumo FIFO</th>
+                                                        <th class="py-2 pe-3 text-center">Estado / Capa</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody id="tbody-lotes-fifo">
@@ -630,13 +630,13 @@ export const ProductoDetalleTemplates = {
                                             <table class="table align-middle mb-0 text-center">
                                                 <thead style="background-color: #f8fafc; border-bottom: 1px solid var(--border-color);">
                                                     <tr style="color: var(--text-muted); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">
-                                                        <th class="py-2.5 ps-4 text-start">Fecha &amp; Hora</th>
-                                                        <th class="py-2.5">Operación</th>
-                                                        <th class="py-2.5 text-end">Cant. Anterior</th>
-                                                        <th class="py-2.5 text-end">Diferencia</th>
-                                                        <th class="py-2.5 text-end">Cant. Nueva</th>
-                                                        <th class="py-2.5">Documento Origen</th>
-                                                        <th class="py-2.5 pe-4">Referencia</th>
+                                                        <th class="py-2 ps-4 text-start">Fecha &amp; Hora</th>
+                                                        <th class="py-2">Operación</th>
+                                                        <th class="py-2 text-end">Cant. Anterior</th>
+                                                        <th class="py-2 text-end">Diferencia</th>
+                                                        <th class="py-2 text-end">Cant. Nueva</th>
+                                                        <th class="py-2">Documento Origen</th>
+                                                        <th class="py-2 pe-4">Referencia</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody id="tbody-kardex-embebido">
@@ -652,11 +652,11 @@ export const ProductoDetalleTemplates = {
                                             <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2 mb-3 pb-2 border-bottom">
                                                 <div>
                                                     <h6 class="fw-bold mb-0 text-dark d-flex align-items-center" style="font-size: 15px;">
-                                                        <span class="material-symbols-outlined me-1.5 text-primary" style="font-size: 20px;">payments</span>Ficha de Precios y Estructura de Costos
+                                                        <span class="material-symbols-outlined me-2 text-primary" style="font-size: 20px;">payments</span>Ficha de Precios y Estructura de Costos
                                                     </h6>
                                                     <span class="text-muted" style="font-size: 12.5px;">Estructura de fijación comercial y rentabilidad sobre capas valoradas.</span>
                                                 </div>
-                                                <span class="badge bg-light text-dark border px-2.5 py-1" style="font-size: 12px;">
+                                                <span class="badge bg-light text-dark border px-2 py-1" style="font-size: 12px;">
                                                     Régimen IVA: ${prod.impuesto != null && prod.impuesto !== '' ? escapeHtml(String(prod.impuesto)) + '%' : '0% Exento'}
                                                 </span>
                                             </div>
@@ -721,14 +721,14 @@ export const ProductoDetalleTemplates = {
                                                 <div class="col-12 col-lg-7 pe-lg-4 pb-3 pb-lg-0">
                                                     <div class="d-flex justify-content-between align-items-center mb-2">
                                                         <h6 class="fw-bold mb-0 d-flex align-items-center text-dark" style="font-size: 13px;">
-                                                            <span class="material-symbols-outlined me-1.5 text-info" style="font-size: 18px;">pie_chart</span>Concentración de Canales de Venta
+                                                            <span class="material-symbols-outlined me-2 text-info" style="font-size: 18px;">pie_chart</span>Concentración de Canales de Venta
                                                         </h6>
                                                         <span class="badge bg-light text-muted border" style="font-size: 10px;">Pareto Top 3</span>
                                                     </div>
                                                     ${canalesHtml}
                                                     ${linkTodosClientes}
                                                 </div>
-                                                <div class="col-12 col-lg-5 ps-lg-4">
+                                                <div class="col-12 col-lg-5 ps-lg-4 pt-3 pt-lg-0">
                                                     <div class="p-3 rounded-2 bg-white border" style="font-size: 12.5px;">
                                                         <div class="d-flex justify-content-between align-items-center mb-2 pb-1 border-bottom">
                                                             <span class="text-muted">Total Ventas Históricas:</span>
@@ -755,13 +755,13 @@ export const ProductoDetalleTemplates = {
                                             <table class="table align-middle mb-0">
                                                 <thead style="background-color: #f8fafc; border-bottom: 1px solid var(--border-color);">
                                                     <tr style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">
-                                                        <th class="py-2.5 ps-3">Documento</th>
-                                                        <th class="py-2.5">Fecha</th>
-                                                        <th class="py-2.5">Cliente</th>
-                                                        <th class="py-2.5 text-end">Cantidad</th>
-                                                        <th class="py-2.5 text-end">Precio Unitario</th>
-                                                        <th class="py-2.5 text-end">Total Ítem</th>
-                                                        <th class="py-2.5 pe-3 text-center">Estado</th>
+                                                        <th class="py-2 ps-3">Documento</th>
+                                                        <th class="py-2">Fecha</th>
+                                                        <th class="py-2">Cliente</th>
+                                                        <th class="py-2 text-end">Cantidad</th>
+                                                        <th class="py-2 text-end">Precio Unitario</th>
+                                                        <th class="py-2 text-end">Total Ítem</th>
+                                                        <th class="py-2 pe-3 text-center">Estado</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody id="tbody-ventas-prod">
@@ -782,13 +782,13 @@ export const ProductoDetalleTemplates = {
                                             <table class="table align-middle mb-0">
                                                 <thead style="background-color: #f8fafc; border-bottom: 1px solid var(--border-color);">
                                                     <tr style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">
-                                                        <th class="py-2.5 ps-3">Documento</th>
-                                                        <th class="py-2.5">Fecha</th>
-                                                        <th class="py-2.5">Proveedor</th>
-                                                        <th class="py-2.5 text-end">Cantidad</th>
-                                                        <th class="py-2.5 text-end">Costo Unitario</th>
-                                                        <th class="py-2.5 text-end">Total Ítem</th>
-                                                        <th class="py-2.5 pe-3 text-center">Estado</th>
+                                                        <th class="py-2 ps-3">Documento</th>
+                                                        <th class="py-2">Fecha</th>
+                                                        <th class="py-2">Proveedor</th>
+                                                        <th class="py-2 text-end">Cantidad</th>
+                                                        <th class="py-2 text-end">Costo Unitario</th>
+                                                        <th class="py-2 text-end">Total Ítem</th>
+                                                        <th class="py-2 pe-3 text-center">Estado</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody id="tbody-compras-prod">
@@ -866,10 +866,10 @@ export const ProductoDetalleTemplates = {
                                     <table class="table align-middle mb-0">
                                         <thead style="background-color: #f8fafc; border-bottom: 1px solid var(--border-color); font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-muted);">
                                             <tr>
-                                                <th class="py-2.5 ps-4">Cliente / Canal</th>
-                                                <th class="py-2.5 text-end">Unidades</th>
-                                                <th class="py-2.5 text-end">Participación</th>
-                                                <th class="py-2.5 pe-4 text-end">Total Recaudado</th>
+                                                <th class="py-2 ps-4">Cliente / Canal</th>
+                                                <th class="py-2 text-end">Unidades</th>
+                                                <th class="py-2 text-end">Participación</th>
+                                                <th class="py-2 pe-4 text-end">Total Recaudado</th>
                                             </tr>
                                         </thead>
                                         <tbody>

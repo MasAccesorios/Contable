@@ -112,7 +112,7 @@ export const ProductoDetalleEvents = {
             });
         }
 
-        // 5. Submit del Formulario de Nuevo Lote
+        // 6. Submit del Formulario de Nuevo Lote
         const formLote = element.querySelector('#form-nuevo-lote');
         if (formLote) {
             formLote.onsubmit = async (e) => {
