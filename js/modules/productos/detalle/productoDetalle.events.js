@@ -1,6 +1,6 @@
 /**
  * Módulo de Eventos e Interacciones para Detalle de Producto
- * Manejo de filtros de lotes, registro de nuevas capas FIFO, modal de Kardex y navegación.
+ * Manejo de filtros de lotes, registro de nuevas capas FIFO, tab de Kardex continuo y navegación.
  */
 
 import { applyCurrencyFormatting, parseCurrencyValue } from '../../../shared/formatters.js';
@@ -29,36 +29,22 @@ export const ProductoDetalleEvents = {
             };
         }
 
-        // 3. Botón y Modal de Kardex
-        const btnKardex = element.querySelector('#btn-kardex-prod');
-        if (btnKardex) {
-            btnKardex.onclick = async (e) => {
-                e.preventDefault();
-                const modalEl = element.querySelector('#modalKardexProducto');
-                if (!modalEl) return;
-
-                if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-                    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
-                    modal.show();
-                }
-
-                const tbody = modalEl.querySelector('#tbody-kardex-modal');
-                if (tbody) {
-                    tbody.innerHTML = '<tr><td colspan="7" class="py-4 text-center text-muted"><span class="spinner-border spinner-border-sm me-2"></span>Cargando movimientos de Kardex...</td></tr>';
-                }
-
+        // 3. Tab de Kardex Continuo Embebido
+        const tabKardexBtn = element.querySelector('#tab-kardex-btn');
+        if (tabKardexBtn) {
+            tabKardexBtn.onclick = async (e) => {
+                const tbody = element.querySelector('#tbody-kardex-embebido');
                 try {
-                    const prodId = module.state.producto?.id;
-                    if (!prodId) {
-                        if (tbody) tbody.innerHTML = '<tr><td colspan="7" class="py-4 text-center text-muted">ID de producto no disponible.</td></tr>';
-                        return;
-                    }
-                    const movimientos = await module.cargarKardex(prodId);
-                    if (tbody) {
-                        tbody.innerHTML = module.templates.renderTimelineKardex(movimientos);
+                    const prodId = module.state?.producto?.id || module.state?.productoId;
+                    if (prodId && typeof module.cargarKardex === 'function') {
+                        const movimientos = await module.cargarKardex(prodId);
+                        if (module.state) module.state.kardex = movimientos;
+                        if (tbody && module.templates?.renderTimelineKardex) {
+                            tbody.innerHTML = module.templates.renderTimelineKardex(movimientos);
+                        }
                     }
                 } catch (err) {
-                    console.error('Error al cargar kardex:', err);
+                    console.error('Error al actualizar kardex:', err);
                     if (tbody) {
                         tbody.innerHTML = '<tr><td colspan="7" class="py-4 text-center text-danger">Error al cargar movimientos de Kardex.</td></tr>';
                     }
@@ -273,7 +259,7 @@ export const ProductoDetalleEvents = {
             this._alertTimeout = null;
         }
         if (!element) return;
-        ['#modalKardexProducto', '#modalNuevoLoteFIFO', '#modalTodosClientes'].forEach(sel => {
+        ['#modalNuevoLoteFIFO', '#modalTodosClientes'].forEach(sel => {
             const modalEl = element.querySelector(sel);
             if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
                 const instance = bootstrap.Modal.getInstance(modalEl);

@@ -481,9 +481,6 @@ export const ProductoDetalleTemplates = {
                         <span>Inventario</span> &gt; <span>Productos</span> &gt; <span class="text-dark fw-bold">Detalle</span>
                     </div>
                     <div class="d-flex gap-2">
-                        <button id="btn-kardex-prod" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center" style="font-size: 13px; font-weight: 500; border-radius: var(--border-radius-sm); padding: 5px 12px;">
-                            <span class="material-symbols-outlined me-1" style="font-size: 16px; color: #2563eb;">receipt_long</span>Kardex
-                        </button>
                         <button id="btn-volver-prod" class="btn btn-sm btn-light border d-inline-flex align-items-center" style="font-size: 13px; font-weight: 500; border-radius: var(--border-radius-sm); padding: 5px 12px; color: var(--text-body);">
                             <span class="material-symbols-outlined me-1" style="font-size: 16px;">arrow_back</span>Volver al Listado
                         </button>
@@ -521,113 +518,111 @@ export const ProductoDetalleTemplates = {
                     ${this.renderKpiCards(kpis)}
                 </div>
 
-                <!-- FRANJA 2: MASTER CONTEXT GRID (3 COLUMNAS SIMÉTRICAS DE IGUAL ALTURA) -->
-                <div class="row g-3 mb-4">
-                    
-                    <!-- CARD 1: FICHA DE PRECIOS -->
-                    <div class="col-12 col-md-6 col-lg-4">
-                        <div class="card border-0 shadow-sm h-100" style="border-radius: var(--border-radius-sm); border: 1px solid var(--border-color);">
-                            <div class="card-body p-3.5 d-flex flex-column justify-content-between">
-                                <div>
-                                    <h6 class="fw-bold mb-3 d-flex align-items-center text-dark" style="font-size: 14px;">
-                                        <span class="material-symbols-outlined me-1.5 text-primary" style="font-size: 18px;">payments</span>Ficha de Precios
-                                    </h6>
-                                    <ul class="list-unstyled mb-0" style="font-size: 12.5px;">
-                                        <li class="mb-2 pb-1.5 border-bottom d-flex justify-content-between align-items-center">
-                                            <span class="text-muted">PVP Catálogo:</span>
-                                            <strong class="tnum text-dark" style="font-size: 13.5px;">${this.formatMoney(prod.precioVenta)}</strong>
-                                        </li>
-                                        <li class="mb-2 pb-1.5 border-bottom d-flex justify-content-between align-items-center">
-                                            <span class="text-muted">PVP Promedio Real Ventas:</span>
-                                            <span class="tnum text-primary fw-semibold">${this.formatMoney(historico.precioPromedioPonderado || prod.precioVenta)}</span>
-                                        </li>
-                                        <li class="mb-2 pb-1.5 border-bottom d-flex justify-content-between align-items-center">
-                                            <span class="text-muted">Costo Base Fijo:</span>
-                                            <span class="tnum text-muted">${this.formatMoney(prod.costoBase)}</span>
-                                        </li>
-                                        <li class="mb-2 pb-1.5 border-bottom d-flex justify-content-between align-items-center">
-                                            <span class="text-muted">Costo Promedio FIFO:</span>
-                                            <strong class="tnum text-dark">${this.formatMoney(valorizacion.costoPromedioPonderado)}</strong>
-                                        </li>
-                                        <li class="mb-2 pb-1.5 border-bottom d-flex justify-content-between align-items-center">
-                                            <span class="text-muted">Utilidad Unitaria Bruta:</span>
-                                            <span class="tnum fw-bold ${margen.margenPorcentual > 0 ? 'text-success' : 'text-danger'}">
-                                                ${this.formatMoney(margen.utilidadMonetaria)} (${margen.margenPorcentual}%)
-                                            </span>
-                                        </li>
-                                        <li class="d-flex justify-content-between align-items-center">
-                                            <span class="text-muted">Régimen IVA / Impuesto:</span>
-                                            <span class="badge bg-light text-dark border">${prod.impuesto != null && prod.impuesto !== '' ? escapeHtml(String(prod.impuesto)) + '%' : '0% Exento'}</span>
-                                        </li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- CARD 2: PARÁMETROS DE BODEGA & REABASTECIMIENTO -->
-                    <div class="col-12 col-md-6 col-lg-4">
-                        <div class="card border-0 shadow-sm h-100" style="border-radius: var(--border-radius-sm); border: 1px solid var(--border-color);">
-                            <div class="card-body p-3.5 d-flex flex-column justify-content-between">
-                                <div>
-                                    <h6 class="fw-bold mb-3 d-flex align-items-center text-dark" style="font-size: 14px;">
-                                        <span class="material-symbols-outlined me-1.5 text-warning" style="font-size: 18px;">warehouse</span>Parámetros de Bodega
-                                    </h6>
-                                    <ul class="list-unstyled mb-0" style="font-size: 12.5px;">
-                                        <li class="mb-2 pb-1.5 border-bottom d-flex justify-content-between align-items-center">
-                                            <span class="text-muted">Stock Mínimo Registrado:</span>
-                                            <strong class="tnum text-dark">${parseFloat(prod.stockMinimo) || 0} und</strong>
-                                        </li>
-                                        <li class="mb-2 pb-1.5 border-bottom d-flex justify-content-between align-items-center">
-                                            <span class="text-muted">Punto de Reorden Sugerido (ROP):</span>
-                                            <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle fw-bold px-2 py-1">${rotacion.puntoReordenSugerido || 5} und</span>
-                                        </li>
-                                        <li class="mb-2 pb-1.5 border-bottom d-flex justify-content-between align-items-center">
-                                            <span class="text-muted">Velocidad Diaria (30d):</span>
-                                            <span class="tnum text-muted">${rotacion.velocidadDiaria || 0} und/día</span>
-                                        </li>
-                                        <li class="mb-2 pb-1.5 border-bottom d-flex justify-content-between align-items-center">
-                                            <span class="text-muted">Días de Cobertura:</span>
-                                            <strong class="tnum ${rotacion.alertaRecompra ? 'text-danger' : 'text-success'}">${rotacion.diasCobertura >= 999 ? '> 90 días' : rotacion.diasCobertura + ' días'}</strong>
-                                        </li>
-                                        <li class="d-flex justify-content-between align-items-center">
-                                            <span class="text-muted">Valor Total en Bodega:</span>
-                                            <strong class="tnum text-dark">${this.formatMoney(valorizacion.valorTotal)}</strong>
-                                        </li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- CARD 3: CONCENTRACIÓN DE CANALES & TOP CLIENTES -->
-                    <div class="col-12 col-md-12 col-lg-4">
-                        <div class="card border-0 shadow-sm h-100" style="border-radius: var(--border-radius-sm); border: 1px solid var(--border-color);">
-                            <div class="card-body p-3.5 d-flex flex-column justify-content-between">
-                                <div>
-                                    <div class="d-flex justify-content-between align-items-center mb-3">
-                                        <h6 class="fw-bold mb-0 d-flex align-items-center text-dark" style="font-size: 14px;">
-                                            <span class="material-symbols-outlined me-1.5 text-info" style="font-size: 18px;">pie_chart</span>Concentración de Canales
+                <!-- FRANJA 2: MASTER CONTEXT PANEL (UN SOLO CONTENEDOR CON 3 COLUMNAS SIMÉTRICAS DIVIDIDAS POR BORDES) -->
+                <div id="panel-maestro-producto" class="card border-0 shadow-sm mb-4 master-context-panel" style="border-radius: var(--border-radius-sm); border: 1px solid var(--border-color); overflow: hidden;">
+                    <div class="card-body p-0">
+                        <div class="row g-0">
+                            
+                            <!-- COLUMNA 1: FICHA DE PRECIOS -->
+                            <div class="col-12 col-lg-4 border-end" style="border-color: var(--border-color) !important;">
+                                <div class="p-3.5 h-100 d-flex flex-column justify-content-between">
+                                    <div>
+                                        <h6 class="fw-bold mb-3 d-flex align-items-center text-dark" style="font-size: 14px;">
+                                            <span class="material-symbols-outlined me-1.5 text-primary" style="font-size: 18px;">payments</span>Ficha de Precios
                                         </h6>
-                                        <span class="badge bg-light text-muted border" style="font-size: 10px;">Pareto Top 3</span>
+                                        <ul class="list-unstyled mb-0" style="font-size: 12.5px;">
+                                            <li class="mb-2 pb-1.5 border-bottom d-flex justify-content-between align-items-center">
+                                                <span class="text-muted">PVP Catálogo:</span>
+                                                <strong class="tnum text-dark" style="font-size: 13.5px;">${this.formatMoney(prod.precioVenta)}</strong>
+                                            </li>
+                                            <li class="mb-2 pb-1.5 border-bottom d-flex justify-content-between align-items-center">
+                                                <span class="text-muted">PVP Promedio Real Ventas:</span>
+                                                <span class="tnum text-primary fw-semibold">${this.formatMoney(historico.precioPromedioPonderado || prod.precioVenta)}</span>
+                                            </li>
+                                            <li class="mb-2 pb-1.5 border-bottom d-flex justify-content-between align-items-center">
+                                                <span class="text-muted">Costo Base Fijo:</span>
+                                                <span class="tnum text-muted">${this.formatMoney(prod.costoBase)}</span>
+                                            </li>
+                                            <li class="mb-2 pb-1.5 border-bottom d-flex justify-content-between align-items-center">
+                                                <span class="text-muted">Costo Promedio FIFO:</span>
+                                                <strong class="tnum text-dark">${this.formatMoney(valorizacion.costoPromedioPonderado)}</strong>
+                                            </li>
+                                            <li class="mb-2 pb-1.5 border-bottom d-flex justify-content-between align-items-center">
+                                                <span class="text-muted">Utilidad Unitaria Bruta:</span>
+                                                <span class="tnum fw-bold ${margen.margenPorcentual > 0 ? 'text-success' : 'text-danger'}">
+                                                    ${this.formatMoney(margen.utilidadMonetaria)} (${margen.margenPorcentual}%)
+                                                </span>
+                                            </li>
+                                            <li class="d-flex justify-content-between align-items-center">
+                                                <span class="text-muted">Régimen IVA / Impuesto:</span>
+                                                <span class="badge bg-light text-dark border">${prod.impuesto != null && prod.impuesto !== '' ? escapeHtml(String(prod.impuesto)) + '%' : '0% Exento'}</span>
+                                            </li>
+                                        </ul>
                                     </div>
-                                    
-                                    ${canalesHtml}
                                 </div>
+                            </div>
 
-                                <div>
-                                    ${linkTodosClientes}
-                                    <div class="p-2 mt-2 rounded-2" style="background-color: #f8fafc; border: 1px dashed var(--border-color); font-size: 11.5px;">
-                                        <div class="d-flex justify-content-between">
-                                            <span class="text-muted">Total Ventas Históricas:</span>
-                                            <strong class="text-primary tnum">${historico.totalUnidadesVendidas || 0} und (${this.formatMoney(historico.totalRecaudo)})</strong>
+                            <!-- COLUMNA 2: PARÁMETROS DE BODEGA & REABASTECIMIENTO -->
+                            <div class="col-12 col-lg-4 border-end" style="border-color: var(--border-color) !important;">
+                                <div class="p-3.5 h-100 d-flex flex-column justify-content-between">
+                                    <div>
+                                        <h6 class="fw-bold mb-3 d-flex align-items-center text-dark" style="font-size: 14px;">
+                                            <span class="material-symbols-outlined me-1.5 text-warning" style="font-size: 18px;">warehouse</span>Parámetros de Bodega
+                                        </h6>
+                                        <ul class="list-unstyled mb-0" style="font-size: 12.5px;">
+                                            <li class="mb-2 pb-1.5 border-bottom d-flex justify-content-between align-items-center">
+                                                <span class="text-muted">Stock Mínimo Registrado:</span>
+                                                <strong class="tnum text-dark">${parseFloat(prod.stockMinimo) || 0} und</strong>
+                                            </li>
+                                            <li class="mb-2 pb-1.5 border-bottom d-flex justify-content-between align-items-center">
+                                                <span class="text-muted">Punto de Reorden Sugerido (ROP):</span>
+                                                <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle fw-bold px-2 py-1">${rotacion.puntoReordenSugerido || 5} und</span>
+                                            </li>
+                                            <li class="mb-2 pb-1.5 border-bottom d-flex justify-content-between align-items-center">
+                                                <span class="text-muted">Velocidad Diaria (30d):</span>
+                                                <span class="tnum text-muted">${rotacion.velocidadDiaria || 0} und/día</span>
+                                            </li>
+                                            <li class="mb-2 pb-1.5 border-bottom d-flex justify-content-between align-items-center">
+                                                <span class="text-muted">Días de Cobertura:</span>
+                                                <strong class="tnum ${rotacion.alertaRecompra ? 'text-danger' : 'text-success'}">${rotacion.diasCobertura >= 999 ? '> 90 días' : rotacion.diasCobertura + ' días'}</strong>
+                                            </li>
+                                            <li class="d-flex justify-content-between align-items-center">
+                                                <span class="text-muted">Valor Total en Bodega:</span>
+                                                <strong class="tnum text-dark">${this.formatMoney(valorizacion.valorTotal)}</strong>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- COLUMNA 3: CONCENTRACIÓN DE CANALES & TOP CLIENTES -->
+                            <div class="col-12 col-lg-4">
+                                <div class="p-3.5 h-100 d-flex flex-column justify-content-between">
+                                    <div>
+                                        <div class="d-flex justify-content-between align-items-center mb-3">
+                                            <h6 class="fw-bold mb-0 d-flex align-items-center text-dark" style="font-size: 14px;">
+                                                <span class="material-symbols-outlined me-1.5 text-info" style="font-size: 18px;">pie_chart</span>Concentración de Canales
+                                            </h6>
+                                            <span class="badge bg-light text-muted border" style="font-size: 10px;">Pareto Top 3</span>
+                                        </div>
+                                        
+                                        ${canalesHtml}
+                                    </div>
+
+                                    <div>
+                                        ${linkTodosClientes}
+                                        <div class="p-2.5 mt-2 rounded-2" style="background-color: #f8fafc; border: 1px solid var(--border-color); font-size: 11.5px;">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <span class="text-muted">Total Ventas Históricas:</span>
+                                                <strong class="text-primary tnum">${historico.totalUnidadesVendidas || 0} und (${this.formatMoney(historico.totalRecaudo)})</strong>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
+
                         </div>
                     </div>
-
                 </div>
 
                 <!-- FRANJA 3: HUB TRANSACCIONAL OPERATIVO AL 100% DE ANCHO (12 COLUMNAS) -->
@@ -836,42 +831,6 @@ export const ProductoDetalleTemplates = {
                     </div>
                 </div>
 
-                <!-- MODAL KARDEX RÁPIDO (#modalKardexProducto) -->
-                <div class="modal fade" id="modalKardexProducto" tabindex="-1" aria-hidden="true">
-                    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
-                        <div class="modal-content" style="background-color: var(--bg-main); border: 1px solid var(--border-color); border-radius: var(--border-radius-sm);">
-                            <div class="modal-header border-bottom py-3">
-                                <h5 class="modal-title fw-bold d-flex align-items-center" style="color: var(--text-main); font-size: 16px;">
-                                    <span class="material-symbols-outlined me-2 text-primary" style="font-size: 20px;">receipt_long</span>Kardex de Producto: ${escapeHtml(prod.nombre || '')}
-                                </h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                            </div>
-                            <div class="modal-body p-0">
-                                <div class="table-responsive">
-                                    <table class="table align-middle mb-0 text-center">
-                                        <thead style="background-color: #f8fafc; border-bottom: 1px solid var(--border-color);">
-                                            <tr style="color: var(--text-muted); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">
-                                                <th class="py-2 ps-4 text-start">Fecha &amp; Hora</th>
-                                                <th class="py-2">Tipo</th>
-                                                <th class="py-2 text-end">Cant. Anterior</th>
-                                                <th class="py-2 text-end">Diferencia</th>
-                                                <th class="py-2 text-end">Cant. Nueva</th>
-                                                <th class="py-2">Origen</th>
-                                                <th class="py-2 pe-4">Referencia</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="tbody-kardex-modal">
-                                            <tr><td colspan="7" class="py-4 text-muted"><span class="spinner-border spinner-border-sm me-2"></span>Cargando kardex...</td></tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                            <div class="modal-footer border-top py-2">
-                                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
 
                 <!-- MODAL TODOS LOS COMPRADORES / CLIENTES (#modalTodosClientes) -->
                 <div class="modal fade" id="modalTodosClientes" tabindex="-1" aria-labelledby="modalTodosClientesLabel" aria-hidden="true">

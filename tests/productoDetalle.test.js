@@ -946,8 +946,10 @@ describe('Módulo Producto Detalle - TDD Test Suite', () => {
             assert.ok(html.includes('Laptop HP 15&quot;') || html.includes('Laptop HP 15"'));
             assert.ok(html.includes('LAP-001'));
             assert.ok(html.includes('btn-volver-prod'));
-            assert.ok(html.includes('btn-kardex-prod'));
-            assert.ok(html.includes('modalKardexProducto'));
+            assert.ok(!html.includes('id="btn-kardex-prod"'), 'No debe existir el botón #btn-kardex-prod en la cabecera');
+            assert.ok(!html.includes('id="modalKardexProducto"'), 'No debe existir el modal rápido #modalKardexProducto');
+            assert.ok(html.includes('id="tab-kardex-pane"'), 'El kardex debe estar integrado en el tab continuo #tab-kardex-pane');
+            assert.ok(html.includes('id="tbody-kardex-embebido"'), 'Debe contener la tabla embebida continua #tbody-kardex-embebido');
             assert.ok(html.includes('form-nuevo-lote'));
             assert.ok(html.includes('payment-kpi-card'));
         });
@@ -978,7 +980,7 @@ describe('Módulo Producto Detalle - TDD Test Suite', () => {
             assert.ok(html.includes('id="modalNuevoLoteFIFO"'), 'Debe contener el modal #modalNuevoLoteFIFO');
         });
 
-        it('renderLayout debe contener la columna lateral con Ficha de Precios y Concentración de Canales', () => {
+        it('renderLayout debe renderizar la Franja 2 como un único panel maestro contenedor (#panel-maestro-producto o .master-context-panel) con 3 columnas simétricas divididas por bordes', () => {
             const producto = { id: 1, nombre: 'Laptop HP 15"', precioVenta: 2500000, costoBase: 1800000 };
             const kpis = {
                 stock: { stockTotal: 10, stockMinimo: 5, estado: 'optimo' },
@@ -995,9 +997,65 @@ describe('Módulo Producto Detalle - TDD Test Suite', () => {
 
             const html = ProductoDetalleTemplates.renderLayout({ producto, kpis, lotes: [], ventas: [] });
 
-            assert.ok(html.includes('Ficha de Precios'), 'Debe contener el encabezado o sección Ficha de Precios');
+            // 1. Debe existir el panel maestro contenedor
+            assert.ok(
+                html.includes('id="panel-maestro-producto"') || html.includes('master-context-panel'),
+                'Debe contener el panel maestro contenedor (#panel-maestro-producto o .master-context-panel)'
+            );
+
+            // 2. Extraer el bloque del panel maestro
+            const panelMatch = html.match(/(?:id="panel-maestro-producto"|class="[^"]*master-context-panel[^"]*")[^>]*>([\s\S]*?)<!--\s*FRANJA 3/i);
+            assert.ok(panelMatch, 'Debe encontrarse el bloque del panel maestro de Franja 2 antes de Franja 3');
+            const panelHtml = panelMatch[1];
+
+            // 3. Debe contener las 3 secciones integradas
+            assert.ok(panelHtml.includes('Ficha de Precios'), 'Debe contener la sección Ficha de Precios');
+            assert.ok(panelHtml.includes('Parámetros de Bodega'), 'Debe contener la sección Parámetros de Bodega');
+            assert.ok(panelHtml.includes('Concentración de Canales'), 'Debe contener la sección Concentración de Canales');
+
+            // 4. Debe tener bordes divisores entre las columnas
+            assert.ok(
+                panelHtml.includes('border-end') || panelHtml.includes('border-start') || panelHtml.includes('border-bottom'),
+                'Las columnas deben estar divididas por bordes'
+            );
+
+            // 5. No debe renderizarse como 3 tarjetas (.card) separadas dentro del panel maestro
+            const cardMatches = (panelHtml.match(/class="[^"]*\bcard\b[^"]*"/g) || []);
+            assert.ok(cardMatches.length <= 1, `No deben existir tarjetas separadas internas dentro del panel maestro (encontradas: ${cardMatches.length})`);
+        });
+
+        it('renderLayout debe renderizar la columna de canales sin caja dashed y con compradores y resumen contable', () => {
+            const producto = { id: 1, nombre: 'Laptop HP 15"', precioVenta: 2500000, costoBase: 1800000 };
+            const kpis = {
+                stock: { stockTotal: 10, stockMinimo: 5, estado: 'optimo' },
+                valorizacion: { valorTotal: 18000000, costoPromedioPonderado: 1800000, costoBase: 1800000, diferenciaCosto: 0 },
+                margen: { precioVenta: 2500000, costoUnitario: 1800000, utilidadMonetaria: 700000, margenPorcentual: 28 },
+                rotacion: { unidadesVendidas: 4, velocidadDiaria: 0.13, diasCobertura: 75, alertaRecompra: false },
+                metricasHistoricas: {
+                    totalRecaudo: 10000000,
+                    totalUnidadesVendidas: 4,
+                    precioPromedioPonderado: 2500000,
+                    canales: [{ nombre: 'Canal Corporativo', unidades: 4, porcentaje: 100 }]
+                }
+            };
+
+            const html = ProductoDetalleTemplates.renderLayout({ producto, kpis, lotes: [], ventas: [] });
+
+            // 1. No debe existir caja dashed
+            assert.ok(!html.includes('dashed'), 'No debe contener ninguna caja con estilo dashed');
+
+            // 2. Debe renderizar compradores y sección de canales
             assert.ok(html.includes('Concentración de Canales'), 'Debe contener la sección Concentración de Canales');
+            assert.ok(html.includes('Canal Corporativo'), 'Debe renderizar los compradores / canales');
             assert.ok(html.includes('id="modalTodosClientes"'), 'Debe contener el modal #modalTodosClientes');
+
+            // 3. Debe renderizar el resumen contable
+            assert.ok(
+                html.includes('Total Ventas Históricas') || html.includes('Resumen Contable'),
+                'Debe renderizar el resumen contable'
+            );
+            assert.ok(html.includes('$ 10.000.000'), 'Debe renderizar el total de recaudo en pesos');
+            assert.ok(html.includes('4 und'), 'Debe renderizar las unidades vendidas');
         });
 
         it('renderFilasModalClientes debe renderizar filas de clientes con sanitización XSS', () => {
@@ -1053,9 +1111,8 @@ describe('Módulo Producto Detalle - TDD Test Suite', () => {
 
             const root = makeMockEl('div', 'root');
             const btnVolver = makeMockEl('button', 'btn-volver-prod');
-            const btnKardex = makeMockEl('button', 'btn-kardex-prod');
-            const modalKardex = makeMockEl('div', 'modalKardexProducto');
-            const tbodyKardex = makeMockEl('tbody', 'tbody-kardex-modal');
+            const tabKardexBtn = makeMockEl('button', 'tab-kardex-btn');
+            const tbodyKardexEmbebido = makeMockEl('tbody', 'tbody-kardex-embebido');
             const filtroGroup = makeMockEl('div', 'filtro-lotes-group');
             const btnFiltroTodos = makeMockEl('button', '', 'btn-primary');
             btnFiltroTodos.dataset.filtro = 'todos';
@@ -1072,13 +1129,12 @@ describe('Módulo Producto Detalle - TDD Test Suite', () => {
             const submitBtn = makeMockEl('button');
             submitBtn.type = 'submit';
 
-            modalKardex.querySelector = (sel) => sel === '#tbody-kardex-modal' ? tbodyKardex : null;
             filtroGroup.querySelectorAll = (sel) => sel === 'button[data-filtro]' ? [btnFiltroTodos, btnFiltroActivos] : [];
             formNuevoLote.querySelector = (sel) => sel === 'button[type="submit"]' ? submitBtn : null;
 
             elements['#btn-volver-prod'] = btnVolver;
-            elements['#btn-kardex-prod'] = btnKardex;
-            elements['#modalKardexProducto'] = modalKardex;
+            elements['#tab-kardex-btn'] = tabKardexBtn;
+            elements['#tbody-kardex-embebido'] = tbodyKardexEmbebido;
             elements['#filtro-lotes-group'] = filtroGroup;
             elements['#tbody-lotes-fifo'] = tbodyLotes;
             elements['#form-nuevo-lote'] = formNuevoLote;
@@ -1094,9 +1150,8 @@ describe('Módulo Producto Detalle - TDD Test Suite', () => {
             return {
                 root,
                 btnVolver,
-                btnKardex,
-                modalKardex,
-                tbodyKardex,
+                tabKardexBtn,
+                tbodyKardexEmbebido,
                 btnFiltroActivos,
                 btnFiltroTodos,
                 tbodyLotes,
@@ -1261,7 +1316,7 @@ describe('Módulo Producto Detalle - TDD Test Suite', () => {
             assert.doesNotThrow(() => ProductoDetalleEvents.cleanup({ querySelector: () => null }));
         });
 
-        it('debe cargar movimientos de kardex al pulsar botón kardex', async () => {
+        it('debe cargar movimientos de kardex al pulsar el tab de kardex continuo embebido', async () => {
             const dom = createMockDOM();
             const mockModule = {
                 state: { producto: { id: 55 } },
@@ -1272,10 +1327,10 @@ describe('Módulo Producto Detalle - TDD Test Suite', () => {
             };
 
             ProductoDetalleEvents.bindEvents(dom.root, mockModule);
-            await dom.btnKardex.onclick({ preventDefault: () => {} });
+            await dom.tabKardexBtn.onclick({ preventDefault: () => {} });
 
-            assert.ok(dom.tbodyKardex.innerHTML.includes('+20'));
-            assert.ok(dom.tbodyKardex.innerHTML.includes('Doc 1'));
+            assert.ok(dom.tbodyKardexEmbebido.innerHTML.includes('+20'));
+            assert.ok(dom.tbodyKardexEmbebido.innerHTML.includes('Doc 1'));
         });
     });
 
