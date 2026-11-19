@@ -2,10 +2,10 @@
 // Módulo de Gestión de Productos e Inventarios (Lotes FIFO) - Hoja Completa
 import DB, { getLocalDate } from '../../core/db.js';
 import { supabase } from '../../core/supabase.js';
-import { renderTablaFacturas } from '../../shared/tablaFacturas.js';
-import { calcularEstadoFactura } from '../../shared/carteraUtils.js';
-import { escapeHtml } from '../../shared/formatters.js';
+import { escapeHtml, applyCurrencyFormatting, parseCurrencyValue } from '../../shared/formatters.js';
 import { ExportManager } from '../../shared/exportManager.js';
+import { ProductoDetalleModule } from './detalle/productoDetalle.js';
+import { ProductoDetalleData } from './detalle/productoDetalle.data.js';
 
 export const ProductosModule = {
     currentPage: 1,
@@ -18,6 +18,9 @@ export const ProductosModule = {
     async init(element) {
         if (!element) return;
         this.renderList(element);
+        return () => {
+            ProductoDetalleModule.cleanup();
+        };
     },
 
     async renderList(element) {
@@ -52,7 +55,7 @@ export const ProductosModule = {
                     <div class="card-header bg-white border-bottom p-3 d-flex gap-3 align-items-center" style="border-radius: var(--border-radius-sm) var(--border-radius-sm) 0 0;">
                         <div class="ds-search-container" style="width: 280px; position: relative;">
                             <span class="material-symbols-outlined" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); font-size: 18px; color: var(--text-muted); pointer-events: none;">search</span>
-                            <input type="text" id="searchProductos" class="form-control" placeholder="Buscar por nombre, SKU..." value="${this.searchQuery}" autocomplete="off" style="padding-left: 34px; font-size: 13px; border-radius: var(--border-radius-sm); border-color: var(--border-color);">
+                            <input type="text" id="searchProductos" class="form-control" placeholder="Buscar por nombre, SKU..." value="${escapeHtml(this.searchQuery || '')}" autocomplete="off" style="padding-left: 34px; font-size: 13px; border-radius: var(--border-radius-sm); border-color: var(--border-color);">
                         </div>
                         <div class="dropdown">
                             <button class="btn btn-light bg-white border dropdown-toggle d-inline-flex align-items-center" data-bs-toggle="dropdown" style="font-size: 13px; font-weight: 500; border-radius: var(--border-radius-sm); padding: 7px 12px; color: var(--text-body);">
@@ -90,7 +93,8 @@ export const ProductosModule = {
 
         this.bindStaticEvents(element);
 
-        const hashParts = window.location.hash.split('/');
+        const hash = (typeof window !== 'undefined' && window.location?.hash) ? window.location.hash : '';
+        const hashParts = hash.split('/');
         const action = hashParts[3];
         const routeId = hashParts[4];
 
@@ -296,7 +300,7 @@ export const ProductosModule = {
             const isLowStock = stockTotal <= (p.stockMinimo || 0);
             
             html += `
-                <tr data-id="${p.id}" style="cursor: pointer; border-bottom: 1px solid var(--border-color); font-size: 13px; color: var(--text-body); height: 44px;" class="row-clickable">
+                <tr data-id="${escapeHtml(String(p.id))}" style="cursor: pointer; border-bottom: 1px solid var(--border-color); font-size: 13px; color: var(--text-body); height: 44px;" class="row-clickable">
                     <td class="py-2 ps-4 td-sku" style="color: var(--text-main); font-weight: 600; font-family: monospace;">${escapeHtml(p.sku) || ''}</td>
                     <td class="py-2 text-truncate td-nombre" style="max-width: 300px; font-weight: 500; color: var(--text-main);">${escapeHtml(p.nombre || '')}</td>
                     <td class="py-2 text-end tnum" style="font-weight: 500;">$${(p.precioVenta || 0).toLocaleString('es-CO', {minimumFractionDigits: 2})}</td>
@@ -307,10 +311,10 @@ export const ProductosModule = {
                     </td>
                     <td class="py-2 text-end text-muted tnum">$${(costoPromedio || 0).toLocaleString('es-CO', {minimumFractionDigits: 2})}</td>
                     <td class="py-2 text-end pe-4">
-                        <button class="btn btn-link text-muted p-1 me-1 btn-menu-row btn-editar" data-id="${p.id}" title="Editar">
+                        <button class="btn btn-link text-muted p-1 me-1 btn-menu-row btn-editar" data-id="${escapeHtml(String(p.id))}" title="Editar">
                             <span class="material-symbols-outlined" style="font-size: 18px;">edit</span>
                         </button>
-                        <button class="btn btn-link text-muted p-1 btn-menu-row btn-eliminar" data-id="${p.id}" title="Desactivar">
+                        <button class="btn btn-link text-muted p-1 btn-menu-row btn-eliminar" data-id="${escapeHtml(String(p.id))}" title="Desactivar">
                             <span class="material-symbols-outlined" style="font-size: 18px;">delete</span>
                         </button>
                     </td>
@@ -369,8 +373,13 @@ export const ProductosModule = {
                 btn.addEventListener('click', async (e) => {
                     e.stopPropagation();
                     if (confirm('¿Estás seguro de desactivar este producto? Ya no aparecerá en el listado ni podrá venderse.')) {
-                        await DB.save('productos', { id: e.currentTarget.dataset.id, estado: 'inactivo' });
-                        this.renderGrid(element);
+                        try {
+                            await DB.save('productos', { id: e.currentTarget.dataset.id, estado: 'inactivo' });
+                            this.renderGrid(element);
+                        } catch (err) {
+                            console.error('Error al desactivar producto:', err);
+                            alert('Error al desactivar producto: ' + (err.message || 'Error desconocido'));
+                        }
                     }
                 });
             });
@@ -461,45 +470,36 @@ export const ProductosModule = {
             </div>
         `;
 
-        import('../../shared/formatters.js').then(fmt => {
-            ['#form-precio', '#form-costo', '#form-cantidad-inicial', '#form-impuesto', '#form-minimo'].forEach(selector => {
-                const el = element.querySelector(selector);
-                if (el) fmt.applyCurrencyFormatting(el);
-            });
-            
-            // Cálculo en vivo del Precio Total
-            const calcTotal = () => {
-                const pBase = fmt.parseCurrencyValue(element.querySelector('#form-precio').value) || 0;
-                const imp = fmt.parseCurrencyValue(element.querySelector('#form-impuesto').value) || 0;
-                const total = pBase * (1 + (imp / 100));
-                element.querySelector('#form-precio-total').value = total.toLocaleString('es-CO', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-            };
-            
-            element.querySelector('#form-precio').addEventListener('input', calcTotal);
-            element.querySelector('#form-impuesto').addEventListener('input', calcTotal);
-            calcTotal(); // Cálculo inicial
+        ['#form-precio', '#form-costo', '#form-cantidad-inicial', '#form-impuesto', '#form-minimo'].forEach(selector => {
+            const el = element.querySelector(selector);
+            if (el) applyCurrencyFormatting(el);
         });
+        
+        // Cálculo en vivo del Precio Total
+        const calcTotal = () => {
+            const pBase = parseCurrencyValue(element.querySelector('#form-precio')?.value) || 0;
+            const impVal = parseCurrencyValue(element.querySelector('#form-impuesto')?.value) || 0;
+            const total = pBase * (1 + (impVal / 100));
+            const inputTotal = element.querySelector('#form-precio-total');
+            if (inputTotal) {
+                inputTotal.value = total.toLocaleString('es-CO', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            }
+        };
+        
+        element.querySelector('#form-precio')?.addEventListener('input', calcTotal);
+        element.querySelector('#form-impuesto')?.addEventListener('input', calcTotal);
+        calcTotal(); // Cálculo inicial
 
         element.querySelector('#btn-cancelar-producto')?.addEventListener('click', () => this.renderGrid(element));
         element.querySelector('#form-producto-data')?.addEventListener('submit', async (e) => {
             e.preventDefault();
             
             const prodId = id || 'prod_' + Date.now();
-            let pVenta = 0, cBase = 0, cInicial = 0, imp = 0, sMin = 0;
-            try {
-                const fmt = await import('../../shared/formatters.js');
-                pVenta = fmt.parseCurrencyValue(element.querySelector('#form-precio').value);
-                cBase = fmt.parseCurrencyValue(element.querySelector('#form-costo').value);
-                cInicial = fmt.parseCurrencyValue(element.querySelector('#form-cantidad-inicial').value);
-                imp = fmt.parseCurrencyValue(element.querySelector('#form-impuesto').value);
-                sMin = fmt.parseCurrencyValue(element.querySelector('#form-minimo').value);
-            } catch(e) {
-                pVenta = parseFloat(element.querySelector('#form-precio').value) || 0;
-                cBase = parseFloat(element.querySelector('#form-costo').value) || 0;
-                cInicial = parseFloat(element.querySelector('#form-cantidad-inicial').value) || 0;
-                imp = parseFloat(element.querySelector('#form-impuesto').value) || 0;
-                sMin = parseFloat(element.querySelector('#form-minimo').value) || 0;
-            }
+            const pVenta = parseCurrencyValue(element.querySelector('#form-precio')?.value) || 0;
+            const cBase = parseCurrencyValue(element.querySelector('#form-costo')?.value) || 0;
+            const cInicial = parseCurrencyValue(element.querySelector('#form-cantidad-inicial')?.value) || 0;
+            const imp = parseCurrencyValue(element.querySelector('#form-impuesto')?.value) || 0;
+            const sMin = parseCurrencyValue(element.querySelector('#form-minimo')?.value) || 0;
 
             const nuevoProducto = {
                 id: prodId,
@@ -539,360 +539,14 @@ export const ProductosModule = {
         const container = element.querySelector('#productos-view-container');
         if (!container) return;
 
-        const [producto, lotesResult, detallesResult] = await Promise.all([
-            DB.get('productos', id),
-            supabase.from('lotes_fifo').select('*').eq('producto_id', id),
-            supabase.from('factura_detalles').select('factura_id').eq('producto_id', id)
-        ]);
-        if (!producto) return;
+        ProductoDetalleData.setSupabase(supabase);
+        ProductoDetalleData.setDB(DB);
 
-        const { data: lotesData } = lotesResult;
-        const lotesProd = lotesData ? lotesData.map(l => DB._mapToFrontend('lotes_fifo', l)) : [];
-
-        // Ordenar lotes por fecha de ingreso ascendente para visualización FIFO
-        lotesProd.sort((a, b) => new Date(a.fechaIngreso) - new Date(b.fechaIngreso));
-
-        let lotesHtml = '';
-        let stockTotalDisponible = lotesProd.length > 0 
-            ? lotesProd.reduce((sum, l) => sum + (parseFloat(l.cantidadActual) || 0), 0)
-            : (parseFloat(producto.stock) || 0);
-
-        lotesProd.forEach(l => {
-            lotesHtml += `
-                <tr class="${l.cantidadActual === 0 ? 'table-light opacity-50' : ''}" style="border-bottom: 1px solid var(--border-color); font-size: 13px; color: var(--text-body);">
-                    <td class="py-2 ps-3 tnum">${l.fechaIngreso}</td>
-                    <td class="py-2">${escapeHtml(l.referencia)}</td>
-                    <td class="py-2 text-end tnum">$${l.costoUnitario.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                    <td class="py-2 text-end tnum">${l.cantidadInicial} und</td>
-                    <td class="py-2 text-end pe-3 tnum">
-                        <strong class="${l.cantidadActual === 0 ? 'text-muted' : 'text-success'}">${l.cantidadActual} und</strong>
-                    </td>
-                </tr>
-            `;
-        });
-
-
-        let facturasAsociadas = [];
-        let facturasCompraAsociadas = [];
-        let contactosMap = {};
-        try {
-            const detalles = detallesResult?.data;
-            if (detalles && detalles.length > 0) {
-                const facturaIds = [...new Set(detalles.map(d => d.factura_id))];
-                const { data: facturas } = await supabase.from('facturas').select('*').in('id', facturaIds).in('tipo', ['venta', 'compra']);
-                
-                if (facturas && facturas.length > 0) {
-                    const contactIds = [...new Set(facturas.map(f => f.clienteId || f.proveedorId || f.contacto_id || f.contactoId).filter(Boolean))];
-                    
-                    const [contactosRes, transaccionesRes] = await Promise.all([
-                        contactIds.length > 0 ? supabase.from('contactos').select('id, nombre').in('id', contactIds) : Promise.resolve({ data: [] }),
-                        supabase.from('pagos_ingresos').select('*').in('factura_id', facturas.map(f => f.id))
-                    ]);
-
-                    contactosRes?.data?.forEach(c => contactosMap[c.id] = c.nombre);
-                    const transMapeadas = (transaccionesRes?.data || []).map(t => ({...t, tipo: t.tipo === 'in' ? 'ingreso' : 'egreso'}));
-
-                    const procesarFactura = (f) => {
-                        const tr = transMapeadas.filter(t => t.factura_id === f.id);
-                        const { estado, saldo, totalPagado } = calcularEstadoFactura(f, tr);
-                        return {
-                            ...f,
-                            estado,
-                            saldoPendiente: saldo,
-                            totalPagado
-                        };
-                    };
-
-                    const facturasVenta = facturas.filter(f => f.tipo === 'venta' || !f.tipo);
-                    const facturasCompra = facturas.filter(f => f.tipo === 'compra');
-
-                    facturasAsociadas = facturasVenta.map(procesarFactura);
-                    facturasAsociadas.sort((a, b) => new Date(b.fecha || 0) - new Date(a.fecha || 0));
-
-                    facturasCompraAsociadas = facturasCompra.map(procesarFactura);
-                    facturasCompraAsociadas.sort((a, b) => new Date(b.fecha || 0) - new Date(a.fecha || 0));
-                }
+        await ProductoDetalleModule.init(container, id, () => {
+            if (typeof window !== 'undefined') {
+                window.location.hash = '#/inventario/items';
             }
-        } catch (e) {
-            console.error("Error al cargar facturas asociadas:", e);
-        }
-
-        const tieneFacturas = facturasAsociadas.length > 0 || facturasCompraAsociadas.length > 0;
-        const defaultTabVenta = facturasAsociadas.length > 0 || facturasCompraAsociadas.length === 0;
-
-        container.innerHTML = `
-
-
-            <div class="row g-4">
-                <!-- Panel de Detalles del Producto & Carga de Lotes -->
-                <div class="col-12 col-lg-4">
-                    <div class="card border-0 shadow-sm mb-4">
-                        <div class="card-body p-4">
-                            <h5 class="fw-bold mb-3" style="font-size: 15px; color: var(--text-main);">Detalle Técnico</h5>
-                            <ul class="list-unstyled mb-0" style="font-size: 13px;">
-                                <li class="mb-3 d-flex align-items-center">
-                                    <span class="text-muted me-2">SKU:</span> 
-                                    <span class="badge" style="background-color: #f1f5f9; color: var(--text-main); border: 1px solid var(--border-color); font-family: monospace; font-size: 13px; padding: 4px 10px;">
-                                        ${escapeHtml(producto.sku)}
-                                    </span>
-                                </li>
-                                <li class="mb-2"><span class="text-muted">Descripción:</span> <strong style="color: var(--text-main);">${escapeHtml(producto.nombre)}</strong></li>
-                                <li class="mb-2"><span class="text-muted">Precio Venta:</span> <strong class="tnum" style="color: var(--text-main);">$${producto.precioVenta.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong></li>
-                                <li><span class="text-muted">Costo Base Fijo:</span> <span class="tnum text-muted">$${producto.costoBase.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span></li>
-                            </ul>
-                        </div>
-                    </div>
-
-                    <!-- Formulario de Ajuste / Carga de Lotes -->
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-body p-4">
-                            <h5 class="fw-bold mb-2"><i class="bi bi-box-arrow-in-down text-primary me-2"></i>Registrar Nuevo Lote</h5>
-                            <p class="text-muted small mb-3">Nota: El inventario local puede ser sobreescrito si Alegra actualiza el stock maestro.</p>
-                            <div id="lote-alert" class="alert alert-success d-none mb-3 py-2" style="font-size: 0.9rem;"></div>
-                            
-                            <form id="form-nuevo-lote">
-                                <div class="mb-3">
-                                    <label class="form-label text-muted small fw-semibold">Cantidad Ingresada *</label>
-                                    <input type="number" id="lote-cantidad" class="form-control" required min="1">
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label text-muted small fw-semibold">Costo Unitario ($) *</label>
-                                    <input type="text" id="lote-costo" class="form-control" required>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label text-muted small fw-semibold">Fecha de Ingreso *</label>
-                                    <input type="date" id="lote-fecha" class="form-control" required value="${getLocalDate()}">
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label text-muted small fw-semibold">Referencia / Documento</label>
-                                    <input type="text" id="lote-ref" class="form-control" placeholder="Ej. Compra 123 o Ajuste">
-                                </div>
-                                <button type="submit" class="btn btn-primary w-100 mt-2">
-                                    <i class="bi bi-plus-lg me-1"></i>Agregar Lote
-                                </button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Tabla de Lotes Históricos (FIFO) -->
-                <div class="col-12 col-lg-8">
-                    <div class="card border-0 shadow-sm h-100">
-                        <div class="card-body p-4">
-                            <div class="d-flex justify-content-between align-items-center mb-4">
-                                <h5 class="fw-bold mb-0" style="font-size: 15px; color: var(--text-main);">Capas de Inventario (Lotes FIFO)</h5>
-                                <div class="d-flex gap-2">
-                                    <button id="btn-kardex-prod" class="btn btn-sm btn-outline-primary d-inline-flex align-items-center" style="font-size: 13px; font-weight: 500; border-radius: var(--border-radius-sm); padding: 5px 12px;">
-                                        <span class="material-symbols-outlined me-1" style="font-size: 16px;">receipt_long</span>Kardex
-                                    </button>
-                                    <button id="btn-volver-prod" class="btn btn-sm btn-light border d-inline-flex align-items-center" style="font-size: 13px; font-weight: 500; border-radius: var(--border-radius-sm); padding: 5px 12px; color: var(--text-body);">
-                                        <span class="material-symbols-outlined me-1" style="font-size: 16px;">arrow_back</span>Volver al Listado
-                                    </button>
-                                </div>
-                            </div>
-                            
-                            <!-- NUEVO BANNER STOCK TOTAL -->
-                            <div class="alert d-flex align-items-center p-3 mb-4" style="background-color: #eff6ff; border: 1px solid #bfdbfe; border-radius: var(--border-radius-sm);">
-                                <span class="material-symbols-outlined me-3" style="font-size: 28px; color: #2563eb;">inventory_2</span>
-                                <div>
-                                    <div class="text-muted" style="font-size: 12px; font-weight: 500;">Stock Total Disponible</div>
-                                    <div class="fw-bold tnum" style="font-size: 18px; color: #1e40af;">${stockTotalDisponible} unidades</div>
-                                </div>
-                            </div>
-
-                            <div class="table-responsive">
-                                <table class="table align-middle">
-                                    <thead style="background-color: #f8fafc; border-bottom: 1px solid var(--border-color);">
-                                        <tr style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">
-                                            <th class="py-2 ps-3">Fecha Ingreso</th>
-                                            <th class="py-2">Referencia</th>
-                                            <th class="py-2 text-end">Costo Unitario</th>
-                                            <th class="py-2 text-end">Cantidad Inicial</th>
-                                            <th class="py-2 text-end pe-3">Cantidad Disponible</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="tbody-lotes-fifo">
-                                        ${lotesHtml || '<tr><td colspan="5" class="text-center py-4 text-muted">No hay lotes para este producto.</td></tr>'}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                ${tieneFacturas ? `
-                <div class="col-12 col-lg-12">
-                    <div class="card border-0 mb-4 shadow-sm" style="border-radius: var(--border-radius-sm);">
-                        <div class="card-header bg-white border-bottom p-3">
-                            <ul class="nav nav-tabs card-header-tabs border-bottom-0" id="tabs-facturas-item" role="tablist">
-                                <li class="nav-item" role="presentation">
-                                    <button class="nav-link ${defaultTabVenta ? 'active fw-bold' : 'fw-semibold'} text-nowrap" id="tab-facturas-venta-btn" data-bs-toggle="tab" data-bs-target="#tab-facturas-venta-pane" type="button" role="tab" aria-controls="tab-facturas-venta-pane" aria-selected="${defaultTabVenta ? 'true' : 'false'}" style="font-size: var(--fs-md);">
-                                        <i class="bi bi-receipt me-2 text-muted"></i>Facturas de Venta <span class="badge rounded-pill bg-light text-secondary border ms-1">${facturasAsociadas.length}</span>
-                                    </button>
-                                </li>
-                                <li class="nav-item" role="presentation">
-                                    <button class="nav-link ${!defaultTabVenta ? 'active fw-bold' : 'fw-semibold'} text-nowrap" id="tab-facturas-compra-btn" data-bs-toggle="tab" data-bs-target="#tab-facturas-compra-pane" type="button" role="tab" aria-controls="tab-facturas-compra-pane" aria-selected="${!defaultTabVenta ? 'true' : 'false'}" style="font-size: var(--fs-md);">
-                                        <i class="bi bi-cart-check me-2 text-muted"></i>Facturas de Compra <span class="badge rounded-pill bg-light text-secondary border ms-1">${facturasCompraAsociadas.length}</span>
-                                    </button>
-                                </li>
-                            </ul>
-                        </div>
-                        <div class="tab-content" id="tabs-facturas-item-content">
-                            <div class="tab-pane fade ${defaultTabVenta ? 'show active' : ''}" id="tab-facturas-venta-pane" role="tabpanel" aria-labelledby="tab-facturas-venta-btn">
-                                ${renderTablaFacturas(facturasAsociadas, contactosMap, 'fecha', 'desc', { hash: `#/inventario/items/ver/${id}`, label: `Volver al Producto (${escapeHtml(producto.nombre)})` }, 'venta')}
-                            </div>
-                            <div class="tab-pane fade ${!defaultTabVenta ? 'show active' : ''}" id="tab-facturas-compra-pane" role="tabpanel" aria-labelledby="tab-facturas-compra-btn">
-                                ${renderTablaFacturas(facturasCompraAsociadas, contactosMap, 'fecha', 'desc', { hash: `#/inventario/items/ver/${id}`, label: `Volver al Producto (${escapeHtml(producto.nombre)})` }, 'compra')}
-                            </div>
-                        </div>
-                    </div>
-                </div>` : ''}
-            </div>
-
-            <!-- MODAL KARDEX -->
-            <div class="modal fade" id="modalKardexProducto" tabindex="-1" aria-hidden="true">
-                <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
-                    <div class="modal-content" style="background-color: var(--bg-main); border: 1px solid var(--border-color); border-radius: var(--border-radius-sm);">
-                        <div class="modal-header border-bottom">
-                            <h5 class="modal-title fw-bold d-flex align-items-center" style="color: var(--text-main); font-size: 16px;">
-                                <span class="material-symbols-outlined me-2" style="font-size: 20px; color: var(--primary);">receipt_long</span>Kardex de Producto: ${escapeHtml(producto.nombre)}
-                            </h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-                        <div class="modal-body p-0">
-                            <div class="table-responsive">
-                                <table class="table align-middle mb-0 text-center">
-                                    <thead style="background-color: #f8fafc; border-bottom: 1px solid var(--border-color);">
-                                        <tr style="color: var(--text-muted); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">
-                                            <th class="py-2 ps-4 text-start">Fecha</th>
-                                            <th class="py-2">Tipo</th>
-                                            <th class="py-2 text-end">Cant. Anterior</th>
-                                            <th class="py-2 text-end">Diferencia</th>
-                                            <th class="py-2 text-end">Cant. Nueva</th>
-                                            <th class="py-2">Origen</th>
-                                            <th class="py-2 pe-4">Referencia</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="tbody-kardex-modal">
-                                        <tr><td colspan="7" class="py-4 text-muted"><span class="spinner-border spinner-border-sm me-2"></span>Cargando kardex...</td></tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                        <div class="modal-footer border-top">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-
-        import('../../shared/formatters.js').then(fmt => {
-            fmt.applyCurrencyFormatting(element.querySelector('#lote-costo'));
-        });
-
-        element.querySelector('#btn-volver-prod')?.addEventListener('click', () => this.renderGrid(element));
-
-        element.querySelector('#btn-kardex-prod')?.addEventListener('click', async () => {
-            const modalEl = element.querySelector('#modalKardexProducto');
-            const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
-            modal.show();
-
-            const tbody = modalEl.querySelector('#tbody-kardex-modal');
-            tbody.innerHTML = '<tr><td colspan="7" class="py-4 text-muted"><span class="spinner-border spinner-border-sm me-2"></span>Cargando movimientos...</td></tr>';
-            
-            const { data, error } = await supabase.rpc('get_kardex_producto', { p_producto_id: id });
-            
-            if (error) {
-                console.error("Error cargando kardex:", error);
-                tbody.innerHTML = '<tr><td colspan="7" class="py-4 text-danger">Error al cargar el kardex.</td></tr>';
-                return;
-            }
-
-            if (!data || data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" class="py-4 text-muted">Sin movimientos registrados</td></tr>';
-                return;
-            }
-
-            let html = '';
-            data.forEach(mov => {
-                const dateObj = new Date(mov.creado_en);
-                const day = String(dateObj.getDate()).padStart(2, '0');
-                const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-                const year = dateObj.getFullYear();
-                const hours = String(dateObj.getHours()).padStart(2, '0');
-                const minutes = String(dateObj.getMinutes()).padStart(2, '0');
-                const dateParts = `${day}/${month}/${year} ${hours}:${minutes}`;
-                
-                const dif = parseFloat(mov.diferencia) || 0;
-                let difColor = '';
-                let difSign = '';
-                if (dif > 0) {
-                    difColor = 'text-success fw-bold';
-                    difSign = '+';
-                } else if (dif < 0) {
-                    difColor = 'text-danger fw-bold';
-                }
-
-                const formatNum = (num) => Number(num || 0).toLocaleString('es-CO');
-
-                html += `
-                    <tr style="border-bottom: 1px solid var(--border-color); font-size: 13px; color: var(--text-body);">
-                        <td class="py-2 ps-4 text-start tnum">${dateParts}</td>
-                        <td class="py-2"><span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary-subtle px-2 py-1 text-uppercase" style="font-size: 10px;">${escapeHtml(mov.tipo_operacion || '')}</span></td>
-                        <td class="py-2 text-end tnum">${formatNum(mov.cantidad_anterior)}</td>
-                        <td class="py-2 text-end tnum ${difColor}">${difSign}${formatNum(dif)}</td>
-                        <td class="py-2 fw-medium text-end tnum" style="color: #d97706;">${formatNum(mov.cantidad_nueva)}</td>
-                        <td class="py-2 text-muted small">${escapeHtml(mov.origen_documento || '-')}</td>
-                        <td class="py-2 pe-4 text-muted small">${escapeHtml(mov.referencia_lote || '-')}</td>
-                    </tr>
-                `;
-            });
-            tbody.innerHTML = html;
-        });
-        
-        // Manejador del submit de nuevo lote
-        element.querySelector('#form-nuevo-lote')?.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const alertEl = element.querySelector('#lote-alert');
-            
-            const qty = parseFloat(element.querySelector('#lote-cantidad').value) || 0;
-            
-            let lCosto = 0;
-            try {
-                const fmt = await import('../../shared/formatters.js');
-                lCosto = fmt.parseCurrencyValue(element.querySelector('#lote-costo').value);
-            } catch(e) {
-                lCosto = parseFloat(element.querySelector('#lote-costo').value) || 0;
-            }
-
-            const nuevoLote = {
-                id: 'lote_' + Date.now(),
-                productoId: id,
-                cantidadInicial: qty,
-                cantidadActual: qty,
-                costoUnitario: lCosto,
-                fechaIngreso: element.querySelector('#lote-fecha').value,
-                referencia: element.querySelector('#lote-ref').value.trim(),
-                origen_movimiento: 'ingreso_manual:' + producto.sku
-            };
-
-            await DB.save('lotes_fifo', nuevoLote);
-
-            // Mostrar mensaje de éxito en pantalla sin usar alerts nativos
-            if (alertEl) {
-                alertEl.textContent = 'Lote guardado e integrado con éxito al FIFO.';
-                alertEl.classList.remove('d-none');
-                
-                if (window._productosAlertTimeout) clearTimeout(window._productosAlertTimeout);
-                window._productosAlertTimeout = setTimeout(() => alertEl.classList.add('d-none'), 3000);
-            }
-
-            // Limpiar campos de cantidad y referencia
-            element.querySelector('#lote-cantidad').value = '';
-            element.querySelector('#lote-ref').value = '';
-
-            // Recargar vista de detalles del producto
-            await this.renderDetalle(element, id);
+            this.renderGrid(element);
         });
     }
 };
