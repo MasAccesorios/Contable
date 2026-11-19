@@ -43,6 +43,7 @@ export const ProductoDetalleModule = {
             lotes: [],
             ventas: [],
             facturasCompra: [],
+            kardex: [],
             filtroLotes: 'todos',
             kpis: {},
             isLoading: true
@@ -78,6 +79,7 @@ export const ProductoDetalleModule = {
             this.state.lotes = dataResult.lotes || [];
             this.state.ventas = dataResult.ventas || [];
             this.state.facturasCompra = dataResult.facturasCompra || [];
+            this.state.kardex = dataResult.kardex || [];
             this.state.kpis = dataResult.kpis || {};
 
             this.render();
@@ -113,7 +115,8 @@ export const ProductoDetalleModule = {
             lotes: lotesDecorados,
             filtroLotes: this.state.filtroLotes,
             ventas: this.state.ventas,
-            facturasCompra: this.state.facturasCompra
+            facturasCompra: this.state.facturasCompra,
+            kardex: this.state.kardex
         });
 
         this.element.innerHTML = html;
@@ -133,6 +136,7 @@ export const ProductoDetalleModule = {
         this.state.lotes = dataResult.lotes || [];
         this.state.ventas = dataResult.ventas || [];
         this.state.facturasCompra = dataResult.facturasCompra || [];
+        this.state.kardex = dataResult.kardex || [];
         this.state.kpis = dataResult.kpis || {};
 
         // Actualizar KPIs
@@ -146,6 +150,11 @@ export const ProductoDetalleModule = {
         if (tbodyLotes) {
             const lotesFiltrados = this.data.filtrarLotes(this.state.lotes, this.state.filtroLotes);
             tbodyLotes.innerHTML = this.templates.renderTablaLotes(lotesFiltrados, this.state.filtroLotes);
+        }
+
+        // Si estamos en un entorno con el layout completo, sincronizar cabecera y sidebar
+        if (this.element && typeof this.element.querySelector === 'function' && this.element.querySelector('#tabs-producto-principal')) {
+            this.render();
         }
     },
 

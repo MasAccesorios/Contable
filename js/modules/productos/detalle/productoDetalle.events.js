@@ -167,11 +167,21 @@ export const ProductoDetalleEvents = {
                         alertEl.className = 'alert alert-success mb-3 py-2';
                         alertEl.textContent = 'Lote incorporado con éxito a las capas FIFO.';
                         alertEl.classList.remove('d-none');
-                        setTimeout(() => alertEl?.classList.add('d-none'), 3500);
+                        if (this._alertTimeout) clearTimeout(this._alertTimeout);
+                        this._alertTimeout = setTimeout(() => alertEl?.classList.add('d-none'), 3500);
                     }
 
                     if (cantInput) cantInput.value = '';
                     if (refInput) refInput.value = '';
+
+                    // Cerrar modal de nuevo lote si está abierto
+                    const modalLoteEl = element.querySelector('#modalNuevoLoteFIFO');
+                    if (modalLoteEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                        const modalInst = bootstrap.Modal.getInstance(modalLoteEl);
+                        if (modalInst) {
+                            try { modalInst.hide(); } catch (e) {}
+                        }
+                    }
 
                     // Recargar datos del producto y refrescar vista
                     await module.recargarDatos();
@@ -199,19 +209,58 @@ export const ProductoDetalleEvents = {
 
                 if (typeof window !== 'undefined') {
                     if (typeof sessionStorage !== 'undefined') {
-                        sessionStorage.setItem('origenVolver', JSON.stringify({
-                            hash: window.location.hash || '#/inventario/items',
-                            label: 'Volver al producto'
-                        }));
+                        try {
+                            sessionStorage.setItem('origenVolver', JSON.stringify({
+                                hash: window.location.hash || '#/inventario/items',
+                                label: 'Volver al producto'
+                            }));
+                        } catch (storageErr) {
+                            // Fallback seguro si sessionStorage está bloqueado o lleno
+                        }
                     }
+                    const safeId = encodeURIComponent(String(id || ''));
                     if (tipo === 'compra') {
-                        window.location.hash = `#/gastos/proveedores/ver/${id}`;
+                        window.location.hash = `#/gastos/proveedores/ver/${safeId}`;
                     } else {
-                        window.location.hash = `#/ingresos/facturas/ver/${id}`;
+                        window.location.hash = `#/ingresos/facturas/ver/${safeId}`;
                     }
                 }
             };
         });
+
+        // 7. Buscador en vivo de ventas
+        const searchVentasInput = element.querySelector('#search-ventas-prod');
+        if (searchVentasInput) {
+            searchVentasInput.oninput = () => {
+                const query = (searchVentasInput.value || '').trim().toLowerCase();
+                const filasVentas = element.querySelectorAll('#tbody-ventas-prod .row-factura-asociada');
+                filasVentas.forEach(row => {
+                    const text = (row.textContent || '').toLowerCase();
+                    row.style.display = !query || text.includes(query) ? '' : 'none';
+                });
+            };
+        }
+
+        // 8. Copiar SKU al portapapeles
+        const btnCopySku = element.querySelector('#btn-copy-sku');
+        if (btnCopySku) {
+            btnCopySku.onclick = async (e) => {
+                e.preventDefault();
+                const skuText = module.state.producto?.sku || '';
+                if (!skuText) return;
+                try {
+                    if (navigator && navigator.clipboard && navigator.clipboard.writeText) {
+                        await navigator.clipboard.writeText(skuText);
+                        btnCopySku.className = 'bi bi-check2 text-success ms-1';
+                        setTimeout(() => {
+                            btnCopySku.className = 'bi bi-copy ms-1 text-muted cursor-pointer';
+                        }, 2000);
+                    }
+                } catch (err) {
+                    console.warn('No se pudo copiar SKU:', err);
+                }
+            };
+        }
     },
 
     /**
@@ -219,19 +268,25 @@ export const ProductoDetalleEvents = {
      * @param {HTMLElement} element 
      */
     cleanup(element) {
+        if (this._alertTimeout) {
+            clearTimeout(this._alertTimeout);
+            this._alertTimeout = null;
+        }
         if (!element) return;
-        const modalEl = element.querySelector('#modalKardexProducto');
-        if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-            const instance = bootstrap.Modal.getInstance(modalEl);
-            if (instance) {
-                try {
-                    instance.hide();
-                    instance.dispose();
-                } catch (e) {
-                    // ignorar errores al disponer modal ya destruido
+        ['#modalKardexProducto', '#modalNuevoLoteFIFO'].forEach(sel => {
+            const modalEl = element.querySelector(sel);
+            if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                const instance = bootstrap.Modal.getInstance(modalEl);
+                if (instance) {
+                    try {
+                        instance.hide();
+                        instance.dispose();
+                    } catch (e) {
+                        // ignorar errores al disponer modal ya destruido
+                    }
                 }
             }
-        }
+        });
         if (typeof document !== 'undefined') {
             document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
             document.body?.classList.remove('modal-open');

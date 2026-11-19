@@ -232,13 +232,101 @@ export const ProductoDetalleData = {
         }
 
         const alertaRecompra = (stockTotal <= 0) || (diasCobertura <= 15);
+        const puntoReordenSugerido = velocidadDiaria > 0 ? Math.max(1, Math.round(velocidadDiaria * 15)) : 0;
 
         return {
             unidadesVendidas,
             velocidadDiaria,
             diasCobertura,
             alertaRecompra,
-            diasPeriodo: periodoDias
+            diasPeriodo: periodoDias,
+            puntoReordenSugerido
+        };
+    },
+
+    /**
+     * Calcula métricas comerciales acumuladas: recaudación histórica, unidades vendidas,
+     * precio promedio de venta y concentración de clientes/canales.
+     * @param {Array} ventas 
+     * @returns {Object}
+     */
+    calcularMetricasHistoricas(ventas = []) {
+        if (!Array.isArray(ventas) || ventas.length === 0) {
+            return {
+                totalRecaudo: 0,
+                totalUnidadesVendidas: 0,
+                unidadesVendidas: 0,
+                numFacturas: 0,
+                precioPromedioPonderado: 0,
+                canales: [],
+                concentracionCanales: []
+            };
+        }
+
+        const validas = ventas.filter(v => v && v.estado !== 'anulada' && v.estado !== 'void');
+        if (validas.length === 0) {
+            return {
+                totalRecaudo: 0,
+                totalUnidadesVendidas: 0,
+                unidadesVendidas: 0,
+                numFacturas: 0,
+                precioPromedioPonderado: 0,
+                canales: [],
+                concentracionCanales: []
+            };
+        }
+
+        let totalRecaudo = 0;
+        let totalUnidadesVendidas = 0;
+        const clientesMap = Object.create(null);
+
+        for (const v of validas) {
+            const cant = parseFloat(v.cantidadItem ?? v.cantidad) || 0;
+            const pu = parseFloat(v.precioUnitarioItem ?? v.precio_unitario) || 0;
+            const rawTot = v.totalItem ?? v.subtotal ?? v.total;
+            const parsedTot = parseFloat(rawTot);
+            const tot = Number.isFinite(parsedTot) ? parsedTot : (cant * pu);
+
+            totalRecaudo += tot;
+            totalUnidadesVendidas += cant;
+
+            const cliente = v.clienteNombre || v.cliente || 'Consumidor Final';
+            if (!clientesMap[cliente]) {
+                clientesMap[cliente] = {
+                    nombre: cliente,
+                    cliente: cliente,
+                    canal: cliente,
+                    unidades: 0,
+                    totalUnidades: 0,
+                    total: 0
+                };
+            }
+            clientesMap[cliente].unidades += cant;
+            clientesMap[cliente].totalUnidades += cant;
+            clientesMap[cliente].total += tot;
+        }
+
+        const precioPromedioPonderado = totalUnidadesVendidas > 0 
+            ? Math.round((totalRecaudo / totalUnidadesVendidas) * 100) / 100 
+            : 0;
+
+        const rawCanales = Object.values(clientesMap).sort((a, b) => b.unidades - a.unidades);
+        const canales = rawCanales.map(c => ({
+            ...c,
+            porcentaje: totalUnidadesVendidas > 0 
+                ? Math.round(((c.unidades / totalUnidadesVendidas) * 100) * 10) / 10 
+                : 0
+        }));
+
+        return {
+            totalRecaudo: Math.round(totalRecaudo * 100) / 100,
+            totalUnidadesVendidas,
+            unidadesVendidas: totalUnidadesVendidas,
+            numFacturas: validas.length,
+            precioPromedioPonderado,
+            canales,
+            concentracionCanales: canales,
+            topCanal: canales[0] || null
         };
     },
 
@@ -262,12 +350,22 @@ export const ProductoDetalleData = {
         });
 
         let capaActivaAsignada = false;
+        const ahora = Date.now();
 
         const decorados = copia.map(l => {
             const actual = parseFloat(l.cantidadActual ?? l.cantidad_actual) || 0;
             const inicial = parseFloat(l.cantidadInicial ?? l.cantidad_inicial) || 0;
             const calcConsumo = inicial > 0 ? Math.round(((inicial - actual) / inicial) * 100) : 0;
             const porcentajeConsumo = Math.max(0, Math.min(100, calcConsumo));
+
+            let diasEnBodega = 0;
+            const rawFecha = l.fechaIngreso || l.fecha_ingreso;
+            if (rawFecha && typeof rawFecha === 'string' && /^\d{4}-\d{2}-\d{2}/.test(rawFecha)) {
+                const timeIng = new Date(rawFecha).getTime();
+                if (!isNaN(timeIng) && timeIng > 0) {
+                    diasEnBodega = Math.max(0, Math.floor((ahora - timeIng) / (24 * 60 * 60 * 1000)));
+                }
+            }
 
             let esCapaActiva = false;
             if (!capaActivaAsignada && actual > 0) {
@@ -281,7 +379,8 @@ export const ProductoDetalleData = {
                 cantidadInicial: inicial,
                 costoUnitario: parseFloat(l.costoUnitario ?? l.costo_unitario) || 0,
                 porcentajeConsumo,
-                esCapaActiva
+                esCapaActiva,
+                diasEnBodega
             };
         });
 
@@ -400,22 +499,33 @@ export const ProductoDetalleData = {
         const ventasRecientes = ventasValidas.filter(v => v.fecha && v.fecha >= limite30);
         const ventasParaRotacion = ventasRecientes.length > 0 ? ventasRecientes : ventasValidas;
 
-        // 3. Cálculos de KPIs
+        // 3. Cargar Kardex en paralelo o directamente
+        let kardex = [];
+        try {
+            kardex = await this.cargarKardex(productoId);
+        } catch (err) {
+            console.error('Error al pre-cargar kardex:', err);
+        }
+
+        // 4. Cálculos de KPIs y Métricas Comerciales Acumuladas
         const stockYEstado = this.calcularStockYEstado(producto, lotes);
         const valorizacion = this.calcularValorizacionFIFO(producto, lotes);
         const margen = this.calcularMargenComercial(producto, valorizacion.costoPromedioPonderado);
         const rotacion = this.calcularRotacionYCobertura(stockYEstado.stockTotal, ventasParaRotacion, 30);
+        const historico = this.calcularMetricasHistoricas(ventas);
 
         return {
             producto,
             lotes,
             ventas,
             facturasCompra,
+            kardex,
             kpis: {
                 stock: stockYEstado,
                 valorizacion,
                 margen,
-                rotacion
+                rotacion,
+                historico
             }
         };
     },
@@ -425,6 +535,10 @@ export const ProductoDetalleData = {
      * @param {Object} nuevoLote 
      */
     async guardarLote(nuevoLote) {
+        if (!nuevoLote || typeof nuevoLote !== 'object') {
+            throw new Error('Datos de lote inválidos.');
+        }
+
         const db = this.getDB();
         if (db) {
             return await db.save('lotes_fifo', nuevoLote);
@@ -433,8 +547,9 @@ export const ProductoDetalleData = {
         if (client) {
             const rawPId = nuevoLote.producto_id ?? nuevoLote.productoId;
             const pId = parseInt(rawPId, 10);
-            if (!pId || isNaN(pId)) throw new Error('ID de producto inválido.');
-
+            if (!pId || isNaN(pId) || pId <= 0) {
+                throw new Error('ID de producto inválido.');
+            }
             const payload = {
                 producto_id: pId,
                 cantidad_inicial: parseFloat(nuevoLote.cantidad_inicial ?? nuevoLote.cantidadInicial) || 0,
@@ -458,7 +573,7 @@ export const ProductoDetalleData = {
      */
     async cargarKardex(productoId) {
         const client = this.getSupabase();
-        if (!client) return [];
+        if (!client || typeof client.rpc !== 'function') return [];
         const { data, error } = await client.rpc('get_kardex_producto', { p_producto_id: productoId });
         if (error) {
             console.error('Error al obtener kardex:', error);

@@ -259,6 +259,119 @@ describe('Módulo Producto Detalle - TDD Test Suite', () => {
             assert.strictEqual(res.diasCobertura, 20);
             assert.strictEqual(res.alertaRecompra, false);
         });
+
+        it('debe incluir sugerencia de punto de reorden (puntoReordenSugerido) en el objeto retornado', () => {
+            const stockTotal = 50;
+            const ventas = [{ cantidad: 60 }];
+            const res = ProductoDetalleData.calcularRotacionYCobertura(stockTotal, ventas, 30);
+
+            assert.ok(res.puntoReordenSugerido !== undefined, 'puntoReordenSugerido debe estar definido');
+            assert.strictEqual(typeof res.puntoReordenSugerido, 'number');
+            assert.ok(res.puntoReordenSugerido > 0, 'puntoReordenSugerido debe ser mayor a 0 cuando hay rotación');
+        });
+
+        it('debe retornar puntoReordenSugerido en 0 cuando no hay ventas en el período', () => {
+            const stockTotal = 20;
+            const res = ProductoDetalleData.calcularRotacionYCobertura(stockTotal, [], 30);
+
+            assert.strictEqual(res.puntoReordenSugerido, 0);
+        });
+    });
+
+    // =========================================================================
+    // 4b. ProductoDetalleData.calcularMetricasHistoricas
+    // =========================================================================
+    describe('ProductoDetalleData.calcularMetricasHistoricas', () => {
+        const ventasPrueba = [
+            {
+                id: 'v1',
+                numero: 'FAC-001',
+                fecha: '2026-11-01',
+                clienteNombre: 'Canal Mayorista',
+                cantidadItem: 50,
+                precioUnitarioItem: 10000,
+                totalItem: 500000,
+                estado: 'cobrada'
+            },
+            {
+                id: 'v2',
+                numero: 'FAC-002',
+                fecha: '2026-11-05',
+                clienteNombre: 'Canal Minorista',
+                cantidadItem: 20,
+                precioUnitarioItem: 12000,
+                totalItem: 240000,
+                estado: 'pendiente'
+            },
+            {
+                id: 'v3',
+                numero: 'FAC-003',
+                fecha: '2026-11-08',
+                clienteNombre: 'Canal Mayorista',
+                cantidadItem: 30,
+                precioUnitarioItem: 10000,
+                totalItem: 300000,
+                estado: 'anulada' // Excluir
+            },
+            {
+                id: 'v4',
+                numero: 'FAC-004',
+                fecha: '2026-11-10',
+                clienteNombre: 'Canal E-Commerce',
+                cantidadItem: 10,
+                precioUnitarioItem: 15000,
+                totalItem: 150000,
+                estado: 'void' // Excluir
+            }
+        ];
+
+        it('debe sumar total de recaudo y total de unidades vendidas excluyendo facturas anuladas/void', () => {
+            const res = ProductoDetalleData.calcularMetricasHistoricas(ventasPrueba);
+
+            // Válidas: v1 (500.000, 50 und) + v2 (240.000, 20 und) = 740.000 y 70 und
+            assert.strictEqual(res.totalRecaudo, 740000);
+            const unidades = res.totalUnidadesVendidas ?? res.unidadesVendidas;
+            assert.strictEqual(unidades, 70);
+        });
+
+        it('debe calcular el precio promedio ponderado de venta excluyendo anuladas', () => {
+            const res = ProductoDetalleData.calcularMetricasHistoricas(ventasPrueba);
+
+            // 740.000 / 70 = 10571.43
+            const esperado = Math.round((740000 / 70) * 100) / 100;
+            assert.strictEqual(Math.round(res.precioPromedioPonderado * 100) / 100, esperado);
+        });
+
+        it('debe agrupar y ordenar canales/clientes por volumen de unidades vendidas descendentemente', () => {
+            const res = ProductoDetalleData.calcularMetricasHistoricas(ventasPrueba);
+            const canales = res.concentracionCanales || res.canales;
+
+            assert.ok(Array.isArray(canales), 'Debe retornar un array de canales/clientes agrupados');
+            assert.strictEqual(canales.length, 2);
+
+            const primero = canales[0];
+            const segundo = canales[1];
+
+            assert.strictEqual(primero.nombre || primero.canal || primero.cliente, 'Canal Mayorista');
+            assert.strictEqual(primero.unidades ?? primero.totalUnidades, 50);
+
+            assert.strictEqual(segundo.nombre || segundo.canal || segundo.cliente, 'Canal Minorista');
+            assert.strictEqual(segundo.unidades ?? segundo.totalUnidades, 20);
+        });
+
+        it('edge case: lista de ventas vacía o nula debe retornar ceros seguros', () => {
+            const resVacio = ProductoDetalleData.calcularMetricasHistoricas([]);
+            assert.strictEqual(resVacio.totalRecaudo, 0);
+            assert.strictEqual(resVacio.totalUnidadesVendidas ?? resVacio.unidadesVendidas, 0);
+            assert.strictEqual(resVacio.precioPromedioPonderado, 0);
+            assert.deepStrictEqual(resVacio.concentracionCanales || resVacio.canales, []);
+
+            const resNulo = ProductoDetalleData.calcularMetricasHistoricas(null);
+            assert.strictEqual(resNulo.totalRecaudo, 0);
+            assert.strictEqual(resNulo.totalUnidadesVendidas ?? resNulo.unidadesVendidas, 0);
+            assert.strictEqual(resNulo.precioPromedioPonderado, 0);
+            assert.deepStrictEqual(resNulo.concentracionCanales || resNulo.canales, []);
+        });
     });
 
     // =========================================================================
@@ -311,6 +424,40 @@ describe('Módulo Producto Detalle - TDD Test Suite', () => {
             assert.strictEqual(res.length, 1);
             assert.strictEqual(res[0].id, 'l1');
             assert.strictEqual(res[0].esCapaActiva, false);
+        });
+
+        it('debe calcular diasEnBodega (aging) como la diferencia en días entre fechaIngreso y la fecha actual', () => {
+            const ahora = Date.now();
+            const MS_POR_DIA = 24 * 60 * 60 * 1000;
+            const hace10DiasIso = new Date(ahora - 10 * MS_POR_DIA).toISOString().split('T')[0];
+            const hace25DiasIso = new Date(ahora - 25 * MS_POR_DIA).toISOString().split('T')[0];
+
+            const lotesAging = [
+                { id: 'l1', fechaIngreso: hace10DiasIso, cantidadInicial: 10, cantidadActual: 10 },
+                { id: 'l2', fechaIngreso: hace25DiasIso, cantidadInicial: 20, cantidadActual: 15 }
+            ];
+
+            const resultado = ProductoDetalleData.filtrarLotes(lotesAging, 'todos');
+            const loteL1 = resultado.find(l => l.id === 'l1');
+            const loteL2 = resultado.find(l => l.id === 'l2');
+
+            assert.strictEqual(typeof loteL1.diasEnBodega, 'number');
+            assert.strictEqual(loteL1.diasEnBodega, 10);
+            assert.strictEqual(loteL2.diasEnBodega, 25);
+        });
+
+        it('debe manejar fechas inválidas o nulas asignando 0 días en diasEnBodega', () => {
+            const lotesFechasInvalidas = [
+                { id: 'l_null', fechaIngreso: null, cantidadInicial: 10, cantidadActual: 10 },
+                { id: 'l_undefined', cantidadInicial: 10, cantidadActual: 10 },
+                { id: 'l_invalida', fechaIngreso: 'fecha-no-valida', cantidadInicial: 10, cantidadActual: 10 }
+            ];
+
+            const resultado = ProductoDetalleData.filtrarLotes(lotesFechasInvalidas, 'todos');
+
+            for (const lote of resultado) {
+                assert.strictEqual(lote.diasEnBodega, 0);
+            }
         });
 
         it('edge case: lista vacía o nula retorna array vacío', () => {
@@ -542,27 +689,47 @@ describe('Módulo Producto Detalle - TDD Test Suite', () => {
             assert.ok(clean.includes('&quot;'));
         });
 
-        it('renderKpiCards debe renderizar exactamente 4 tarjetas con clase .payment-kpi-card', () => {
+        it('renderKpiCards debe renderizar exactamente 5 tarjetas ejecutivas con clase .payment-kpi-card', () => {
             const kpis = {
                 stock: { stockTotal: 25, stockMinimo: 10, estado: 'optimo' },
                 valorizacion: { valorTotal: 400000, costoPromedioPonderado: 13333.33, costoBase: 12000, diferenciaCosto: 1333.33 },
                 margen: { precioVenta: 20000, costoUnitario: 13333.33, utilidadMonetaria: 6666.67, margenPorcentual: 33.33 },
-                rotacion: { unidadesVendidas: 60, velocidadDiaria: 2, diasCobertura: 15, alertaRecompra: true }
+                rotacion: { unidadesVendidas: 60, velocidadDiaria: 2, diasCobertura: 15, alertaRecompra: true },
+                metricasHistoricas: { totalRecaudo: 1200000, totalUnidadesVendidas: 60, precioPromedioPonderado: 20000 }
             };
 
             const html = ProductoDetalleTemplates.renderKpiCards(kpis);
 
             const matches = html.match(/payment-kpi-card/g) || [];
-            assert.strictEqual(matches.length, 4);
+            assert.strictEqual(matches.length, 5);
 
             assert.ok(html.includes('Stock Disponible'));
             assert.ok(html.includes('Valorización FIFO'));
             assert.ok(html.includes('Margen Comercial'));
             assert.ok(html.includes('Rotación y Cobertura'));
+            assert.ok(html.includes('Ventas Acumuladas'));
             assert.ok(html.includes('25 und'));
             assert.ok(html.includes('$ 400.000'));
             assert.ok(html.includes('33.3%') || html.includes('33,3%') || html.includes('33.33%'));
             assert.ok(html.includes('15 días') || html.includes('15 d'));
+            assert.ok(html.includes('$ 1.200.000'));
+            assert.ok(html.includes('60 und'));
+        });
+
+        it('renderKpiCards debe incluir tarjeta de Ventas Acumuladas con fallback seguro de 0 cuando no hay métricas', () => {
+            const kpis = {
+                stock: { stockTotal: 10, stockMinimo: 5, estado: 'optimo' },
+                valorizacion: { valorTotal: 100000, costoPromedioPonderado: 10000, costoBase: 10000, diferenciaCosto: 0 },
+                margen: { precioVenta: 15000, costoUnitario: 10000, utilidadMonetaria: 5000, margenPorcentual: 33.33 },
+                rotacion: { unidadesVendidas: 0, velocidadDiaria: 0, diasCobertura: 999, alertaRecompra: false }
+            };
+
+            const html = ProductoDetalleTemplates.renderKpiCards(kpis);
+            const matches = html.match(/payment-kpi-card/g) || [];
+            assert.strictEqual(matches.length, 5);
+            assert.ok(html.includes('Ventas Acumuladas'));
+            assert.ok(html.includes('$ 0'));
+            assert.ok(html.includes('0 und'));
         });
 
         it('renderKpiCards debe soportar estados recompra, crítico y agotado con sus badges', () => {
@@ -761,6 +928,53 @@ describe('Módulo Producto Detalle - TDD Test Suite', () => {
             assert.ok(html.includes('modalKardexProducto'));
             assert.ok(html.includes('form-nuevo-lote'));
             assert.ok(html.includes('payment-kpi-card'));
+        });
+
+        it('renderLayout debe renderizar las 4 pestañas: Capas FIFO (#tab-lotes-fifo-pane), Kardex embebido (#tab-kardex-pane), Ventas (#tab-facturas-venta-pane), Compras (#tab-facturas-compra-pane)', () => {
+            const producto = { id: 1, nombre: 'Laptop HP 15"', sku: 'LAP-001' };
+            const kpis = {
+                stock: { stockTotal: 10, stockMinimo: 5, estado: 'optimo' },
+                valorizacion: { valorTotal: 18000000, costoPromedioPonderado: 1800000, costoBase: 1800000, diferenciaCosto: 0 },
+                margen: { precioVenta: 2500000, costoUnitario: 1800000, utilidadMonetaria: 700000, margenPorcentual: 28 },
+                rotacion: { unidadesVendidas: 4, velocidadDiaria: 0.13, diasCobertura: 75, alertaRecompra: false }
+            };
+
+            const html = ProductoDetalleTemplates.renderLayout({ producto, kpis, lotes: [], ventas: [], facturasCompra: [], filtroLotes: 'todos' });
+
+            assert.ok(html.includes('id="tab-lotes-fifo-pane"'), 'Debe contener el contenedor de pestaña #tab-lotes-fifo-pane');
+            assert.ok(html.includes('id="tab-kardex-pane"'), 'Debe contener el contenedor de pestaña #tab-kardex-pane');
+            assert.ok(html.includes('id="tab-facturas-venta-pane"'), 'Debe contener el contenedor de pestaña #tab-facturas-venta-pane');
+            assert.ok(html.includes('id="tab-facturas-compra-pane"'), 'Debe contener el contenedor de pestaña #tab-facturas-compra-pane');
+        });
+
+        it('renderLayout debe contener el modal #modalNuevoLoteFIFO para creación de lotes', () => {
+            const producto = { id: 1, nombre: 'Laptop HP 15"' };
+            const kpis = { stock: {}, valorizacion: {}, margen: {}, rotacion: {} };
+
+            const html = ProductoDetalleTemplates.renderLayout({ producto, kpis, lotes: [] });
+
+            assert.ok(html.includes('id="modalNuevoLoteFIFO"'), 'Debe contener el modal #modalNuevoLoteFIFO');
+        });
+
+        it('renderLayout debe contener la columna lateral con Ficha de Precios y Concentración de Canales', () => {
+            const producto = { id: 1, nombre: 'Laptop HP 15"', precioVenta: 2500000, costoBase: 1800000 };
+            const kpis = {
+                stock: { stockTotal: 10, stockMinimo: 5, estado: 'optimo' },
+                valorizacion: { valorTotal: 18000000, costoPromedioPonderado: 1800000, costoBase: 1800000, diferenciaCosto: 0 },
+                margen: { precioVenta: 2500000, costoUnitario: 1800000, utilidadMonetaria: 700000, margenPorcentual: 28 },
+                rotacion: { unidadesVendidas: 4, velocidadDiaria: 0.13, diasCobertura: 75, alertaRecompra: false },
+                metricasHistoricas: {
+                    totalRecaudo: 10000000,
+                    totalUnidadesVendidas: 4,
+                    precioPromedioPonderado: 2500000,
+                    canales: [{ nombre: 'Canal Corporativo', unidades: 4, porcentaje: 100 }]
+                }
+            };
+
+            const html = ProductoDetalleTemplates.renderLayout({ producto, kpis, lotes: [], ventas: [] });
+
+            assert.ok(html.includes('Ficha de Precios'), 'Debe contener el encabezado o sección Ficha de Precios');
+            assert.ok(html.includes('Concentración de Canales'), 'Debe contener la sección Concentración de Canales');
         });
     });
 
