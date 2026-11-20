@@ -38,11 +38,11 @@ const routes = {
     'bancos': () => import('../modules/bancos/bancos.js'),
     'gastos/pagos': () => import('../modules/gastos/gastos.js'),
     'gastos/proveedores': () => import('../modules/gastos/compras.js'),
-    'inventario/items': () => import('../modules/productos/productos.js?v=34'),
+    'inventario/items': () => import('../modules/productos/productos.js?v=35'),
     'inventario/categorias': () => import('../modules/inventario/categorias.js'),
     'inventario/valor': () => {
         if (typeof window !== 'undefined') window.location.hash = '#/inventario/items';
-        return import('../modules/productos/productos.js?v=34');
+        return import('../modules/productos/productos.js?v=35');
     },
     'inventario/analisis-recompra': () => import('../modules/inventario/analisisRecompra.js'),
     'inventario/analisis-nanocarbon': () => import('../modules/inventario/analisisNanocarbon.js'),

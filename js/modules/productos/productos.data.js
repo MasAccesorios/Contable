@@ -85,12 +85,15 @@ export const ProductosData = {
             const lotes = (db ? await db.getAll('lotes_fifo') : []) || [];
 
             const enriquecidos = prods.map(p => {
-                const lotesProd = lotes.filter(l => String(l.productoId) === String(p.id) && Number(l.cantidadActual) > 0);
-                const stockLotes = lotesProd.reduce((sum, l) => sum + Number(l.cantidadActual || 0), 0);
-                const stock = stockLotes > 0 ? stockLotes : Number(p.stock || 0);
+                const todosLotes = lotes.filter(l => String(l.productoId) === String(p.id));
+                const stock = todosLotes.reduce((sum, l) => sum + Number(l.cantidadActual || 0), 0);
 
-                const valorInventario = lotesProd.reduce((sum, l) => sum + (Number(l.cantidadActual || 0) * Number(l.costoUnitario || 0)), 0);
-                const costoPromedio = stock > 0 ? (stockLotes > 0 ? valorInventario / stockLotes : Number(p.costoBase || 0)) : Number(p.costoBase || 0);
+                const lotesPositivos = todosLotes.filter(l => Number(l.cantidadActual || 0) > 0);
+                const stockPos = lotesPositivos.reduce((sum, l) => sum + Number(l.cantidadActual || 0), 0);
+                const costoLotesPos = lotesPositivos.reduce((sum, l) => sum + (Number(l.cantidadActual || 0) * Number(l.costoUnitario || 0)), 0);
+
+                const costoPromedio = stockPos > 0 ? costoLotesPos / stockPos : Number(p.costoBase || 0);
+                const valorInventario = stock > 0 ? stock * costoPromedio : 0;
                 const precioVenta = Number(p.precioVenta || 0);
                 const utilidadUnitaria = precioVenta - costoPromedio;
                 const margenPct = precioVenta > 0 ? Math.round(((utilidadUnitaria / precioVenta) * 100) * 10) / 10 : 0;
@@ -112,7 +115,7 @@ export const ProductosData = {
                     stock,
                     costoPromedio,
                     valorTotalInventario: valorInventario,
-                    lotesActivosCount: lotesProd.length,
+                    lotesActivosCount: lotesPositivos.length,
                     utilidadUnitaria,
                     margenPct,
                     estadoStock

@@ -3250,37 +3250,58 @@ BEGIN
     v_offset := (p_page - 1) * p_limit;
     v_search := '%' || COALESCE(p_search_query, '') || '%';
 
-    -- 1. Calcular KPIs y Conteos globales del catálogo
+    -- 1. Métricas consolidadas por producto (contemplando salidas/lotes negativos para stock neto real)
     WITH lotes_agg AS (
         SELECT 
             producto_id,
             COALESCE(SUM(cantidad_actual), 0) AS stock_total,
-            COALESCE(SUM(cantidad_actual * costo_unitario), 0) AS valor_inventario_fifo,
-            COUNT(*) FILTER (WHERE cantidad_actual > 0) AS lotes_activos_count,
-            CASE 
-                WHEN SUM(cantidad_actual) > 0 THEN 
-                    SUM(cantidad_actual * costo_unitario) / SUM(cantidad_actual)
-                ELSE 0 
-            END AS costo_promedio_fifo
+            COALESCE(SUM(cantidad_actual) FILTER (WHERE cantidad_actual > 0), 0) AS stock_positivos,
+            COALESCE(SUM(cantidad_actual * costo_unitario) FILTER (WHERE cantidad_actual > 0), 0) AS costo_lotes_positivos,
+            COUNT(*) FILTER (WHERE cantidad_actual > 0) AS lotes_activos_count
         FROM lotes_fifo
-        WHERE cantidad_actual > 0
         GROUP BY producto_id
     ),
     prod_metrics AS (
         SELECT 
             p.id,
+            p.sku,
+            p.nombre,
             p.estado,
-            COALESCE(la.stock_total, 0) AS stock,
+            COALESCE(p.precio_venta, 0) AS precio_venta,
+            COALESCE(p.costo_base, 0) AS costo_base,
             COALESCE(p.stock_minimo, 5) AS stock_minimo,
-            COALESCE(la.valor_inventario_fifo, 0) AS valor_inventario,
-            COALESCE(la.stock_total, 0) * COALESCE(p.precio_venta, 0) AS valor_venta
+            COALESCE(p.impuesto, 0) AS impuesto,
+            COALESCE(la.stock_total, 0) AS stock,
+            CASE 
+                WHEN COALESCE(la.stock_total, 0) > 0 THEN 
+                    CASE 
+                        WHEN COALESCE(la.stock_positivos, 0) > 0 THEN la.costo_lotes_positivos / la.stock_positivos 
+                        ELSE COALESCE(p.costo_base, 0) 
+                    END
+                ELSE COALESCE(p.costo_base, 0)
+            END AS costo_promedio,
+            CASE 
+                WHEN COALESCE(la.stock_total, 0) > 0 THEN 
+                    COALESCE(la.stock_total, 0) * (
+                        CASE 
+                            WHEN COALESCE(la.stock_positivos, 0) > 0 THEN la.costo_lotes_positivos / la.stock_positivos 
+                            ELSE COALESCE(p.costo_base, 0) 
+                        END
+                    )
+                ELSE 0 
+            END AS valor_inventario,
+            CASE 
+                WHEN COALESCE(la.stock_total, 0) > 0 THEN COALESCE(la.stock_total, 0) * COALESCE(p.precio_venta, 0)
+                ELSE 0 
+            END AS valor_venta,
+            COALESCE(la.lotes_activos_count, 0) AS lotes_activos_count
         FROM productos p
         LEFT JOIN lotes_agg la ON la.producto_id = p.id
     )
     SELECT 
         COUNT(*) FILTER (WHERE estado NOT IN ('inactivo', 'inactive') OR estado IS NULL),
         COUNT(*) FILTER (WHERE estado IN ('inactivo', 'inactive')),
-        COALESCE(SUM(stock) FILTER (WHERE estado NOT IN ('inactivo', 'inactive') OR estado IS NULL), 0),
+        COALESCE(SUM(stock) FILTER (WHERE (estado NOT IN ('inactivo', 'inactive') OR estado IS NULL) AND stock > 0), 0),
         COALESCE(SUM(valor_inventario) FILTER (WHERE estado NOT IN ('inactivo', 'inactive') OR estado IS NULL), 0),
         COALESCE(SUM(valor_venta) FILTER (WHERE estado NOT IN ('inactivo', 'inactive') OR estado IS NULL), 0),
         COUNT(*) FILTER (WHERE (estado NOT IN ('inactivo', 'inactive') OR estado IS NULL) AND stock <= stock_minimo AND stock > 0),
@@ -3308,63 +3329,87 @@ BEGIN
         SELECT 
             producto_id,
             COALESCE(SUM(cantidad_actual), 0) AS stock_total,
-            COALESCE(SUM(cantidad_actual * costo_unitario), 0) AS valor_inventario_fifo,
-            COUNT(*) FILTER (WHERE cantidad_actual > 0) AS lotes_activos_count,
-            CASE 
-                WHEN SUM(cantidad_actual) > 0 THEN 
-                    SUM(cantidad_actual * costo_unitario) / SUM(cantidad_actual)
-                ELSE 0 
-            END AS costo_promedio_fifo
+            COALESCE(SUM(cantidad_actual) FILTER (WHERE cantidad_actual > 0), 0) AS stock_positivos,
+            COALESCE(SUM(cantidad_actual * costo_unitario) FILTER (WHERE cantidad_actual > 0), 0) AS costo_lotes_positivos,
+            COUNT(*) FILTER (WHERE cantidad_actual > 0) AS lotes_activos_count
         FROM lotes_fifo
-        WHERE cantidad_actual > 0
         GROUP BY producto_id
     ),
-    base_productos AS (
+    prod_metrics AS (
         SELECT 
             p.id,
             p.sku,
             p.nombre,
-            COALESCE(p.precio_venta, 0) AS "precioVenta",
-            COALESCE(p.costo_base, 0) AS "costoBase",
-            COALESCE(p.stock_minimo, 5) AS "stockMinimo",
+            p.estado,
+            COALESCE(p.precio_venta, 0) AS precio_venta,
+            COALESCE(p.costo_base, 0) AS costo_base,
+            COALESCE(p.stock_minimo, 5) AS stock_minimo,
             COALESCE(p.impuesto, 0) AS impuesto,
-            COALESCE(p.estado, 'activo') AS estado,
             COALESCE(la.stock_total, 0) AS stock,
             CASE 
-                WHEN COALESCE(la.stock_total, 0) > 0 THEN la.costo_promedio_fifo
+                WHEN COALESCE(la.stock_total, 0) > 0 THEN 
+                    CASE 
+                        WHEN COALESCE(la.stock_positivos, 0) > 0 THEN la.costo_lotes_positivos / la.stock_positivos 
+                        ELSE COALESCE(p.costo_base, 0) 
+                    END
                 ELSE COALESCE(p.costo_base, 0)
-            END AS "costoPromedio",
-            COALESCE(la.valor_inventario_fifo, 0) AS "valorTotalInventario",
-            COALESCE(la.lotes_activos_count, 0) AS "lotesActivosCount",
-            (COALESCE(p.precio_venta, 0) - CASE WHEN COALESCE(la.stock_total, 0) > 0 THEN la.costo_promedio_fifo ELSE COALESCE(p.costo_base, 0) END) AS "utilidadUnitaria",
+            END AS costo_promedio,
             CASE 
-                WHEN COALESCE(p.precio_venta, 0) > 0 THEN 
-                    ROUND((((COALESCE(p.precio_venta, 0) - CASE WHEN COALESCE(la.stock_total, 0) > 0 THEN la.costo_promedio_fifo ELSE COALESCE(p.costo_base, 0) END) / p.precio_venta) * 100)::numeric, 1)
+                WHEN COALESCE(la.stock_total, 0) > 0 THEN 
+                    COALESCE(la.stock_total, 0) * (
+                        CASE 
+                            WHEN COALESCE(la.stock_positivos, 0) > 0 THEN la.costo_lotes_positivos / la.stock_positivos 
+                            ELSE COALESCE(p.costo_base, 0) 
+                        END
+                    )
+                ELSE 0 
+            END AS valor_inventario,
+            COALESCE(la.lotes_activos_count, 0) AS lotes_activos_count
+        FROM productos p
+        LEFT JOIN lotes_agg la ON la.producto_id = p.id
+    ),
+    base_productos AS (
+        SELECT 
+            pm.id,
+            pm.sku,
+            pm.nombre,
+            pm.precio_venta AS "precioVenta",
+            pm.costo_base AS "costoBase",
+            pm.stock_minimo AS "stockMinimo",
+            pm.impuesto,
+            COALESCE(pm.estado, 'activo') AS estado,
+            pm.stock,
+            pm.costo_promedio AS "costoPromedio",
+            pm.valor_inventario AS "valorTotalInventario",
+            pm.lotes_activos_count AS "lotesActivosCount",
+            (pm.precio_venta - pm.costo_promedio) AS "utilidadUnitaria",
+            CASE 
+                WHEN pm.precio_venta > 0 THEN 
+                    ROUND((((pm.precio_venta - pm.costo_promedio) / pm.precio_venta) * 100)::numeric, 1)
                 ELSE 0 
             END AS "margenPct",
             CASE 
-                WHEN COALESCE(la.stock_total, 0) <= 0 THEN 'agotado'
-                WHEN COALESCE(la.stock_total, 0) <= COALESCE(p.stock_minimo, 5) THEN 'bajo_stock'
+                WHEN pm.stock <= 0 THEN 'agotado'
+                WHEN pm.stock <= pm.stock_minimo THEN 'bajo_stock'
                 ELSE 'optimo'
             END AS "estadoStock",
             COUNT(*) OVER() AS full_count
-        FROM productos p
-        LEFT JOIN lotes_agg la ON la.producto_id = p.id
+        FROM prod_metrics pm
         WHERE 
             (
-                (p_filter_criteria = 'inactivos' AND p.estado IN ('inactivo', 'inactive'))
-                OR (p_filter_criteria != 'inactivos' AND (p.estado NOT IN ('inactivo', 'inactive') OR p.estado IS NULL))
+                (p_filter_criteria = 'inactivos' AND pm.estado IN ('inactivo', 'inactive'))
+                OR (p_filter_criteria != 'inactivos' AND (pm.estado NOT IN ('inactivo', 'inactive') OR pm.estado IS NULL))
             )
             AND (
                 p_search_query = ''
-                OR p.nombre ILIKE v_search
-                OR p.sku ILIKE v_search
+                OR pm.nombre ILIKE v_search
+                OR pm.sku ILIKE v_search
             )
             AND (
                 p_filter_criteria IN ('todos', 'inactivos')
-                OR (p_filter_criteria = 'bajo_stock' AND COALESCE(la.stock_total, 0) <= COALESCE(p.stock_minimo, 5) AND COALESCE(la.stock_total, 0) > 0)
-                OR (p_filter_criteria = 'agotado' AND COALESCE(la.stock_total, 0) <= 0)
-                OR (p_filter_criteria = 'optimo' AND COALESCE(la.stock_total, 0) > COALESCE(p.stock_minimo, 5))
+                OR (p_filter_criteria = 'bajo_stock' AND pm.stock <= pm.stock_minimo AND pm.stock > 0)
+                OR (p_filter_criteria = 'agotado' AND pm.stock <= 0)
+                OR (p_filter_criteria = 'optimo' AND pm.stock > pm.stock_minimo)
             )
     ),
     paginated AS (
