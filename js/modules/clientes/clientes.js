@@ -42,7 +42,11 @@ export const ContactosModule = {
         if (!element) return;
         this.element = element;
 
-        this.state.searchQuery = '';
+        const [cleanHash, queryString] = window.location.hash.split('?');
+        const urlParams = new URLSearchParams(queryString || '');
+        const searchParam = urlParams.get('search') || urlParams.get('q');
+
+        this.state.searchQuery = (searchParam || '').trim();
         this.state.currentFilter = 'todos';
         this.state.currentPage = 1;
         this.state.view = 'lista';
@@ -60,7 +64,7 @@ export const ContactosModule = {
         await this.cargarPagina();
 
         // 4. Manejo de Deep-linking (#/contactos/ver/:id o #/contactos/nueva)
-        const hashParts = window.location.hash.split('/');
+        const hashParts = cleanHash.split('/');
         const action = hashParts[2];
         const routeId = hashParts[3];
 

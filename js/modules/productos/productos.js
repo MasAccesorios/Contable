@@ -55,16 +55,20 @@ export const ProductosModule = {
         if (!element) return;
         this.element = element;
 
+        const rawHash = (typeof window !== 'undefined' && window.location?.hash) ? window.location.hash : '';
+        const [cleanHash, queryString] = rawHash.split('?');
+        const urlParams = new URLSearchParams(queryString || '');
+        const searchParam = urlParams.get('search') || urlParams.get('q');
+
         // Limpiar estado
         this.state.currentPage = 1;
-        this.state.searchQuery = '';
+        this.state.searchQuery = (searchParam || '').trim();
         this.state.currentFilter = 'todos';
         this.state.view = 'lista';
         this.state.activeDrawerId = null;
 
         // Comprobar si la ruta es ver detalle
-        const hash = (typeof window !== 'undefined' && window.location?.hash) ? window.location.hash : '';
-        const hashParts = hash.split('/');
+        const hashParts = cleanHash.split('/');
         const action = hashParts[3];
         const routeId = hashParts[4];
 

@@ -398,6 +398,132 @@ html[data-theme="dark-blue"] .dropdown-content a.active {
     box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
 }
 
+/* ==========================================================================
+   GLOBAL SEARCH / OMNIBOX 360° STYLES
+   ========================================================================== */
+.gs-container {
+    position: relative;
+    flex: 1;
+    display: flex;
+    align-items: center;
+}
+
+.gs-kbd-hint {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 11px;
+    font-family: inherit;
+    font-weight: 600;
+    color: var(--text-muted);
+    background-color: var(--surface-muted);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 2px 6px;
+    pointer-events: none;
+    line-height: 1;
+    transition: opacity 0.15s ease;
+}
+
+.gs-container.has-focus .gs-kbd-hint,
+.gs-container.has-value .gs-kbd-hint {
+    opacity: 0;
+}
+
+#global-search-results {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    width: 100%;
+    min-width: min(380px, calc(100vw - 24px));
+    max-width: 620px;
+    max-height: 520px;
+    background-color: var(--surface);
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 12px 30px -4px rgba(15, 23, 42, 0.15), 0 4px 12px -2px rgba(15, 23, 42, 0.08);
+    z-index: 1060;
+    overflow-y: auto;
+    overflow-x: hidden;
+    color: var(--text-main);
+}
+
+.gs-section-header {
+    padding: 6px 14px;
+    background-color: var(--surface-muted);
+    font-size: 10.5px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-top: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.gs-section-header:first-child {
+    border-top: none;
+}
+
+.gs-nav-item {
+    transition: background-color 0.12s ease;
+    cursor: pointer;
+    text-decoration: none;
+    display: block;
+    color: inherit;
+}
+.gs-nav-item:hover,
+.gs-nav-item.gs-item-active {
+    background-color: var(--primary-light) !important;
+}
+
+.gs-action-chip {
+    font-size: 11.5px;
+    font-weight: 600;
+    padding: 4px 9px;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    background-color: var(--surface);
+    color: var(--text-main);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.12s ease;
+    cursor: pointer;
+}
+.gs-action-chip:hover {
+    background-color: var(--primary);
+    border-color: var(--primary);
+    color: #ffffff !important;
+    transform: translateY(-1px);
+}
+
+.gs-action-chip.gs-chip-danger:hover {
+    background-color: var(--danger);
+    border-color: var(--danger);
+    color: #ffffff !important;
+}
+
+.gs-action-chip.gs-chip-success:hover {
+    background-color: var(--success);
+    border-color: var(--success);
+    color: #ffffff !important;
+}
+
+.gs-footer-hints {
+    padding: 7px 14px;
+    background-color: var(--surface-muted);
+    font-size: 11px;
+    color: var(--text-muted);
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
 .btn-add {
     background-color: var(--primary);
     border: none;
@@ -1615,6 +1741,32 @@ html[data-theme^="dark"] #global-search {
 }
 html[data-theme^="dark"] #global-search::placeholder {
     color: var(--text-muted) !important;
+}
+html[data-theme^="dark"] #global-search-results {
+    background-color: #1e293b !important;
+    border-color: #334155 !important;
+    box-shadow: 0 12px 30px -4px rgba(0, 0, 0, 0.6) !important;
+    color: #f1f5f9 !important;
+}
+html[data-theme^="dark"] .gs-section-header,
+html[data-theme^="dark"] .gs-footer-hints {
+    background-color: #0f172a !important;
+    border-color: #334155 !important;
+    color: #94a3b8 !important;
+}
+html[data-theme^="dark"] .gs-action-chip {
+    background-color: #334155 !important;
+    border-color: #475569 !important;
+    color: #f8fafc !important;
+}
+html[data-theme^="dark"] .gs-kbd-hint {
+    background-color: #334155 !important;
+    border-color: #475569 !important;
+    color: #94a3b8 !important;
+}
+html[data-theme^="dark"] .gs-nav-item:hover,
+html[data-theme^="dark"] .gs-nav-item.gs-item-active {
+    background-color: rgba(37, 99, 235, 0.2) !important;
 }
 html[data-theme^="dark"] .btn-add {
     background-color: var(--primary) !important;

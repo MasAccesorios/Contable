@@ -12,7 +12,8 @@ export const CotizacionesModule = {
     async init(element) {
         if (!element) return;
 
-        const hashParts = window.location.hash.split('/');
+        const [cleanHash, queryString] = window.location.hash.split('?');
+        const hashParts = cleanHash.split('/');
         const action = hashParts[3];
         const id = hashParts[4];
 
@@ -26,11 +27,15 @@ export const CotizacionesModule = {
     },
 
     async renderList(element) {
+        const [cleanHash, queryString] = window.location.hash.split('?');
+        const urlParams = new URLSearchParams(queryString || '');
+        const initialSearch = urlParams.get('search') || urlParams.get('cliente') || urlParams.get('q') || '';
+
         let sortColumn = 'numero';
         let sortDirection = 'desc';
         let currentPage = 1;
         let itemsPerPage = 10;
-        let searchQuery = '';
+        let searchQuery = initialSearch ? decodeURIComponent(initialSearch) : '';
         let filterCriteria = 'todos';
         let selectedTab = 'todas'; // 'todas', 'pendientes', 'facturadas', 'recientes'
         let view = 'lista'; // 'lista' o 'grafico'
@@ -191,7 +196,7 @@ export const CotizacionesModule = {
                             <div class="d-flex flex-wrap align-items-center gap-2">
                                 <div class="ds-search-container" style="min-width: 220px;">
                                     <i class="bi bi-search ds-search-icon"></i>
-                                    <input type="text" class="ds-search-input" id="searchCotizaciones" autocomplete="off" placeholder="Buscar cliente, número...">
+                                    <input type="text" class="ds-search-input" id="searchCotizaciones" autocomplete="off" placeholder="Buscar cliente, número..." value="${escapeHtml(searchQuery)}">
                                 </div>
 
                                 <div class="dropdown">
@@ -1267,6 +1272,13 @@ export const CotizacionesModule = {
             } catch (e) {
                 console.error("Error al buscar factura asociada:", e);
             }
+        } else {
+            const [, queryString] = window.location.hash.split('?');
+            const urlParams = new URLSearchParams(queryString || '');
+            const rawClienteId = urlParams.get('clienteId');
+            if (rawClienteId && /^\d+$/.test(rawClienteId)) {
+                cotizacion.clienteId = String(rawClienteId);
+            }
         }
 
         // Cargar solo los productos de los detalles (evita descargar el catálogo completo)
@@ -1289,7 +1301,7 @@ export const CotizacionesModule = {
             (c.es_cliente !== undefined ? c.es_cliente : c.tipo !== 'proveedor') 
             && c.estado !== 'inactive'
         );
-        const clienteActual = clientes.find(c => c.id === cotizacion.clienteId);
+        const clienteActual = clientes.find(c => String(c.id) === String(cotizacion.clienteId));
         const clienteNombreActual = clienteActual ? clienteActual.nombre : '';
 
         const isFacturada = cotizacion.convertidoAFactura;
@@ -1340,10 +1352,10 @@ export const CotizacionesModule = {
                                     ${escapeHtml(clienteNombreActual)}
                                     <i class="bi bi-box-arrow-up-right text-muted" style="font-size: 0.75rem;"></i>
                                 </a>
-                                <input type="hidden" id="select-cliente" value="${cotizacion.clienteId || ''}">
+                                <input type="hidden" id="select-cliente" value="${escapeHtml(cotizacion.clienteId || '')}">
                                 ` : `
                                 <input type="text" id="search-cliente" class="form-control form-control-sm text-muted" placeholder="Buscar cliente..." value="${escapeHtml(clienteNombreActual)}" autocomplete="off">
-                                <input type="hidden" id="select-cliente" value="${cotizacion.clienteId || ''}">
+                                <input type="hidden" id="select-cliente" value="${escapeHtml(cotizacion.clienteId || '')}">
                                 `}
                             </div>
                             <div class="col-md-4">

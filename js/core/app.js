@@ -4,7 +4,7 @@
  */
 import { supabase } from './supabase.js';
 import { renderLogin } from './login.js';
-import { GlobalSearch } from '../shared/globalSearch.js';
+import { GlobalSearch } from '../shared/globalSearch.js?v=2';
 import { QuickActions } from '../shared/quickActions.js';
 
 
@@ -34,23 +34,23 @@ document.addEventListener('click', (e) => {
 
 const routes = {
     'inicio': () => import('../modules/dashboard.js?v=2'),
-    'contactos': () => import('../modules/clientes/clientes.js?v=33'),
+    'contactos': () => import('../modules/clientes/clientes.js?v=34'),
     'bancos': () => import('../modules/bancos/bancos.js'),
     'gastos/pagos': () => import('../modules/gastos/gastos.js'),
     'gastos/proveedores': () => import('../modules/gastos/compras.js'),
-    'inventario/items': () => import('../modules/productos/productos.js?v=35'),
+    'inventario/items': () => import('../modules/productos/productos.js?v=36'),
     'inventario/categorias': () => import('../modules/inventario/categorias.js'),
     'inventario/valor': () => {
         if (typeof window !== 'undefined') window.location.hash = '#/inventario/items';
-        return import('../modules/productos/productos.js?v=35');
+        return import('../modules/productos/productos.js?v=36');
     },
     'inventario/analisis-recompra': () => import('../modules/inventario/analisisRecompra.js'),
     'inventario/analisis-nanocarbon': () => import('../modules/inventario/analisisNanocarbon.js'),
     'inventario/ajustes': () => import('../modules/inventario/ajustes.js?v=3'),
-    'ingresos/cotizaciones': () => import('../modules/ingresos/cotizaciones.js'),
+    'ingresos/cotizaciones': () => import('../modules/ingresos/cotizaciones.js?v=2'),
     'ingresos/cuenta-cobro': () => import('../modules/ingresos/cuentaCobro.js?v=2'),
     'ingresos/operativos': () => import('../modules/gastos/ingresos_operativos.js'),
-    'ingresos/facturas': () => import('../modules/ventas/ventas.js'),
+    'ingresos/facturas': () => import('../modules/ventas/ventas.js?v=2'),
     'ingresos/notas-credito': () => import('../modules/ingresos/notasCredito.js'),
     'ingresos/pagos-recibidos': () => import('../modules/ingresos/pagosRecibidos/pagosRecibidos.js'),
     'ingresos/pagos/nuevo': () => import('../modules/ingresos/pagos_nuevo.js'),

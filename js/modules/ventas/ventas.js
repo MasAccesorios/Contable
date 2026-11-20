@@ -23,7 +23,8 @@ export const FacturasModule = {
 
         // Ya no cargamos catálogos completos (Fase 2)
 
-        const hashParts = window.location.hash.split('/');
+        const [cleanHash, queryString] = window.location.hash.split('?');
+        const hashParts = cleanHash.split('/');
         const action = hashParts[3];
         const id = hashParts[4];
 
@@ -37,11 +38,15 @@ export const FacturasModule = {
     },
 
     async renderList(element) {
+        const [cleanHash, queryString] = window.location.hash.split('?');
+        const urlParams = new URLSearchParams(queryString || '');
+        const initialSearch = urlParams.get('search') || urlParams.get('cliente') || urlParams.get('q') || '';
+
         let sortColumn = 'numero';
         let sortDirection = 'desc';
         let currentPage = 1;
         let itemsPerPage = 10;
-        let searchQuery = '';
+        let searchQuery = (initialSearch || '').trim();
         let filterCriteria = 'todos';
         let selectedTab = 'todas'; // 'todas', 'por_cobrar', 'cobradas', 'vencidas', 'anuladas'
         let view = 'lista'; // 'lista' o 'grafico'
@@ -1270,6 +1275,18 @@ export const FacturasModule = {
             if (!factura.detalles || factura.detalles.length === 0) {
                 factura.detalles = [{ id: Date.now(), productoId: '', cantidad: 0, precio: 0, descuento: 0, impuesto: 0 }];
             }
+        } else {
+            const [, queryString] = window.location.hash.split('?');
+            const urlParams = new URLSearchParams(queryString || '');
+            const rawClienteId = urlParams.get('clienteId');
+            if (rawClienteId && /^\d+$/.test(rawClienteId)) {
+                factura.clienteId = String(rawClienteId);
+            }
+            const rawProductoId = urlParams.get('productoId');
+            if (rawProductoId && /^\d+$/.test(rawProductoId) && factura.detalles && factura.detalles[0]) {
+                factura.detalles[0].productoId = String(rawProductoId);
+                factura.detalles[0].cantidad = 1;
+            }
         }
 
         const headerHtml = CoreActions.renderDocumentHeader('ingresos/facturas', 'Volver a Facturas de venta');
@@ -1373,10 +1390,10 @@ export const FacturasModule = {
                                     ${escapeHtml(clienteNombreActual)}
                                     <i class="bi bi-box-arrow-up-right text-muted" style="font-size: 0.75rem;"></i>
                                 </a>
-                                <input type="hidden" id="select-cliente" value="${factura.clienteId || ''}">
+                                <input type="hidden" id="select-cliente" value="${escapeHtml(factura.clienteId || '')}">
                                 ` : `
                                 <input type="text" id="search-cliente" class="form-control form-control-sm text-muted" placeholder="Buscar cliente..." value="${escapeHtml(clienteNombreActual)}" autocomplete="off">
-                                <input type="hidden" id="select-cliente" value="${factura.clienteId || ''}">
+                                <input type="hidden" id="select-cliente" value="${escapeHtml(factura.clienteId || '')}">
                                 `}
                             </div>
                             <div class="col-12 col-sm-6 col-md-3">
