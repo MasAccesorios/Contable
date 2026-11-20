@@ -56,28 +56,28 @@ export const ProductosTemplates = {
         if (pct >= 25) {
             return `
                 <div class="d-flex flex-column align-items-end">
-                    <span class="badge badge-stitch-cobrado tnum" style="font-size: 11px; font-weight: 700;">
+                    <span class="badge badge-stitch-cobrado tnum" style="font-size: 10.5px; font-weight: 700; padding: 2px 7px;">
                         <i class="bi bi-arrow-up-right me-1"></i>${pct.toFixed(1)}%
                     </span>
-                    <span class="text-muted tnum" style="font-size: 10px; margin-top: 2px;">+${utilStr}</span>
+                    <span class="text-muted tnum" style="font-size: 9.5px; margin-top: 1px;">+${utilStr}</span>
                 </div>
             `;
         } else if (pct >= 10) {
             return `
                 <div class="d-flex flex-column align-items-end">
-                    <span class="badge badge-stitch-pendiente tnum" style="font-size: 11px; font-weight: 700;">
+                    <span class="badge badge-stitch-pendiente tnum" style="font-size: 10.5px; font-weight: 700; padding: 2px 7px;">
                         <i class="bi bi-dash me-1"></i>${pct.toFixed(1)}%
                     </span>
-                    <span class="text-muted tnum" style="font-size: 10px; margin-top: 2px;">+${utilStr}</span>
+                    <span class="text-muted tnum" style="font-size: 9.5px; margin-top: 1px;">+${utilStr}</span>
                 </div>
             `;
         } else {
             return `
                 <div class="d-flex flex-column align-items-end">
-                    <span class="badge badge-stitch-vencido tnum" style="font-size: 11px; font-weight: 700;">
+                    <span class="badge badge-stitch-vencido tnum" style="font-size: 10.5px; font-weight: 700; padding: 2px 7px;">
                         <i class="bi bi-arrow-down-right me-1"></i>${pct.toFixed(1)}%
                     </span>
-                    <span class="text-danger tnum" style="font-size: 10px; margin-top: 2px;">+${utilStr}</span>
+                    <span class="text-danger tnum" style="font-size: 9.5px; margin-top: 1px;">+${utilStr}</span>
                 </div>
             `;
         }
@@ -91,20 +91,20 @@ export const ProductosTemplates = {
         if (estadoStock === 'agotado' || s <= 0) {
             return `
                 <div class="d-flex flex-column align-items-end">
-                    <span class="badge badge-stitch-vencido tnum" style="font-size: 11px; font-weight: 700;">
+                    <span class="badge badge-stitch-vencido tnum" style="font-size: 10.5px; font-weight: 700; padding: 2px 7px;">
                         <i class="bi bi-x-circle me-1"></i>Agotado (0 und)
                     </span>
-                    <span class="text-danger" style="font-size: 10px; margin-top: 2px;">Min requerido: ${min}</span>
+                    <span class="text-danger" style="font-size: 9.5px; margin-top: 1px;">Min: ${min}</span>
                 </div>
             `;
         } else if (estadoStock === 'bajo_stock' || s <= min) {
             return `
                 <div class="d-flex flex-column align-items-end">
-                    <span class="badge badge-stitch-vencido tnum" style="font-size: 11px; font-weight: 700; background-color: #fffbeb; color: #b45309; border-color: #fde68a;">
+                    <span class="badge badge-stitch-vencido tnum" style="font-size: 10.5px; font-weight: 700; background-color: #fffbeb; color: #b45309; border-color: #fde68a; padding: 2px 7px;">
                         <i class="bi bi-exclamation-triangle-fill me-1"></i>${s} und (Crítico)
                     </span>
-                    <div class="d-flex align-items-center gap-1 mt-1" style="width: 80px;">
-                        <div class="progress flex-grow-1" style="height: 4px; background-color: #fef3c7;">
+                    <div class="d-flex align-items-center gap-1 mt-1" style="width: 65px;">
+                        <div class="progress flex-grow-1" style="height: 3px; background-color: #fef3c7;">
                             <div class="progress-bar bg-warning" role="progressbar" style="width: ${ratio}%;"></div>
                         </div>
                         <span class="text-muted" style="font-size: 9px;">${ratio}%</span>
@@ -114,10 +114,10 @@ export const ProductosTemplates = {
         } else {
             return `
                 <div class="d-flex flex-column align-items-end">
-                    <span class="badge badge-stitch-cobrado tnum" style="font-size: 11px; font-weight: 700;">
+                    <span class="badge badge-stitch-cobrado tnum" style="font-size: 10.5px; font-weight: 700; padding: 2px 7px;">
                         <i class="bi bi-check2-circle me-1"></i>${s} und (Óptimo)
                     </span>
-                    <span class="text-muted" style="font-size: 10px; margin-top: 2px;">Min: ${min}</span>
+                    <span class="text-muted" style="font-size: 9.5px; margin-top: 1px;">Min: ${min}</span>
                 </div>
             `;
         }
@@ -311,16 +311,16 @@ export const ProductosTemplates = {
                                 <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Cargando...</span></div>
                             </div>
 
-                            <table class="table table-borderless align-middle mb-0" style="min-width: 950px;">
+                            <table class="table table-borderless align-middle mb-0 w-100">
                                 <thead style="border-bottom: 1px solid var(--border-color); background-color: #f8fafc;" id="grid-thead">
                                     <tr>
-                                        <th class="py-3 ps-4" style="min-width: 280px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Producto & SKU</th>
-                                        <th class="py-3 text-end" style="min-width: 160px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Stock & Estado</th>
-                                        <th class="py-3 text-end" style="min-width: 130px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Costo Prom. Real</th>
-                                        <th class="py-3 text-end" style="min-width: 130px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Precio Venta</th>
-                                        <th class="py-3 text-end" style="min-width: 130px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Margen Bruto</th>
-                                        <th class="py-3 text-end" style="min-width: 140px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Valor en Bodega</th>
-                                        <th class="py-3 text-end pe-4" style="width: 70px;"></th>
+                                        <th class="py-2.5 ps-3" style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Producto & SKU</th>
+                                        <th class="py-2.5 px-2 text-end" style="width: 135px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); white-space: nowrap;">Stock & Estado</th>
+                                        <th class="py-2.5 px-2 text-end" style="width: 105px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); white-space: nowrap;">Costo Prom.</th>
+                                        <th class="py-2.5 px-2 text-end" style="width: 105px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); white-space: nowrap;">Precio Venta</th>
+                                        <th class="py-2.5 px-2 text-end" style="width: 105px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); white-space: nowrap;">Margen Bruto</th>
+                                        <th class="py-2.5 px-2 text-end" style="width: 120px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); white-space: nowrap;">Valor Bodega</th>
+                                        <th class="py-2.5 pe-3 text-center" style="width: 44px;"></th>
                                     </tr>
                                 </thead>
                                 <tbody id="tbody-productos">
@@ -397,58 +397,58 @@ export const ProductosTemplates = {
             html += `
                 <tr data-id="${escapeHtml(String(p.id))}" class="row-producto-clickable ${isInactive ? 'opacity-75' : ''}" style="cursor: pointer; border-bottom: 1px solid var(--border-color); font-size: 13px; transition: background-color 0.15s ease;">
                     <!-- Producto y SKU -->
-                    <td class="py-3 ps-4">
-                        <div class="d-flex align-items-center gap-3">
-                            <div style="width: 38px; height: 38px; border-radius: 10px; background-color: ${avatar.bg}; color: ${avatar.color}; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex-shrink: 0; box-shadow: 0 1px 2px rgba(0,0,0,0.04);">
+                    <td class="py-2.5 ps-3">
+                        <div class="d-flex align-items-center gap-2.5">
+                            <div style="width: 32px; height: 32px; border-radius: 8px; background-color: ${avatar.bg}; color: ${avatar.color}; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; box-shadow: 0 1px 2px rgba(0,0,0,0.04);">
                                 ${avatar.initials}
                             </div>
                             <div class="d-flex flex-column" style="min-width: 0;">
-                                <span class="fw-bold text-truncate" style="color: var(--text-main); font-size: 13px; max-width: 280px;" title="${escapeHtml(p.nombre || '')}">
+                                <span class="fw-bold text-truncate" style="color: var(--text-main); font-size: 12.5px; max-width: 250px;" title="${escapeHtml(p.nombre || '')}">
                                     ${escapeHtml(p.nombre || 'Sin nombre')}
                                 </span>
-                                <div class="d-flex align-items-center gap-1 mt-1">
-                                    <span class="badge bg-light text-secondary border font-monospace tnum" style="font-size: 10px; padding: 2px 6px;">
+                                <div class="d-flex align-items-center gap-1 mt-0.5">
+                                    <span class="badge bg-light text-secondary border font-monospace tnum" style="font-size: 9.5px; padding: 1px 5px;">
                                         ${escapeHtml(p.sku || 'SIN-SKU')}
                                     </span>
-                                    <button class="btn btn-link p-0 text-muted btn-copy-sku" data-sku="${escapeHtml(p.sku || '')}" title="Copiar SKU" style="font-size: 12px; line-height: 1;">
+                                    <button class="btn btn-link p-0 text-muted btn-copy-sku" data-sku="${escapeHtml(p.sku || '')}" title="Copiar SKU" style="font-size: 11px; line-height: 1;">
                                         <i class="bi bi-clipboard"></i>
                                     </button>
-                                    ${isInactive ? '<span class="badge bg-secondary text-white" style="font-size: 9px;">Inactivo</span>' : ''}
+                                    ${isInactive ? '<span class="badge bg-secondary text-white" style="font-size: 8.5px; padding: 1px 4px;">Inactivo</span>' : ''}
                                 </div>
                             </div>
                         </div>
                     </td>
 
                     <!-- Stock & Estado -->
-                    <td class="py-3 text-end">
+                    <td class="py-2.5 px-2 text-end" style="white-space: nowrap;">
                         ${stockBadge}
                     </td>
 
                     <!-- Costo Promedio -->
-                    <td class="py-3 text-end">
-                        <span class="fw-semibold text-secondary tnum">${costoStr}</span>
-                        ${(p.lotesActivosCount || 0) > 1 ? `<div class="text-muted" style="font-size: 10px;">${p.lotesActivosCount} capas FIFO</div>` : ''}
+                    <td class="py-2.5 px-2 text-end" style="white-space: nowrap;">
+                        <span class="fw-semibold text-secondary tnum" style="font-size: 12.5px;">${costoStr}</span>
+                        ${(p.lotesActivosCount || 0) > 1 ? `<div class="text-muted" style="font-size: 9.5px;">${p.lotesActivosCount} capas FIFO</div>` : ''}
                     </td>
 
                     <!-- Precio Venta -->
-                    <td class="py-3 text-end">
-                        <span class="fw-bold text-dark tnum">${precioStr}</span>
+                    <td class="py-2.5 px-2 text-end" style="white-space: nowrap;">
+                        <span class="fw-bold text-dark tnum" style="font-size: 12.5px;">${precioStr}</span>
                     </td>
 
                     <!-- Margen Bruto -->
-                    <td class="py-3 text-end">
+                    <td class="py-2.5 px-2 text-end" style="white-space: nowrap;">
                         ${margenBadge}
                     </td>
 
                     <!-- Valor Total en Bodega -->
-                    <td class="py-3 text-end">
-                        <span class="fw-bold text-primary tnum">${valorTotalStr}</span>
+                    <td class="py-2.5 px-2 text-end" style="white-space: nowrap;">
+                        <span class="fw-bold text-primary tnum" style="font-size: 12.5px;">${valorTotalStr}</span>
                     </td>
 
                     <!-- Acciones Rápidas (Dropdown 3 Puntos) -->
-                    <td class="py-3 text-end pe-4" onclick="event.stopPropagation();">
+                    <td class="py-2.5 pe-3 text-center" style="white-space: nowrap;" onclick="event.stopPropagation();">
                         <div class="dropdown">
-                            <button class="btn btn-sm btn-light border-0 text-muted p-1 rounded-circle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="width: 28px; height: 28px;">
+                            <button class="btn btn-sm btn-light border-0 text-muted p-1 rounded-circle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="width: 26px; height: 26px; line-height: 1;">
                                 <i class="bi bi-three-dots-vertical"></i>
                             </button>
                             <ul class="dropdown-menu dropdown-menu-end shadow-sm border" style="font-size: 13px; border-radius: 8px;">

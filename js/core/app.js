@@ -38,7 +38,7 @@ const routes = {
     'bancos': () => import('../modules/bancos/bancos.js'),
     'gastos/pagos': () => import('../modules/gastos/gastos.js'),
     'gastos/proveedores': () => import('../modules/gastos/compras.js'),
-    'inventario/items': () => import('../modules/productos/productos.js?v=30'),
+    'inventario/items': () => import('../modules/productos/productos.js?v=31'),
     'inventario/categorias': () => import('../modules/inventario/categorias.js'),
     'inventario/valor': () => import('../modules/inventario/valorizacion.js'),
     'inventario/analisis-recompra': () => import('../modules/inventario/analisisRecompra.js'),
