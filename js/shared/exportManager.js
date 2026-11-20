@@ -15,7 +15,10 @@ export const ExportManager = {
         // 1. Feedback Visual de Carga
         let originalText = '';
         if (btnElement) {
-            originalText = btnElement.innerHTML;
+            const current = btnElement.innerHTML;
+            originalText = (!current || current.includes('spinner') || current.includes('Exportando') || current.includes('Generando'))
+                ? '<i class="bi bi-file-earmark-excel me-1"></i> Exportar'
+                : current;
             btnElement.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Generando...';
             btnElement.disabled = true;
             btnElement.style.opacity = '0.7';
@@ -30,10 +33,13 @@ export const ExportManager = {
                 
                 // Mapear objetos a filas planas
                 const rows = dataArray.map(item => {
-                    if (tipoModulo === 'Productos') {
+                    if (tipoModulo === 'Productos' || tipoModulo === 'Inventario_Items_Venta') {
+                        if (item['Producto'] !== undefined || item['Stock Actual'] !== undefined) {
+                            return item;
+                        }
                         return {
                             'SKU': item.sku || '',
-                            'Nombre': item.nombre || '',
+                            'Producto': item.nombre || '',
                             'Costo Base': formatMoney(item.costoBase || item.costo_base),
                             'Precio Venta': formatMoney(item.precioVenta || item.precio_venta),
                             'Stock Base': item.stock || 0,
@@ -79,7 +85,18 @@ export const ExportManager = {
                 // 3. Extracción de Cabeceras
                 const headers = Object.keys(rows[0]);
                 
-                // 4. Construcción del CSV con delimitadores limpios (;) y saltos de línea (CRLF)
+                // 5. Exportar preferentemente a .xlsx si SheetJS está disponible
+                const dateStr = getLocalDate();
+                if (typeof window !== 'undefined' && window.XLSX) {
+                    const ws = window.XLSX.utils.json_to_sheet(rows);
+                    const wb = window.XLSX.utils.book_new();
+                    const sheetTitle = (tipoModulo || 'Reporte').replace(/[^a-zA-Z0-9_]/g, '').substring(0, 31);
+                    window.XLSX.utils.book_append_sheet(wb, ws, sheetTitle);
+                    window.XLSX.writeFile(wb, `Reporte_${tipoModulo}_${dateStr}.xlsx`);
+                    return;
+                }
+
+                // Fallback CSV con delimitadores limpios (;) y saltos de línea (CRLF)
                 let csvContent = headers.join(';') + '\r\n';
                 
                 rows.forEach(row => {
@@ -91,13 +108,12 @@ export const ExportManager = {
                     csvContent += values.join(';') + '\r\n';
                 });
 
-                // 5. Inyección del BOM (Byte Order Mark real) para UTF-8 y Blob
+                // Inyección del BOM (Byte Order Mark real) para UTF-8 y Blob
                 const BOM = '\uFEFF';
                 const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
                 const url = URL.createObjectURL(blob);
 
-                // 6. Generación de Nombre Dinámico y Gatillo de Descarga
-                const dateStr = getLocalDate();
+                // Generación de Nombre Dinámico y Gatillo de Descarga
                 const filename = `Reporte_${tipoModulo}_${dateStr}.csv`;
 
                 const link = document.createElement('a');

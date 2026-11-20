@@ -47,44 +47,7 @@ export const ProductosEvents = {
         // 3. Exportar Excel
         el.querySelector('#btn-export-excel')?.addEventListener('click', async (e) => {
             const btn = e.currentTarget;
-            const originalHtml = btn.innerHTML;
-            btn.disabled = true;
-            btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1" role="status"></span> Exportando...`;
-
-            try {
-                // Obtener catálogo completo
-                const res = await module.data.cargarPaginaProductos({
-                    page: 1,
-                    limit: 3000,
-                    sortColumn: module.state.sortColumn,
-                    sortDirection: module.state.sortDirection,
-                    searchQuery: module.state.searchQuery,
-                    filterCriteria: module.state.currentFilter
-                });
-
-                const dataset = (res.data || []).map(p => ({
-                    'SKU': p.sku || '',
-                    'Producto': p.nombre || '',
-                    'Stock Actual': p.stock || 0,
-                    'Stock Mínimo': p.stockMinimo || 5,
-                    'Estado Stock': p.estadoStock || 'optimo',
-                    'Costo Promedio': p.costoPromedio || 0,
-                    'Precio Venta': p.precioVenta || 0,
-                    'Utilidad Unitaria': p.utilidadUnitaria || 0,
-                    'Margen %': p.margenPct || 0,
-                    'Capital Total en Bodega': p.valorTotalInventario || 0,
-                    'Estado': p.estado || 'activo'
-                }));
-
-                const { ExportManager } = await import('../../shared/exportManager.js');
-                ExportManager.exportDataToExcel(dataset, 'Inventario_Items_Venta', null, btn);
-            } catch (err) {
-                console.error('[ProductosEvents] Error exportando catálogo:', err);
-                alert('Ocurrió un error al exportar los productos a Excel.');
-            } finally {
-                btn.innerHTML = originalHtml;
-                btn.disabled = false;
-            }
+            await this.ejecutarExportacionExcel(module, btn);
         });
 
         // 4. Apertura del Drawer Lateral
@@ -353,5 +316,104 @@ export const ProductosEvents = {
                 module.cargarPagina();
             }
         });
+    },
+
+    async ejecutarExportacionExcel(module, btn) {
+        if (!btn) return;
+        const originalHtml = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Exportando...`;
+
+        try {
+            // 1. Obtener catálogo completo correspondiente al filtro y búsqueda actuales
+            const res = await module.data.cargarPaginaProductos({
+                page: 1,
+                limit: 5000,
+                sortColumn: module.state?.sortColumn || 'nombre',
+                sortDirection: module.state?.sortDirection || 'asc',
+                searchQuery: module.state?.searchQuery || '',
+                filterCriteria: module.state?.currentFilter || 'todos'
+            });
+
+            const rawItems = res?.data || [];
+            if (rawItems.length === 0) {
+                if (typeof alert === 'function') alert('No hay productos para exportar con el filtro actual.');
+                return;
+            }
+
+            // 2. Mapeo fiel de campos con tipado numérico real
+            const dataToExport = this.mapProductosParaExport(rawItems);
+
+            const tabLabels = {
+                'todos': 'Todos',
+                'bajo_stock': 'Bajo_Minimo',
+                'agotado': 'Agotados',
+                'optimo': 'Con_Stock',
+                'inactivos': 'Inactivos'
+            };
+            const tabSuffix = tabLabels[module.state?.currentFilter] || 'Catalogo';
+            const dateStr = new Date().toISOString().split('T')[0];
+            const filename = `Inventario_Productos_${tabSuffix}_${dateStr}.xlsx`;
+
+            // 3. Exportar con SheetJS (XLSX) con fallback CSV
+            if (typeof window !== 'undefined' && window.XLSX) {
+                const ws = window.XLSX.utils.json_to_sheet(dataToExport);
+
+                // Auto-ancho de columnas
+                const colKeys = Object.keys(dataToExport[0]);
+                ws['!cols'] = colKeys.map(k => ({
+                    wch: Math.max(k.length + 3, ...dataToExport.slice(0, 50).map(r => String(r[k] ?? '').length + 2))
+                }));
+
+                const wb = window.XLSX.utils.book_new();
+                window.XLSX.utils.book_append_sheet(wb, ws, 'Inventario');
+                window.XLSX.writeFile(wb, filename);
+            } else if (typeof document !== 'undefined') {
+                // Fallback CSV con delimitadores ";" y UTF-8 BOM para Excel
+                const headers = Object.keys(dataToExport[0]);
+                let csv = headers.join(';') + '\r\n';
+                dataToExport.forEach(row => {
+                    csv += headers.map(h => {
+                        const val = (row[h] !== null && row[h] !== undefined) ? String(row[h]) : '';
+                        return `"${val.replace(/"/g, '""')}"`;
+                    }).join(';') + '\r\n';
+                });
+
+                const BOM = '\uFEFF';
+                const blob = new Blob([BOM + csv], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.setAttribute('download', filename.replace('.xlsx', '.csv'));
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+            }
+        } catch (err) {
+            console.error('[ProductosEvents] Error exportando catálogo:', err);
+            if (typeof alert === 'function') alert('Ocurrió un error al exportar los productos a Excel.');
+        } finally {
+            btn.innerHTML = originalHtml;
+            btn.disabled = false;
+        }
+    },
+
+    mapProductosParaExport(items = []) {
+        return items.map(p => ({
+            'SKU': p.sku || '',
+            'Producto': p.nombre || '',
+            'Stock Actual': Number(p.stock || 0),
+            'Stock Mínimo': Number(p.stockMinimo || 5),
+            'Estado Stock': p.estadoStock === 'agotado' 
+                ? 'Agotado' 
+                : (p.estadoStock === 'bajo_stock' ? 'Bajo Mínimo (Crítico)' : 'Óptimo'),
+            'Costo Promedio ($)': Math.round(Number(p.costoPromedio || 0)),
+            'Precio Venta ($)': Math.round(Number(p.precioVenta || 0)),
+            'Utilidad Unitaria ($)': Math.round(Number(p.utilidadUnitaria || 0)),
+            'Margen Bruto (%)': Number(p.margenPct || 0),
+            'Valor Total en Bodega ($)': Math.round(Number(p.valorTotalInventario || 0)),
+            'Estado': (p.estado === 'inactivo' || p.estado === 'inactive') ? 'Inactivo' : 'Activo'
+        }));
     }
 };

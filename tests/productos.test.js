@@ -6,6 +6,7 @@ import {
     getProductAvatar 
 } from '../js/modules/productos/productos.templates.js';
 import { ProductosData } from '../js/modules/productos/productos.data.js';
+import { ProductosEvents } from '../js/modules/productos/productos.events.js';
 import { ProductosModule } from '../js/modules/productos/productos.js';
 
 describe('Módulo Productos & Ítems de Venta 360° - TDD Test Suite', () => {
@@ -255,6 +256,90 @@ describe('Módulo Productos & Ítems de Venta 360° - TDD Test Suite', () => {
             assert.strictEqual(typeof ProductosModule.cargarPagina, 'function');
             assert.strictEqual(typeof ProductosModule.abrirDrawer, 'function');
             assert.strictEqual(typeof ProductosModule.cerrarDrawer, 'function');
+        });
+    });
+
+    // =========================================================================
+    // 5. ProductosEvents - Exportación a Excel y Manejo de Botón
+    // =========================================================================
+    describe('ProductosEvents - Exportación a Excel', () => {
+        it('mapProductosParaExport debe mapear fielmente productos agotados con valores reales (sin ceros forzados)', () => {
+            const rawAgotado = [{
+                id: 55,
+                sku: 'MAJ0520',
+                nombre: 'Acrilico B. Brillante G510',
+                stock: 0,
+                stockMinimo: 5,
+                estadoStock: 'agotado',
+                costoPromedio: 3000,
+                precioVenta: 4000,
+                utilidadUnitaria: 1000,
+                margenPct: 25.0,
+                valorTotalInventario: 0,
+                estado: 'activo'
+            }];
+
+            const mapped = ProductosEvents.mapProductosParaExport(rawAgotado);
+            assert.strictEqual(mapped.length, 1);
+            const row = mapped[0];
+
+            assert.strictEqual(row['SKU'], 'MAJ0520');
+            assert.strictEqual(row['Producto'], 'Acrilico B. Brillante G510');
+            assert.strictEqual(row['Stock Actual'], 0);
+            assert.strictEqual(row['Stock Mínimo'], 5);
+            assert.strictEqual(row['Estado Stock'], 'Agotado');
+            assert.strictEqual(row['Costo Promedio ($)'], 3000);
+            assert.strictEqual(row['Precio Venta ($)'], 4000);
+            assert.strictEqual(row['Utilidad Unitaria ($)'], 1000);
+            assert.strictEqual(row['Margen Bruto (%)'], 25.0);
+            assert.strictEqual(row['Valor Total en Bodega ($)'], 0);
+            assert.strictEqual(row['Estado'], 'Activo');
+        });
+
+        it('mapProductosParaExport debe manejar lista vacía con fallback seguro', () => {
+            const mapped = ProductosEvents.mapProductosParaExport([]);
+            assert.deepStrictEqual(mapped, []);
+        });
+
+        it('ejecutarExportacionExcel debe restaurar el botón de exportar incluso si la carga falla', async () => {
+            const fakeBtn = {
+                innerHTML: '<i class="bi bi-file-earmark-excel"></i> Exportar',
+                disabled: false
+            };
+
+            const fakeModule = {
+                state: { currentFilter: 'agotado', searchQuery: '', sortColumn: 'nombre', sortDirection: 'asc' },
+                data: {
+                    cargarPaginaProductos: async () => {
+                        throw new Error('Simulated network error');
+                    }
+                }
+            };
+
+            await ProductosEvents.ejecutarExportacionExcel(fakeModule, fakeBtn);
+
+            // El botón NO debe quedarse en "Exportando..." ni deshabilitado
+            assert.strictEqual(fakeBtn.disabled, false);
+            assert.strictEqual(fakeBtn.innerHTML, '<i class="bi bi-file-earmark-excel"></i> Exportar');
+        });
+
+        it('ejecutarExportacionExcel debe restaurar el botón cuando el dataset resultante está vacío', async () => {
+            const fakeBtn = {
+                innerHTML: 'Exportar Excel',
+                disabled: false
+            };
+
+            const fakeModule = {
+                state: { currentFilter: 'agotado', searchQuery: '', sortColumn: 'nombre', sortDirection: 'asc' },
+                data: {
+                    cargarPaginaProductos: async () => ({ data: [] })
+                }
+            };
+
+            await ProductosEvents.ejecutarExportacionExcel(fakeModule, fakeBtn);
+
+            assert.strictEqual(fakeBtn.disabled, false);
+            assert.strictEqual(fakeBtn.innerHTML, 'Exportar Excel');
         });
     });
 });
