@@ -1,5 +1,7 @@
 // js/modules/clientes/clientes.events.js
 
+import { escapeHtml } from '../../shared/formatters.js';
+
 const showWarning = async (msg) => {
     if (typeof window !== 'undefined') {
         try {
@@ -194,7 +196,126 @@ export const ContactosEvents = {
             });
         });
 
-        // Botón Editar
+        // Menú Flotante de Opciones (3 puntos) en Body (Previene overflow/scroll en tabla)
+        tbody.querySelectorAll('.btn-menu-cliente').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const existing = document.querySelector('.row-action-menu');
+                if (existing) existing.remove();
+
+                const id = btn.dataset.id;
+                const c = (this.state.contactos || []).find(item => String(item.id) === String(id));
+                if (!c) return;
+
+                const rect = btn.getBoundingClientRect();
+                const menuWidth = 230;
+                let top = rect.bottom + window.scrollY + 4;
+                let left = rect.right - menuWidth + window.scrollX;
+                if (left < 10) left = 10;
+
+                // Si se sale de la pantalla por abajo, desplegar hacia arriba
+                if (rect.bottom + 320 > window.innerHeight) {
+                    top = Math.max(10, rect.top + window.scrollY - 320);
+                }
+
+                const menuHtml = `
+                    <div class="row-action-menu position-absolute bg-white shadow-lg rounded-3 border py-1" 
+                         style="z-index: 1070; width: ${menuWidth}px; top: ${top}px; left: ${left}px; font-family: inherit;">
+                        <!-- HEADER RESUMEN -->
+                        <div class="px-3 py-2 border-bottom bg-light rounded-top-3">
+                            <div class="fw-bold text-dark text-truncate" style="font-size: 13px;">${escapeHtml(c.nombre || 'Contacto')}</div>
+                            <div class="text-muted d-flex align-items-center gap-1" style="font-size: 11px;">
+                                <span>NIT: ${escapeHtml(c.identificacion || c.nit || 'Sin NIT')}</span>
+                                <span>•</span>
+                                <span class="badge ${c.es_cliente !== false ? 'bg-primary-subtle text-primary border border-primary-subtle' : 'bg-secondary-subtle text-secondary'} rounded-pill" style="font-size: 9.5px;">
+                                    ${c.es_cliente !== false ? 'Cliente' : 'Proveedor'}
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- GESTIÓN COMERCIAL -->
+                        <div class="py-1">
+                            <a href="#/ingresos/facturas?search=${encodeURIComponent(c.nombre)}" class="d-flex align-items-center px-3 py-2 text-decoration-none text-dark menu-item-hover btn-item-action" style="font-size: 13px;">
+                                <i class="bi bi-receipt text-primary me-2" style="font-size: 15px;"></i> Ver facturas
+                            </a>
+                            <a href="#/ingresos/facturas/nueva?clienteId=${c.id}" class="d-flex align-items-center px-3 py-2 text-decoration-none text-dark menu-item-hover btn-item-action" style="font-size: 13px;">
+                                <i class="bi bi-plus-circle text-success me-2" style="font-size: 15px;"></i> Nueva factura
+                            </a>
+                            <a href="#/ingresos/pagos/nuevo?clienteId=${c.id}" class="d-flex align-items-center px-3 py-2 text-decoration-none text-dark menu-item-hover btn-item-action" style="font-size: 13px;">
+                                <i class="bi bi-cash-coin text-warning me-2" style="font-size: 15px;"></i> Registrar cobro
+                            </a>
+                            <a href="#/ingresos/cotizaciones/nueva?clienteId=${c.id}" class="d-flex align-items-center px-3 py-2 text-decoration-none text-dark menu-item-hover btn-item-action" style="font-size: 13px;">
+                                <i class="bi bi-file-earmark-plus text-info me-2" style="font-size: 15px;"></i> Nueva cotización
+                            </a>
+                        </div>
+
+                        <div class="border-top my-1"></div>
+
+                        <!-- FICHA Y CONTACTO -->
+                        <div class="py-1">
+                            <a href="#" class="d-flex align-items-center px-3 py-2 text-decoration-none text-dark menu-item-hover btn-menu-drawer" data-id="${c.id}" style="font-size: 13px;">
+                                <i class="bi bi-person-vcard text-secondary me-2" style="font-size: 15px;"></i> Ficha 360° & Cartera
+                            </a>
+                            ${(c.telefono || '').trim() ? `
+                            <a href="#" class="d-flex align-items-center px-3 py-2 text-decoration-none text-dark menu-item-hover btn-menu-wpp" data-id="${c.id}" style="font-size: 13px;">
+                                <i class="bi bi-whatsapp text-success me-2" style="font-size: 15px;"></i> Cobrar por WhatsApp
+                            </a>` : ''}
+                            <a href="#" class="d-flex align-items-center px-3 py-2 text-decoration-none text-dark menu-item-hover btn-menu-edit" data-id="${c.id}" style="font-size: 13px;">
+                                <i class="bi bi-pencil text-muted me-2" style="font-size: 15px;"></i> Editar datos
+                            </a>
+                        </div>
+
+                        <div class="border-top my-1"></div>
+
+                        <!-- ACCIÓN DESTRUCTIVA -->
+                        <div class="py-1">
+                            <a href="#" class="d-flex align-items-center px-3 py-2 text-decoration-none text-danger menu-item-hover btn-menu-delete" data-id="${c.id}" style="font-size: 13px;">
+                                <i class="bi bi-trash me-2" style="font-size: 15px;"></i> Desactivar contacto
+                            </a>
+                        </div>
+                    </div>
+                `;
+
+                document.body.insertAdjacentHTML('beforeend', menuHtml);
+                const menu = document.querySelector('.row-action-menu');
+
+                // Cerrar menú al hacer clic en enlaces de navegación
+                menu.querySelectorAll('.btn-item-action').forEach(item => {
+                    item.addEventListener('click', () => menu.remove());
+                });
+
+                menu.querySelector('.btn-menu-drawer')?.addEventListener('click', (ev) => {
+                    ev.preventDefault();
+                    menu.remove();
+                    this.mostrarDrawer(id);
+                });
+
+                menu.querySelector('.btn-menu-wpp')?.addEventListener('click', (ev) => {
+                    ev.preventDefault();
+                    menu.remove();
+                    this.enviarCobroWhatsAppCliente(id);
+                });
+
+                menu.querySelector('.btn-menu-edit')?.addEventListener('click', (ev) => {
+                    ev.preventDefault();
+                    menu.remove();
+                    this.renderForm(id);
+                });
+
+                menu.querySelector('.btn-menu-delete')?.addEventListener('click', async (ev) => {
+                    ev.preventDefault();
+                    menu.remove();
+                    if (confirm('¿Está seguro de desactivar este contacto? No aparecerá en el listado activo pero se conservará su historial contable.')) {
+                        const db = this.getDB ? await this.getDB() : (typeof window !== 'undefined' ? window.DB : null);
+                        if (db) await db.save('contactos', { id, estado: 'inactive' });
+                        await this.cargarPagina();
+                    }
+                });
+            });
+        });
+
+        // Botón Editar (accesos directos legacy si existen)
         tbody.querySelectorAll('.btn-editar').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.preventDefault();
@@ -203,7 +324,7 @@ export const ContactosEvents = {
             });
         });
 
-        // Botón Desactivar
+        // Botón Desactivar (accesos directos legacy si existen)
         tbody.querySelectorAll('.btn-eliminar').forEach(btn => {
             btn.addEventListener('click', async (e) => {
                 e.preventDefault();

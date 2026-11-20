@@ -34,7 +34,7 @@ document.addEventListener('click', (e) => {
 
 const routes = {
     'inicio': () => import('../modules/dashboard.js?v=2'),
-    'contactos': () => import('../modules/clientes/clientes.js?v=34'),
+    'contactos': () => import('../modules/clientes/clientes.js?v=35'),
     'bancos': () => import('../modules/bancos/bancos.js'),
     'gastos/pagos': () => import('../modules/gastos/gastos.js'),
     'gastos/proveedores': () => import('../modules/gastos/compras.js'),

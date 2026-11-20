@@ -443,33 +443,27 @@ export const ContactosTemplates = {
                         <!-- Acciones en Hover / Foco -->
                         <td class="py-3 pe-4 text-end" onclick="event.stopPropagation()">
                             <div class="payment-row-actions">
-                                <!-- Botón Ver Perfil 360° -->
-                                <button class="btn btn-sm btn-light border btn-ver-drawer shadow-xs" data-id="${c.id}" title="Abrir Ficha 360°" style="border-radius: 6px; width: 32px; height: 30px; padding: 0;">
+                                <!-- Botón Ver Ficha 360° -->
+                                <button class="btn btn-sm btn-light border btn-ver-drawer shadow-xs" data-id="${c.id}" title="Abrir Ficha 360° & Cartera" style="border-radius: 6px; width: 32px; height: 30px; padding: 0;">
                                     <i class="bi bi-eye text-primary"></i>
                                 </button>
 
+                                ${c.telefono ? `
                                 <!-- Botón WhatsApp Cobro -->
-                                <button class="btn btn-sm btn-light border btn-wpp-cliente shadow-xs" data-id="${c.id}" title="Cobrar por WhatsApp" style="border-radius: 6px; width: 32px; height: 30px; padding: 0;">
+                                <button class="btn btn-sm btn-light border btn-wpp-cliente shadow-xs" data-id="${c.id}" title="Cobrar por WhatsApp (${escapeHtml(c.telefono)})" style="border-radius: 6px; width: 32px; height: 30px; padding: 0;">
                                     <i class="bi bi-whatsapp text-success"></i>
                                 </button>
+                                ` : ''}
 
                                 <!-- Botón Facturar -->
-                                <a href="#/ingresos/facturas/nueva?cliente=${c.id}" class="btn btn-sm btn-light border shadow-xs" title="Crear Factura de Venta" style="border-radius: 6px; width: 32px; height: 30px; padding: 0; display: inline-flex; align-items: center; justify-content: center;">
+                                <a href="#/ingresos/facturas/nueva?clienteId=${c.id}" class="btn btn-sm btn-light border shadow-xs" title="Crear Factura de Venta" style="border-radius: 6px; width: 32px; height: 30px; padding: 0; display: inline-flex; align-items: center; justify-content: center;">
                                     <i class="bi bi-plus-lg text-secondary"></i>
                                 </a>
 
-                                <!-- Menú Dropdown -->
-                                <div class="dropdown d-inline-block">
-                                    <button class="btn btn-sm btn-light border-0 shadow-none text-muted" data-bs-toggle="dropdown" style="width: 26px; height: 30px; padding: 0;">
-                                        <i class="bi bi-three-dots-vertical"></i>
-                                    </button>
-                                    <ul class="dropdown-menu dropdown-menu-end shadow-sm">
-                                        <li><a class="dropdown-item btn-editar" href="#" data-id="${c.id}"><i class="bi bi-pencil me-2 text-muted"></i> Editar datos</a></li>
-                                        <li><a class="dropdown-item btn-ver-drawer" href="#" data-id="${c.id}"><i class="bi bi-file-earmark-person me-2 text-muted"></i> Ficha 360°</a></li>
-                                        <li><hr class="dropdown-divider"></li>
-                                        <li><a class="dropdown-item text-danger btn-eliminar" href="#" data-id="${c.id}"><i class="bi bi-trash me-2"></i> Desactivar contacto</a></li>
-                                    </ul>
-                                </div>
+                                <!-- Botón Menú Flotante de Acciones -->
+                                <button class="btn btn-sm btn-light border shadow-xs btn-menu-cliente" data-id="${c.id}" title="Más opciones comerciales" style="border-radius: 6px; width: 32px; height: 30px; padding: 0;">
+                                    <i class="bi bi-three-dots-vertical text-dark"></i>
+                                </button>
                             </div>
                         </td>
                     </tr>

@@ -524,6 +524,21 @@ html[data-theme="dark-blue"] .dropdown-content a.active {
     align-items: center;
 }
 
+/* Menús Contextuales Flotantes de Filas (Zero Overflow) */
+.row-action-menu {
+    border: 1px solid var(--border-color);
+    box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.15), 0 8px 10px -6px rgba(15, 23, 42, 0.08);
+    background-color: var(--surface);
+    color: var(--text-main);
+}
+.row-action-menu .menu-item-hover {
+    transition: background-color 0.12s ease;
+    cursor: pointer;
+}
+.row-action-menu .menu-item-hover:hover {
+    background-color: var(--surface-muted) !important;
+}
+
 .btn-add {
     background-color: var(--primary);
     border: none;
@@ -1767,6 +1782,19 @@ html[data-theme^="dark"] .gs-kbd-hint {
 html[data-theme^="dark"] .gs-nav-item:hover,
 html[data-theme^="dark"] .gs-nav-item.gs-item-active {
     background-color: rgba(37, 99, 235, 0.2) !important;
+}
+html[data-theme^="dark"] .row-action-menu {
+    background-color: #1e293b !important;
+    border-color: #334155 !important;
+    color: #f1f5f9 !important;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.6) !important;
+}
+html[data-theme^="dark"] .row-action-menu .bg-light {
+    background-color: #0f172a !important;
+    border-color: #334155 !important;
+}
+html[data-theme^="dark"] .row-action-menu .menu-item-hover:hover {
+    background-color: rgba(255, 255, 255, 0.05) !important;
 }
 html[data-theme^="dark"] .btn-add {
     background-color: var(--primary) !important;
