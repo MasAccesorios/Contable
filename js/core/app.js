@@ -46,7 +46,7 @@ const routes = {
     },
     'inventario/analisis-recompra': () => import('../modules/inventario/analisisRecompra.js'),
     'inventario/analisis-nanocarbon': () => import('../modules/inventario/analisisNanocarbon.js'),
-    'inventario/ajustes': () => import('../modules/inventario/ajustes.js'),
+    'inventario/ajustes': () => import('../modules/inventario/ajustes.js?v=2'),
     'ingresos/cotizaciones': () => import('../modules/ingresos/cotizaciones.js'),
     'ingresos/cuenta-cobro': () => import('../modules/ingresos/cuentaCobro.js?v=2'),
     'ingresos/operativos': () => import('../modules/gastos/ingresos_operativos.js'),
