@@ -63,23 +63,23 @@ export const ProductoDetalleTemplates = {
             case 'optimo':
                 stockBorderColor = '#059669';
                 stockIconClass = 'in-bg';
-                stockBadge = '<span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2 py-1"><i class="bi bi-check-circle me-1"></i>Óptimo</span>';
+                stockBadge = '<span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill text-nowrap px-2 py-1"><i class="bi bi-check-circle me-1"></i>Óptimo</span>';
                 break;
             case 'recompra':
                 stockBorderColor = '#d97706';
                 stockIconClass = 'pending-bg';
-                stockBadge = '<span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill px-2 py-1"><i class="bi bi-clock-history me-1"></i>Recompra</span>';
+                stockBadge = '<span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill text-nowrap px-2 py-1"><i class="bi bi-clock-history me-1"></i>Recompra</span>';
                 break;
             case 'critico':
                 stockBorderColor = '#dc2626';
                 stockIconClass = 'out-bg';
-                stockBadge = '<span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-2 py-1"><i class="bi bi-exclamation-triangle me-1"></i>Crítico</span>';
+                stockBadge = '<span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill text-nowrap px-2 py-1"><i class="bi bi-exclamation-triangle me-1"></i>Crítico</span>';
                 break;
             case 'agotado':
             default:
                 stockBorderColor = '#64748b';
                 stockIconClass = 'out-bg';
-                stockBadge = '<span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle rounded-pill px-2 py-1"><i class="bi bi-x-circle me-1"></i>Agotado</span>';
+                stockBadge = '<span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle rounded-pill text-nowrap px-2 py-1"><i class="bi bi-x-circle me-1"></i>Agotado</span>';
                 break;
         }
 
@@ -87,11 +87,11 @@ export const ProductoDetalleTemplates = {
         const diffCosto = valorizacion.diferenciaCosto || 0;
         let diffBadge = '';
         if (diffCosto > 0) {
-            diffBadge = `<span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle ms-1" style="font-size: 10px;">+${this.formatMoney(diffCosto)} vs base</span>`;
+            diffBadge = `<span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle text-nowrap ms-1" style="font-size: 9.5px; padding: 2px 5px;">+${this.formatMoney(diffCosto)} vs base</span>`;
         } else if (diffCosto < 0) {
-            diffBadge = `<span class="badge bg-success-subtle text-success border border-success-subtle ms-1" style="font-size: 10px;">-${this.formatMoney(Math.abs(diffCosto))} vs base</span>`;
+            diffBadge = `<span class="badge bg-success-subtle text-success border border-success-subtle text-nowrap ms-1" style="font-size: 9.5px; padding: 2px 5px;">-${this.formatMoney(Math.abs(diffCosto))} vs base</span>`;
         } else {
-            diffBadge = `<span class="badge bg-light text-muted border ms-1" style="font-size: 10px;">Alineado con base</span>`;
+            diffBadge = `<span class="badge bg-light text-muted border text-nowrap ms-1" style="font-size: 9.5px; padding: 2px 5px;">Alineado con base</span>`;
         }
 
         // 3. Margen Badge
@@ -101,8 +101,8 @@ export const ProductoDetalleTemplates = {
         // 4. Cobertura Alerta
         const coberturaDiasText = rotacion.diasCobertura >= 999 ? 'Holgado (&gt;90 d)' : `${rotacion.diasCobertura} días`;
         const coberturaAlertaBadge = rotacion.alertaRecompra
-            ? '<span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-2 py-1"><i class="bi bi-bell-fill me-1"></i>Alerta Recompra</span>'
-            : '<span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2 py-1"><i class="bi bi-shield-check me-1"></i>Stock Seguro</span>';
+            ? '<span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill text-nowrap px-2 py-0.5" style="font-size: 10px;"><i class="bi bi-bell-fill me-1"></i>Alerta Recompra</span>'
+            : '<span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill text-nowrap px-2 py-0.5" style="font-size: 10px;"><i class="bi bi-shield-check me-1"></i>Stock Seguro</span>';
 
         // 5. Métricas Históricas
         const totalRecaudo = historico.totalRecaudo || 0;
@@ -110,98 +110,98 @@ export const ProductoDetalleTemplates = {
         const ticketMedio = historico.precioPromedioPonderado || historico.precioPromedio || 0;
 
         return `
-            <div class="row g-3 mb-4">
+            <div class="row g-3 mb-4 align-items-stretch">
                 <!-- KPI 1: Stock Disponible -->
-                <div class="col-12 col-sm-6 col-md-4 col-xl">
-                    <div class="payment-kpi-card" style="border-left: 3px solid ${stockBorderColor};">
-                        <div class="d-flex justify-content-between align-items-start mb-2">
-                            <span class="ds-kpi-label">Stock Disponible</span>
+                <div class="col-12 col-sm-6 col-md-4 col-xl d-flex">
+                    <div class="payment-kpi-card w-100 h-100 d-flex flex-column justify-content-between p-3" style="border-left: 3px solid ${stockBorderColor};">
+                        <div class="d-flex justify-content-between align-items-start mb-2" style="min-height: 38px;">
+                            <span class="ds-kpi-label" style="line-height: 1.3;">Stock Disponible</span>
                             <div class="payment-kpi-icon ${stockIconClass}">
                                 <i class="bi bi-box-seam"></i>
                             </div>
                         </div>
-                        <div class="payment-kpi-value kpi-value text-dark fw-bold tnum" style="font-size: 22px;">
+                        <div class="payment-kpi-value kpi-value text-dark fw-bold tnum my-auto" style="font-size: 22px; line-height: 1.2;">
                             ${stock.stockTotal} und
                         </div>
-                        <div class="d-flex justify-content-between align-items-center mt-2" style="font-size: 12px;">
-                            <span class="text-muted">Mín: ${stock.stockMinimo} und</span>
-                            ${stockBadge}
+                        <div class="d-flex justify-content-between align-items-center mt-auto pt-2 border-top" style="font-size: 11px; min-height: 28px; border-color: var(--border-color) !important;">
+                            <span class="text-muted text-nowrap">Mín: ${stock.stockMinimo} und</span>
+                            <span class="text-nowrap">${stockBadge}</span>
                         </div>
                     </div>
                 </div>
 
                 <!-- KPI 2: Valorización FIFO -->
-                <div class="col-12 col-sm-6 col-md-4 col-xl">
-                    <div class="payment-kpi-card" style="border-left: 3px solid #2563eb;">
-                        <div class="d-flex justify-content-between align-items-start mb-2">
-                            <span class="ds-kpi-label">Valorización FIFO</span>
+                <div class="col-12 col-sm-6 col-md-4 col-xl d-flex">
+                    <div class="payment-kpi-card w-100 h-100 d-flex flex-column justify-content-between p-3" style="border-left: 3px solid #2563eb;">
+                        <div class="d-flex justify-content-between align-items-start mb-2" style="min-height: 38px;">
+                            <span class="ds-kpi-label" style="line-height: 1.3;">Valorización FIFO</span>
                             <div class="payment-kpi-icon blue-bg">
                                 <i class="bi bi-wallet2"></i>
                             </div>
                         </div>
-                        <div class="payment-kpi-value kpi-value text-dark fw-bold tnum" style="font-size: 22px;">
+                        <div class="payment-kpi-value kpi-value text-dark fw-bold tnum my-auto" style="font-size: 22px; line-height: 1.2;">
                             ${this.formatMoney(valorizacion.valorTotal)}
                         </div>
-                        <div class="d-flex align-items-center flex-wrap mt-2" style="font-size: 12px;">
-                            <span class="text-muted">Prom: <strong>${this.formatMoney(valorizacion.costoPromedioPonderado)}</strong></span>
-                            ${diffBadge}
+                        <div class="d-flex justify-content-between align-items-center mt-auto pt-2 border-top" style="font-size: 11px; min-height: 28px; border-color: var(--border-color) !important;">
+                            <span class="text-muted text-nowrap">Prom: <strong>${this.formatMoney(valorizacion.costoPromedioPonderado)}</strong></span>
+                            <span class="text-nowrap">${diffBadge}</span>
                         </div>
                     </div>
                 </div>
 
                 <!-- KPI 3: Margen Comercial -->
-                <div class="col-12 col-sm-6 col-md-4 col-xl">
-                    <div class="payment-kpi-card" style="border-left: 3px solid #8b5cf6;">
-                        <div class="d-flex justify-content-between align-items-start mb-2">
-                            <span class="ds-kpi-label">Margen Comercial</span>
+                <div class="col-12 col-sm-6 col-md-4 col-xl d-flex">
+                    <div class="payment-kpi-card w-100 h-100 d-flex flex-column justify-content-between p-3" style="border-left: 3px solid #8b5cf6;">
+                        <div class="d-flex justify-content-between align-items-start mb-2" style="min-height: 38px;">
+                            <span class="ds-kpi-label" style="line-height: 1.3;">Margen Comercial</span>
                             <div class="payment-kpi-icon" style="background-color: #f5f3ff; color: #8b5cf6;">
                                 <i class="bi bi-graph-up-arrow"></i>
                             </div>
                         </div>
-                        <div class="payment-kpi-value kpi-value ${margenColorClass} fw-bold tnum" style="font-size: 22px;">
+                        <div class="payment-kpi-value kpi-value ${margenColorClass} fw-bold tnum my-auto" style="font-size: 22px; line-height: 1.2;">
                             ${margen.margenPorcentual}%
                         </div>
-                        <div class="d-flex justify-content-between align-items-center mt-2" style="font-size: 12px;">
-                            <span class="text-muted">Utilidad: <strong>${this.formatMoney(margen.utilidadMonetaria)}</strong>/und</span>
-                            <span class="badge bg-purple-subtle text-purple border" style="font-size: 10px; background-color: #faf5ff; color: #7e22ce;">P.Venta ${this.formatMoney(margen.precioVenta)}</span>
+                        <div class="d-flex justify-content-between align-items-center mt-auto pt-2 border-top" style="font-size: 11px; min-height: 28px; border-color: var(--border-color) !important;">
+                            <span class="text-muted text-nowrap" style="font-size: 10.5px;">Util: <strong>${this.formatMoney(margen.utilidadMonetaria)}</strong></span>
+                            <span class="badge bg-purple-subtle text-purple border text-nowrap" style="font-size: 10px; background-color: #faf5ff; color: #7e22ce;" title="Precio de Venta">PV ${this.formatMoney(margen.precioVenta)}</span>
                         </div>
                     </div>
                 </div>
 
                 <!-- KPI 4: Ventas Acumuladas -->
-                <div class="col-12 col-sm-6 col-md-4 col-xl">
-                    <div class="payment-kpi-card" style="border-left: 3px solid #0284c7;">
-                        <div class="d-flex justify-content-between align-items-start mb-2">
-                            <span class="ds-kpi-label">Ventas Acumuladas</span>
+                <div class="col-12 col-sm-6 col-md-4 col-xl d-flex">
+                    <div class="payment-kpi-card w-100 h-100 d-flex flex-column justify-content-between p-3" style="border-left: 3px solid #0284c7;">
+                        <div class="d-flex justify-content-between align-items-start mb-2" style="min-height: 38px;">
+                            <span class="ds-kpi-label" style="line-height: 1.3;">Ventas Acumuladas</span>
                             <div class="payment-kpi-icon blue-bg">
                                 <i class="bi bi-cash-stack"></i>
                             </div>
                         </div>
-                        <div class="payment-kpi-value kpi-value text-dark fw-bold tnum" style="font-size: 22px;">
+                        <div class="payment-kpi-value kpi-value text-dark fw-bold tnum my-auto" style="font-size: 22px; line-height: 1.2;">
                             ${this.formatMoney(totalRecaudo)}
                         </div>
-                        <div class="d-flex justify-content-between align-items-center mt-2" style="font-size: 12px;">
-                            <span class="text-muted">${totalUnidades} und</span>
-                            <span class="badge bg-light text-secondary border" style="font-size: 10px;">Prom: ${this.formatMoney(ticketMedio)}</span>
+                        <div class="d-flex justify-content-between align-items-center mt-auto pt-2 border-top" style="font-size: 11px; min-height: 28px; border-color: var(--border-color) !important;">
+                            <span class="text-muted text-nowrap">${totalUnidades} und</span>
+                            <span class="badge bg-light text-secondary border text-nowrap" style="font-size: 10px;">Prom: ${this.formatMoney(ticketMedio)}</span>
                         </div>
                     </div>
                 </div>
 
                 <!-- KPI 5: Rotación y Cobertura -->
-                <div class="col-12 col-sm-6 col-md-4 col-xl">
-                    <div class="payment-kpi-card" style="border-left: 3px solid ${rotacion.alertaRecompra ? '#dc2626' : '#059669'};">
-                        <div class="d-flex justify-content-between align-items-start mb-2">
-                            <span class="ds-kpi-label">Rotación y Cobertura</span>
+                <div class="col-12 col-sm-6 col-md-4 col-xl d-flex">
+                    <div class="payment-kpi-card w-100 h-100 d-flex flex-column justify-content-between p-3" style="border-left: 3px solid ${rotacion.alertaRecompra ? '#dc2626' : '#059669'};">
+                        <div class="d-flex justify-content-between align-items-start mb-2" style="min-height: 38px;">
+                            <span class="ds-kpi-label" style="line-height: 1.3;">Rotación y Cobertura</span>
                             <div class="payment-kpi-icon ${rotacion.alertaRecompra ? 'out-bg' : 'in-bg'}">
                                 <i class="bi bi-speedometer2"></i>
                             </div>
                         </div>
-                        <div class="payment-kpi-value kpi-value text-dark fw-bold tnum" style="font-size: 22px;">
+                        <div class="payment-kpi-value kpi-value text-dark fw-bold tnum my-auto" style="font-size: 22px; line-height: 1.2;">
                             ${coberturaDiasText}
                         </div>
-                        <div class="d-flex justify-content-between align-items-center mt-2" style="font-size: 12px;">
-                            <span class="text-muted">${rotacion.velocidadDiaria} und/día</span>
-                            ${coberturaAlertaBadge}
+                        <div class="d-flex justify-content-between align-items-center mt-auto pt-2 border-top" style="font-size: 11px; min-height: 28px; border-color: var(--border-color) !important;">
+                            <span class="text-muted text-nowrap" style="font-size: 10.5px;">${rotacion.velocidadDiaria} und/día</span>
+                            <span class="text-nowrap">${coberturaAlertaBadge}</span>
                         </div>
                     </div>
                 </div>
