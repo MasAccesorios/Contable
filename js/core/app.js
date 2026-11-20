@@ -35,7 +35,7 @@ document.addEventListener('click', (e) => {
 const routes = {
     'inicio': () => import('../modules/dashboard.js?v=2'),
     'contactos': () => import('../modules/clientes/clientes.js?v=35'),
-    'bancos': () => import('../modules/bancos/bancos.js'),
+    'bancos': () => import('../modules/bancos/bancos.js?v=2'),
     'gastos/pagos': () => import('../modules/gastos/gastos.js'),
     'gastos/proveedores': () => import('../modules/gastos/compras.js'),
     'inventario/items': () => import('../modules/productos/productos.js?v=36'),
@@ -65,7 +65,7 @@ const routes = {
     'vendedores': () => import('../modules/vendedores/vendedores.js'),
     // Soporte para alias de compatibilidad con módulos anteriores
     'dashboard': () => import('../modules/dashboard.js?v=2'),
-    'tesoreria': () => import('../modules/bancos/bancos.js')
+    'tesoreria': () => import('../modules/bancos/bancos.js?v=2')
 };
 
 let currentNavId = 0;
