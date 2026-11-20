@@ -57,33 +57,28 @@ export const ProductoDetalleTemplates = {
         // 1. Configuración de Semáforo Stock
         let stockBadge = '';
         let stockBorderColor = '#059669';
-        let stockIconBg = '#ecfdf5';
-        let stockIconColor = '#059669';
+        let stockIconClass = 'in-bg';
 
         switch (stock.estado) {
             case 'optimo':
                 stockBorderColor = '#059669';
-                stockIconBg = '#ecfdf5';
-                stockIconColor = '#059669';
+                stockIconClass = 'in-bg';
                 stockBadge = '<span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2 py-1"><i class="bi bi-check-circle me-1"></i>Óptimo</span>';
                 break;
             case 'recompra':
                 stockBorderColor = '#d97706';
-                stockIconBg = '#fef3c7';
-                stockIconColor = '#d97706';
+                stockIconClass = 'pending-bg';
                 stockBadge = '<span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill px-2 py-1"><i class="bi bi-clock-history me-1"></i>Recompra</span>';
                 break;
             case 'critico':
                 stockBorderColor = '#dc2626';
-                stockIconBg = '#fef2f2';
-                stockIconColor = '#dc2626';
+                stockIconClass = 'out-bg';
                 stockBadge = '<span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-2 py-1"><i class="bi bi-exclamation-triangle me-1"></i>Crítico</span>';
                 break;
             case 'agotado':
             default:
                 stockBorderColor = '#64748b';
-                stockIconBg = '#f1f5f9';
-                stockIconColor = '#64748b';
+                stockIconClass = 'out-bg';
                 stockBadge = '<span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle rounded-pill px-2 py-1"><i class="bi bi-x-circle me-1"></i>Agotado</span>';
                 break;
         }
@@ -120,12 +115,12 @@ export const ProductoDetalleTemplates = {
                 <div class="col-12 col-sm-6 col-md-4 col-xl">
                     <div class="payment-kpi-card" style="border-left: 3px solid ${stockBorderColor};">
                         <div class="d-flex justify-content-between align-items-start mb-2">
-                            <span class="text-uppercase fw-semibold text-muted" style="font-size: 11px; letter-spacing: 0.5px;">Stock Disponible</span>
-                            <div class="payment-kpi-icon" style="background-color: ${stockIconBg}; color: ${stockIconColor};">
-                                <span class="material-symbols-outlined" style="font-size: 20px;">inventory_2</span>
+                            <span class="ds-kpi-label">Stock Disponible</span>
+                            <div class="payment-kpi-icon ${stockIconClass}">
+                                <i class="bi bi-box-seam"></i>
                             </div>
                         </div>
-                        <div class="kpi-value text-dark fw-bold" style="font-size: 22px;">
+                        <div class="payment-kpi-value kpi-value text-dark fw-bold tnum" style="font-size: 22px;">
                             ${stock.stockTotal} und
                         </div>
                         <div class="d-flex justify-content-between align-items-center mt-2" style="font-size: 12px;">
@@ -139,12 +134,12 @@ export const ProductoDetalleTemplates = {
                 <div class="col-12 col-sm-6 col-md-4 col-xl">
                     <div class="payment-kpi-card" style="border-left: 3px solid #2563eb;">
                         <div class="d-flex justify-content-between align-items-start mb-2">
-                            <span class="text-uppercase fw-semibold text-muted" style="font-size: 11px; letter-spacing: 0.5px;">Valorización FIFO</span>
-                            <div class="payment-kpi-icon" style="background-color: #eff6ff; color: #2563eb;">
-                                <span class="material-symbols-outlined" style="font-size: 20px;">account_balance_wallet</span>
+                            <span class="ds-kpi-label">Valorización FIFO</span>
+                            <div class="payment-kpi-icon blue-bg">
+                                <i class="bi bi-wallet2"></i>
                             </div>
                         </div>
-                        <div class="kpi-value text-dark fw-bold" style="font-size: 22px;">
+                        <div class="payment-kpi-value kpi-value text-dark fw-bold tnum" style="font-size: 22px;">
                             ${this.formatMoney(valorizacion.valorTotal)}
                         </div>
                         <div class="d-flex align-items-center flex-wrap mt-2" style="font-size: 12px;">
@@ -158,12 +153,12 @@ export const ProductoDetalleTemplates = {
                 <div class="col-12 col-sm-6 col-md-4 col-xl">
                     <div class="payment-kpi-card" style="border-left: 3px solid #8b5cf6;">
                         <div class="d-flex justify-content-between align-items-start mb-2">
-                            <span class="text-uppercase fw-semibold text-muted" style="font-size: 11px; letter-spacing: 0.5px;">Margen Comercial</span>
+                            <span class="ds-kpi-label">Margen Comercial</span>
                             <div class="payment-kpi-icon" style="background-color: #f5f3ff; color: #8b5cf6;">
-                                <span class="material-symbols-outlined" style="font-size: 20px;">trending_up</span>
+                                <i class="bi bi-graph-up-arrow"></i>
                             </div>
                         </div>
-                        <div class="kpi-value ${margenColorClass} fw-bold" style="font-size: 22px;">
+                        <div class="payment-kpi-value kpi-value ${margenColorClass} fw-bold tnum" style="font-size: 22px;">
                             ${margen.margenPorcentual}%
                         </div>
                         <div class="d-flex justify-content-between align-items-center mt-2" style="font-size: 12px;">
@@ -177,12 +172,12 @@ export const ProductoDetalleTemplates = {
                 <div class="col-12 col-sm-6 col-md-4 col-xl">
                     <div class="payment-kpi-card" style="border-left: 3px solid #0284c7;">
                         <div class="d-flex justify-content-between align-items-start mb-2">
-                            <span class="text-uppercase fw-semibold text-muted" style="font-size: 11px; letter-spacing: 0.5px;">Ventas Acumuladas</span>
-                            <div class="payment-kpi-icon" style="background-color: #f0f9ff; color: #0284c7;">
-                                <span class="material-symbols-outlined" style="font-size: 20px;">point_of_sale</span>
+                            <span class="ds-kpi-label">Ventas Acumuladas</span>
+                            <div class="payment-kpi-icon blue-bg">
+                                <i class="bi bi-cash-stack"></i>
                             </div>
                         </div>
-                        <div class="kpi-value text-dark fw-bold" style="font-size: 22px;">
+                        <div class="payment-kpi-value kpi-value text-dark fw-bold tnum" style="font-size: 22px;">
                             ${this.formatMoney(totalRecaudo)}
                         </div>
                         <div class="d-flex justify-content-between align-items-center mt-2" style="font-size: 12px;">
@@ -196,12 +191,12 @@ export const ProductoDetalleTemplates = {
                 <div class="col-12 col-sm-6 col-md-4 col-xl">
                     <div class="payment-kpi-card" style="border-left: 3px solid ${rotacion.alertaRecompra ? '#dc2626' : '#059669'};">
                         <div class="d-flex justify-content-between align-items-start mb-2">
-                            <span class="text-uppercase fw-semibold text-muted" style="font-size: 11px; letter-spacing: 0.5px;">Rotación y Cobertura</span>
-                            <div class="payment-kpi-icon" style="background-color: ${rotacion.alertaRecompra ? '#fef2f2' : '#ecfdf5'}; color: ${rotacion.alertaRecompra ? '#dc2626' : '#059669'};">
-                                <span class="material-symbols-outlined" style="font-size: 20px;">speed</span>
+                            <span class="ds-kpi-label">Rotación y Cobertura</span>
+                            <div class="payment-kpi-icon ${rotacion.alertaRecompra ? 'out-bg' : 'in-bg'}">
+                                <i class="bi bi-speedometer2"></i>
                             </div>
                         </div>
-                        <div class="kpi-value text-dark fw-bold" style="font-size: 22px;">
+                        <div class="payment-kpi-value kpi-value text-dark fw-bold tnum" style="font-size: 22px;">
                             ${coberturaDiasText}
                         </div>
                         <div class="d-flex justify-content-between align-items-center mt-2" style="font-size: 12px;">
@@ -473,27 +468,32 @@ export const ProductoDetalleTemplates = {
         }
 
         return `
-            <div class="dash-layout p-4" style="max-width: 1400px; margin: 0 auto; font-family: 'Inter', system-ui, sans-serif;">
+            <div class="dash-layout p-4" style="max-width: 1280px; margin: 0 auto; font-family: var(--font-body), 'Inter', system-ui, sans-serif;">
                 
-                <!-- FRANJA 1: BREADCRUMB, HEADER DE PRODUCTO & ACCIONES -->
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <div style="font-size: var(--fs-sm);" class="text-muted">
-                        <span>Inventario</span> &gt; <span>Productos</span> &gt; <span class="text-dark fw-bold">Detalle</span>
+                <!-- BREADCRUMB & ACCIÓN VOLVER -->
+                <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom">
+                    <div class="d-flex align-items-center gap-2">
+                        <button class="btn btn-link text-decoration-none text-muted p-0 d-flex align-items-center gap-2 fw-medium" id="btn-volver-prod" style="font-size: 13px; color: var(--text-muted);">
+                            <i class="bi bi-arrow-left"></i> Volver a Ítems de venta
+                        </button>
+                        <span class="text-muted opacity-50 mx-1">|</span>
+                        <span class="text-muted" style="font-size: 12px;">Inventario &gt; Productos &gt; <strong class="text-dark">Detalle</strong></span>
                     </div>
                     <div class="d-flex gap-2">
-                        <button id="btn-volver-prod" class="btn btn-sm btn-light border d-inline-flex align-items-center" style="font-size: 13px; font-weight: 500; border-radius: var(--border-radius-sm); padding: 5px 12px; color: var(--text-body);">
-                            <span class="material-symbols-outlined me-1" style="font-size: 16px;">arrow_back</span>Volver al Listado
+                        <button id="btn-abrir-lote-modal" class="btn btn-primary-action shadow-xs d-inline-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#modalNuevoLoteFIFO" style="font-weight: 600; font-size: 13px; border-radius: 8px;">
+                            <i class="bi bi-plus-lg"></i> + Ingresar Lote FIFO
                         </button>
                     </div>
                 </div>
 
+                <!-- CABECERA PRINCIPAL DE PRODUCTO -->
                 <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
                     <div>
                         <div class="d-flex align-items-center gap-2 flex-wrap">
                             <h2 class="page-title mb-0 fw-bold text-dark" style="font-size: 24px; letter-spacing: -0.5px;">
                                 ${escapeHtml(prod.nombre || 'Producto')}
                             </h2>
-                            <span class="badge" style="background-color: #f1f5f9; color: var(--text-main); border: 1px solid var(--border-color); font-family: monospace; font-size: 13px; padding: 4px 10px;">
+                            <span class="payment-code-badge" style="font-size: 12px;">
                                 SKU: ${escapeHtml(prod.sku || 'N/A')}
                                 <i id="btn-copy-sku" class="bi bi-copy ms-1 text-muted cursor-pointer" title="Copiar SKU" style="cursor: pointer;"></i>
                             </span>
@@ -506,11 +506,6 @@ export const ProductoDetalleTemplates = {
                             Gestión por capas FIFO, trazabilidad de costos, rotación comercial y movimientos.
                         </p>
                     </div>
-                    <div class="d-flex gap-2">
-                        <button id="btn-abrir-lote-modal" class="btn btn-sm btn-primary d-inline-flex align-items-center shadow-sm" data-bs-toggle="modal" data-bs-target="#modalNuevoLoteFIFO" style="font-size: 13px; font-weight: 600; border-radius: var(--border-radius-sm); padding: 6px 14px;">
-                            <span class="material-symbols-outlined me-1" style="font-size: 18px;">add_box</span>+ Ingresar Lote FIFO
-                        </button>
-                    </div>
                 </div>
 
                 <!-- STRIP DE 5 KPI CARDS EJECUTIVAS -->
@@ -521,32 +516,32 @@ export const ProductoDetalleTemplates = {
                 <!-- HUB TRANSACCIONAL OPERATIVO AL 100% DE ANCHO (5 PESTAÑAS) -->
                 <div class="row g-4 mb-4">
                     <div class="col-12">
-                        <div class="card border-0 shadow-sm" style="border-radius: var(--border-radius-sm); border: 1px solid var(--border-color);">
+                        <div class="card border-0 shadow-sm" style="border-radius: var(--border-radius-sm); border: 1px solid var(--border-color); background-color: var(--surface);">
                             <div class="card-header bg-white border-bottom p-0">
                                 <ul class="nav nav-tabs card-header-tabs m-0 border-bottom-0 flex-nowrap" id="tabs-producto-principal" role="tablist" style="overflow-x: auto; white-space: nowrap;">
                                     <li class="nav-item" role="presentation">
                                         <button class="nav-link active fw-bold text-nowrap py-3 px-3 border-0 border-bottom border-primary border-2 text-primary" id="tab-lotes-fifo-btn" data-bs-toggle="tab" data-bs-target="#tab-lotes-fifo-pane" type="button" role="tab" style="font-size: 13px;">
-                                            <span class="material-symbols-outlined align-middle me-1" style="font-size: 18px;">layers</span>Capas FIFO <span class="badge rounded-pill bg-light text-secondary border ms-1">${lotes.length}</span>
+                                            <i class="bi bi-layers me-1 text-primary"></i> Capas FIFO <span class="badge rounded-pill bg-light text-secondary border ms-1">${lotes.length}</span>
                                         </button>
                                     </li>
                                     <li class="nav-item" role="presentation">
                                         <button class="nav-link fw-semibold text-nowrap py-3 px-3 border-0 text-muted" id="tab-kardex-btn" data-bs-toggle="tab" data-bs-target="#tab-kardex-pane" type="button" role="tab" style="font-size: 13px;">
-                                            <span class="material-symbols-outlined align-middle me-1" style="font-size: 18px;">receipt_long</span>Kardex Continuo <span class="badge rounded-pill bg-light text-secondary border ms-1">${kardex.length}</span>
+                                            <i class="bi bi-receipt me-1 text-primary"></i> Kardex Continuo <span class="badge rounded-pill bg-light text-secondary border ms-1">${kardex.length}</span>
                                         </button>
                                     </li>
                                     <li class="nav-item" role="presentation">
                                         <button class="nav-link fw-semibold text-nowrap py-3 px-3 border-0 text-muted" id="tab-precios-btn" data-bs-toggle="tab" data-bs-target="#tab-precios-pane" type="button" role="tab" style="font-size: 13px;">
-                                            <span class="material-symbols-outlined align-middle me-1" style="font-size: 18px;">payments</span>Precios y Costos
+                                            <i class="bi bi-currency-dollar me-1 text-primary"></i> Precios y Costos
                                         </button>
                                     </li>
                                     <li class="nav-item" role="presentation">
                                         <button class="nav-link fw-semibold text-nowrap py-3 px-3 border-0 text-muted" id="tab-facturas-venta-btn" data-bs-toggle="tab" data-bs-target="#tab-facturas-venta-pane" type="button" role="tab" style="font-size: 13px;">
-                                            <span class="material-symbols-outlined align-middle me-1" style="font-size: 18px;">shopping_bag</span>Ventas del Ítem <span class="badge rounded-pill bg-light text-secondary border ms-1">${ventas.length}</span>
+                                            <i class="bi bi-cart me-1 text-primary"></i> Ventas del Ítem <span class="badge rounded-pill bg-light text-secondary border ms-1">${ventas.length}</span>
                                         </button>
                                     </li>
                                     <li class="nav-item" role="presentation">
                                         <button class="nav-link fw-semibold text-nowrap py-3 px-3 border-0 text-muted" id="tab-facturas-compra-btn" data-bs-toggle="tab" data-bs-target="#tab-facturas-compra-pane" type="button" role="tab" style="font-size: 13px;">
-                                            <span class="material-symbols-outlined align-middle me-1" style="font-size: 18px;">local_shipping</span>Compras del Ítem <span class="badge rounded-pill bg-light text-secondary border ms-1">${facturasCompra.length}</span>
+                                            <i class="bi bi-truck me-1 text-primary"></i> Compras del Ítem <span class="badge rounded-pill bg-light text-secondary border ms-1">${facturasCompra.length}</span>
                                         </button>
                                     </li>
                                 </ul>
@@ -558,7 +553,7 @@ export const ProductoDetalleTemplates = {
                                     <!-- TAB 1: CAPAS FIFO (100% ANCHO) -->
                                     <div class="tab-pane fade show active p-3" id="tab-lotes-fifo-pane" role="tabpanel">
                                         <!-- BARRA INTEGRADA DE PARÁMETROS DE BODEGA -->
-                                        <div id="parametros-bodega-strip" class="p-3 mb-3 rounded-2" style="background-color: #f8fafc; border: 1px solid var(--border-color);">
+                                        <div id="parametros-bodega-strip" class="p-3 mb-3 rounded-2" style="background-color: var(--surface-muted); border: 1px solid var(--border-color);">
                                             <div class="row g-3 align-items-center">
                                                 <div class="col-6 col-md-auto pe-md-3 border-end">
                                                     <span class="text-muted d-block" style="font-size: 11px; text-transform: uppercase; font-weight: 600;">Stock Mínimo</span>
@@ -596,8 +591,8 @@ export const ProductoDetalleTemplates = {
                                         </div>
 
                                         <div class="table-responsive">
-                                            <table class="table align-middle mb-0">
-                                                <thead style="background-color: #f8fafc; border-bottom: 1px solid var(--border-color);">
+                                            <table class="table table-hover align-middle mb-0">
+                                                <thead style="background-color: var(--surface-muted); border-bottom: 1px solid var(--border-color);">
                                                     <tr style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">
                                                         <th class="py-2 ps-3">Fecha Ingreso</th>
                                                         <th class="py-2">Referencia</th>
@@ -627,8 +622,8 @@ export const ProductoDetalleTemplates = {
                                         </div>
 
                                         <div class="table-responsive">
-                                            <table class="table align-middle mb-0 text-center">
-                                                <thead style="background-color: #f8fafc; border-bottom: 1px solid var(--border-color);">
+                                            <table class="table table-hover align-middle mb-0 text-center">
+                                                <thead style="background-color: var(--surface-muted); border-bottom: 1px solid var(--border-color);">
                                                     <tr style="color: var(--text-muted); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">
                                                         <th class="py-2 ps-4 text-start">Fecha &amp; Hora</th>
                                                         <th class="py-2">Operación</th>
@@ -652,7 +647,7 @@ export const ProductoDetalleTemplates = {
                                             <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2 mb-3 pb-2 border-bottom">
                                                 <div>
                                                     <h6 class="fw-bold mb-0 text-dark d-flex align-items-center" style="font-size: 15px;">
-                                                        <span class="material-symbols-outlined me-2 text-primary" style="font-size: 20px;">payments</span>Ficha de Precios y Estructura de Costos
+                                                        <i class="bi bi-currency-dollar me-2 text-primary"></i>Ficha de Precios y Estructura de Costos
                                                     </h6>
                                                     <span class="text-muted" style="font-size: 12.5px;">Estructura de fijación comercial y rentabilidad sobre capas valoradas.</span>
                                                 </div>
@@ -664,9 +659,9 @@ export const ProductoDetalleTemplates = {
                                             <div class="row g-3">
                                                 <!-- BLOQUE 1: PRECIOS COMERCIALES -->
                                                 <div class="col-12 col-md-6">
-                                                    <div class="p-3 p-md-4 rounded-2 h-100" style="background-color: #f8fafc; border: 1px solid var(--border-color);">
+                                                    <div class="p-3 p-md-4 rounded-2 h-100" style="background-color: var(--surface-muted); border: 1px solid var(--border-color);">
                                                         <h6 class="fw-bold text-dark mb-3 d-flex align-items-center" style="font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em;">
-                                                            <span class="material-symbols-outlined me-1 text-primary" style="font-size: 16px;">sell</span>Precios de Venta
+                                                            <i class="bi bi-tag me-1 text-primary"></i>Precios de Venta
                                                         </h6>
                                                         <ul class="list-unstyled mb-0" style="font-size: 13px;">
                                                             <li class="mb-2 pb-2 border-bottom d-flex justify-content-between align-items-center">
@@ -687,9 +682,9 @@ export const ProductoDetalleTemplates = {
 
                                                 <!-- BLOQUE 2: ESTRUCTURA DE COSTOS Y RENTABILIDAD -->
                                                 <div class="col-12 col-md-6">
-                                                    <div class="p-3 p-md-4 rounded-2 h-100" style="background-color: #f8fafc; border: 1px solid var(--border-color);">
+                                                    <div class="p-3 p-md-4 rounded-2 h-100" style="background-color: var(--surface-muted); border: 1px solid var(--border-color);">
                                                         <h6 class="fw-bold text-dark mb-3 d-flex align-items-center" style="font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em;">
-                                                            <span class="material-symbols-outlined me-1 text-success" style="font-size: 16px;">trending_up</span>Costos y Rentabilidad
+                                                            <i class="bi bi-graph-up me-1 text-success"></i>Costos y Rentabilidad
                                                         </h6>
                                                         <ul class="list-unstyled mb-0" style="font-size: 13px;">
                                                             <li class="mb-2 pb-2 border-bottom d-flex justify-content-between align-items-center">
@@ -716,12 +711,12 @@ export const ProductoDetalleTemplates = {
                                     <!-- TAB 4: VENTAS ASOCIADAS (100% ANCHO) -->
                                     <div class="tab-pane fade p-3" id="tab-facturas-venta-pane" role="tabpanel">
                                         <!-- BLOQUE SUPERIOR: CONCENTRACIÓN DE CANALES PARETO -->
-                                        <div id="concentracion-canales-content" class="p-3 p-md-4 mb-3 rounded-2" style="background-color: #f8fafc; border: 1px solid var(--border-color);">
+                                        <div id="concentracion-canales-content" class="p-3 p-md-4 mb-3 rounded-2" style="background-color: var(--surface-muted); border: 1px solid var(--border-color);">
                                             <div class="row g-3 align-items-center">
                                                 <div class="col-12 col-lg-7 pe-lg-4 pb-3 pb-lg-0">
                                                     <div class="d-flex justify-content-between align-items-center mb-2">
                                                         <h6 class="fw-bold mb-0 d-flex align-items-center text-dark" style="font-size: 13px;">
-                                                            <span class="material-symbols-outlined me-2 text-info" style="font-size: 18px;">pie_chart</span>Concentración de Canales de Venta
+                                                            <i class="bi bi-pie-chart me-2 text-info"></i>Concentración de Canales de Venta
                                                         </h6>
                                                         <span class="badge bg-light text-muted border" style="font-size: 10px;">Pareto Top 3</span>
                                                     </div>
@@ -744,16 +739,16 @@ export const ProductoDetalleTemplates = {
                                         </div>
 
                                         <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2 mb-3">
-                                            <div class="input-group input-group-sm" style="max-width: 320px;">
-                                                <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
-                                                <input type="text" id="search-ventas-prod" class="form-control border-start-0" placeholder="Buscar por cliente o factura...">
+                                            <div class="ds-search-container" style="max-width: 320px; width: 100%;">
+                                                <i class="bi bi-search ds-search-icon"></i>
+                                                <input type="text" id="search-ventas-prod" class="ds-search-input" autocomplete="off" placeholder="Buscar por cliente o factura...">
                                             </div>
                                             <span class="text-muted small">${ventas.length} facturas de venta asociadas</span>
                                         </div>
 
                                         <div class="table-responsive">
-                                            <table class="table align-middle mb-0">
-                                                <thead style="background-color: #f8fafc; border-bottom: 1px solid var(--border-color);">
+                                            <table class="table table-hover align-middle mb-0">
+                                                <thead style="background-color: var(--surface-muted); border-bottom: 1px solid var(--border-color);">
                                                     <tr style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">
                                                         <th class="py-2 ps-3">Documento</th>
                                                         <th class="py-2">Fecha</th>
@@ -779,8 +774,8 @@ export const ProductoDetalleTemplates = {
                                         </div>
 
                                         <div class="table-responsive">
-                                            <table class="table align-middle mb-0">
-                                                <thead style="background-color: #f8fafc; border-bottom: 1px solid var(--border-color);">
+                                            <table class="table table-hover align-middle mb-0">
+                                                <thead style="background-color: var(--surface-muted); border-bottom: 1px solid var(--border-color);">
                                                     <tr style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">
                                                         <th class="py-2 ps-3">Documento</th>
                                                         <th class="py-2">Fecha</th>
@@ -810,7 +805,7 @@ export const ProductoDetalleTemplates = {
                         <div class="modal-content" style="border-radius: var(--border-radius-sm); border: 1px solid var(--border-color); box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);">
                             <div class="modal-header border-bottom py-3">
                                 <h5 class="modal-title fw-bold d-flex align-items-center" id="modalNuevoLoteFIFOLabel" style="color: var(--text-main); font-size: 16px;">
-                                    <span class="material-symbols-outlined me-2 text-primary" style="font-size: 20px;">add_box</span>Registrar Nuevo Lote FIFO
+                                    <i class="bi bi-box-arrow-in-down me-2 text-primary"></i>Registrar Nuevo Lote FIFO
                                 </h5>
                                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                             </div>
@@ -857,14 +852,14 @@ export const ProductoDetalleTemplates = {
                         <div class="modal-content" style="border-radius: var(--border-radius-sm); border: 1px solid var(--border-color);">
                             <div class="modal-header border-bottom py-3">
                                 <h5 class="modal-title fw-bold d-flex align-items-center" id="modalTodosClientesLabel" style="font-size: 16px; color: var(--text-main);">
-                                    <span class="material-symbols-outlined me-2 text-info" style="font-size: 20px;">pie_chart</span>Todos los Clientes &amp; Canales: ${escapeHtml(prod.nombre || '')}
+                                    <i class="bi bi-pie-chart me-2 text-info"></i>Todos los Clientes &amp; Canales: ${escapeHtml(prod.nombre || '')}
                                 </h5>
                                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                             </div>
                             <div class="modal-body p-0">
                                 <div class="table-responsive">
                                     <table class="table align-middle mb-0">
-                                        <thead style="background-color: #f8fafc; border-bottom: 1px solid var(--border-color); font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-muted);">
+                                        <thead style="background-color: var(--surface-muted); border-bottom: 1px solid var(--border-color); font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-muted);">
                                             <tr>
                                                 <th class="py-2 ps-4">Cliente / Canal</th>
                                                 <th class="py-2 text-end">Unidades</th>

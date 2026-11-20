@@ -85,6 +85,7 @@ html[data-theme="dark-green"] {
     --dark: #ffffff;
     --bg-main: #141414;
     --surface: #1a1a1a;
+    --surface-muted: #202020;
     --border-color: #2a2a2a;
     --shadow-soft: 0px 4px 14px rgba(0, 0, 0, 0.45);
     --text-main: #ffffff;
@@ -102,6 +103,7 @@ html[data-theme="dark-blue"] {
     --dark: #ffffff;
     --bg-main: #141414;
     --surface: #1a1a1a;
+    --surface-muted: #202020;
     --border-color: #2a2a2a;
     --shadow-soft: 0px 4px 14px rgba(0, 0, 0, 0.45);
     --text-main: #ffffff;

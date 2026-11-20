@@ -736,6 +736,9 @@ describe('Módulo Producto Detalle - TDD Test Suite', () => {
             assert.ok(html.includes('15 días') || html.includes('15 d'));
             assert.ok(html.includes('$ 1.200.000'));
             assert.ok(html.includes('60 und'));
+            assert.ok(html.includes('ds-kpi-label'), 'Debe usar clase canónica ds-kpi-label');
+            assert.ok(html.includes('payment-kpi-value'), 'Debe usar clase canónica payment-kpi-value');
+            assert.ok(html.includes('bi-box-seam'), 'Debe usar Bootstrap icon bi-box-seam');
         });
 
         it('renderKpiCards debe incluir tarjeta de Ventas Acumuladas con fallback seguro de 0 cuando no hay métricas', () => {
@@ -952,6 +955,9 @@ describe('Módulo Producto Detalle - TDD Test Suite', () => {
             assert.ok(html.includes('id="tbody-kardex-embebido"'), 'Debe contener la tabla embebida continua #tbody-kardex-embebido');
             assert.ok(html.includes('form-nuevo-lote'));
             assert.ok(html.includes('payment-kpi-card'));
+            assert.ok(html.includes('payment-code-badge'), 'SKU debe usar clase canónica payment-code-badge');
+            assert.ok(html.includes('ds-search-container'), 'Debe usar el contenedor canónico ds-search-container');
+            assert.ok(html.includes('ds-search-input'), 'Debe usar el input canónico ds-search-input');
         });
 
         it('renderLayout debe renderizar las 5 pestañas a 100% de ancho: Capas FIFO (#tab-lotes-fifo-pane), Kardex (#tab-kardex-pane), Precios (#tab-precios-pane), Ventas (#tab-facturas-venta-pane), Compras (#tab-facturas-compra-pane)', () => {

@@ -544,6 +544,7 @@ export const ProductosModule = {
 
         const container = element.querySelector('#productos-view-container');
         if (!container) return;
+        container.classList.remove('mt-4');
 
         ProductoDetalleData.setSupabase(supabase);
         ProductoDetalleData.setDB(DB);
@@ -552,6 +553,7 @@ export const ProductosModule = {
             if (typeof window !== 'undefined') {
                 window.location.hash = '#/inventario/items';
             }
+            container.classList.add('mt-4');
             const header = element.querySelector('#productos-list-header');
             if (header) header.classList.remove('d-none');
             this.renderGrid(element);
