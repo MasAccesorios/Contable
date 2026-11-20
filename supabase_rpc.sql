@@ -3215,3 +3215,205 @@ AS $function$
     )
     SELECT * FROM saldos ORDER BY creado_en DESC, movimiento_id DESC;
 $function$;
+
+
+CREATE OR REPLACE FUNCTION public.get_productos_page_v2(
+    p_page integer DEFAULT 1,
+    p_limit integer DEFAULT 25,
+    p_sort_column text DEFAULT 'nombre',
+    p_sort_direction text DEFAULT 'asc',
+    p_search_query text DEFAULT '',
+    p_filter_criteria text DEFAULT 'todos'
+)
+RETURNS json
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $function$
+DECLARE
+    v_offset integer;
+    v_search text;
+    v_total_count bigint := 0;
+    v_data json := '[]'::json;
+    v_result json;
+    
+    -- KPIs globales
+    v_total_activos bigint := 0;
+    v_total_inactivos bigint := 0;
+    v_valor_total_inventario numeric := 0;
+    v_valor_venta_potencial numeric := 0;
+    v_conteo_bajo_stock bigint := 0;
+    v_conteo_agotados bigint := 0;
+    v_conteo_optimo bigint := 0;
+    v_margen_promedio numeric := 0;
+BEGIN
+    v_offset := (p_page - 1) * p_limit;
+    v_search := '%' || COALESCE(p_search_query, '') || '%';
+
+    -- 1. Calcular KPIs y Conteos globales del catálogo
+    WITH lotes_agg AS (
+        SELECT 
+            producto_id,
+            COALESCE(SUM(cantidad_actual), 0) AS stock_total,
+            COALESCE(SUM(cantidad_actual * costo_unitario), 0) AS valor_inventario_fifo,
+            COUNT(*) FILTER (WHERE cantidad_actual > 0) AS lotes_activos_count,
+            CASE 
+                WHEN SUM(cantidad_actual) > 0 THEN 
+                    SUM(cantidad_actual * costo_unitario) / SUM(cantidad_actual)
+                ELSE 0 
+            END AS costo_promedio_fifo
+        FROM lotes_fifo
+        WHERE cantidad_actual > 0
+        GROUP BY producto_id
+    ),
+    prod_metrics AS (
+        SELECT 
+            p.id,
+            p.estado,
+            COALESCE(la.stock_total, 0) AS stock,
+            COALESCE(p.stock_minimo, 5) AS stock_minimo,
+            COALESCE(la.valor_inventario_fifo, 0) AS valor_inventario,
+            COALESCE(la.stock_total, 0) * COALESCE(p.precio_venta, 0) AS valor_venta
+        FROM productos p
+        LEFT JOIN lotes_agg la ON la.producto_id = p.id
+    )
+    SELECT 
+        COUNT(*) FILTER (WHERE estado NOT IN ('inactivo', 'inactive') OR estado IS NULL),
+        COUNT(*) FILTER (WHERE estado IN ('inactivo', 'inactive')),
+        COALESCE(SUM(valor_inventario) FILTER (WHERE estado NOT IN ('inactivo', 'inactive') OR estado IS NULL), 0),
+        COALESCE(SUM(valor_venta) FILTER (WHERE estado NOT IN ('inactivo', 'inactive') OR estado IS NULL), 0),
+        COUNT(*) FILTER (WHERE (estado NOT IN ('inactivo', 'inactive') OR estado IS NULL) AND stock <= stock_minimo AND stock > 0),
+        COUNT(*) FILTER (WHERE (estado NOT IN ('inactivo', 'inactive') OR estado IS NULL) AND stock <= 0),
+        COUNT(*) FILTER (WHERE (estado NOT IN ('inactivo', 'inactive') OR estado IS NULL) AND stock > stock_minimo)
+    INTO 
+        v_total_activos,
+        v_total_inactivos,
+        v_valor_total_inventario,
+        v_valor_venta_potencial,
+        v_conteo_bajo_stock,
+        v_conteo_agotados,
+        v_conteo_optimo
+    FROM prod_metrics;
+
+    IF v_valor_venta_potencial > 0 THEN
+        v_margen_promedio := ROUND((((v_valor_venta_potencial - v_valor_total_inventario) / v_valor_venta_potencial) * 100)::numeric, 1);
+    ELSE
+        v_margen_promedio := 0;
+    END IF;
+
+    -- 2. Filtrado y ordenamiento de la página solicitada
+    WITH lotes_agg AS (
+        SELECT 
+            producto_id,
+            COALESCE(SUM(cantidad_actual), 0) AS stock_total,
+            COALESCE(SUM(cantidad_actual * costo_unitario), 0) AS valor_inventario_fifo,
+            COUNT(*) FILTER (WHERE cantidad_actual > 0) AS lotes_activos_count,
+            CASE 
+                WHEN SUM(cantidad_actual) > 0 THEN 
+                    SUM(cantidad_actual * costo_unitario) / SUM(cantidad_actual)
+                ELSE 0 
+            END AS costo_promedio_fifo
+        FROM lotes_fifo
+        WHERE cantidad_actual > 0
+        GROUP BY producto_id
+    ),
+    base_productos AS (
+        SELECT 
+            p.id,
+            p.sku,
+            p.nombre,
+            COALESCE(p.precio_venta, 0) AS "precioVenta",
+            COALESCE(p.costo_base, 0) AS "costoBase",
+            COALESCE(p.stock_minimo, 5) AS "stockMinimo",
+            COALESCE(p.impuesto, 0) AS impuesto,
+            COALESCE(p.estado, 'activo') AS estado,
+            COALESCE(la.stock_total, 0) AS stock,
+            CASE 
+                WHEN COALESCE(la.stock_total, 0) > 0 THEN la.costo_promedio_fifo
+                ELSE COALESCE(p.costo_base, 0)
+            END AS "costoPromedio",
+            COALESCE(la.valor_inventario_fifo, 0) AS "valorTotalInventario",
+            COALESCE(la.lotes_activos_count, 0) AS "lotesActivosCount",
+            (COALESCE(p.precio_venta, 0) - CASE WHEN COALESCE(la.stock_total, 0) > 0 THEN la.costo_promedio_fifo ELSE COALESCE(p.costo_base, 0) END) AS "utilidadUnitaria",
+            CASE 
+                WHEN COALESCE(p.precio_venta, 0) > 0 THEN 
+                    ROUND((((COALESCE(p.precio_venta, 0) - CASE WHEN COALESCE(la.stock_total, 0) > 0 THEN la.costo_promedio_fifo ELSE COALESCE(p.costo_base, 0) END) / p.precio_venta) * 100)::numeric, 1)
+                ELSE 0 
+            END AS "margenPct",
+            CASE 
+                WHEN COALESCE(la.stock_total, 0) <= 0 THEN 'agotado'
+                WHEN COALESCE(la.stock_total, 0) <= COALESCE(p.stock_minimo, 5) THEN 'bajo_stock'
+                ELSE 'optimo'
+            END AS "estadoStock",
+            COUNT(*) OVER() AS full_count
+        FROM productos p
+        LEFT JOIN lotes_agg la ON la.producto_id = p.id
+        WHERE 
+            (
+                (p_filter_criteria = 'inactivos' AND p.estado IN ('inactivo', 'inactive'))
+                OR (p_filter_criteria != 'inactivos' AND (p.estado NOT IN ('inactivo', 'inactive') OR p.estado IS NULL))
+            )
+            AND (
+                p_search_query = ''
+                OR p.nombre ILIKE v_search
+                OR p.sku ILIKE v_search
+            )
+            AND (
+                p_filter_criteria IN ('todos', 'inactivos')
+                OR (p_filter_criteria = 'bajo_stock' AND COALESCE(la.stock_total, 0) <= COALESCE(p.stock_minimo, 5) AND COALESCE(la.stock_total, 0) > 0)
+                OR (p_filter_criteria = 'agotado' AND COALESCE(la.stock_total, 0) <= 0)
+                OR (p_filter_criteria = 'optimo' AND COALESCE(la.stock_total, 0) > COALESCE(p.stock_minimo, 5))
+            )
+    ),
+    paginated AS (
+        SELECT * FROM base_productos
+        ORDER BY 
+            CASE WHEN p_sort_column = 'nombre' AND p_sort_direction = 'asc' THEN nombre END ASC,
+            CASE WHEN p_sort_column = 'nombre' AND p_sort_direction = 'desc' THEN nombre END DESC,
+            CASE WHEN p_sort_column = 'sku' AND p_sort_direction = 'asc' THEN sku END ASC,
+            CASE WHEN p_sort_column = 'sku' AND p_sort_direction = 'desc' THEN sku END DESC,
+            CASE WHEN p_sort_column = 'stock' AND p_sort_direction = 'asc' THEN stock END ASC,
+            CASE WHEN p_sort_column = 'stock' AND p_sort_direction = 'desc' THEN stock END DESC,
+            CASE WHEN p_sort_column = 'precioVenta' AND p_sort_direction = 'asc' THEN "precioVenta" END ASC,
+            CASE WHEN p_sort_column = 'precioVenta' AND p_sort_direction = 'desc' THEN "precioVenta" END DESC,
+            CASE WHEN p_sort_column = 'costoPromedio' AND p_sort_direction = 'asc' THEN "costoPromedio" END ASC,
+            CASE WHEN p_sort_column = 'costoPromedio' AND p_sort_direction = 'desc' THEN "costoPromedio" END DESC,
+            CASE WHEN p_sort_column = 'valorTotal' AND p_sort_direction = 'asc' THEN "valorTotalInventario" END ASC,
+            CASE WHEN p_sort_column = 'valorTotal' AND p_sort_direction = 'desc' THEN "valorTotalInventario" END DESC,
+            CASE WHEN p_sort_column = 'margen' AND p_sort_direction = 'asc' THEN "margenPct" END ASC,
+            CASE WHEN p_sort_column = 'margen' AND p_sort_direction = 'desc' THEN "margenPct" END DESC,
+            id ASC
+        LIMIT p_limit
+        OFFSET v_offset
+    )
+    SELECT 
+        COALESCE((SELECT full_count FROM paginated LIMIT 1), (SELECT count(*) FROM base_productos), 0),
+        COALESCE((SELECT json_agg(row_to_json(paginated)) FROM paginated), '[]'::json)
+    INTO 
+        v_total_count,
+        v_data;
+
+    SELECT json_build_object(
+        'data', v_data,
+        'total_count', v_total_count,
+        'kpis', json_build_object(
+            'valor_total_inventario', v_valor_total_inventario,
+            'valor_venta_potencial', v_valor_venta_potencial,
+            'total_activos', v_total_activos,
+            'total_inactivos', v_total_inactivos,
+            'bajo_stock', v_conteo_bajo_stock,
+            'agotados', v_conteo_agotados,
+            'optimos', v_conteo_optimo,
+            'margen_promedio_global', v_margen_promedio
+        ),
+        'tab_counts', json_build_object(
+            'todos', v_total_activos,
+            'bajo_stock', v_conteo_bajo_stock,
+            'agotado', v_conteo_agotados,
+            'optimo', v_conteo_optimo,
+            'inactivos', v_total_inactivos
+        )
+    ) INTO v_result;
+
+    RETURN v_result;
+END;
+$function$;
