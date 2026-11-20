@@ -154,7 +154,7 @@ export const PrintManager = {
             btnWhatsApp?.addEventListener('click', async () => {
                 let targetPhone = phone;
                 if (!targetPhone) {
-                    const promptVal = prompt('Ingresa el número de WhatsApp para enviar el Estado de Cuenta (ej: 3001234567):');
+                    const promptVal = prompt(`Ingresa el número de WhatsApp para enviar ${title || 'el documento'} (ej: 3001234567):`);
                     if (!promptVal) return;
                     targetPhone = promptVal;
                 }
@@ -169,14 +169,20 @@ export const PrintManager = {
                 }
 
                 // Intentar copiar la imagen generada al portapapeles si el navegador lo soporta
+                let copiadaAlPortapapeles = false;
                 if (cachedShareFile && navigator.clipboard && typeof ClipboardItem !== 'undefined') {
                     try {
                         await navigator.clipboard.write([
                             new ClipboardItem({ 'image/png': cachedShareFile })
                         ]);
+                        copiadaAlPortapapeles = true;
                     } catch (e) {
                         console.log('Clipboard image write no soportado o denegado', e);
                     }
+                }
+
+                if (copiadaAlPortapapeles && typeof CoreActions?.showToast === 'function') {
+                    CoreActions.showToast('Imagen copiada al portapapeles. ¡Pégala en WhatsApp (Ctrl+V)!');
                 }
 
                 const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(shareText || '')}`;
@@ -599,7 +605,8 @@ export const PrintManager = {
             const fechaCreacion = f.fecha ? String(f.fecha).split('T')[0] : hoyStr;
             const fechaVenc = f.vencimiento ? String(f.vencimiento).split('T')[0] : fechaCreacion;
             const dCreacion = new Date(fechaCreacion + 'T00:00:00');
-            const diasDespachado = Math.max(0, Math.floor((hoy - dCreacion) / (1000 * 60 * 60 * 24)));
+            const diffDays = Math.floor((hoy - dCreacion) / (1000 * 60 * 60 * 24));
+            const diasDespachado = Number.isFinite(diffDays) ? Math.max(0, diffDays) : 0;
             
             let barColor = '#198754';
             if (diasDespachado >= 30 && diasDespachado <= 60) barColor = '#fd7e14';

@@ -133,7 +133,8 @@ export function buildEstadoCuentaWhatsAppText(arg1, arg2, arg3) {
         let diasDespachado = f.diasDespachado;
         if (diasDespachado === undefined || diasDespachado === null) {
             const dCreacion = new Date(fechaCreacion + 'T00:00:00');
-            diasDespachado = Math.max(0, Math.floor((hoy - dCreacion) / (1000 * 60 * 60 * 24)));
+            const diffDays = Math.floor((hoy - dCreacion) / (1000 * 60 * 60 * 24));
+            diasDespachado = Number.isFinite(diffDays) ? Math.max(0, diffDays) : 0;
         }
 
         const saldoF = formatMoneyCOP(f.saldo);
