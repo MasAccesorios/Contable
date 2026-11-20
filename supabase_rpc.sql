@@ -939,68 +939,195 @@ end;
 $function$;
 
 
-CREATE OR REPLACE FUNCTION public.get_contactos_page(p_page integer, p_limit integer, p_sort_column text, p_sort_direction text, p_search_query text, p_filter_criteria text)
- RETURNS json
- LANGUAGE plpgsql
+CREATE OR REPLACE FUNCTION public.get_contactos_page(
+    p_page integer DEFAULT 1,
+    p_limit integer DEFAULT 25,
+    p_sort_column text DEFAULT 'nombre',
+    p_sort_direction text DEFAULT 'asc',
+    p_search_query text DEFAULT '',
+    p_filter_criteria text DEFAULT 'todos'
+)
+RETURNS json
+LANGUAGE plpgsql
+SECURITY DEFINER
 AS $function$
 DECLARE
     v_offset integer;
-    v_total_count bigint;
+    v_total_count bigint := 0;
+    v_data json := '[]'::json;
     v_result json;
+    -- KPIs
+    v_total_cartera numeric := 0;
+    v_cartera_vencida numeric := 0;
+    v_cartera_vigente numeric := 0;
+    v_mora_critica_saldo numeric := 0;
+    v_clientes_mora_critica bigint := 0;
+    v_conteo_con_cartera bigint := 0;
+    v_ventas_mes_actual numeric := 0;
+    v_ventas_mes_anterior numeric := 0;
+    v_clientes_activos_60d bigint := 0;
+    v_total_clientes bigint := 0;
+    v_total_proveedores bigint := 0;
+    v_total_contactos bigint := 0;
 BEGIN
     v_offset := (p_page - 1) * p_limit;
-    SELECT count(*)
-    INTO v_total_count
-    FROM contactos c
-    WHERE (c.estado IS NULL OR c.estado != 'inactive')
-      AND (
-          p_filter_criteria = 'todos'
-          OR (p_filter_criteria = 'cliente' AND c.es_cliente = true)
-          OR (p_filter_criteria = 'proveedor' AND c.es_proveedor = true)
-      )
-      AND (
-          p_search_query = ''
-          OR c.nombre ILIKE '%' || p_search_query || '%'
-          OR c.identificacion ILIKE '%' || p_search_query || '%'
-          OR c.telefono ILIKE '%' || p_search_query || '%'
-          OR c.email ILIKE '%' || p_search_query || '%'
-      );
-    WITH contact_data AS (
+
+    -- 1. Calcular metricas de cartera global
+    SELECT 
+        COALESCE(SUM(saldo), 0),
+        COALESCE(SUM(CASE WHEN vencimiento < CURRENT_DATE THEN saldo ELSE 0 END), 0),
+        COALESCE(SUM(CASE WHEN vencimiento >= CURRENT_DATE THEN saldo ELSE 0 END), 0),
+        COALESCE(SUM(CASE WHEN (CURRENT_DATE - vencimiento) > 30 THEN saldo ELSE 0 END), 0),
+        COUNT(DISTINCT CASE WHEN (CURRENT_DATE - vencimiento) > 30 THEN contacto_id END),
+        COUNT(DISTINCT contacto_id)
+    INTO 
+        v_total_cartera,
+        v_cartera_vencida,
+        v_cartera_vigente,
+        v_mora_critica_saldo,
+        v_clientes_mora_critica,
+        v_conteo_con_cartera
+    FROM get_cartera_con_saldos('cxc');
+
+    -- 2. Ventas del mes actual y mes anterior
+    SELECT 
+        COALESCE(SUM(CASE WHEN fecha >= DATE_TRUNC('month', CURRENT_DATE) AND fecha <= CURRENT_DATE THEN total ELSE 0 END), 0),
+        COALESCE(SUM(CASE WHEN fecha >= DATE_TRUNC('month', CURRENT_DATE - INTERVAL '1 month') AND fecha < DATE_TRUNC('month', CURRENT_DATE) THEN total ELSE 0 END), 0)
+    INTO 
+        v_ventas_mes_actual,
+        v_ventas_mes_anterior
+    FROM facturas
+    WHERE tipo = 'venta' AND estado NOT IN ('anulada', 'void');
+
+    -- 3. Conteo de clientes activos (compras en ultimos 60 dias)
+    SELECT COUNT(DISTINCT contacto_id)
+    INTO v_clientes_activos_60d
+    FROM facturas
+    WHERE tipo = 'venta' AND estado NOT IN ('anulada', 'void') AND fecha >= CURRENT_DATE - INTERVAL '60 days';
+
+    -- 4. Conteos de contactos totales
+    SELECT 
+        COUNT(*),
+        COUNT(CASE WHEN es_cliente = true THEN 1 END),
+        COUNT(CASE WHEN es_proveedor = true THEN 1 END)
+    INTO 
+        v_total_contactos,
+        v_total_clientes,
+        v_total_proveedores
+    FROM contactos
+    WHERE (estado IS NULL OR estado != 'inactive');
+
+    -- 5. Consulta y paginacion
+    WITH cartera_resumen AS (
+        SELECT 
+            contacto_id::bigint as cid,
+            SUM(saldo) as saldo_cartera,
+            COUNT(*) as facturas_pendientes,
+            MAX(CURRENT_DATE - vencimiento) as max_dias_mora
+        FROM get_cartera_con_saldos('cxc')
+        WHERE contacto_id IS NOT NULL AND contacto_id != '' AND contacto_id ~ '^[0-9]+$'
+        GROUP BY contacto_id
+    ),
+    ventas_resumen AS (
+        SELECT 
+            contacto_id as cid,
+            SUM(total) as ventas_totales_ltv,
+            COUNT(*) as total_facturas,
+            MAX(fecha) as fecha_ultima_compra
+        FROM facturas
+        WHERE tipo = 'venta' AND estado NOT IN ('anulada', 'void')
+        GROUP BY contacto_id
+    ),
+    base_contactos AS (
         SELECT 
             c.id,
             c.nombre,
             c.identificacion as nit,
             c.telefono,
             c.email,
+            c.ciudad,
+            c.direccion,
+            c.regimen,
+            COALESCE(c.cupo_credito, 0) as cupo_credito,
+            COALESCE(c.plazos_pago, 0) as plazos_pago,
             c.tipo,
             c.estado,
             c.es_cliente,
-            c.es_proveedor
+            c.es_proveedor,
+            c.vendedor_id,
+            v.nombre as vendedor_nombre,
+            COALESCE(cart.saldo_cartera, 0) as saldo_cartera,
+            COALESCE(cart.facturas_pendientes, 0) as facturas_pendientes,
+            COALESCE(cart.max_dias_mora, 0) as max_dias_mora,
+            COALESCE(vr.ventas_totales_ltv, 0) as ventas_totales_ltv,
+            COALESCE(vr.total_facturas, 0) as total_facturas,
+            vr.fecha_ultima_compra,
+            COUNT(*) OVER() as full_count
         FROM contactos c
+        LEFT JOIN vendedores v ON c.vendedor_id = v.id
+        LEFT JOIN cartera_resumen cart ON c.id = cart.cid
+        LEFT JOIN ventas_resumen vr ON c.id = vr.cid
         WHERE (c.estado IS NULL OR c.estado != 'inactive')
-          AND (
-              p_filter_criteria = 'todos'
-              OR (p_filter_criteria = 'cliente' AND c.es_cliente = true)
-              OR (p_filter_criteria = 'proveedor' AND c.es_proveedor = true)
-          )
           AND (
               p_search_query = ''
               OR c.nombre ILIKE '%' || p_search_query || '%'
               OR c.identificacion ILIKE '%' || p_search_query || '%'
               OR c.telefono ILIKE '%' || p_search_query || '%'
               OR c.email ILIKE '%' || p_search_query || '%'
+              OR c.ciudad ILIKE '%' || p_search_query || '%'
           )
+          AND (
+              p_filter_criteria = 'todos'
+              OR (p_filter_criteria = 'cliente' AND c.es_cliente = true)
+              OR (p_filter_criteria = 'proveedor' AND c.es_proveedor = true)
+              OR (p_filter_criteria = 'con_cartera' AND COALESCE(cart.saldo_cartera, 0) > 0.01)
+              OR (p_filter_criteria = 'mora_critica' AND COALESCE(cart.max_dias_mora, 0) > 30 AND COALESCE(cart.saldo_cartera, 0) > 0.01)
+              OR (p_filter_criteria = 'vip' AND COALESCE(vr.ventas_totales_ltv, 0) > 10000000)
+              OR (p_filter_criteria = 'inactivos' AND (vr.fecha_ultima_compra IS NULL OR vr.fecha_ultima_compra < CURRENT_DATE - INTERVAL '60 days') AND c.es_cliente = true)
+          )
+    ),
+    paginated AS (
+        SELECT * FROM base_contactos
         ORDER BY 
-            CASE WHEN p_sort_column = 'nombre' AND p_sort_direction = 'asc' THEN c.nombre END ASC,
-            CASE WHEN p_sort_column = 'nombre' AND p_sort_direction = 'desc' THEN c.nombre END DESC,
-            c.id DESC
+            CASE WHEN p_sort_column = 'saldo_cartera' AND p_sort_direction = 'desc' THEN saldo_cartera END DESC,
+            CASE WHEN p_sort_column = 'saldo_cartera' AND p_sort_direction = 'asc' THEN saldo_cartera END ASC,
+            CASE WHEN p_sort_column = 'ventas' AND p_sort_direction = 'desc' THEN ventas_totales_ltv END DESC,
+            CASE WHEN p_sort_column = 'ventas' AND p_sort_direction = 'asc' THEN ventas_totales_ltv END ASC,
+            CASE WHEN p_sort_column = 'mora' AND p_sort_direction = 'desc' THEN max_dias_mora END DESC,
+            CASE WHEN p_sort_column = 'nombre' AND p_sort_direction = 'desc' THEN nombre END DESC,
+            CASE WHEN p_sort_column = 'nombre' AND p_sort_direction = 'asc' THEN nombre END ASC,
+            nombre ASC
         LIMIT p_limit
         OFFSET v_offset
     )
+    SELECT 
+        COALESCE((SELECT full_count FROM paginated LIMIT 1), (SELECT count(*) FROM base_contactos), 0),
+        COALESCE((SELECT json_agg(row_to_json(paginated)) FROM paginated), '[]'::json)
+    INTO 
+        v_total_count,
+        v_data;
+
     SELECT json_build_object(
-        'data', (SELECT COALESCE(json_agg(row_to_json(contact_data)), '[]'::json) FROM contact_data),
-        'total_count', v_total_count
+        'data', v_data,
+        'total_count', v_total_count,
+        'kpis', json_build_object(
+            'total_cartera', v_total_cartera,
+            'cartera_vencida', v_cartera_vencida,
+            'cartera_vigente', v_cartera_vigente,
+            'pct_vigente', CASE WHEN v_total_cartera > 0 THEN ROUND((v_cartera_vigente / v_total_cartera) * 100, 1) ELSE 100 END,
+            'mora_critica_saldo', v_mora_critica_saldo,
+            'clientes_mora_critica', v_clientes_mora_critica,
+            'conteo_con_cartera', v_conteo_con_cartera,
+            'ventas_mes_actual', v_ventas_mes_actual,
+            'ventas_mes_anterior', v_ventas_mes_anterior,
+            'variacion_ventas', CASE WHEN v_ventas_mes_anterior > 0 THEN ROUND(((v_ventas_mes_actual - v_ventas_mes_anterior) / v_ventas_mes_anterior) * 100, 1) ELSE 0 END,
+            'clientes_activos_60d', v_clientes_activos_60d,
+            'total_contactos', v_total_contactos,
+            'total_clientes', v_total_clientes,
+            'total_proveedores', v_total_proveedores
+        )
     ) INTO v_result;
+
     RETURN v_result;
 END;
 $function$;

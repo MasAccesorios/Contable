@@ -1,131 +1,885 @@
+// js/modules/clientes/clientes.templates.js
+// Plantillas ergonómicas y ejecutivas para Gestión & Análisis de Clientes 360°
+
 import { escapeHtml } from '../../shared/formatters.js';
-import DB from '../../core/db.js';
-import { supabase } from '../../core/supabase.js';
-import { CoreActions } from '../../shared/crud.js';
-import { AbonoModal } from '../../shared/abonoModal.js';
-import { calcularEstadoFactura } from '../../shared/carteraUtils.js';
-import { agruparTransaccionesPorPago } from '../../shared/transaccionesUtils.js';
-import { mostrarDetalleTransaccion } from '../../shared/transaccionModal.js';
-import { EstadoUtils } from '../../shared/estadoUtils.js';
+
+export function getClientAvatar(name) {
+    if (!name || name === 'Sin cliente') return { initials: '?', bg: '#f1f5f9', color: '#64748b' };
+    const clean = name.trim();
+    const parts = clean.split(/\s+/);
+    let initials = parts[0][0] || '';
+    if (parts.length > 1 && parts[1][0]) initials += parts[1][0];
+    initials = initials.toUpperCase();
+
+    const colors = [
+        { bg: '#eff6ff', color: '#1d4ed8' },
+        { bg: '#ecfdf5', color: '#059669' },
+        { bg: '#fef3c7', color: '#d97706' },
+        { bg: '#f3e8ff', color: '#7e22ce' },
+        { bg: '#fce7f3', color: '#be185d' },
+        { bg: '#e0f2fe', color: '#0369a1' },
+        { bg: '#ccfbf1', color: '#0f766e' }
+    ];
+    let hash = 0;
+    for (let i = 0; i < clean.length; i++) hash = clean.charCodeAt(i) + ((hash << 5) - hash);
+    const index = Math.abs(hash) % colors.length;
+    return { initials: initials.substring(0, 2), ...colors[index] };
+}
 
 export const ContactosTemplates = {
-    renderKpis({ total, clientes, proveedores }) {
-        const kpiTotal = this.element.querySelector('#kpi-total-contactos');
-        const kpiCli   = this.element.querySelector('#kpi-clientes');
-        const kpiProv  = this.element.querySelector('#kpi-proveedores');
-        if (kpiTotal)  kpiTotal.textContent  = total;
-        if (kpiCli)    kpiCli.textContent    = clientes;
-        if (kpiProv)   kpiProv.textContent   = proveedores;
+    formatMoney(val) {
+        return '$ ' + Math.round(parseFloat(val || 0)).toLocaleString('es-CO');
+    },
+
+    formatFecha(dateStr) {
+        if (!dateStr) return '---';
+        const partes = String(dateStr).split('T')[0].split('-');
+        return partes.length === 3 ? `${partes[2]}/${partes[1]}/${partes[0]}` : dateStr;
+    },
+
+    getMoraBadge(dias, saldo = 1) {
+        if (saldo <= 0.01) {
+            return `<span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill fw-medium" style="font-size: 11px; padding: 3px 8px;"><i class="bi bi-check-circle me-1"></i> Al día</span>`;
+        }
+        if (dias <= 0) {
+            return `<span class="badge bg-info-subtle text-primary border border-info-subtle rounded-pill fw-medium" style="font-size: 11px; padding: 3px 8px;"><i class="bi bi-clock me-1"></i> Vigente</span>`;
+        }
+        if (dias <= 30) {
+            return `<span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill fw-medium" style="font-size: 11px; padding: 3px 8px;"><i class="bi bi-clock-history me-1"></i> Mora ${dias}d</span>`;
+        }
+        return `<span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill fw-medium" style="font-size: 11px; padding: 3px 8px;"><i class="bi bi-exclamation-triangle me-1"></i> Mora ${dias}d</span>`;
+    },
+
+    renderLayout() {
+        this.element.innerHTML = `
+            <div class="dash-layout p-4" id="contactos-main-layout" style="max-width: 1350px; margin: 0 auto;">
+                
+                <!-- 1. TOP BAR EJECUTIVA DE ALTO IMPACTO -->
+                <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+                    <div>
+                        <div class="d-flex align-items-center gap-2">
+                            <h2 class="page-title mb-0" style="font-size: 24px; font-weight: 800; color: #0f172a; letter-spacing: -0.5px;">Gestión de Contactos</h2>
+                            <span class="badge" style="background-color: #ecfdf5; color: #059669; font-size: 11px; font-weight: 700; border-radius: 9999px; padding: 4px 10px; border: 1px solid #a7f3d0;">
+                                <i class="bi bi-people-fill me-1"></i> Directorio & Cartera 360°
+                            </span>
+                        </div>
+                        <p class="text-muted mb-0" style="font-size: 13px; margin-top: 3px;">
+                            Monitorea cartera, volumen de compra, comportamiento de pago y salud comercial en tiempo real.
+                        </p>
+                    </div>
+
+                    <div class="d-flex flex-wrap align-items-center gap-2">
+                        <!-- Toggle de Vistas: Lista vs Analítica -->
+                        <div class="btn-group p-1 bg-light border rounded-3" role="group">
+                            <button type="button" class="btn btn-sm ${this.state.view !== 'grafico' ? 'btn-white bg-white shadow-xs fw-bold text-dark' : 'btn-light border-0 text-muted'}" id="btn-view-lista" style="font-size: 12px; border-radius: 6px;">
+                                <i class="bi bi-table me-1"></i> Directorio & Cartera
+                            </button>
+                            <button type="button" class="btn btn-sm ${this.state.view === 'grafico' ? 'btn-white bg-white shadow-xs fw-bold text-primary' : 'btn-light border-0 text-muted'}" id="btn-view-grafico" style="font-size: 12px; border-radius: 6px;">
+                                <i class="bi bi-bar-chart me-1"></i> Analítica 360°
+                            </button>
+                        </div>
+
+                        <!-- Botón Exportar Excel -->
+                        <button id="btn-export-excel" class="btn btn-light bg-white border text-secondary shadow-xs" style="font-weight: 600; font-size: 13px; border-radius: 8px;" title="Exportar listado de clientes a Excel">
+                            <i class="bi bi-file-earmark-excel text-success me-1"></i> Exportar
+                        </button>
+
+                        <!-- Botón Refrescar -->
+                        <button id="btn-refresh-list" class="btn btn-light bg-white border text-secondary shadow-xs" style="border-radius: 8px;" title="Actualizar datos">
+                            <i class="bi bi-arrow-clockwise"></i>
+                        </button>
+
+                        <!-- Botón Principal: Nuevo Contacto -->
+                        <button id="btn-nuevo-contacto" class="btn btn-primary-action shadow-xs d-flex align-items-center gap-2" style="font-weight: 600; font-size: 13px; border-radius: 8px;">
+                            <i class="bi bi-plus-lg"></i> Nuevo contacto
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 2. LAS 4 KPI CARDS DINÁMICAS (DISEÑO PAGOS RECIBIDOS) -->
+                <div class="row g-3 mb-4" id="contactos-kpi-row">
+                    <!-- KPI 1: Cartera Total Clientes -->
+                    <div class="col-12 col-sm-6 col-lg-3">
+                        <div class="payment-kpi-card">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <span class="ds-kpi-label">Cartera Total Clientes</span>
+                                <div class="payment-kpi-icon pending-bg">
+                                    <i class="bi bi-wallet2"></i>
+                                </div>
+                            </div>
+                            <div class="payment-kpi-value fw-bold text-dark tnum" id="kpi-total-cartera" style="font-size: 22px;">
+                                <span class="spinner-border spinner-border-sm text-secondary"></span>
+                            </div>
+                            <div class="mt-2 d-flex align-items-center gap-2" id="kpi-sub-cartera">
+                                <span class="payment-kpi-trend neutral" id="kpi-pct-vigente">---%</span>
+                                <span class="text-muted" style="font-size: 11px;">cartera al día / vigente</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- KPI 2: Ventas del Mes -->
+                    <div class="col-12 col-sm-6 col-lg-3">
+                        <div class="payment-kpi-card">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <span class="ds-kpi-label">Facturación del Mes</span>
+                                <div class="payment-kpi-icon in-bg">
+                                    <i class="bi bi-graph-up-arrow"></i>
+                                </div>
+                            </div>
+                            <div class="payment-kpi-value fw-bold text-success tnum" id="kpi-ventas-mes" style="font-size: 22px;">
+                                <span class="spinner-border spinner-border-sm text-secondary"></span>
+                            </div>
+                            <div class="mt-2 d-flex align-items-center gap-2" id="kpi-sub-ventas">
+                                <span class="payment-kpi-trend positive" id="kpi-variacion-ventas">---</span>
+                                <span class="text-muted" style="font-size: 11px;">vs mes anterior</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- KPI 3: Mora Crítica (>30 días) -->
+                    <div class="col-12 col-sm-6 col-lg-3">
+                        <div class="payment-kpi-card" style="border-left: 3px solid #dc2626;">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <span class="ds-kpi-label">Mora Crítica (>30 días)</span>
+                                <div class="payment-kpi-icon out-bg">
+                                    <i class="bi bi-exclamation-triangle"></i>
+                                </div>
+                            </div>
+                            <div class="payment-kpi-value fw-bold text-danger tnum" id="kpi-mora-critica" style="font-size: 22px;">
+                                <span class="spinner-border spinner-border-sm text-secondary"></span>
+                            </div>
+                            <div class="mt-2 text-muted" style="font-size: 11px;" id="kpi-conteo-mora">
+                                <strong>0</strong> clientes en riesgo alto
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- KPI 4: Clientes Activos / Recurrencia -->
+                    <div class="col-12 col-sm-6 col-lg-3">
+                        <div class="payment-kpi-card">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <span class="ds-kpi-label">Clientes Activos (60d)</span>
+                                <div class="payment-kpi-icon blue-bg">
+                                    <i class="bi bi-people"></i>
+                                </div>
+                            </div>
+                            <div class="payment-kpi-value fw-bold text-primary tnum" id="kpi-clientes-activos" style="font-size: 22px;">
+                                <span class="spinner-border spinner-border-sm text-secondary"></span>
+                            </div>
+                            <div class="mt-2 text-muted" style="font-size: 11px;" id="kpi-total-base">
+                                Base total: <strong>0</strong> clientes
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. CONTENEDOR DE ANALÍTICA GRÁFICA (BI) -->
+                <div id="contactos-analytics-container" style="display: ${this.state.view === 'grafico' ? 'block' : 'none'};">
+                    <!-- Se inyecta dinámicamente por renderAnalyticsView -->
+                </div>
+
+                <!-- 4. CONTENEDOR DE GRILLA DE CLIENTES -->
+                <div id="contactos-table-view-container" style="display: ${this.state.view !== 'grafico' ? 'block' : 'none'};">
+                    <div class="dash-table-container mb-4 shadow-xs" style="border-radius: 12px; border: 1px solid var(--border-color); background: #ffffff;">
+                        
+                        <!-- FILTRO SUPERIOR: SEGMENTED CONTROL TABS + BUSCADOR + ORDEN -->
+                        <div class="p-3 border-bottom bg-white d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
+                            <!-- Tabs de Filtro Rápido (Segmented Control) -->
+                            <div class="payment-tabs-bar" id="contactos-segmented-tabs">
+                                <button type="button" class="payment-tab-btn ${this.state.currentFilter === 'todos' ? 'active' : ''}" data-filter="todos">
+                                    Todos <span class="payment-tab-badge" id="badge-tab-todos">0</span>
+                                </button>
+                                <button type="button" class="payment-tab-btn ${this.state.currentFilter === 'con_cartera' ? 'active' : ''}" data-filter="con_cartera">
+                                    <i class="bi bi-clock-history text-warning"></i> Con Cartera
+                                    <span class="payment-tab-badge" id="badge-tab-con-cartera">0</span>
+                                </button>
+                                <button type="button" class="payment-tab-btn tab-warning ${this.state.currentFilter === 'mora_critica' ? 'active' : ''}" data-filter="mora_critica">
+                                    <i class="bi bi-exclamation-octagon text-danger"></i> Mora Crítica
+                                    <span class="payment-tab-badge" id="badge-tab-mora-critica">0</span>
+                                </button>
+                                <button type="button" class="payment-tab-btn ${this.state.currentFilter === 'vip' ? 'active' : ''}" data-filter="vip">
+                                    <i class="bi bi-star-fill text-warning"></i> Top VIP (Pareto)
+                                </button>
+                                <button type="button" class="payment-tab-btn ${this.state.currentFilter === 'inactivos' ? 'active' : ''}" data-filter="inactivos">
+                                    <i class="bi bi-moon-stars text-secondary"></i> Inactivos (+60d)
+                                </button>
+                                <button type="button" class="payment-tab-btn ${this.state.currentFilter === 'proveedor' ? 'active' : ''}" data-filter="proveedor">
+                                    <i class="bi bi-truck text-primary"></i> Proveedores
+                                </button>
+                            </div>
+
+                            <!-- Buscador Universal y Ordenador -->
+                            <div class="d-flex align-items-center gap-2 flex-grow-1 flex-lg-grow-0">
+                                <div class="ds-search-container" style="min-width: 240px; width: 100%;">
+                                    <i class="bi bi-search ds-search-icon"></i>
+                                    <input type="text" class="ds-search-input" id="search-contacto" autocomplete="off" placeholder="Buscar cliente, NIT, ciudad..." value="${escapeHtml(this.state.searchQuery || '')}">
+                                    <i class="bi bi-x-circle text-muted" id="clearSearchBtnContactos" style="cursor: pointer; position: absolute; right: 10px; top: 50%; transform: translateY(-50%); display: ${this.state.searchQuery ? 'block' : 'none'};"></i>
+                                </div>
+
+                                <select class="form-select form-select-sm" id="sort-contactos" style="width: auto; min-width: 160px; font-size: 13px; height: 38px; border-radius: 8px;">
+                                    <option value="saldo_cartera:desc" ${this.state.sortColumn === 'saldo_cartera' && this.state.sortDirection === 'desc' ? 'selected' : ''}>💰 Mayor Saldo Cartera</option>
+                                    <option value="ventas:desc" ${this.state.sortColumn === 'ventas' && this.state.sortDirection === 'desc' ? 'selected' : ''}>📈 Mayor Ventas (LTV)</option>
+                                    <option value="mora:desc" ${this.state.sortColumn === 'mora' && this.state.sortDirection === 'desc' ? 'selected' : ''}>⚠️ Mayor Días Mora</option>
+                                    <option value="nombre:asc" ${this.state.sortColumn === 'nombre' && this.state.sortDirection === 'asc' ? 'selected' : ''}>🔤 Nombre (A - Z)</option>
+                                    <option value="nombre:desc" ${this.state.sortColumn === 'nombre' && this.state.sortDirection === 'desc' ? 'selected' : ''}>🔤 Nombre (Z - A)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- TABLA PRINCIPAL DE DATOS -->
+                        <div id="grid-contactos-container" class="position-relative">
+                            <div class="table-responsive">
+                                <table class="table table-borderless align-middle mb-0 w-100">
+                                    <thead style="background-color: #f8fafc; border-bottom: 1px solid #e2e8f0;">
+                                        <tr>
+                                            <th class="py-3 ps-4 text-uppercase text-muted fw-bold" style="font-size: 11px; letter-spacing: 0.5px; width: 40px;">
+                                                <input type="checkbox" class="form-check-input" id="check-all-contactos">
+                                            </th>
+                                            <th class="py-3 text-uppercase text-muted fw-bold" style="font-size: 11px; letter-spacing: 0.5px;">Cliente / Razón Social</th>
+                                            <th class="py-3 text-uppercase text-muted fw-bold" style="font-size: 11px; letter-spacing: 0.5px;">Contacto & Ciudad</th>
+                                            <th class="py-3 text-end text-uppercase text-muted fw-bold" style="font-size: 11px; letter-spacing: 0.5px;">Ventas Totales (LTV)</th>
+                                            <th class="py-3 text-end text-uppercase text-muted fw-bold" style="font-size: 11px; letter-spacing: 0.5px;">Cartera & Cupo</th>
+                                            <th class="py-3 text-center text-uppercase text-muted fw-bold" style="font-size: 11px; letter-spacing: 0.5px; width: 130px;">Semáforo Mora</th>
+                                            <th class="py-3 pe-4 text-end text-uppercase text-muted fw-bold" style="width: 170px;">Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tbody-contactos">
+                                        <!-- Filas inyectadas por renderGrid -->
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- Paginación Ergonómica Fija -->
+                            <div class="p-3 border-top bg-white d-flex flex-column flex-sm-row justify-content-between align-items-center gap-3 text-muted small">
+                                <div class="d-flex align-items-center gap-3">
+                                    <span>Página <strong id="current-page">1</strong> de <strong id="total-pages">1</strong></span>
+                                    <div class="btn-group">
+                                        <button class="btn btn-sm btn-light border text-muted" id="btn-prev-page"><i class="bi bi-chevron-left"></i></button>
+                                        <button class="btn btn-sm btn-light border text-muted" id="btn-next-page"><i class="bi bi-chevron-right"></i></button>
+                                    </div>
+                                </div>
+                                <div class="d-flex align-items-center gap-3">
+                                    <span class="d-flex align-items-center gap-2">
+                                        Por página:
+                                        <select id="items-per-page" class="form-select form-select-sm border bg-light text-muted fw-bold" style="width: 70px; border-radius: 6px; cursor: pointer;">
+                                            <option value="10">10</option>
+                                            <option value="25" selected>25</option>
+                                            <option value="50">50</option>
+                                            <option value="100">100</option>
+                                        </select>
+                                    </span>
+                                    <span id="showing-count">0-0 de 0</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CONTENEDOR PARA FORMULARIO DE ACCIÓN / CREACIÓN (OCULTO POR DEFECTO) -->
+                <div id="contactos-action-view" class="view-container p-4" style="display: none;"></div>
+
+            </div>
+
+            <!-- SLIDE-OVER DRAWER LATERAL 360° (OFFCANVAS) -->
+            <div class="payment-drawer-backdrop" id="cliente-drawer-backdrop"></div>
+            <div class="payment-drawer" id="cliente-drawer" style="width: 640px; max-width: 95vw;">
+                <div class="payment-drawer-header">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-person-badge-fill text-primary fs-5"></i>
+                        <h5 class="fw-bold mb-0" style="color: #0f172a; font-size: 16px;">Perfil Comercial & Cartera 360°</h5>
+                    </div>
+                    <div class="d-flex align-items-center gap-1">
+                        <button type="button" class="btn btn-sm btn-light border-0 text-muted" id="btn-drawer-close" title="Cerrar panel (ESC)">
+                            <i class="bi bi-x-lg fs-6"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="payment-drawer-body" id="cliente-drawer-body">
+                    <!-- Contenido inyectado dinámicamente -->
+                </div>
+                <div class="payment-drawer-footer" id="cliente-drawer-footer">
+                    <button type="button" class="btn btn-light border btn-sm px-3 fw-medium" id="btn-drawer-close-bottom">
+                        Cerrar
+                    </button>
+                    <div class="d-flex gap-2" id="cliente-drawer-actions">
+                        <!-- Botones de acción inyectados dinámicamente -->
+                    </div>
+                </div>
+            </div>
+        `;
+    },
+
+    renderGridLoading() {
+        const tbody = this.element.querySelector('#tbody-contactos');
+        if (!tbody) return;
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="7" class="text-center py-5">
+                    <div class="spinner-border text-primary mb-2" role="status">
+                        <span class="visually-hidden">Cargando...</span>
+                    </div>
+                    <div class="text-muted small">Cargando datos contables y cartera...</div>
+                </td>
+            </tr>
+        `;
     },
 
     renderGrid(rows, totalCount) {
-        const wrapper = this.element.querySelector('#tabla-contactos-wrapper');
-        if (wrapper) wrapper.style.display = 'block';
-
-        const container = this.element.querySelector('#tbody-contactos');
-        if (!container) return;
+        const tbody = this.element.querySelector('#tbody-contactos');
+        if (!tbody) return;
 
         const { currentPage, itemsPerPage } = this.state;
         const startIndex = (currentPage - 1) * itemsPerPage;
-        const endIndex   = Math.min(startIndex + rows.length, totalCount);
+        const endIndex = Math.min(startIndex + rows.length, totalCount);
         const totalPages = Math.ceil(totalCount / itemsPerPage) || 1;
 
-        // Renderizado de filas
         if (rows.length === 0) {
-            container.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted">No se encontraron contactos que coincidan con la búsqueda.</td></tr>`;
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" class="text-center py-5 text-muted">
+                        <i class="bi bi-people fs-1 d-block mb-2 text-secondary opacity-50"></i>
+                        <span class="fw-medium">No se encontraron contactos que coincidan con los criterios.</span>
+                    </td>
+                </tr>
+            `;
         } else {
             let html = '';
             rows.forEach(c => {
-                const inicial    = c.nombre ? c.nombre.charAt(0).toUpperCase() : '?';
+                const avatar = getClientAvatar(c.nombre);
+                const saldoCartera = parseFloat(c.saldo_cartera || 0);
+                const maxMora = parseInt(c.max_dias_mora || 0);
+                const ventasLTV = parseFloat(c.ventas_totales_ltv || 0);
+                const cupoCredito = parseFloat(c.cupo_credito || 0);
+                const pctCupo = cupoCredito > 0 ? Math.min(100, Math.round((saldoCartera / cupoCredito) * 100)) : 0;
+
+                // Color de la barra de cupo
+                let barColor = '#059669'; // verde
+                if (pctCupo >= 90) barColor = '#dc2626'; // rojo
+                else if (pctCupo >= 70) barColor = '#d97706'; // amarillo
+
+                // Badges de cliente / proveedor / VIP
                 let badges = [];
-                if (c.es_cliente) {
-                    badges.push(`<span class="badge bg-success text-success bg-opacity-10 border border-success-subtle rounded-pill fw-medium" style="font-size: var(--fs-xs); padding: 5px 10px;">Cliente</span>`);
+                if (ventasLTV >= 10000000) {
+                    badges.push(`<span class="badge bg-warning text-dark border border-warning-subtle rounded-pill fw-bold" style="font-size: 10px; padding: 2px 7px;"><i class="bi bi-star-fill me-1"></i> VIP</span>`);
+                }
+                if (c.es_cliente !== false) {
+                    badges.push(`<span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill fw-medium" style="font-size: 10px; padding: 2px 7px;">Cliente</span>`);
                 }
                 if (c.es_proveedor) {
-                    badges.push(`<span class="badge bg-primary text-primary bg-opacity-10 border border-primary-subtle rounded-pill fw-medium" style="font-size: var(--fs-xs); padding: 5px 10px;">Proveedor</span>`);
+                    badges.push(`<span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill fw-medium" style="font-size: 10px; padding: 2px 7px;">Proveedor</span>`);
                 }
-                if (badges.length === 0) {
-                    // Fallback
-                    const isCliente = (c.tipo || '').toLowerCase() === 'cliente';
-                    const isProveedor = (c.tipo || '').toLowerCase() === 'proveedor';
-                    if (isCliente) badges.push(`<span class="badge bg-success text-success bg-opacity-10 border border-success-subtle rounded-pill fw-medium" style="font-size: var(--fs-xs); padding: 5px 10px;">Cliente</span>`);
-                    else if (isProveedor) badges.push(`<span class="badge bg-primary text-primary bg-opacity-10 border border-primary-subtle rounded-pill fw-medium" style="font-size: var(--fs-xs); padding: 5px 10px;">Proveedor</span>`);
-                    else badges.push(`<span class="badge bg-light text-dark border rounded-pill fw-medium" style="font-size: var(--fs-xs); padding: 5px 10px;">${c.tipo || '-'}</span>`);
-                }
-                const tipoBadge = badges.join('&nbsp;');
+                const badgeHtml = badges.join(' ');
 
                 html += `
-                    <tr data-id="${c.id}" style="cursor: pointer; border-bottom: 1px solid var(--border-color); font-size: var(--fs-base); color: var(--text-body);" onclick="if(!event.target.closest('button') && !event.target.closest('input')) window.location.hash = '#/contactos/ver/${c.id}'">
-                        <td class="py-2"><input type="checkbox" class="form-check-input contact-check"></td>
-                        <td class="py-2">
-                            <div class="d-flex align-items-center gap-3">
-                                <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold flex-shrink-0" style="width: 32px; height: 32px; background-color: var(--primary); font-size: var(--fs-md);">
-                                    ${inicial}
+                    <tr class="payment-row row-contacto" data-id="${c.id}" style="cursor: pointer;">
+                        <!-- Checkbox -->
+                        <td class="py-3 ps-4" onclick="event.stopPropagation()">
+                            <input type="checkbox" class="form-check-input contact-check" data-id="${c.id}">
+                        </td>
+
+                        <!-- Cliente / Razón Social con Avatar Hash -->
+                        <td class="py-3">
+                            <div class="d-flex align-items-center gap-2.5">
+                                <div class="payment-avatar" style="background-color: ${avatar.bg}; color: ${avatar.color};">
+                                    ${avatar.initials}
                                 </div>
-                                <span class="fw-medium text-dark text-capitalize text-truncate" style="max-width: 200px;">${c.nombre ? escapeHtml(c.nombre.toLowerCase()) : ''}</span>
+                                <div class="text-truncate" style="max-width: 250px;">
+                                    <div class="fw-bold text-dark text-truncate" title="${escapeHtml(c.nombre)}" style="font-size: 13.5px;">
+                                        ${escapeHtml(c.nombre)}
+                                    </div>
+                                    <div class="text-muted d-flex align-items-center gap-1.5" style="font-size: 11px;">
+                                        <span>${c.nit ? `NIT: ${escapeHtml(c.nit)}` : 'Sin NIT'}</span>
+                                        ${badgeHtml ? `<span>• ${badgeHtml}</span>` : ''}
+                                    </div>
+                                </div>
                             </div>
                         </td>
-                        <td class="py-2 text-muted">${escapeHtml(c.nit) || '-'}</td>
-                        <td class="py-2 text-muted">${escapeHtml(c.telefono) || '-'}</td>
-                        <td class="py-2">${tipoBadge}</td>
-                        <td class="py-2 text-end">
-                            <button class="btn btn-sm btn-light text-muted btn-editar me-1" data-id="${c.id}" title="Editar"><i class="bi bi-pencil"></i></button>
-                            <div class="dropdown d-inline-block">
-                                <button class="btn btn-sm btn-light text-muted border-0" data-bs-toggle="dropdown"><i class="bi bi-three-dots-vertical"></i></button>
-                                <ul class="dropdown-menu dropdown-menu-end shadow-sm">
-                                    <li><a class="dropdown-item btn-ver" href="#" data-id="${c.id}">Ver detalles</a></li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item text-danger btn-eliminar" href="#" data-id="${c.id}">Eliminar</a></li>
-                                </ul>
+
+                        <!-- Contacto & Ciudad -->
+                        <td class="py-3">
+                            <div style="font-size: 12.5px;" class="fw-medium text-dark">
+                                ${c.telefono ? `<i class="bi bi-telephone text-muted me-1"></i>${escapeHtml(c.telefono)}` : '<span class="text-muted">Sin teléfono</span>'}
+                            </div>
+                            <div class="text-muted" style="font-size: 11px;">
+                                ${c.ciudad ? `<i class="bi bi-geo-alt me-1"></i>${escapeHtml(c.ciudad)}` : ''}
+                                ${c.vendedor_nombre ? `<span>• Vend: ${escapeHtml(c.vendedor_nombre)}</span>` : ''}
+                            </div>
+                        </td>
+
+                        <!-- Ventas Totales LTV -->
+                        <td class="py-3 text-end">
+                            <div class="fw-bold text-dark tnum" style="font-size: 13.5px;">
+                                ${this.formatMoney(ventasLTV)}
+                            </div>
+                            <div class="text-muted" style="font-size: 11px;">
+                                ${c.total_facturas || 0} ${c.total_facturas === 1 ? 'factura' : 'facturas'}
+                            </div>
+                        </td>
+
+                        <!-- Cartera & Utilización de Cupo -->
+                        <td class="py-3 text-end">
+                            <div class="fw-bold ${saldoCartera > 0 ? 'text-danger' : 'text-success'} tnum" style="font-size: 14px;">
+                                ${saldoCartera > 0 ? this.formatMoney(saldoCartera) : '$ 0'}
+                            </div>
+                            ${cupoCredito > 0 ? `
+                                <div class="d-flex align-items-center justify-content-end gap-1 mt-1" style="font-size: 10px;" title="Cupo utilizado: ${pctCupo}% (${this.formatMoney(saldoCartera)} / ${this.formatMoney(cupoCredito)})">
+                                    <span class="text-muted">${pctCupo}% cupo</span>
+                                    <div class="progress" style="width: 50px; height: 5px; background-color: #f1f5f9;">
+                                        <div class="progress-bar" style="width: ${pctCupo}%; background-color: ${barColor};"></div>
+                                    </div>
+                                </div>
+                            ` : `
+                                <div class="text-muted" style="font-size: 10.5px;">
+                                    ${c.facturas_pendientes > 0 ? `${c.facturas_pendientes} pendientes` : 'Al día'}
+                                </div>
+                            `}
+                        </td>
+
+                        <!-- Semáforo de Mora -->
+                        <td class="py-3 text-center">
+                            ${this.getMoraBadge(maxMora, saldoCartera)}
+                        </td>
+
+                        <!-- Acciones en Hover / Foco -->
+                        <td class="py-3 pe-4 text-end" onclick="event.stopPropagation()">
+                            <div class="payment-row-actions">
+                                <!-- Botón Ver Perfil 360° -->
+                                <button class="btn btn-sm btn-light border btn-ver-drawer shadow-xs" data-id="${c.id}" title="Abrir Ficha 360°" style="border-radius: 6px; width: 32px; height: 30px; padding: 0;">
+                                    <i class="bi bi-eye text-primary"></i>
+                                </button>
+
+                                <!-- Botón WhatsApp Cobro -->
+                                <button class="btn btn-sm btn-light border btn-wpp-cliente shadow-xs" data-id="${c.id}" title="Cobrar por WhatsApp" style="border-radius: 6px; width: 32px; height: 30px; padding: 0;">
+                                    <i class="bi bi-whatsapp text-success"></i>
+                                </button>
+
+                                <!-- Botón Facturar -->
+                                <a href="#/ingresos/facturas/nueva?cliente=${c.id}" class="btn btn-sm btn-light border shadow-xs" title="Crear Factura de Venta" style="border-radius: 6px; width: 32px; height: 30px; padding: 0; display: inline-flex; align-items: center; justify-content: center;">
+                                    <i class="bi bi-plus-lg text-secondary"></i>
+                                </a>
+
+                                <!-- Menú Dropdown -->
+                                <div class="dropdown d-inline-block">
+                                    <button class="btn btn-sm btn-light border-0 shadow-none text-muted" data-bs-toggle="dropdown" style="width: 26px; height: 30px; padding: 0;">
+                                        <i class="bi bi-three-dots-vertical"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                                        <li><a class="dropdown-item btn-editar" href="#" data-id="${c.id}"><i class="bi bi-pencil me-2 text-muted"></i> Editar datos</a></li>
+                                        <li><a class="dropdown-item btn-ver-drawer" href="#" data-id="${c.id}"><i class="bi bi-file-earmark-person me-2 text-muted"></i> Ficha 360°</a></li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li><a class="dropdown-item text-danger btn-eliminar" href="#" data-id="${c.id}"><i class="bi bi-trash me-2"></i> Desactivar contacto</a></li>
+                                    </ul>
+                                </div>
                             </div>
                         </td>
                     </tr>
                 `;
             });
-            container.innerHTML = html;
+            tbody.innerHTML = html;
         }
 
-        // UI Paginación
-        const paginasEl      = this.element.querySelector('#current-page');
-        const totalPagEl     = this.element.querySelector('#total-pages');
+        // Paginación UI
+        const paginasEl = this.element.querySelector('#current-page');
+        const totalPagEl = this.element.querySelector('#total-pages');
         const showingCountEl = this.element.querySelector('#showing-count');
-        const prevBtn        = this.element.querySelector('#btn-prev-page');
-        const nextBtn        = this.element.querySelector('#btn-next-page');
+        const prevBtn = this.element.querySelector('#btn-prev-page');
+        const nextBtn = this.element.querySelector('#btn-next-page');
 
-        if (paginasEl)      paginasEl.textContent  = currentPage;
-        if (totalPagEl)     totalPagEl.textContent  = totalPages;
-        if (showingCountEl) showingCountEl.textContent = totalCount > 0
-            ? `${startIndex + 1}-${endIndex} de ${totalCount}`
-            : '0-0 de 0';
+        if (paginasEl) paginasEl.textContent = currentPage;
+        if (totalPagEl) totalPagEl.textContent = totalPages;
+        if (showingCountEl) showingCountEl.textContent = totalCount > 0 ? `${startIndex + 1}-${endIndex} de ${totalCount}` : '0-0 de 0';
         if (prevBtn) prevBtn.disabled = (currentPage === 1);
         if (nextBtn) nextBtn.disabled = (currentPage >= totalPages);
 
         this.bindFilaEvents();
     },
 
+    renderKpis(kpis = {}) {
+        const formatMoney = this.formatMoney;
+
+        // KPI 1: Cartera
+        const kpiCartera = this.element.querySelector('#kpi-total-cartera');
+        const kpiPctVigente = this.element.querySelector('#kpi-pct-vigente');
+        if (kpiCartera) kpiCartera.textContent = formatMoney(kpis.total_cartera || 0);
+        if (kpiPctVigente) {
+            kpiPctVigente.textContent = `${kpis.pct_vigente || 100}% vigente`;
+            kpiPctVigente.className = `payment-kpi-trend ${(kpis.pct_vigente || 100) >= 75 ? 'positive' : 'negative'}`;
+        }
+
+        // KPI 2: Ventas
+        const kpiVentas = this.element.querySelector('#kpi-ventas-mes');
+        const kpiVarVentas = this.element.querySelector('#kpi-variacion-ventas');
+        if (kpiVentas) kpiVentas.textContent = formatMoney(kpis.ventas_mes_actual || 0);
+        if (kpiVarVentas) {
+            const v = kpis.variacion_ventas || 0;
+            kpiVarVentas.textContent = `${v >= 0 ? '+' : ''}${v}%`;
+            kpiVarVentas.className = `payment-kpi-trend ${v >= 0 ? 'positive' : 'negative'}`;
+        }
+
+        // KPI 3: Mora Crítica
+        const kpiMora = this.element.querySelector('#kpi-mora-critica');
+        const kpiConteoMora = this.element.querySelector('#kpi-conteo-mora');
+        if (kpiMora) kpiMora.textContent = formatMoney(kpis.mora_critica_saldo || 0);
+        if (kpiConteoMora) {
+            kpiConteoMora.innerHTML = `<strong>${kpis.clientes_mora_critica || 0}</strong> clientes en mora >30d`;
+        }
+
+        // KPI 4: Clientes Activos
+        const kpiActivos = this.element.querySelector('#kpi-clientes-activos');
+        const kpiBase = this.element.querySelector('#kpi-total-base');
+        if (kpiActivos) kpiActivos.textContent = `${kpis.clientes_activos_60d || 0} activos`;
+        if (kpiBase) {
+            kpiBase.innerHTML = `Base total: <strong>${kpis.total_clientes || 0}</strong> clientes`;
+        }
+
+        // Segmented Tabs Badges
+        const bTodos = this.element.querySelector('#badge-tab-todos');
+        const bCartera = this.element.querySelector('#badge-tab-con-cartera');
+        const bMora = this.element.querySelector('#badge-tab-mora-critica');
+        if (bTodos) bTodos.textContent = kpis.total_contactos || 0;
+        if (bCartera) bCartera.textContent = kpis.conteo_con_cartera || 0;
+        if (bMora) bMora.textContent = kpis.clientes_mora_critica || 0;
+    },
+
+    renderDrawerContent(data) {
+        const { contacto, facturasPendientes, totalSaldoPendiente, maxDiasMora, historialFacturas, historialPagos } = data;
+        const avatar = getClientAvatar(contacto.nombre);
+        const formatMoney = this.formatMoney;
+        const formatFecha = this.formatFecha;
+
+        const cupo = parseFloat(contacto.cupo_credito || contacto.cupoCredito || 0);
+        const pctCupo = cupo > 0 ? Math.min(100, Math.round((totalSaldoPendiente / cupo) * 100)) : 0;
+
+        return `
+            <!-- HEADER DE IDENTIDAD -->
+            <div class="d-flex align-items-center gap-3 p-3 bg-light rounded-3 mb-4 border">
+                <div class="payment-avatar" style="background-color: ${avatar.bg}; color: ${avatar.color}; width: 48px; height: 48px; font-size: 18px; border-radius: 12px;">
+                    ${avatar.initials}
+                </div>
+                <div class="flex-grow-1 text-truncate">
+                    <h5 class="fw-bold mb-1 text-dark text-truncate">${escapeHtml(contacto.nombre)}</h5>
+                    <div class="text-muted d-flex flex-wrap align-items-center gap-2" style="font-size: 12px;">
+                        <span><strong class="text-secondary">NIT:</strong> ${escapeHtml(contacto.nit || contacto.identificacion || 'Sin NIT')}</span>
+                        <span>•</span>
+                        <span>${escapeHtml(contacto.ciudad || 'Sin ciudad')}</span>
+                        <span>•</span>
+                        <span class="badge ${contacto.es_cliente !== false ? 'bg-success' : 'bg-secondary'} bg-opacity-10 text-${contacto.es_cliente !== false ? 'success' : 'secondary'} border rounded-pill">
+                            ${escapeHtml(contacto.tipo || (contacto.es_cliente !== false ? 'Cliente' : 'Proveedor'))}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SCORECARD FINANCIERO -->
+            <div class="row g-2 mb-4">
+                <div class="col-4">
+                    <div class="p-3 border rounded-3 text-center bg-white">
+                        <div class="text-muted text-uppercase fw-bold" style="font-size: 10px; letter-spacing: 0.5px;">Saldo Pendiente</div>
+                        <div class="fw-bold tnum ${totalSaldoPendiente > 0 ? 'text-danger' : 'text-success'} mt-1" style="font-size: 16px;">
+                            ${formatMoney(totalSaldoPendiente)}
+                        </div>
+                        <div class="text-muted small" style="font-size: 10px;">
+                            ${facturasPendientes.length} ${facturasPendientes.length === 1 ? 'factura' : 'facturas'}
+                        </div>
+                    </div>
+                </div>
+                <div class="col-4">
+                    <div class="p-3 border rounded-3 text-center bg-white">
+                        <div class="text-muted text-uppercase fw-bold" style="font-size: 10px; letter-spacing: 0.5px;">Mora Máxima</div>
+                        <div class="fw-bold tnum ${maxDiasMora > 30 ? 'text-danger' : (maxDiasMora > 0 ? 'text-warning-emphasis' : 'text-success')} mt-1" style="font-size: 16px;">
+                            ${maxDiasMora > 0 ? `${maxDiasMora} días` : 'Al día'}
+                        </div>
+                        <div class="text-muted small" style="font-size: 10px;">
+                            Plazo: ${contacto.plazos_pago || contacto.plazosPago || 0}d
+                        </div>
+                    </div>
+                </div>
+                <div class="col-4">
+                    <div class="p-3 border rounded-3 text-center bg-white">
+                        <div class="text-muted text-uppercase fw-bold" style="font-size: 10px; letter-spacing: 0.5px;">Cupo Crédito</div>
+                        <div class="fw-bold tnum text-dark mt-1" style="font-size: 16px;">
+                            ${cupo > 0 ? formatMoney(cupo) : 'Sin cupo'}
+                        </div>
+                        <div class="text-muted small" style="font-size: 10px;">
+                            ${cupo > 0 ? `${pctCupo}% utilizado` : 'Venta de contado'}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TABS INTERNOS DEL DRAWER -->
+            <ul class="nav nav-tabs border-bottom mb-3" id="drawer-cliente-tabs">
+                <li class="nav-item">
+                    <button class="nav-link active fw-medium" data-bs-toggle="tab" data-bs-target="#tab-drawer-facturas" style="font-size: 12.5px;">
+                        <i class="bi bi-clock-history me-1"></i> Facturas Pendientes (${facturasPendientes.length})
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link fw-medium text-muted" data-bs-toggle="tab" data-bs-target="#tab-drawer-historial" style="font-size: 12.5px;">
+                        <i class="bi bi-receipt me-1"></i> Recibos de Caja (${historialPagos.length})
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link fw-medium text-muted" data-bs-toggle="tab" data-bs-target="#tab-drawer-ficha" style="font-size: 12.5px;">
+                        <i class="bi bi-card-text me-1"></i> Ficha Comercial
+                    </button>
+                </li>
+            </ul>
+
+            <div class="tab-content">
+                <!-- TAB 1: FACTURAS PENDIENTES -->
+                <div class="tab-pane fade show active" id="tab-drawer-facturas">
+                    ${facturasPendientes.length > 0 ? `
+                        <div class="table-responsive">
+                            <table class="table table-sm table-borderless align-middle mb-0" style="font-size: 12px;">
+                                <thead class="bg-light text-muted">
+                                    <tr>
+                                        <th class="py-2">Factura</th>
+                                        <th class="py-2">Vence</th>
+                                        <th class="py-2 text-end">Total</th>
+                                        <th class="py-2 text-end">Saldo</th>
+                                        <th class="py-2 text-end">Acción</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${facturasPendientes.map(f => `
+                                        <tr class="border-bottom">
+                                            <td class="py-2">
+                                                <a href="#/ingresos/facturas/ver/${f.id}" class="fw-bold text-primary text-decoration-none" title="Ver factura">
+                                                    # ${escapeHtml(f.numero || f.id)}
+                                                </a>
+                                                <div class="text-muted" style="font-size: 10px;">${formatFecha(f.fecha)}</div>
+                                            </td>
+                                            <td class="py-2">
+                                                ${this.getMoraBadge(f.diasMora, parseFloat(f.saldo))}
+                                            </td>
+                                            <td class="py-2 text-end tnum text-muted">
+                                                ${formatMoney(f.total)}
+                                            </td>
+                                            <td class="py-2 text-end tnum fw-bold text-danger">
+                                                ${formatMoney(f.saldo)}
+                                            </td>
+                                            <td class="py-2 text-end">
+                                                <button class="btn btn-sm btn-outline-success btn-abonar-factura-drawer py-0 px-2" data-id="${f.id}" data-saldo="${f.saldo}" style="font-size: 11px; border-radius: 6px;" title="Registrar Abono a esta factura">
+                                                    <i class="bi bi-cash-stack me-1"></i> Abonar
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    ` : `
+                        <div class="text-center py-4 text-muted bg-light rounded-3">
+                            <i class="bi bi-check2-circle text-success fs-2 d-block mb-1"></i>
+                            <span class="fw-medium">Este cliente no tiene facturas pendientes de cobro.</span>
+                        </div>
+                    `}
+                </div>
+
+                <!-- TAB 2: RECIBOS DE CAJA / HISTORIAL PAGOS -->
+                <div class="tab-pane fade" id="tab-drawer-historial">
+                    ${historialPagos.length > 0 ? `
+                        <div class="table-responsive">
+                            <table class="table table-sm table-borderless align-middle mb-0" style="font-size: 12px;">
+                                <thead class="bg-light text-muted">
+                                    <tr>
+                                        <th class="py-2">Recibo</th>
+                                        <th class="py-2">Fecha</th>
+                                        <th class="py-2">Método / Cuenta</th>
+                                        <th class="py-2 text-end">Monto</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${historialPagos.map(p => `
+                                        <tr class="border-bottom">
+                                            <td class="py-2">
+                                                <span class="payment-code-badge"># ${escapeHtml(p.numero_recibo || p.numero || p.id)}</span>
+                                            </td>
+                                            <td class="py-2 text-muted">${formatFecha(p.fecha)}</td>
+                                            <td class="py-2">
+                                                <span class="badge bg-light text-dark border">${escapeHtml(p.metodo_pago || p.categoria || 'Recibo')}</span>
+                                            </td>
+                                            <td class="py-2 text-end tnum fw-bold text-success">
+                                                ${formatMoney(p.monto)}
+                                            </td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    ` : `
+                        <div class="text-center py-4 text-muted bg-light rounded-3">
+                            <i class="bi bi-receipt text-secondary fs-2 d-block mb-1"></i>
+                            <span class="fw-medium">No se registran recibos de caja recientes para este contacto.</span>
+                        </div>
+                    `}
+                </div>
+
+                <!-- TAB 3: FICHA COMERCIAL -->
+                <div class="tab-pane fade" id="tab-drawer-ficha">
+                    <div class="p-3 bg-light rounded-3 border">
+                        <div class="row g-2" style="font-size: 12.5px;">
+                            <div class="col-6">
+                                <span class="text-muted d-block small">Teléfono / WhatsApp</span>
+                                <strong>${escapeHtml(contacto.telefono || 'No registrado')}</strong>
+                            </div>
+                            <div class="col-6">
+                                <span class="text-muted d-block small">Correo Electrónico</span>
+                                <strong>${escapeHtml(contacto.email || 'No registrado')}</strong>
+                            </div>
+                            <div class="col-12 mt-2">
+                                <span class="text-muted d-block small">Dirección & Ciudad</span>
+                                <strong>${escapeHtml(contacto.direccion || '')} ${contacto.ciudad ? `(${escapeHtml(contacto.ciudad)})` : ''}</strong>
+                            </div>
+                            <div class="col-6 mt-2">
+                                <span class="text-muted d-block small">Régimen Tributario</span>
+                                <strong>${escapeHtml(contacto.regimen || 'Regimen Simplificado')}</strong>
+                            </div>
+                            <div class="col-6 mt-2">
+                                <span class="text-muted d-block small">Días de Plazo</span>
+                                <strong>${escapeHtml(contacto.plazos_pago || contacto.plazosPago || 0)} días</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    },
+
+    async renderAnalyticsView() {
+        const container = this.element.querySelector('#contactos-analytics-container');
+        if (!container) return;
+
+        container.innerHTML = `
+            <div class="dash-table-container p-4 mb-4 shadow-xs" style="border-radius: 12px; border: 1px solid var(--border-color); background: #ffffff;">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h4 class="fw-bold mb-1" style="font-size: 18px; color: #0f172a;">Analítica Comercial & Concentración de Clientes</h4>
+                        <p class="text-muted mb-0 small">Análisis de la Regla de Pareto (80/20) y envejecimiento de la cartera de clientes.</p>
+                    </div>
+                </div>
+
+                <div class="row g-4">
+                    <!-- Gráfico 1: Top Clientes Pareto -->
+                    <div class="col-12 col-lg-7">
+                        <div class="p-3 border rounded-3 bg-light h-100">
+                            <h6 class="fw-bold text-dark mb-1">Top 10 Clientes por Facturación Acumulada</h6>
+                            <span class="text-muted small d-block mb-3">Concentración de ventas por cliente</span>
+                            <div style="height: 280px; position: relative;">
+                                <canvas id="chart-clientes-pareto"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Gráfico 2: Aging de Cartera -->
+                    <div class="col-12 col-lg-5">
+                        <div class="p-3 border rounded-3 bg-light h-100">
+                            <h6 class="fw-bold text-dark mb-1">Aging de Cartera (Morosidad por Tramos)</h6>
+                            <span class="text-muted small d-block mb-3">Distribución del saldo pendiente por antigüedad</span>
+                            <div style="height: 280px; position: relative;">
+                                <canvas id="chart-cartera-aging"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        const { topClients, aging } = await this.fetchAnalyticsData();
+
+        // Cargar Chart.js si no está presente
+        if (typeof Chart === 'undefined') {
+            await new Promise((resolve) => {
+                const s = document.createElement('script');
+                s.src = 'https://cdn.jsdelivr.net/npm/chart.js';
+                s.onload = resolve;
+                document.head.appendChild(s);
+            });
+        }
+
+        // Gráfico 1: Pareto
+        const ctxPareto = document.getElementById('chart-clientes-pareto');
+        if (ctxPareto) {
+            if (window.myClientesParetoChart) window.myClientesParetoChart.destroy();
+            window.myClientesParetoChart = new Chart(ctxPareto, {
+                type: 'bar',
+                data: {
+                    labels: topClients.map(c => c[0].length > 15 ? c[0].substring(0, 13) + '..' : c[0]),
+                    datasets: [{
+                        label: 'Ventas ($)',
+                        data: topClients.map(c => c[1]),
+                        backgroundColor: '#2563eb',
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { display: false } },
+                        y: {
+                            ticks: {
+                                callback: v => '$' + (v >= 1000000 ? (v / 1000000).toFixed(1) + 'M' : (v / 1000).toFixed(0) + 'k')
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Gráfico 2: Aging Donut
+        const ctxAging = document.getElementById('chart-cartera-aging');
+        if (ctxAging) {
+            if (window.myCarteraAgingChart) window.myCarteraAgingChart.destroy();
+            window.myCarteraAgingChart = new Chart(ctxAging, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Al día / Vigente', 'Mora 1-30 días', 'Mora 31-60 días', 'Mora >60 días'],
+                    datasets: [{
+                        data: [aging.vigente, aging.mora1_30, aging.mora31_60, aging.moraMas60],
+                        backgroundColor: ['#10b981', '#f59e0b', '#f97316', '#dc2626']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } }
+                    },
+                    cutout: '65%'
+                }
+            });
+        }
+    },
+
     async renderForm(id = null) {
-        const listView = this.element.querySelector('#contactos-list-view');
+        const listView = this.element.querySelector('#contactos-main-layout');
         const actionView = this.element.querySelector('#contactos-action-view');
         if (!listView || !actionView) return;
 
-        listView.style.display = 'none';
+        this.element.querySelector('#contactos-table-view-container').style.display = 'none';
+        this.element.querySelector('#contactos-kpi-row').style.display = 'none';
+        const analyticsEl = this.element.querySelector('#contactos-analytics-container');
+        if (analyticsEl) analyticsEl.style.display = 'none';
+
         actionView.style.display = 'block';
 
-        const tabs = this.element.querySelector('#contactos-tabs');
-        if (tabs) tabs.style.display = 'none';
-        const kpiRow = this.element.querySelector('#contactos-kpi-row');
-        if (kpiRow) kpiRow.style.display = 'none';
-
         let contacto = { nombre: '', nit: '', tipo: 'cliente', telefono: '', email: '', ciudad: '', direccion: '', regimen: 'Regimen Simplificado', cupoCredito: 0, plazosPago: 0 };
-        
+
         if (id) {
-            contacto = await DB.get('contactos', id) || contacto;
+            const db = this.getDB ? await this.getDB() : (typeof window !== 'undefined' ? window.DB : null);
+            contacto = db ? (await db.get('contactos', id)) || contacto : contacto;
         }
 
-        const { data: vendedoresActivos } = await supabase.from('vendedores').select('id, nombre').eq('estado', 'activo').order('nombre');
+        const supabase = this.getSupabase ? await this.getSupabase() : null;
+        const { data: vendedoresActivos } = supabase
+            ? await supabase.from('vendedores').select('id, nombre').eq('estado', 'activo').order('nombre')
+            : { data: [] };
 
         actionView.innerHTML = `
-            <div class="form-hoja-completa bg-white rounded">
+            <div class="form-hoja-completa bg-white rounded p-4 border shadow-xs" style="border-radius: 12px;">
                 <div class="d-flex align-items-center mb-3">
                     <button id="btn-cancelar-contacto"
                         class="btn btn-link text-decoration-none p-0 me-3 d-flex align-items-center"
@@ -140,11 +894,11 @@ export const ContactosTemplates = {
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="form-label text-muted small fw-medium">Nombre o Razón Social *</label>
-                            <input type="text" id="form-nombre" class="form-control form-control-sm" value="${escapeHtml(contacto.nombre)}" required>
+                            <input type="text" id="form-nombre" class="form-control form-control-sm" value="${escapeHtml(contacto.nombre || '')}" required>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label text-muted small fw-medium">NIT o Cédula *</label>
-                            <input type="text" id="form-nit" class="form-control form-control-sm" value="${escapeHtml(contacto.nit)}" required>
+                            <input type="text" id="form-nit" class="form-control form-control-sm" value="${escapeHtml(contacto.nit || contacto.identificacion || '')}" required>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label text-muted small fw-medium d-block">Tipo de Contacto <span class="text-danger">*</span></label>
@@ -189,16 +943,16 @@ export const ContactosTemplates = {
                         </div>
                         <div class="col-md-4">
                             <label class="form-label text-muted small fw-medium">Cupo de Crédito ($)</label>
-                            <input type="number" id="form-cupo" class="form-control form-control-sm" value="${escapeHtml(contacto.cupoCredito) || 0}">
+                            <input type="number" id="form-cupo" class="form-control form-control-sm" value="${escapeHtml(contacto.cupoCredito || contacto.cupo_credito) || 0}">
                         </div>
                         <div class="col-md-4">
                             <label class="form-label text-muted small fw-medium">Plazos de Pago (Días)</label>
-                            <input type="number" id="form-plazos" class="form-control form-control-sm" value="${escapeHtml(contacto.plazosPago) || 0}">
+                            <input type="number" id="form-plazos" class="form-control form-control-sm" value="${escapeHtml(contacto.plazosPago || contacto.plazos_pago) || 0}">
                         </div>
                     </div>
                     <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
                         <button type="button" class="btn btn-light" id="btn-cancelar-form">Cancelar</button>
-                        <button type="submit" class="btn btn-primary" style="background-color: var(--primary); border: none;">Guardar Contacto</button>
+                        <button type="submit" class="btn btn-primary-action">Guardar Contacto</button>
                     </div>
                 </form>
             </div>
@@ -216,7 +970,7 @@ export const ContactosTemplates = {
 
         this.element.querySelector('#form-contacto-data')?.addEventListener('submit', async (e) => {
             e.preventDefault();
-            
+
             const esCliente = this.element.querySelector('#form-es-cliente').checked;
             const esProveedor = this.element.querySelector('#form-es-proveedor').checked;
             if (!esCliente && !esProveedor) {
@@ -227,6 +981,7 @@ export const ContactosTemplates = {
             const datos = {
                 nombre: this.element.querySelector('#form-nombre').value,
                 nit: this.element.querySelector('#form-nit').value,
+                identificacion: this.element.querySelector('#form-nit').value,
                 es_cliente: esCliente,
                 es_proveedor: esProveedor,
                 tipo: esProveedor && !esCliente ? 'proveedor' : 'cliente',
@@ -236,364 +991,31 @@ export const ContactosTemplates = {
                 ciudad: this.element.querySelector('#form-ciudad').value,
                 direccion: this.element.querySelector('#form-direccion').value,
                 regimen: this.element.querySelector('#form-regimen').value,
-                cupoCredito: parseFloat(this.element.querySelector('#form-cupo').value) || 0,
-                plazosPago: parseInt(this.element.querySelector('#form-plazos').value) || 0
+                cupo_credito: parseFloat(this.element.querySelector('#form-cupo').value) || 0,
+                plazos_pago: parseInt(this.element.querySelector('#form-plazos').value) || 0
             };
 
             const nuevoContacto = {
                 id: id || 'cont_' + Date.now(),
                 ...datos
             };
-            await DB.save('contactos', nuevoContacto);
+            const db = this.getDB ? await this.getDB() : (typeof window !== 'undefined' ? window.DB : null);
+            if (db) await db.save('contactos', nuevoContacto);
             await this.cargarPagina();
-            this.restaurarVistaTabla();
-        });
-    },
-
-    async renderDetalle(id) {
-        const listView = this.element.querySelector('#contactos-list-view');
-        const actionView = this.element.querySelector('#contactos-action-view');
-        if (!listView || !actionView) return;
-
-        listView.style.display = 'none';
-        actionView.style.display = 'block';
-
-        const tabs = this.element.querySelector('#contactos-tabs');
-        if (tabs) tabs.style.display = 'none';
-        const kpiRow = this.element.querySelector('#contactos-kpi-row');
-        if (kpiRow) kpiRow.style.display = 'none';
-
-        const [contacto, facturasResp, cotizacionesResp, transaccionesResp] = await Promise.all([
-            DB.get('contactos', id),
-            supabase
-                .from('facturas')
-                .select('id, numero, fecha, vencimiento, total, saldo_original, estado, tipo')
-                .eq('contacto_id', id)
-                .eq('tipo', 'venta')
-                .order('fecha', { ascending: false })
-                .limit(50),
-            supabase
-                .from('cotizaciones')
-                .select('id, numero, fecha, total, estado')
-                .eq('contacto_id', id)
-                .order('fecha', { ascending: false })
-                .limit(50),
-            supabase
-                .from('pagos_ingresos')
-                .select('id, tipo, monto, fecha, categoria, observaciones, grupo_pago_id, cuenta_id')
-                .eq('contacto_id', id)
-                .neq('estado', 'void')
-                .order('fecha', { ascending: false })
-                .limit(50)
-        ]);
-
-        if (!contacto) return;
-
-        const facturasCliente = facturasResp.data;
-        const cotizacionesCliente = cotizacionesResp.data;
-        const transaccionesCliente = transaccionesResp.data;
-
-        const facturaIdsCliente = (facturasCliente || []).map(f => f.id);
-        const { data: rawTransacciones } = facturaIdsCliente.length > 0
-            ? await supabase.from('pagos_ingresos').select('*').in('factura_id', facturaIdsCliente)
-            : { data: [] };
-            
-        // TRADUCCIÓN OBLIGATORIA: El query crudo a Supabase devuelve 'in' / 'out'. 
-        // calcularEstadoFactura exige el contrato 'ingreso' / 'egreso'.
-        const todasLasTransacciones = (rawTransacciones || []).map(t => ({
-            ...t,
-            tipo: t.tipo === 'in' ? 'ingreso' : 'egreso'
-        }));
-
-        const transaccionesAgrupadas = agruparTransaccionesPorPago(transaccionesCliente);
-
-        let saldoPorCobrarTotal = 0;
-        (facturasCliente || []).forEach(f => {
-            const estadoCalc = calcularEstadoFactura(f, todasLasTransacciones || []);
-            if (estadoCalc.estado !== 'anulada' && estadoCalc.estado !== 'void') {
-                saldoPorCobrarTotal += estadoCalc.saldo;
-            }
-        });
-
-        const colorSaldo = saldoPorCobrarTotal > 0 ? '#e74c3c' : '#2cbfb7';
-
-        actionView.innerHTML = `
-            <div class="perfil-hoja-completa bg-white rounded">
-                <div class="d-flex align-items-center mb-3">
-                    <button id="btn-volver-perfil"
-                        class="btn btn-link text-decoration-none p-0 me-3 d-flex align-items-center"
-                        style="color: var(--text-body) !important; font-weight: var(--weight-medium); transition: color 0.2s;">
-                        <i class="bi bi-arrow-left me-2"></i>Volver a Contactos
-                    </button>
-                </div>
-                <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
-                    <h3 class="h5 m-0 fw-bold">${escapeHtml(contacto.nombre)}</h3>
-                    <button class="btn btn-sm btn-light btn-editar-contacto-detalle" data-id="${contacto.id}">
-                        <i class="bi bi-pencil me-1"></i>Editar
-                    </button>
-                </div>
-                <div class="row g-4">
-                    <div class="col-lg-4 col-md-6">
-                        <div class="card border-0 shadow-sm h-100">
-                            <div class="card-body">
-                                <h4 class="h6 fw-bold text-dark mb-3">Datos Básicos</h4>
-                                <p class="mb-2 text-muted small"><strong class="text-dark">Identificación:</strong> ${escapeHtml(contacto.nit)}</p>
-                                <p class="mb-2 text-muted small text-capitalize"><strong class="text-dark">Tipo:</strong> ${escapeHtml(contacto.tipo)}</p>
-                                <p class="mb-2 text-muted small"><strong class="text-dark">Teléfono:</strong> ${escapeHtml(contacto.telefono) || 'No registrado'}</p>
-                                <p class="mb-2 text-muted small"><strong class="text-dark">Email:</strong> ${escapeHtml(contacto.email) || 'No registrado'}</p>
-                                <p class="mb-0 text-muted small"><strong class="text-dark">Ubicación:</strong> ${escapeHtml(contacto.direccion) || ''} ${contacto.ciudad ? `(${escapeHtml(contacto.ciudad)})` : ''}</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-lg-4 col-md-6">
-                        <div class="card border-0 shadow-sm h-100">
-                            <div class="card-body">
-                                <h4 class="h6 fw-bold text-dark mb-3">Condiciones Comerciales</h4>
-                                <p class="mb-2 text-muted small"><strong class="text-dark">Régimen:</strong> ${escapeHtml(contacto.regimen) || 'Regimen Simplificado'}</p>
-                                <p class="mb-2 text-muted small"><strong class="text-dark">Cupo de Crédito:</strong> $${(contacto.cupoCredito || 0).toLocaleString()}</p>
-                                <p class="mb-0 text-muted small"><strong class="text-dark">Plazos de Pago:</strong> ${escapeHtml(contacto.plazosPago) || 0} días</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-lg-4 col-md-12">
-                        <div class="card border-0 shadow-sm h-100" style="border-left: 4px solid ${colorSaldo} !important;">
-                            <div class="card-body d-flex flex-column justify-content-center align-items-center text-center">
-                                <h4 class="h6 fw-bold text-muted mb-2">Saldo por Cobrar</h4>
-                                <h2 class="m-0 fw-bold" style="color: ${colorSaldo}; font-size: var(--fs-xxl); word-break: break-all;">
-                                    $${saldoPorCobrarTotal.toLocaleString('es-CO', {minimumFractionDigits: 0})}
-                                </h2>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="mt-4">
-                    <ul class="nav nav-tabs flex-nowrap overflow-auto" id="tabs-detalle-cliente" style="white-space: nowrap;">
-                        <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-facturas" style="font-size: var(--fs-md); white-space: nowrap;">Facturas</button></li>
-                        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-cotizaciones" style="font-size: var(--fs-md); white-space: nowrap;">Cotizaciones</button></li>
-                        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-transacciones" style="font-size: var(--fs-md); white-space: nowrap;">Transacciones</button></li>
-                    </ul>
-                    <div class="tab-content border border-top-0 p-3">
-
-                        <div class="tab-pane fade show active" id="tab-facturas">
-                            <div class="d-flex align-items-center justify-content-between mb-3">
-                                <div class="input-group" style="max-width: 280px;">
-                                    <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
-                                    <input type="text" class="form-control border-start-0" placeholder="Número" style="box-shadow:none;">
-                                </div>
-                            </div>
-                            <div class="table-responsive">
-                                <table class="table align-middle mb-0" style="font-size: var(--fs-md);">
-                                    <thead>
-                                        <tr class="text-muted" style="font-size: var(--fs-sm); background-color: var(--bg-main); border-bottom: 2px solid var(--border-color);">
-                                            <th class="fw-medium pb-2">Número</th>
-                                            <th class="fw-medium pb-2">Creación</th>
-                                            <th class="fw-medium pb-2">Vencimiento</th>
-                                            <th class="fw-medium pb-2">Total</th>
-                                            <th class="fw-medium pb-2">Cobrado</th>
-                                            <th class="fw-medium pb-2">Por cobrar</th>
-                                            <th class="fw-medium pb-2">Estado</th>
-                                            <th class="fw-medium pb-2 text-end">Acciones</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        ${(facturasCliente || []).map(f => {
-                                            const estadoCalc = calcularEstadoFactura(f, todasLasTransacciones);
-                                            const porCobrar = estadoCalc.saldo;
-                                            const cobrado = estadoCalc.totalPagado;
-                                            
-                                            const esAnulada = EstadoUtils.estaAnulado(estadoCalc.estado);
-                                            const esCerrada = estadoCalc.estado === 'pagada';
-                                            const esBloqueada = esCerrada || esAnulada;
-
-                                            let estadoLabel, estadoColor;
-                                            if (esAnulada) {
-                                                estadoLabel = 'Anulada'; estadoColor = '#999';
-                                            } else if (porCobrar <= 0) {
-                                                estadoLabel = 'Cobrada'; estadoColor = '#2cbfb7';
-                                            } else if (porCobrar < Number(f.total)) {
-                                                estadoLabel = 'Parcial'; estadoColor = '#f39c12';
-                                            } else {
-                                                estadoLabel = 'Por cobrar'; estadoColor = '#e74c3c';
-                                            }
-                                            return `
-                                            <tr style="border-bottom: 1px solid #f0f0f0; cursor:pointer;" onclick="sessionStorage.setItem('origenVolver', JSON.stringify({hash: '#/contactos/ver/${id}', label: 'Volver al cliente'})); if(!event.target.closest('button') && !event.target.closest('a')) window.location.hash='#/ingresos/facturas/ver/${f.id}'">
-                                                <td class="py-3 fw-medium">${f.numero}</td>
-                                                <td class="py-3 text-muted">${f.fecha}</td>
-                                                <td class="py-3 ${!esCerrada ? 'text-danger' : 'text-muted'}">${f.vencimiento || f.fecha}</td>
-                                                <td class="py-3">$${Number(f.total).toLocaleString()}</td>
-                                                <td class="py-3 text-muted">$${cobrado.toLocaleString()}</td>
-                                                <td class="py-3 text-muted">$${porCobrar.toLocaleString()}</td>
-                                                <td class="py-3"><span style="color: ${estadoColor}; font-weight: 500;">${estadoLabel}</span></td>
-                                                <td class="py-3 text-end">
-                                                    ${esBloqueada 
-                                                        ? `<i class="bi bi-pencil text-muted opacity-25 me-2" title="Factura ${esAnulada ? 'anulada' : 'cerrada'}, no editable"></i>
-                                                           <i class="bi bi-wallet2 text-muted opacity-25 me-2" title="No se puede abonar"></i>
-                                                           <i class="bi bi-trash text-muted opacity-25" title="No se puede eliminar"></i>`
-                                                        : `<a href="#/ingresos/facturas/editar/${f.id}" class="btn btn-sm btn-link text-dark p-1" title="Editar"><i class="bi bi-pencil"></i></a>
-                                                           <a href="#" class="btn btn-sm btn-link text-dark p-1 btn-abonar-factura" data-id="${f.id}" data-saldo="${porCobrar}" title="Registrar pago"><i class="bi bi-wallet2"></i></a>
-                                                           <button class="btn btn-sm btn-link text-danger p-1 btn-delete-row-cliente" data-tabla="facturas" data-id="${f.id}" title="Eliminar"><i class="bi bi-trash"></i></button>`
-                                                    }
-                                                </td>
-                                            </tr>`;
-                                        }).join('') || '<tr><td colspan="8" class="text-muted small text-center py-4">Sin facturas</td></tr>'}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-
-                        <div class="tab-pane fade" id="tab-cotizaciones">
-                            <div class="d-flex align-items-center justify-content-between mb-3">
-                                <div class="input-group" style="max-width: 280px;">
-                                    <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
-                                    <input type="text" class="form-control border-start-0" placeholder="Número" style="box-shadow:none;">
-                                </div>
-                            </div>
-                            <div class="table-responsive" style="font-size: var(--fs-base);">
-                                <table class="table align-middle mb-0" style="font-size: var(--fs-md);">
-                                    <thead>
-                                        <tr class="text-muted" style="font-size: var(--fs-sm); background-color: var(--bg-main); border-bottom: 2px solid var(--border-color);">
-                                            <th class="fw-medium pb-2">Número</th>
-                                            <th class="fw-medium pb-2">Creación</th>
-                                            <th class="fw-medium pb-2">Total</th>
-                                            <th class="fw-medium pb-2">Estado</th>
-                                            <th class="fw-medium pb-2 text-end">Acciones</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        ${(cotizacionesCliente || []).map(c => {
-                                            const esAnuladaCot = c.estado === 'void' || c.estado === 'anulada';
-                                            let badgeClass = '';
-                                            let labelEstado = '';
-                                            
-                                            if (esAnuladaCot) {
-                                                badgeClass = 'bg-secondary text-secondary-emphasis bg-opacity-10 border border-secondary-subtle';
-                                                labelEstado = 'Anulada';
-                                            } else {
-                                                const isFacturada = c.estado === 'billed';
-                                                badgeClass = isFacturada ? 'bg-success text-success bg-opacity-10 border border-success-subtle' : 'bg-warning text-warning-emphasis bg-opacity-10 border border-warning-subtle';
-                                                labelEstado = isFacturada ? 'Aprobada' : 'Pendiente';
-                                            }
-                                            
-                                            return `
-                                            <tr style="border-bottom: 1px solid #f0f0f0; cursor:pointer;" onclick="sessionStorage.setItem('origenVolver', JSON.stringify({hash: '#/contactos/ver/${id}', label: 'Volver al cliente'})); if(!event.target.closest('button') && !event.target.closest('a')) window.location.hash='#/ingresos/cotizaciones/ver/${c.id}'">
-                                                <td class="py-3 fw-medium">${c.numero}</td>
-                                                <td class="py-3 text-muted">${c.fecha}</td>
-                                                <td class="py-3">$${Number(c.total).toLocaleString()}</td>
-                                                <td class="py-3"><span class="badge ${badgeClass} rounded-pill fw-medium" style="font-size: var(--fs-xs); padding: 5px 10px;">${labelEstado}</span></td>
-                                                <td class="py-3 text-end">
-                                                    ${esAnuladaCot 
-                                                        ? `<i class="bi bi-pencil text-muted opacity-25 me-2"></i><i class="bi bi-trash text-muted opacity-25"></i>`
-                                                        : `<a href="#/ingresos/cotizaciones/editar/${c.id}" class="btn btn-sm btn-link text-dark p-1" title="Editar"><i class="bi bi-pencil"></i></a>
-                                                           <button class="btn btn-sm btn-link text-danger p-1 btn-delete-row-cliente" data-tabla="cotizaciones" data-id="${c.id}" title="Eliminar"><i class="bi bi-trash"></i></button>`
-                                                    }
-                                                </td>
-                                            </tr>`;
-                                        }).join('') || '<tr><td colspan="5" class="text-muted small text-center py-4">Sin cotizaciones</td></tr>'}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-
-                        <div class="tab-pane fade" id="tab-transacciones">
-                            <div class="table-responsive" style="font-size: var(--fs-base);">
-                                <table class="table align-middle mb-0" style="font-size: var(--fs-md);">
-                                    <thead>
-                                        <tr class="text-muted" style="font-size: var(--fs-sm); background-color: var(--bg-main); border-bottom: 2px solid var(--border-color);">
-                                            <th class="fw-medium pb-2">Fecha</th>
-                                            <th class="fw-medium pb-2">Concepto</th>
-                                            <th class="fw-medium pb-2">Monto</th>
-                                            <th class="fw-medium pb-2 text-end">Acciones</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        ${(transaccionesAgrupadas || []).map(t => `
-                                            <tr style="border-bottom: 1px solid #f0f0f0; cursor:pointer;" data-id="${t.id}">
-                                                <td class="py-3 text-muted">${t.fecha}</td>
-                                                <td class="py-3">${escapeHtml(t.categoria || t.observaciones) || ''}</td>
-                                                <td class="py-3" style="color: ${t.tipo === 'in' ? '#2cbfb7' : '#e74c3c'}; font-weight: 500;">${t.tipo === 'in' ? '+' : '-'}$${Number(t.monto).toLocaleString()}</td>
-                                                <td class="py-3 text-end">
-                                                    <button class="btn btn-sm btn-link text-dark p-1 btn-editar-transaccion-cliente" data-id="${t.id}" title="Editar"><i class="bi bi-pencil"></i></button>
-                                                    <button class="btn btn-sm btn-link text-danger p-1 btn-anular-transaccion-cliente" data-id="${t.id}" title="Anular"><i class="bi bi-trash"></i></button>
-                                                </td>
-                                            </tr>`).join('') || '<tr><td colspan="4" class="text-muted small text-center py-4">Sin transacciones</td></tr>'}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-
-                    </div>
-                </div>
-            </div>
-        `;
-
-        this.element.querySelectorAll('.btn-editar-transaccion-cliente').forEach(btn => {
-            btn.addEventListener('click', async (e) => {
-                e.preventDefault();
-                const tId = btn.dataset.id;
-                const t = (transaccionesAgrupadas || []).find(x => String(x.id) === String(tId));
-                if (!t) return;
-                await mostrarDetalleTransaccion(t, () => this.renderDetalle(id));
-            });
-        });
-
-        this.element.querySelectorAll('#tab-transacciones tbody tr[data-id]').forEach(row => {
-            row.addEventListener('click', async (e) => {
-                if (e.target.closest('button')) return;
-                const tId = row.dataset.id;
-                const t = (transaccionesAgrupadas || []).find(x => String(x.id) === String(tId));
-                if (!t) return;
-                await mostrarDetalleTransaccion(t, () => this.renderDetalle(id));
-            });
-        });
-
-        this.element.querySelector('.btn-editar-contacto-detalle')?.addEventListener('click', () => {
-            this.renderForm(id);
-        });
-
-        this.element.querySelectorAll('.btn-abonar-factura').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.preventDefault();
-                const facId = btn.dataset.id;
-                AbonoModal.show(facId, () => this.renderDetalle(id));
-            });
-        });
-
-        this.element.querySelectorAll('.btn-delete-row-cliente').forEach(btn => {
-            btn.addEventListener('click', async (e) => {
-                e.preventDefault();
-                if (!confirm('¿Eliminar este registro?')) return;
-                await DB.delete(btn.dataset.tabla, btn.dataset.id);
-                this.renderDetalle(id);
-            });
-        });
-
-        this.element.querySelectorAll('.btn-anular-transaccion-cliente').forEach(btn => {
-            btn.addEventListener('click', async (e) => {
-                e.preventDefault();
-                if (!confirm('¿Seguro que deseas anular este movimiento?')) return;
-                await supabase.from('pagos_ingresos').update({ estado: 'anulado' }).eq('id', btn.dataset.id);
-                this.renderDetalle(id);
-            });
-        });
-
-        this.element.querySelector('#btn-volver-perfil')?.addEventListener('click', () => {
             this.restaurarVistaTabla();
         });
     },
 
     async restaurarVistaTabla() {
         const actionView = this.element.querySelector('#contactos-action-view');
-        const listView = this.element.querySelector('#contactos-list-view');
-        const tabs = this.element.querySelector('#contactos-tabs');
+        const tableView = this.element.querySelector('#contactos-table-view-container');
         const kpiRow = this.element.querySelector('#contactos-kpi-row');
 
         if (actionView) {
             actionView.innerHTML = '';
             actionView.style.display = 'none';
         }
-        if (listView) listView.style.display = 'block';
-        if (tabs) tabs.style.display = 'flex';
+        if (tableView) tableView.style.display = this.state.view !== 'grafico' ? 'block' : 'none';
         if (kpiRow) kpiRow.style.display = 'flex';
 
         await this.cargarPagina();
@@ -603,7 +1025,6 @@ export const ContactosTemplates = {
         const existingModal = document.getElementById('quick-contacto-modal');
         if (existingModal) existingModal.remove();
 
-        // Determinar si la búsqueda parece un NIT o un Nombre
         const isNit = /^[\d-]+$/.test(query);
         const defaultName = isNit ? '' : query;
         const defaultNit = isNit ? query : '';
@@ -621,11 +1042,11 @@ export const ContactosTemplates = {
                                 <div class="row g-3">
                                     <div class="col-12">
                                         <label class="form-label small fw-bold text-muted mb-1">Nombre / Razón Social <span class="text-danger">*</span></label>
-                                        <input type="text" class="form-control" id="quick-nombre" value="${defaultName}" required autocomplete="off">
+                                        <input type="text" class="form-control" id="quick-nombre" value="${escapeHtml(defaultName)}" required autocomplete="off">
                                     </div>
                                     <div class="col-12">
                                         <label class="form-label small fw-bold text-muted mb-1">NIT / Identificación <span class="text-danger">*</span></label>
-                                        <input type="text" class="form-control" id="quick-nit" value="${defaultNit}" required autocomplete="off">
+                                        <input type="text" class="form-control" id="quick-nit" value="${escapeHtml(defaultNit)}" required autocomplete="off">
                                     </div>
                                     <div class="col-12 col-sm-6">
                                         <label class="form-label small fw-bold text-muted mb-1 d-block">Tipo <span class="text-danger">*</span></label>
@@ -647,7 +1068,7 @@ export const ContactosTemplates = {
                         </div>
                         <div class="modal-footer border-top-0 pt-0">
                             <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
-                            <button type="button" class="btn btn-primary" id="btn-save-quick-contacto">Guardar</button>
+                            <button type="button" class="btn btn-primary-action" id="btn-save-quick-contacto">Guardar</button>
                         </div>
                     </div>
                 </div>
@@ -657,7 +1078,7 @@ export const ContactosTemplates = {
         document.body.insertAdjacentHTML('beforeend', modalHtml);
         const modalEl = document.getElementById('quick-contacto-modal');
         const modalInstance = new bootstrap.Modal(modalEl);
-        
+
         modalEl.querySelector('#btn-save-quick-contacto').addEventListener('click', async (e) => {
             const btn = e.currentTarget;
             const form = modalEl.querySelector('#quick-contacto-form');
@@ -673,14 +1094,15 @@ export const ContactosTemplates = {
             const esProveedor = modalEl.querySelector('#quick-es-proveedor').checked;
             if (!esCliente && !esProveedor) {
                 alert("Debe seleccionar al menos un tipo de contacto.");
-                modalEl.querySelector('#btn-save-quick-contacto').disabled = false;
-                modalEl.querySelector('#btn-save-quick-contacto').innerHTML = 'Guardar';
+                btn.disabled = false;
+                btn.innerHTML = 'Guardar';
                 return;
             }
 
             const nuevoContacto = {
                 nombre: modalEl.querySelector('#quick-nombre').value.trim(),
                 nit: modalEl.querySelector('#quick-nit').value.trim(),
+                identificacion: modalEl.querySelector('#quick-nit').value.trim(),
                 es_cliente: esCliente,
                 es_proveedor: esProveedor,
                 tipo: esProveedor && !esCliente ? 'proveedor' : 'cliente',
@@ -689,19 +1111,22 @@ export const ContactosTemplates = {
                 direccion: null,
                 ciudad: null,
                 regimen: 'Regimen Simplificado',
-                cupoCredito: 0,
-                plazosPago: 0,
+                cupo_credito: 0,
+                plazos_pago: 0
             };
 
             try {
-                // Check for duplicates
-                const { data: existing } = await supabase.from('contactos')
-                    .select('id').eq('identificacion', nuevoContacto.nit).single();
+                let existing = null;
+                const supabase = typeof window !== 'undefined' && window.supabase ? window.supabase : (this.getSupabase ? await this.getSupabase() : null);
+                if (supabase) {
+                    const res = await supabase.from('contactos').select('id').eq('identificacion', nuevoContacto.nit).single();
+                    existing = res.data;
+                }
 
                 if (existing) throw new Error('Ya existe un contacto con esta identificación');
 
-                const savedContacto = await DB.save('contactos', nuevoContacto);
-                
+                const db = typeof window !== 'undefined' ? window.DB : null;
+                const savedContacto = db ? await db.save('contactos', nuevoContacto) : nuevoContacto;
                 modalInstance.hide();
                 if (onSuccessCallback) onSuccessCallback(savedContacto);
             } catch (err) {
