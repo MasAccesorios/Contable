@@ -38,6 +38,27 @@ describe('Módulo Producto Detalle - TDD Test Suite', () => {
             assert.strictEqual(resultado.stockTotal, 20);
         });
 
+        it('debe clasificar el estado como "reorden" cuando stockMinimo < stock <= ROP y no como "optimo"', () => {
+            const producto = { id: 2310, stockMinimo: 5, puntoReorden: 12 };
+            const lotes = [{ id: 'l1', cantidadActual: 8 }]; // 5 < 8 <= 12
+
+            const resultado = ProductoDetalleData.calcularStockYEstado(producto, lotes);
+
+            assert.strictEqual(resultado.stockTotal, 8);
+            assert.strictEqual(resultado.estado, 'reorden');
+            assert.notStrictEqual(resultado.estado, 'optimo');
+        });
+
+        it('debe admitir puntoReorden pasado como tercer argumento a calcularStockYEstado', () => {
+            const producto = { id: 1, stockMinimo: 5 };
+            const lotes = [{ id: 'l1', cantidadActual: 8 }];
+            const puntoReorden = 14;
+
+            const resultado = ProductoDetalleData.calcularStockYEstado(producto, lotes, puntoReorden);
+
+            assert.strictEqual(resultado.estado, 'reorden');
+        });
+
         it('debe clasificar el semáforo como "recompra" cuando el stock es menor o igual al mínimo pero mayor al 50%', () => {
             const producto = { id: 1, stockMinimo: 10 };
             const lotes = [{ id: 'l1', cantidadActual: 8 }]; // 8 <= 10 y 8 > 5
@@ -275,6 +296,38 @@ describe('Módulo Producto Detalle - TDD Test Suite', () => {
             const res = ProductoDetalleData.calcularRotacionYCobertura(stockTotal, [], 30);
 
             assert.strictEqual(res.puntoReordenSugerido, 0);
+        });
+
+        it('debe calcular ROP incorporando Stock de Seguridad: max(StockMinimo, Math.ceil((velocidad * LeadTime) + StockMinimo))', () => {
+            const stockTotal = 20;
+            const ventas = [{ cantidad: 30 }]; // vel = 1 und/día (30 und / 30 d)
+            const stockMinimo = 5;
+            const leadTime = 14;
+            // ROP = max(5, Math.ceil((1 * 14) + 5)) = 19
+            const res = ProductoDetalleData.calcularRotacionYCobertura(stockTotal, ventas, 30, { stockMinimo, leadTime });
+
+            assert.strictEqual(res.puntoReordenSugerido, 19);
+        });
+
+        it('Caso SKU 2310: stock=8, stockMin=5, historial=172 en 125d, recientes=4 en 30d debe calcular velocidad > 0.5, cobertura <= 15d, ROP >= 12 y alertaRecompra = true', () => {
+            const stockTotal = 8;
+            const stockMinimo = 5;
+            const leadTime = 14;
+
+            // Historial: 4 unidades en los últimos 30 días, 168 unidades entre días 31 y 125 (total 172 en 125 días)
+            const msDia = 24 * 3600 * 1000;
+            const ahora = Date.now();
+            const ventas = [
+                { cantidad: 4, fecha: new Date(ahora - 10 * msDia).toISOString() },
+                { cantidad: 168, fecha: new Date(ahora - 120 * msDia).toISOString() }
+            ];
+
+            const res = ProductoDetalleData.calcularRotacionYCobertura(stockTotal, ventas, 30, { stockMinimo, leadTime });
+
+            assert.ok(res.velocidadDiaria > 0.5 && res.velocidadDiaria <= 1.5, `Velocidad representativa suave (${res.velocidadDiaria}) debe ser > 0.5 y <= 1.5 und/día (no 5.73)`);
+            assert.ok(res.diasCobertura <= 15, `Días de cobertura (${res.diasCobertura}) deben ser <= 15 días`);
+            assert.ok(res.puntoReordenSugerido >= 12, `ROP (${res.puntoReordenSugerido}) debe ser >= 12 und incluyendo stock de seguridad`);
+            assert.strictEqual(res.alertaRecompra, true, 'alertaRecompra debe ser true');
         });
     });
 
@@ -790,6 +843,22 @@ describe('Módulo Producto Detalle - TDD Test Suite', () => {
             const htmlAgotado = ProductoDetalleTemplates.renderKpiCards(kpisAgotado);
             assert.ok(htmlAgotado.includes('Agotado'));
             assert.ok(htmlAgotado.includes('Alerta Recompra'));
+        });
+
+        it('renderKpiCards: con producto en estado "reorden", badge debe ser "Punto Reorden" (ámbar) y si alertaRecompra es true debe ser "Alerta Recompra" y NUNCA "Stock Seguro"', () => {
+            const kpisReorden = {
+                stock: { stockTotal: 8, stockMinimo: 5, puntoReorden: 14, estado: 'reorden' },
+                valorizacion: { valorTotal: 80000, costoPromedioPonderado: 10000, costoBase: 10000, diferenciaCosto: 0 },
+                margen: { precioVenta: 20000, costoUnitario: 10000, utilidadMonetaria: 10000, margenPorcentual: 50 },
+                rotacion: { unidadesVendidas: 4, velocidadDiaria: 0.75, diasCobertura: 11, alertaRecompra: true, puntoReordenSugerido: 14 }
+            };
+
+            const html = ProductoDetalleTemplates.renderKpiCards(kpisReorden);
+
+            assert.ok(html.includes('Punto Reorden'), 'Debe mostrar badge Punto Reorden');
+            assert.ok(html.includes('bg-warning') || html.includes('#d97706'), 'Debe usar estilo ámbar / warning');
+            assert.ok(html.includes('Alerta Recompra'), 'Debe mostrar Alerta Recompra cuando alertaRecompra es true');
+            assert.ok(!html.includes('Stock Seguro'), 'NUNCA debe mostrar Stock Seguro cuando hay alerta de recompra');
         });
 
         it('renderTablaLotes debe renderizar filas con barra de consumo, badge de capa activa y reservas', () => {

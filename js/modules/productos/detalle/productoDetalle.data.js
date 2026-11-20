@@ -46,14 +46,18 @@ export const ProductoDetalleData = {
 
     /**
      * Calcula el stock disponible sumando lotes FIFO activos o usando fallback de producto.stock.
-     * Determina el semáforo de estado de inventario ('optimo', 'recompra', 'critico', 'agotado').
+     * Determina el semáforo de estado de inventario ('optimo', 'reorden', 'recompra', 'critico', 'agotado').
      * @param {Object} producto - Datos maestros del producto.
      * @param {Array} [lotes=[]] - Lista de lotes FIFO.
-     * @returns {{ stockTotal: number, stockMinimo: number, estado: string, esFallback: boolean }}
+     * @param {number|null} [puntoReorden=null] - Punto de reorden opcional.
+     * @returns {{ stockTotal: number, stockMinimo: number, puntoReorden: number, estado: string, esFallback: boolean }}
      */
-    calcularStockYEstado(producto, lotes = []) {
+    calcularStockYEstado(producto, lotes = [], puntoReorden = null) {
         const prod = producto || {};
         const stockMinimo = parseFloat(prod.stockMinimo ?? prod.stock_minimo) || 0;
+        const rop = (typeof puntoReorden === 'number' && Number.isFinite(puntoReorden))
+            ? puntoReorden
+            : (parseFloat(prod.puntoReorden ?? prod.punto_reorden ?? prod.rop ?? prod.puntoReordenSugerido) || 0);
 
         let stockTotal = 0;
         let esFallback = false;
@@ -78,6 +82,8 @@ export const ProductoDetalleData = {
             estado = 'critico';
         } else if (stockMinimo > 0 && stockTotal <= stockMinimo) {
             estado = 'recompra';
+        } else if (rop > stockMinimo && stockTotal <= rop) {
+            estado = 'reorden';
         } else {
             estado = 'optimo';
         }
@@ -85,6 +91,7 @@ export const ProductoDetalleData = {
         return {
             stockTotal,
             stockMinimo,
+            puntoReorden: rop,
             estado,
             esFallback
         };
@@ -183,44 +190,122 @@ export const ProductoDetalleData = {
 
     /**
      * Calcula la velocidad diaria de ventas, proyección de días de cobertura y alerta de recompra.
+     * Incorpora cálculo de velocidad representativa suave y ROP con stock de seguridad.
      * @param {number|Object} stockInput - Stock numérico o entidad producto.
      * @param {Array} [ventasOrLotes=[]] - Ventas (si arg1 es número) o lotes (si arg1 es producto).
      * @param {number|Array} [periodoOrVentas=30] - Días del periodo o array de ventas.
-     * @param {number} [maybePeriodo=30] - Días del periodo si se pasó producto y lotes.
-     * @returns {{ unidadesVendidas: number, velocidadDiaria: number, diasCobertura: number, alertaRecompra: boolean, diasPeriodo: number }}
+     * @param {number|Object} [maybePeriodo=30] - Días del periodo si se pasó producto y lotes, u objeto de opciones.
+     * @param {Object} [maybeOptions={}] - Opciones adicionales (stockMinimo, leadTime, etc.).
+     * @returns {{ unidadesVendidas: number, velocidadDiaria: number, diasCobertura: number, alertaRecompra: boolean, diasPeriodo: number, puntoReordenSugerido: number }}
      */
-    calcularRotacionYCobertura(stockInput, ventasOrLotes = [], periodoOrVentas = 30, maybePeriodo = 30) {
+    calcularRotacionYCobertura(stockInput, ventasOrLotes = [], periodoOrVentas = 30, maybePeriodo = 30, maybeOptions = {}) {
         let stockTotal = 0;
         let ventas = [];
         let periodoDias = 30;
+        let options = {};
 
         if (typeof stockInput === 'number') {
             stockTotal = Number.isFinite(stockInput) ? stockInput : 0;
             ventas = Array.isArray(ventasOrLotes) ? ventasOrLotes : [];
             periodoDias = typeof periodoOrVentas === 'number' && periodoOrVentas > 0 ? periodoOrVentas : 30;
+            if (typeof maybePeriodo === 'object' && maybePeriodo !== null) {
+                options = maybePeriodo;
+            } else if (typeof maybeOptions === 'object' && maybeOptions !== null) {
+                options = maybeOptions;
+            }
         } else if (stockInput && typeof stockInput === 'object') {
+            const stockMinimoFromProd = parseFloat(stockInput.stockMinimo ?? stockInput.stock_minimo) || 0;
+            const leadTimeFromProd = parseFloat(stockInput.leadTime ?? stockInput.lead_time) || 14;
+            options = { stockMinimo: stockMinimoFromProd, leadTime: leadTimeFromProd };
+
             if (Array.isArray(ventasOrLotes) && Array.isArray(periodoOrVentas)) {
-                // Invocado como (producto, lotes, ventas, dias)
+                // Invocado como (producto, lotes, ventas, dias, options)
                 const stockCalc = this.calcularStockYEstado(stockInput, ventasOrLotes);
                 stockTotal = stockCalc.stockTotal;
                 ventas = periodoOrVentas;
                 periodoDias = typeof maybePeriodo === 'number' && maybePeriodo > 0 ? maybePeriodo : 30;
+                if (typeof maybeOptions === 'object' && maybeOptions !== null) {
+                    options = { ...options, ...maybeOptions };
+                }
             } else {
-                // Invocado como (producto, ventas, dias)
-                stockTotal = parseFloat(stockInput.stock) || 0;
+                // Invocado como (producto, ventas, dias, options)
+                stockTotal = parseFloat(stockInput.stock ?? stockInput.cantidad) || 0;
                 ventas = Array.isArray(ventasOrLotes) ? ventasOrLotes : [];
                 periodoDias = typeof periodoOrVentas === 'number' && periodoOrVentas > 0 ? periodoOrVentas : 30;
+                if (typeof maybePeriodo === 'object' && maybePeriodo !== null) {
+                    options = { ...options, ...maybePeriodo };
+                }
             }
         }
 
-        const unidadesVendidas = ventas.reduce((acc, v) => {
+        const stockMinimo = parseFloat(options.stockMinimo ?? options.stock_minimo) || 0;
+        const leadTime = parseFloat(options.leadTime ?? options.lead_time) || 14;
+
+        const unidadesTotales = ventas.reduce((acc, v) => {
             const cant = parseFloat(v.cantidad ?? v.cantidadItem ?? v.cantidad_item ?? v.cant) || 0;
             return acc + cant;
         }, 0);
 
-        const velocidadDiaria = periodoDias > 0 
-            ? Math.round((unidadesVendidas / periodoDias) * 100) / 100 
-            : 0;
+        if (unidadesTotales <= 0 || ventas.length === 0) {
+            return {
+                unidadesVendidas: 0,
+                velocidadDiaria: 0,
+                diasCobertura: stockTotal <= 0 ? 0 : 999,
+                alertaRecompra: stockTotal <= 0,
+                diasPeriodo: periodoDias,
+                puntoReordenSugerido: 0
+            };
+        }
+
+        // Analizar distribución de fechas si están presentes
+        const ventasConFecha = ventas
+            .map(v => {
+                const cant = parseFloat(v.cantidad ?? v.cantidadItem ?? v.cantidad_item ?? v.cant) || 0;
+                const rawFecha = v.fecha || v.creado_en || v.fechaIngreso || v.date;
+                const time = rawFecha ? new Date(rawFecha).getTime() : NaN;
+                return { cant, time };
+            })
+            .filter(v => v.cant > 0);
+
+        const fechasValidas = ventasConFecha.filter(v => Number.isFinite(v.time));
+
+        let velocidadDiaria = 0;
+        let unidadesVendidas = unidadesTotales;
+
+        if (fechasValidas.length === 0) {
+            velocidadDiaria = periodoDias > 0 ? Math.round((unidadesTotales / periodoDias) * 100) / 100 : 0;
+        } else {
+            const minTime = Math.min(...fechasValidas.map(v => v.time));
+            const maxTimeSales = Math.max(...fechasValidas.map(v => v.time));
+            const ahora = Date.now();
+            const refTime = (ahora - maxTimeSales > 30 * 24 * 3600 * 1000) ? maxTimeSales : ahora;
+
+            const msDia = 24 * 3600 * 1000;
+            const msPeriodoReciente = periodoDias * msDia;
+            const corteReciente = refTime - msPeriodoReciente;
+
+            const unidadesRecientes = fechasValidas
+                .filter(v => v.time >= corteReciente)
+                .reduce((acc, v) => acc + v.cant, 0);
+
+            const diasSpan = Math.max(periodoDias, Math.ceil((refTime - minTime) / msDia));
+            const diasHistorial = typeof options.diasHistorial === 'number' && options.diasHistorial > 0
+                ? options.diasHistorial
+                : diasSpan;
+
+            const velReciente = periodoDias > 0 ? (unidadesRecientes / periodoDias) : 0;
+            const velHistorica = diasHistorial > 0 ? (unidadesTotales / diasHistorial) : velReciente;
+
+            if (diasHistorial > periodoDias && velHistorica > 0) {
+                // Suavizado ponderado: 50% tendencia reciente + 50% baseline histórico representativo
+                const velSuave = (0.5 * velReciente) + (0.5 * velHistorica);
+                velocidadDiaria = Math.round(velSuave * 100) / 100;
+                unidadesVendidas = unidadesRecientes > 0 ? unidadesRecientes : unidadesTotales;
+            } else {
+                velocidadDiaria = Math.round(velReciente * 100) / 100;
+                unidadesVendidas = unidadesRecientes > 0 ? unidadesRecientes : unidadesTotales;
+            }
+        }
 
         let diasCobertura = 0;
         if (stockTotal <= 0) {
@@ -231,8 +316,14 @@ export const ProductoDetalleData = {
             diasCobertura = 999;
         }
 
-        const alertaRecompra = (stockTotal <= 0) || (diasCobertura <= 15);
-        const puntoReordenSugerido = velocidadDiaria > 0 ? Math.max(1, Math.round(velocidadDiaria * 15)) : 0;
+        // ROP incorporando Stock de Seguridad: max(StockMinimo, Math.ceil((velocidad * LeadTime) + StockMinimo))
+        let puntoReordenSugerido = 0;
+        if (velocidadDiaria > 0) {
+            const demandaLeadTime = velocidadDiaria * leadTime;
+            puntoReordenSugerido = Math.max(stockMinimo, Math.ceil(demandaLeadTime + stockMinimo));
+        }
+
+        const alertaRecompra = (stockTotal <= 0) || (diasCobertura <= 15) || (puntoReordenSugerido > 0 && stockTotal <= puntoReordenSugerido);
 
         return {
             unidadesVendidas,
@@ -517,12 +608,8 @@ export const ProductoDetalleData = {
             }
         }
 
-        // 2. Ventas válidas recientes (30 días) para cálculo de rotación
-        const ahora = Date.now();
-        const limite30 = new Date(ahora - (30 * 24 * 3600 * 1000)).toISOString().split('T')[0];
+        // 2. Ventas válidas para cálculo de rotación
         const ventasValidas = ventas.filter(v => v.estado !== 'anulada' && v.estado !== 'void');
-        const ventasRecientes = ventasValidas.filter(v => v.fecha && v.fecha >= limite30);
-        const ventasParaRotacion = ventasRecientes.length > 0 ? ventasRecientes : ventasValidas;
 
         // 3. Cargar Kardex en paralelo o directamente
         let kardex = [];
@@ -533,10 +620,14 @@ export const ProductoDetalleData = {
         }
 
         // 4. Cálculos de KPIs y Métricas Comerciales Acumuladas
-        const stockYEstado = this.calcularStockYEstado(producto, lotes);
+        const stockYEstadoInicial = this.calcularStockYEstado(producto, lotes);
         const valorizacion = this.calcularValorizacionFIFO(producto, lotes);
         const margen = this.calcularMargenComercial(producto, valorizacion.costoPromedioPonderado);
-        const rotacion = this.calcularRotacionYCobertura(stockYEstado.stockTotal, ventasParaRotacion, 30);
+        const rotacion = this.calcularRotacionYCobertura(stockYEstadoInicial.stockTotal, ventasValidas, 30, {
+            stockMinimo: stockYEstadoInicial.stockMinimo,
+            leadTime: parseFloat(producto?.leadTime ?? producto?.lead_time) || 14
+        });
+        const stockYEstado = this.calcularStockYEstado(producto, lotes, rotacion.puntoReordenSugerido);
         const historico = this.calcularMetricasHistoricas(ventas);
 
         return {

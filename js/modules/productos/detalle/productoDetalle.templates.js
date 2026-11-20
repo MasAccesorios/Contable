@@ -65,6 +65,11 @@ export const ProductoDetalleTemplates = {
                 stockIconClass = 'in-bg';
                 stockBadge = '<span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill text-nowrap px-2 py-1"><i class="bi bi-check-circle me-1"></i>Óptimo</span>';
                 break;
+            case 'reorden':
+                stockBorderColor = '#d97706';
+                stockIconClass = 'pending-bg';
+                stockBadge = '<span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill text-nowrap px-2 py-1"><i class="bi bi-clock-history me-1"></i>Punto Reorden</span>';
+                break;
             case 'recompra':
                 stockBorderColor = '#d97706';
                 stockIconClass = 'pending-bg';
@@ -422,6 +427,10 @@ export const ProductoDetalleTemplates = {
             stockDotClass = 'bg-danger';
             stockBadgeText = 'Stock Crítico';
             stockBadgeBg = 'bg-danger-subtle text-danger border-danger-subtle';
+        } else if (stock.estado === 'reorden') {
+            stockDotClass = 'bg-warning';
+            stockBadgeText = 'Punto Reorden';
+            stockBadgeBg = 'bg-warning-subtle text-warning-emphasis border-warning-subtle';
         } else if (stock.estado === 'recompra') {
             stockDotClass = 'bg-warning';
             stockBadgeText = 'Punto de Reorden';
