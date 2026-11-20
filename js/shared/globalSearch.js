@@ -340,25 +340,69 @@ export const GlobalSearch = {
 
         const promises = [];
 
-        // 2. Consulta de Contactos (Clientes / Proveedores)
+        // 2. Consulta de Contactos (Clientes / Proveedores por Nombre, NIT, Email o Teléfono)
         promises.push(
             supabase.from('contactos')
                 .select('id, nombre, identificacion, email, telefono, tipo, es_cliente, es_proveedor')
                 .neq('estado', 'inactive')
-                .or(`nombre.ilike.%${safeQuery}%,identificacion.ilike.%${safeQuery}%`)
+                .or(`nombre.ilike.%${safeQuery}%,identificacion.ilike.%${safeQuery}%,email.ilike.%${safeQuery}%,telefono.ilike.%${safeQuery}%`)
                 .limit(4)
                 .then(res => ({ type: 'contactos', data: res.data || [] }))
                 .catch(err => { console.error('[GlobalSearch] Error buscando contactos:', err); return { type: 'contactos', data: [] }; })
         );
 
-        // 3. Consulta de Productos (Inventario con stock y precio)
+        // 3. Consulta de Productos (Inventario con stock real calculado por FIFO y búsqueda por nombre o SKU)
         promises.push(
-            supabase.from('productos')
-                .select('id, nombre, sku, precio_venta, costo_base, stock, stock_minimo, categoria')
-                .or(`nombre.ilike.%${safeQuery}%,sku.ilike.%${safeQuery}%,categoria.ilike.%${safeQuery}%`)
-                .limit(4)
-                .then(res => ({ type: 'productos', data: res.data || [] }))
-                .catch(err => { console.error('[GlobalSearch] Error buscando productos:', err); return { type: 'productos', data: [] }; })
+            supabase.rpc('get_productos_page_v2', {
+                p_page: 1,
+                p_limit: 5,
+                p_sort_column: 'nombre',
+                p_sort_direction: 'asc',
+                p_search_query: safeQuery,
+                p_filter_criteria: 'todos'
+            })
+            .then(res => {
+                if (res.error) throw res.error;
+                const raw = res.data;
+                const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+                const items = (parsed?.data || []).map(p => ({
+                    id: p.id,
+                    nombre: p.nombre,
+                    sku: p.sku,
+                    precioVenta: p.precioVenta ?? p.precio_venta ?? 0,
+                    precio_venta: p.precioVenta ?? p.precio_venta ?? 0,
+                    stock: Number(p.stock !== undefined ? p.stock : 0),
+                    stockMinimo: Number(p.stockMinimo ?? p.stock_minimo ?? 5),
+                    stock_minimo: Number(p.stockMinimo ?? p.stock_minimo ?? 5),
+                    estadoStock: p.estadoStock || 'optimo'
+                }));
+                return { type: 'productos', data: items };
+            })
+            .catch(async (err) => {
+                console.warn('[GlobalSearch] RPC get_productos_page_v2 falló, usando fallback defensivo:', err);
+                try {
+                    const { data: prods, error: pErr } = await supabase.from('productos')
+                        .select('id, nombre, sku, precio_venta, costo_base, stock_minimo, estado')
+                        .or(`nombre.ilike.%${safeQuery}%,sku.ilike.%${safeQuery}%`)
+                        .limit(5);
+                    if (pErr) throw pErr;
+                    const mapped = (prods || []).map(p => ({
+                        id: p.id,
+                        nombre: p.nombre,
+                        sku: p.sku,
+                        precioVenta: Number(p.precio_venta || 0),
+                        precio_venta: Number(p.precio_venta || 0),
+                        stock: 0,
+                        stockMinimo: Number(p.stock_minimo || 5),
+                        stock_minimo: Number(p.stock_minimo || 5),
+                        estadoStock: 'desconocido'
+                    }));
+                    return { type: 'productos', data: mapped };
+                } catch (fallbackErr) {
+                    console.error('[GlobalSearch] Fallback de productos falló:', fallbackErr);
+                    return { type: 'productos', data: [] };
+                }
+            })
         );
 
         // 4. Consulta de Facturas (Si hay número, buscar directamente)
@@ -480,7 +524,7 @@ export const GlobalSearch = {
                 this.registrarBusquedaExitosa(query);
                 this.closeDropdown();
                 input.value = '';
-                window.location.hash = firstActionHash.substring(1);
+                window.location.hash = firstActionHash;
                 return;
             }
         }
@@ -692,8 +736,9 @@ export const GlobalSearch = {
 
                 case 'productos': {
                     const itemsHtml = group.data.map(item => {
-                        const stock = Number(item.stock || 0);
-                        const minStock = Number(item.stock_minimo || 5);
+                        const stock = Number(item.stock !== undefined ? item.stock : 0);
+                        const minStock = Number(item.stockMinimo ?? item.stock_minimo ?? 5);
+                        const precio = Number(item.precioVenta ?? item.precio_venta ?? 0);
                         let stockBadge = '';
 
                         if (stock > minStock) {
@@ -710,12 +755,12 @@ export const GlobalSearch = {
                                     <i class="bi bi-box-seam text-primary" style="font-size: 18px;"></i>
                                     <div class="text-truncate">
                                         <div class="fw-semibold text-truncate" style="font-size: 13px;">${escapeHtml(item.nombre)}</div>
-                                        <div class="text-muted" style="font-size: 11px;">SKU: ${escapeHtml(item.sku || 'N/A')} ${item.categoria ? `• ${escapeHtml(item.categoria)}` : ''}</div>
+                                        <div class="text-muted" style="font-size: 11px;">SKU / Ref: <span class="fw-medium text-dark">${escapeHtml(item.sku || 'N/A')}</span>${item.categoria ? ` • ${escapeHtml(item.categoria)}` : ''}</div>
                                     </div>
                                 </a>
                                 <div class="d-flex align-items-center gap-2 flex-shrink-0">
                                     <div class="text-end">
-                                        <div class="fw-bold text-dark" style="font-size: 13px;">${fmtMoney(item.precio_venta)}</div>
+                                        <div class="fw-bold text-dark" style="font-size: 13px;">${fmtMoney(precio)}</div>
                                         ${stockBadge}
                                     </div>
                                     <div class="d-flex gap-1 ms-1">
@@ -771,7 +816,7 @@ export const GlobalSearch = {
         const targetHref = el.getAttribute('href') || el.dataset.hash || el.querySelector('a')?.getAttribute('href');
         if (targetHref && targetHref !== 'javascript:void(0)') {
             if (targetHref.startsWith('#')) {
-                window.location.hash = targetHref.substring(1);
+                window.location.hash = targetHref;
             } else {
                 window.location.href = targetHref;
             }

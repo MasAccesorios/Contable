@@ -4,7 +4,7 @@
  */
 import { supabase } from './supabase.js';
 import { renderLogin } from './login.js';
-import { GlobalSearch } from '../shared/globalSearch.js?v=2';
+import { GlobalSearch } from '../shared/globalSearch.js?v=3';
 import { QuickActions } from '../shared/quickActions.js';
 
 
