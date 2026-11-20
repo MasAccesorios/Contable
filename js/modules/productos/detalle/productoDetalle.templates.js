@@ -112,8 +112,8 @@ export const ProductoDetalleTemplates = {
         return `
             <div class="row g-3 mb-4 align-items-stretch">
                 <!-- KPI 1: Stock Disponible -->
-                <div class="col-12 col-sm-6 col-md-4 col-xl d-flex">
-                    <div class="payment-kpi-card w-100 h-100 d-flex flex-column justify-content-between p-3" style="border-left: 3px solid ${stockBorderColor};">
+                <div class="col-12 col-sm-6 col-md-4 col-xl d-flex align-items-stretch">
+                    <div class="payment-kpi-card w-100 flex-grow-1 h-100 d-flex flex-column justify-content-between p-3" style="border-left: 3px solid ${stockBorderColor};">
                         <div class="d-flex justify-content-between align-items-start mb-2" style="min-height: 38px;">
                             <span class="ds-kpi-label" style="line-height: 1.3;">Stock Disponible</span>
                             <div class="payment-kpi-icon ${stockIconClass}">
@@ -131,8 +131,8 @@ export const ProductoDetalleTemplates = {
                 </div>
 
                 <!-- KPI 2: Valorización FIFO -->
-                <div class="col-12 col-sm-6 col-md-4 col-xl d-flex">
-                    <div class="payment-kpi-card w-100 h-100 d-flex flex-column justify-content-between p-3" style="border-left: 3px solid #2563eb;">
+                <div class="col-12 col-sm-6 col-md-4 col-xl d-flex align-items-stretch">
+                    <div class="payment-kpi-card w-100 flex-grow-1 h-100 d-flex flex-column justify-content-between p-3" style="border-left: 3px solid #2563eb;">
                         <div class="d-flex justify-content-between align-items-start mb-2" style="min-height: 38px;">
                             <span class="ds-kpi-label" style="line-height: 1.3;">Valorización FIFO</span>
                             <div class="payment-kpi-icon blue-bg">
@@ -150,8 +150,8 @@ export const ProductoDetalleTemplates = {
                 </div>
 
                 <!-- KPI 3: Margen Comercial -->
-                <div class="col-12 col-sm-6 col-md-4 col-xl d-flex">
-                    <div class="payment-kpi-card w-100 h-100 d-flex flex-column justify-content-between p-3" style="border-left: 3px solid #8b5cf6;">
+                <div class="col-12 col-sm-6 col-md-4 col-xl d-flex align-items-stretch">
+                    <div class="payment-kpi-card w-100 flex-grow-1 h-100 d-flex flex-column justify-content-between p-3" style="border-left: 3px solid #8b5cf6;">
                         <div class="d-flex justify-content-between align-items-start mb-2" style="min-height: 38px;">
                             <span class="ds-kpi-label" style="line-height: 1.3;">Margen Comercial</span>
                             <div class="payment-kpi-icon" style="background-color: #f5f3ff; color: #8b5cf6;">
@@ -169,8 +169,8 @@ export const ProductoDetalleTemplates = {
                 </div>
 
                 <!-- KPI 4: Ventas Acumuladas -->
-                <div class="col-12 col-sm-6 col-md-4 col-xl d-flex">
-                    <div class="payment-kpi-card w-100 h-100 d-flex flex-column justify-content-between p-3" style="border-left: 3px solid #0284c7;">
+                <div class="col-12 col-sm-6 col-md-4 col-xl d-flex align-items-stretch">
+                    <div class="payment-kpi-card w-100 flex-grow-1 h-100 d-flex flex-column justify-content-between p-3" style="border-left: 3px solid #0284c7;">
                         <div class="d-flex justify-content-between align-items-start mb-2" style="min-height: 38px;">
                             <span class="ds-kpi-label" style="line-height: 1.3;">Ventas Acumuladas</span>
                             <div class="payment-kpi-icon blue-bg">
@@ -188,8 +188,8 @@ export const ProductoDetalleTemplates = {
                 </div>
 
                 <!-- KPI 5: Rotación y Cobertura -->
-                <div class="col-12 col-sm-6 col-md-4 col-xl d-flex">
-                    <div class="payment-kpi-card w-100 h-100 d-flex flex-column justify-content-between p-3" style="border-left: 3px solid ${rotacion.alertaRecompra ? '#dc2626' : '#059669'};">
+                <div class="col-12 col-sm-6 col-md-4 col-xl d-flex align-items-stretch">
+                    <div class="payment-kpi-card w-100 flex-grow-1 h-100 d-flex flex-column justify-content-between p-3" style="border-left: 3px solid ${rotacion.alertaRecompra ? '#dc2626' : '#059669'};">
                         <div class="d-flex justify-content-between align-items-start mb-2" style="min-height: 38px;">
                             <span class="ds-kpi-label" style="line-height: 1.3;">Rotación y Cobertura</span>
                             <div class="payment-kpi-icon ${rotacion.alertaRecompra ? 'out-bg' : 'in-bg'}">
