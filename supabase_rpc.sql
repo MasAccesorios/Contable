@@ -3239,6 +3239,7 @@ DECLARE
     -- KPIs globales
     v_total_activos bigint := 0;
     v_total_inactivos bigint := 0;
+    v_total_unidades_fisicas numeric := 0;
     v_valor_total_inventario numeric := 0;
     v_valor_venta_potencial numeric := 0;
     v_conteo_bajo_stock bigint := 0;
@@ -3279,6 +3280,7 @@ BEGIN
     SELECT 
         COUNT(*) FILTER (WHERE estado NOT IN ('inactivo', 'inactive') OR estado IS NULL),
         COUNT(*) FILTER (WHERE estado IN ('inactivo', 'inactive')),
+        COALESCE(SUM(stock) FILTER (WHERE estado NOT IN ('inactivo', 'inactive') OR estado IS NULL), 0),
         COALESCE(SUM(valor_inventario) FILTER (WHERE estado NOT IN ('inactivo', 'inactive') OR estado IS NULL), 0),
         COALESCE(SUM(valor_venta) FILTER (WHERE estado NOT IN ('inactivo', 'inactive') OR estado IS NULL), 0),
         COUNT(*) FILTER (WHERE (estado NOT IN ('inactivo', 'inactive') OR estado IS NULL) AND stock <= stock_minimo AND stock > 0),
@@ -3287,6 +3289,7 @@ BEGIN
     INTO 
         v_total_activos,
         v_total_inactivos,
+        v_total_unidades_fisicas,
         v_valor_total_inventario,
         v_valor_venta_potencial,
         v_conteo_bajo_stock,
@@ -3397,6 +3400,7 @@ BEGIN
         'total_count', v_total_count,
         'kpis', json_build_object(
             'valor_total_inventario', v_valor_total_inventario,
+            'total_unidades_fisicas', v_total_unidades_fisicas,
             'valor_venta_potencial', v_valor_venta_potencial,
             'total_activos', v_total_activos,
             'total_inactivos', v_total_inactivos,

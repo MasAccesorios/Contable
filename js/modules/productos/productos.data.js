@@ -145,6 +145,7 @@ export const ProductosData = {
     calcularKPIsLocales(productos = []) {
         let totalActivos = 0;
         let totalInactivos = 0;
+        let totalUnidadesFisicas = 0;
         let valorTotalInventario = 0;
         let valorVentaPotencial = 0;
         let bajoStock = 0;
@@ -164,6 +165,7 @@ export const ProductosData = {
             const precio = Number(p.precioVenta || 0);
             const sMin = Number(p.stockMinimo || 5);
 
+            totalUnidadesFisicas += stock;
             valorTotalInventario += stock * costo;
             valorVentaPotencial += stock * precio;
 
@@ -183,6 +185,7 @@ export const ProductosData = {
 
         return {
             valor_total_inventario: Math.round(valorTotalInventario),
+            total_unidades_fisicas: Math.round(totalUnidadesFisicas),
             valor_venta_potencial: Math.round(valorVentaPotencial),
             total_activos: totalActivos,
             total_inactivos: totalInactivos,

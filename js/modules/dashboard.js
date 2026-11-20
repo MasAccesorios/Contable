@@ -88,7 +88,7 @@ export const DashboardModule = {
                     </div>
 
                     <!-- Inventario Valorizado -->
-                    <div class="dash-kpi-card d-flex flex-column justify-content-between dash-card-link" onclick="window.location.hash = '#/inventario/valor'" tabindex="0" role="link" aria-label="Ir a Valorización de Inventario">
+                    <div class="dash-kpi-card d-flex flex-column justify-content-between dash-card-link" onclick="window.location.hash = '#/inventario/items'" tabindex="0" role="link" aria-label="Ir a Ítems de Venta e Inventario">
                         <div class="d-flex justify-content-between align-items-start">
                             <span class="dash-kpi-label">Inventario val.</span>
                             <div class="dash-icon-box variant-blue">

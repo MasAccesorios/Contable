@@ -190,7 +190,7 @@ export const ProductosTemplates = {
                                 ${this.formatMoney(kpis.valor_total_inventario)}
                             </div>
                             <div class="mt-2 text-muted" style="font-size: 11px;">
-                                <i class="bi bi-layers text-secondary me-1"></i> Costo promedio valorizado FIFO
+                                <i class="bi bi-boxes text-secondary me-1"></i> <strong class="text-dark tnum" id="kpi-unidades-fisicas">${(Math.round(kpis.total_unidades_fisicas || 0)).toLocaleString('es-CO')}</strong> unds físicas (FIFO)
                             </div>
                         </div>
                     </div>

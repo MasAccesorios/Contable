@@ -24,6 +24,7 @@ export const ProductosModule = {
         productos: [],
         kpis: {
             valor_total_inventario: 0,
+            total_unidades_fisicas: 0,
             valor_venta_potencial: 0,
             total_activos: 0,
             total_inactivos: 0,
@@ -160,6 +161,9 @@ export const ProductosModule = {
         // KPIs
         const elVal = el.querySelector('#kpi-valor-inventario');
         if (elVal) elVal.textContent = this.formatMoney(kpis.valor_total_inventario);
+
+        const elUnd = el.querySelector('#kpi-unidades-fisicas');
+        if (elUnd) elUnd.textContent = (Math.round(kpis.total_unidades_fisicas || 0)).toLocaleString('es-CO');
 
         const elItems = el.querySelector('#kpi-total-items');
         if (elItems) elItems.textContent = (kpis.total_activos || 0).toLocaleString('es-CO');

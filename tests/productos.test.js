@@ -95,6 +95,7 @@ describe('Módulo Productos & Ítems de Venta 360° - TDD Test Suite', () => {
             // Prod 3: 0                      | Venta: 0
             // Total costo = 210.000, Total venta = 416.000
             assert.strictEqual(kpis.valor_total_inventario, 210000);
+            assert.strictEqual(kpis.total_unidades_fisicas, 22);
             assert.strictEqual(kpis.valor_venta_potencial, 416000);
             assert.strictEqual(kpis.total_activos, 3);
             assert.strictEqual(kpis.bajo_stock, 1);
@@ -170,6 +171,7 @@ describe('Módulo Productos & Ítems de Venta 360° - TDD Test Suite', () => {
 
             // 4 KPI Cards
             assert.ok(html.includes('kpi-valor-inventario'));
+            assert.ok(html.includes('kpi-unidades-fisicas'));
             assert.ok(html.includes('kpi-total-items'));
             assert.ok(html.includes('kpi-stock-critico'));
             assert.ok(html.includes('kpi-margen-promedio'));
