@@ -1,5 +1,5 @@
 // js/modules/inventario/ajustes.templates.js
-// Capa de Presentación HTML (Stitch UI, KPIs, Segmented Tabs, Offcanvas 360°)
+// Capa de Presentación HTML (Stitch UI - Homologado al 100% con Gastos Operativos y crudFinanciero.js)
 
 import { escapeHtml } from '../../shared/formatters.js';
 
@@ -26,26 +26,26 @@ export const AjustesTemplates = {
 
     getTipoBadge(tipo) {
         if (tipo === 'incremento') {
-            return `<span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill fw-medium" style="font-size: 11px; padding: 4px 10px;">
+            return `<span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill fw-medium" style="font-size: 11px; padding: 3px 8px;">
                 <i class="bi bi-arrow-up-circle me-1"></i> Incremento
             </span>`;
         }
         if (tipo === 'disminucion') {
-            return `<span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill fw-medium" style="font-size: 11px; padding: 4px 10px;">
+            return `<span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill fw-medium" style="font-size: 11px; padding: 3px 8px;">
                 <i class="bi bi-arrow-down-circle me-1"></i> Disminución
             </span>`;
         }
         if (tipo === 'mixto') {
-            return `<span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill fw-medium" style="font-size: 11px; padding: 4px 10px;">
+            return `<span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill fw-medium" style="font-size: 11px; padding: 3px 8px;">
                 <i class="bi bi-arrow-left-right me-1"></i> Mixto
             </span>`;
         }
         if (tipo === 'checkpoint') {
-            return `<span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle rounded-pill fw-medium" style="font-size: 11px; padding: 4px 10px;">
+            return `<span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle rounded-pill fw-medium" style="font-size: 11px; padding: 3px 8px;">
                 <i class="bi bi-shield-check me-1"></i> Checkpoint
             </span>`;
         }
-        return `<span class="badge bg-light text-muted border rounded-pill" style="font-size: 11px; padding: 4px 10px;">---</span>`;
+        return `<span class="badge bg-light text-muted border rounded-pill" style="font-size: 11px; padding: 3px 8px;">---</span>`;
     },
 
     renderLayout(state = {}) {
@@ -61,49 +61,50 @@ export const AjustesTemplates = {
         const currentTab = state.currentTab || 'todas';
 
         return `
-            <div class="dash-layout p-4" style="max-width: 1240px; margin: 0 auto; font-family: 'Inter', system-ui, -apple-system, sans-serif;">
+            <div class="dash-layout p-4" style="max-width: 1200px; margin: 0 auto; font-family: 'Inter', system-ui, sans-serif;">
                 
-                <!-- BREADCRUMB & TAG -->
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <div style="font-size: var(--fs-sm);" class="text-muted">
-                        <span>Inventario</span> &gt; <span class="text-dark fw-bold">Ajustes de Inventario</span>
-                    </div>
-                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-3 py-1 fw-semibold" style="font-size: 11px;">
-                        <i class="bi bi-boxes me-1"></i> Control de Stock & Mermas
-                    </span>
-                </div>
-
-                <!-- TOP BAR EJECUTIVA -->
-                <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
+                <!-- TOP BAR DE ALTO IMPACTO (ESTILO GASTOS OPERATIVOS) -->
+                <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
                     <div>
-                        <h2 class="page-title mb-1 fw-bold text-dark" style="font-size: 24px; letter-spacing: -0.5px;">Ajustes de Inventario</h2>
-                        <p class="text-muted mb-0" style="font-size: 13px;">
+                        <div class="d-flex align-items-center gap-2">
+                            <a href="#" onclick="event.preventDefault(); window.history.length > 2 ? window.history.back() : window.location.hash = '#/dashboard';" class="btn btn-light bg-white border me-2" style="font-weight: var(--weight-medium); font-size: var(--fs-md); color: var(--text-body); border-radius: 8px;" title="Volver">
+                                <i class="bi bi-arrow-left"></i>
+                            </a>
+                            <h2 class="page-title mb-0" style="font-size: 24px; font-weight: 800; color: #0f172a; letter-spacing: -0.5px;">Ajustes de Inventario</h2>
+                            <span class="badge" style="background-color: #eff6ff; color: #1d4ed8; font-size: 11px; font-weight: 700; border-radius: 9999px; padding: 4px 10px; border: 1px solid #bfdbfe;">
+                                <i class="bi bi-boxes me-1"></i> Control de Stock & Mermas
+                            </span>
+                        </div>
+                        <p class="text-muted mb-0" style="font-size: 13px; margin-top: 3px;">
                             Registra y audita entradas, mermas por daño, garantías y reconciliaciones físicas de stock.
                         </p>
                     </div>
-                    
-                    <div class="d-flex align-items-center gap-2">
-                        <button id="btn-refresh-ajustes" class="btn btn-light bg-white border text-secondary shadow-xs" style="border-radius: 8px; height: 38px; width: 38px; display: inline-flex; align-items: center; justify-content: center;" title="Actualizar datos">
+
+                    <div class="d-flex flex-wrap align-items-center gap-2">
+                        <!-- Botón Exportar Excel -->
+                        <button id="btn-export-excel" class="btn btn-light bg-white border text-secondary shadow-xs" style="font-weight: 600; font-size: 13px; border-radius: 8px;" title="Descargar en Excel">
+                            <i class="bi bi-file-earmark-excel text-success me-1"></i> Exportar
+                        </button>
+
+                        <!-- Botón Refrescar -->
+                        <button id="btn-refresh-ajustes" class="btn btn-light bg-white border text-secondary shadow-xs" style="border-radius: 8px;" title="Actualizar datos">
                             <i class="bi bi-arrow-clockwise"></i>
                         </button>
-                        <button id="btn-export-excel" class="btn btn-light bg-white border text-secondary shadow-xs d-flex align-items-center gap-2" style="border-radius: 8px; font-weight: 500; font-size: 13px; height: 38px;">
-                            <i class="bi bi-file-earmark-excel text-success"></i>
-                            <span>Exportar</span>
-                        </button>
-                        <button id="btn-nuevo-ajuste" class="btn btn-primary-action shadow-xs d-flex align-items-center gap-2" style="font-weight: 600; font-size: 13px; border-radius: 8px; height: 38px;" onclick="window.location.hash='#/inventario/ajustes/nuevo'">
-                            <i class="bi bi-plus-lg"></i>
-                            <span>Nuevo Ajuste</span>
+
+                        <!-- Botón Nuevo Ajuste -->
+                        <button id="btn-nuevo-ajuste" class="btn btn-primary-action shadow-xs d-flex align-items-center gap-2" style="font-weight: 600; font-size: 13px; border-radius: 8px;" onclick="window.location.hash='#/inventario/ajustes/nuevo'">
+                            <i class="bi bi-plus-lg"></i> Nuevo Ajuste
                         </button>
                     </div>
                 </div>
 
-                <!-- 4 KPI CARDS EJECUTIVAS -->
+                <!-- 4 KPI CARDS DINÁMICAS (ESTILO GASTOS OPERATIVOS) -->
                 <div class="row g-3 mb-4">
                     <!-- KPI 1: Total Ajustes -->
                     <div class="col-12 col-sm-6 col-lg-3">
-                        <div class="payment-kpi-card h-100" style="border-left: 3px solid #2563eb;">
+                        <div class="payment-kpi-card">
                             <div class="d-flex justify-content-between align-items-start mb-2">
-                                <span class="text-uppercase fw-semibold text-muted" style="font-size: 11px; letter-spacing: 0.5px;">Total Ajustes</span>
+                                <span class="ds-kpi-label">Total Ajustes</span>
                                 <div class="payment-kpi-icon blue-bg">
                                     <i class="bi bi-clipboard-check"></i>
                                 </div>
@@ -117,11 +118,11 @@ export const AjustesTemplates = {
                         </div>
                     </div>
 
-                    <!-- KPI 2: Unidades Incrementadas -->
+                    <!-- KPI 2: Unidades Entradas (+) -->
                     <div class="col-12 col-sm-6 col-lg-3">
-                        <div class="payment-kpi-card h-100" style="border-left: 3px solid #059669;">
+                        <div class="payment-kpi-card">
                             <div class="d-flex justify-content-between align-items-start mb-2">
-                                <span class="text-uppercase fw-semibold text-muted" style="font-size: 11px; letter-spacing: 0.5px;">Unidades Entradas (+)</span>
+                                <span class="ds-kpi-label">Unidades Entradas (+)</span>
                                 <div class="payment-kpi-icon in-bg">
                                     <i class="bi bi-arrow-up-circle"></i>
                                 </div>
@@ -135,11 +136,11 @@ export const AjustesTemplates = {
                         </div>
                     </div>
 
-                    <!-- KPI 3: Unidades Disminuidas / Mermas -->
+                    <!-- KPI 3: Mermas y Salidas (-) -->
                     <div class="col-12 col-sm-6 col-lg-3">
-                        <div class="payment-kpi-card h-100" style="border-left: 3px solid #dc2626;">
+                        <div class="payment-kpi-card" style="border-left: 3px solid #dc2626;">
                             <div class="d-flex justify-content-between align-items-start mb-2">
-                                <span class="text-uppercase fw-semibold text-muted" style="font-size: 11px; letter-spacing: 0.5px;">Mermas y Salidas (-)</span>
+                                <span class="ds-kpi-label">Mermas y Salidas (-)</span>
                                 <div class="payment-kpi-icon out-bg">
                                     <i class="bi bi-arrow-down-circle"></i>
                                 </div>
@@ -153,11 +154,11 @@ export const AjustesTemplates = {
                         </div>
                     </div>
 
-                    <!-- KPI 4: Balance Neto -->
+                    <!-- KPI 4: Balance Neto Stock -->
                     <div class="col-12 col-sm-6 col-lg-3">
-                        <div class="payment-kpi-card h-100" style="border-left: 3px solid #4f46e5;">
+                        <div class="payment-kpi-card">
                             <div class="d-flex justify-content-between align-items-start mb-2">
-                                <span class="text-uppercase fw-semibold text-muted" style="font-size: 11px; letter-spacing: 0.5px;">Balance Neto Stock</span>
+                                <span class="ds-kpi-label">Balance Neto Stock</span>
                                 <div class="payment-kpi-icon pending-bg">
                                     <i class="bi bi-arrow-left-right"></i>
                                 </div>
@@ -172,73 +173,64 @@ export const AjustesTemplates = {
                     </div>
                 </div>
 
-                <!-- CONTROLES: TABS Y BUSCADOR -->
-                <div class="card border-0 shadow-xs mb-3" style="border-radius: 10px; background-color: #fff;">
-                    <div class="card-body p-3">
-                        <div class="d-flex flex-column flex-md-row justify-content-between align-items-stretch align-items-md-center gap-3">
-                            
-                            <!-- SEGMENTED TABS -->
-                            <div class="d-flex flex-wrap gap-2" role="tablist">
-                                <button type="button" class="btn btn-sm ${currentTab === 'todas' ? 'btn-dark text-white fw-semibold' : 'btn-light text-secondary'} rounded-pill px-3 py-1 d-flex align-items-center gap-2 tab-filter-btn" data-tab="todas" id="tab-todas">
-                                    <span>Todas</span>
-                                    <span class="badge ${currentTab === 'todas' ? 'bg-white text-dark' : 'bg-secondary bg-opacity-10 text-secondary'} rounded-pill" style="font-size: 10px;">${counts.todas || 0}</span>
-                                </button>
-                                <button type="button" class="btn btn-sm ${currentTab === 'incrementos' ? 'btn-dark text-white fw-semibold' : 'btn-light text-secondary'} rounded-pill px-3 py-1 d-flex align-items-center gap-2 tab-filter-btn" data-tab="incrementos" id="tab-incrementos">
-                                    <i class="bi bi-arrow-up-circle text-success"></i>
-                                    <span>Incrementos</span>
-                                    <span class="badge ${currentTab === 'incrementos' ? 'bg-white text-dark' : 'bg-secondary bg-opacity-10 text-secondary'} rounded-pill" style="font-size: 10px;">${counts.incrementos || 0}</span>
-                                </button>
-                                <button type="button" class="btn btn-sm ${currentTab === 'disminuciones' ? 'btn-dark text-white fw-semibold' : 'btn-light text-secondary'} rounded-pill px-3 py-1 d-flex align-items-center gap-2 tab-filter-btn" data-tab="disminuciones" id="tab-disminuciones">
-                                    <i class="bi bi-arrow-down-circle text-danger"></i>
-                                    <span>Mermas / Bajas</span>
-                                    <span class="badge ${currentTab === 'disminuciones' ? 'bg-white text-dark' : 'bg-secondary bg-opacity-10 text-secondary'} rounded-pill" style="font-size: 10px;">${counts.disminuciones || 0}</span>
-                                </button>
-                                <button type="button" class="btn btn-sm ${currentTab === 'checkpoints' ? 'btn-dark text-white fw-semibold' : 'btn-light text-secondary'} rounded-pill px-3 py-1 d-flex align-items-center gap-2 tab-filter-btn" data-tab="checkpoints" id="tab-checkpoints">
-                                    <i class="bi bi-shield-check text-secondary"></i>
-                                    <span>Checkpoints</span>
-                                    <span class="badge ${currentTab === 'checkpoints' ? 'bg-white text-dark' : 'bg-secondary bg-opacity-10 text-secondary'} rounded-pill" style="font-size: 10px;">${counts.checkpoints || 0}</span>
-                                </button>
-                            </div>
-
-                            <!-- BUSCADOR CON DEBOUNCE -->
-                            <div class="position-relative" style="min-width: 280px;">
-                                <i class="bi bi-search position-absolute text-muted" style="left: 12px; top: 50%; transform: translateY(-50%); font-size: 13px;"></i>
-                                <input type="text" id="search-ajustes" class="form-control form-control-sm ps-4 pe-4 bg-light border-0" placeholder="Buscar por #, SKU, producto o nota..." value="${escapeHtml(state.searchQuery || '')}" style="height: 36px; border-radius: 8px; font-size: 13px;">
-                                ${state.searchQuery ? `
-                                    <button id="btn-clear-search" class="btn btn-link text-muted p-0 position-absolute" style="right: 12px; top: 50%; transform: translateY(-50%); font-size: 12px;">
-                                        <i class="bi bi-x-circle-fill"></i>
-                                    </button>
-                                ` : ''}
-                            </div>
-
-                        </div>
-                    </div>
-                </div>
-
-                <!-- CONTENEDOR DE LA TABLA -->
+                <!-- CONTENEDOR DE TABLA DE DATOS UNIFICADO (DASH-TABLE-CONTAINER) -->
                 <div id="ajustes-grid-container" class="position-relative">
                     <!-- Loading Overlay -->
-                    <div id="grid-loading-overlay" class="position-absolute top-0 start-0 w-100 h-100 justify-content-center align-items-center bg-white bg-opacity-75" style="display: none; z-index: 10; border-radius: 10px; min-height: 250px;">
+                    <div id="grid-loading-overlay" class="position-absolute top-0 start-0 w-100 h-100 justify-content-center align-items-center bg-white bg-opacity-75" style="display: none; z-index: 10; border-radius: 12px; min-height: 250px;">
                         <div class="spinner-border text-primary" role="status"></div>
                     </div>
-                    
-                    <div id="ajustes-table-wrapper">
-                        <!-- Renderizado por renderGrid -->
+
+                    <div class="dash-table-container mb-4 shadow-xs" style="border-radius: 12px; border: 1px solid var(--border-color, #e2e8f0); background: #ffffff;">
+                        
+                        <!-- FILTROS Y TABS SUPERIORES UNIFICADOS -->
+                        <div class="p-3 border-bottom bg-white d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
+                            <!-- Tabs de Filtro Rápido (Segmented Control) -->
+                            <div class="payment-tabs-bar">
+                                <button type="button" class="payment-tab-btn ${currentTab === 'todas' ? 'active' : ''}" data-tab="todas" id="tab-todas">
+                                    Todas <span class="payment-tab-badge">${counts.todas || 0}</span>
+                                </button>
+                                <button type="button" class="payment-tab-btn ${currentTab === 'incrementos' ? 'active' : ''}" data-tab="incrementos" id="tab-incrementos">
+                                    <i class="bi bi-arrow-up-circle text-success"></i> Incrementos <span class="payment-tab-badge">${counts.incrementos || 0}</span>
+                                </button>
+                                <button type="button" class="payment-tab-btn tab-warning ${currentTab === 'disminuciones' ? 'active' : ''}" data-tab="disminuciones" id="tab-disminuciones">
+                                    <i class="bi bi-arrow-down-circle text-danger"></i> Mermas / Bajas <span class="payment-tab-badge">${counts.disminuciones || 0}</span>
+                                </button>
+                                <button type="button" class="payment-tab-btn ${currentTab === 'checkpoints' ? 'active' : ''}" data-tab="checkpoints" id="tab-checkpoints">
+                                    <i class="bi bi-shield-check text-secondary"></i> Checkpoints <span class="payment-tab-badge">${counts.checkpoints || 0}</span>
+                                </button>
+                            </div>
+
+                            <!-- Buscador en Tiempo Real (Design System) -->
+                            <div class="d-flex flex-wrap align-items-center gap-2">
+                                <div class="ds-search-container" style="min-width: 280px;">
+                                    <i class="bi bi-search ds-search-icon"></i>
+                                    <input type="text" class="ds-search-input pe-4" id="search-ajustes" placeholder="Buscar por #, SKU, producto o nota..." value="${escapeHtml(state.searchQuery || '')}" autocomplete="off">
+                                    ${state.searchQuery ? `
+                                        <button id="btn-clear-search" class="btn btn-link text-muted p-0 position-absolute" style="right: 12px; top: 50%; transform: translateY(-50%); font-size: 12px; text-decoration: none;">
+                                            <i class="bi bi-x-circle-fill"></i>
+                                        </button>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- TABLA DINÁMICA -->
+                        <div id="ajustes-table-wrapper">
+                            <!-- Inyectado por renderGrid -->
+                        </div>
+
+                        <!-- PAGINADOR INTEGRADO -->
+                        <div id="ajustes-pagination-container">
+                            <!-- Inyectado por renderPagination -->
+                        </div>
                     </div>
                 </div>
 
-                <!-- CONTENEDOR DE PAGINACIÓN -->
-                <div id="ajustes-pagination-container" class="mt-3">
-                    <!-- Renderizado por renderPagination -->
-                </div>
-
-                <!-- DRAWER LATERAL ERGONÓMICO 360° (OFFCANVAS) -->
-                <div id="ajustes-drawer" class="offcanvas-drawer" style="display: none;">
-                    <div class="offcanvas-backdrop" id="drawer-backdrop"></div>
-                    <div class="offcanvas-panel shadow-lg" id="drawer-panel" style="width: 520px; max-width: 95vw;">
-                        <div id="drawer-content-container" class="h-100 d-flex flex-column">
-                            <!-- Inyectado dinámicamente por renderDrawerContent -->
-                        </div>
+                <!-- SLIDE-OVER DRAWER DE TRAZABILIDAD (ESTILO GASTOS OPERATIVOS) -->
+                <div class="payment-drawer-backdrop" id="drawer-backdrop"></div>
+                <div class="payment-drawer" id="ajustes-drawer" style="width: 540px; max-width: 95vw;">
+                    <div id="drawer-content-container" class="h-100 d-flex flex-column">
+                        <!-- Inyectado por renderDrawerContent -->
                     </div>
                 </div>
 
@@ -250,25 +242,23 @@ export const AjustesTemplates = {
         if (!Array.isArray(rows) || rows.length === 0) {
             const hasQuery = Boolean(state.searchQuery);
             return `
-                <div class="card border-0 shadow-xs text-center py-5" style="border-radius: 10px; background: #fff;">
-                    <div class="card-body">
-                        <div class="avatar-lg bg-light rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center" style="width: 56px; height: 56px;">
-                            <i class="bi bi-boxes text-muted fs-3"></i>
-                        </div>
-                        <h6 class="fw-bold text-dark mb-1">No se encontraron ajustes de inventario</h6>
-                        <p class="text-muted mb-3" style="font-size: 13px;">
-                            ${hasQuery ? 'No hay coincidencias para tu búsqueda. Prueba con otro término.' : 'No hay ajustes registrados en esta pestaña.'}
-                        </p>
-                        ${hasQuery ? `
-                            <button id="btn-reset-filters" class="btn btn-sm btn-light border px-3">
-                                Limpiar búsqueda
-                            </button>
-                        ` : `
-                            <button class="btn btn-sm btn-primary-action px-3" onclick="window.location.hash='#/inventario/ajustes/nuevo'">
-                                <i class="bi bi-plus-lg me-1"></i> Crear primer ajuste
-                            </button>
-                        `}
+                <div class="text-center py-5">
+                    <div class="avatar-lg bg-light rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center" style="width: 56px; height: 56px;">
+                        <i class="bi bi-boxes text-muted fs-3"></i>
                     </div>
+                    <h6 class="fw-bold text-dark mb-1">No se encontraron ajustes de inventario</h6>
+                    <p class="text-muted mb-3" style="font-size: 13px;">
+                        ${hasQuery ? 'No hay coincidencias para tu búsqueda. Prueba con otro término.' : 'No hay ajustes registrados en esta pestaña.'}
+                    </p>
+                    ${hasQuery ? `
+                        <button id="btn-reset-filters" class="btn btn-sm btn-light border px-3">
+                            Limpiar búsqueda
+                        </button>
+                    ` : `
+                        <button class="btn btn-sm btn-primary-action px-3" onclick="window.location.hash='#/inventario/ajustes/nuevo'">
+                            <i class="bi bi-plus-lg me-1"></i> Crear primer ajuste
+                        </button>
+                    `}
                 </div>
             `;
         }
@@ -279,8 +269,8 @@ export const AjustesTemplates = {
             const obsSafe = escapeHtml(a.observaciones || 'Sin observaciones');
 
             return `
-                <tr class="hover-bg-light cursor-pointer ajuste-row-item" data-id="${escapeHtml(a.id)}" style="transition: background-color 0.15s ease;">
-                    <td class="ps-4 py-3 fw-bold text-dark">
+                <tr class="payment-row ajuste-row-item" data-id="${escapeHtml(a.id)}">
+                    <td class="py-3 ps-4 fw-bold text-dark tnum">
                         #${escapeHtml(a.numero)}
                     </td>
                     <td class="py-3 text-muted" style="font-size: 13px;">
@@ -300,16 +290,16 @@ export const AjustesTemplates = {
                     <td class="py-3 text-center" style="font-size: 13px;">
                         ${unidadesDisHtml}
                     </td>
-                    <td class="py-3 text-truncate text-muted" style="max-width: 240px; font-size: 13px;" title="${obsSafe}">
+                    <td class="py-3 text-truncate text-muted" style="max-width: 250px; font-size: 13px;" title="${obsSafe}">
                         ${obsSafe}
                     </td>
-                    <td class="pe-4 py-3 text-end" onclick="event.stopPropagation();">
-                        <div class="dropdown d-inline-block">
-                            <button class="btn btn-link text-muted p-1 btn-open-drawer" data-id="${escapeHtml(a.id)}" title="Inspección rápida 360°" style="border-radius: 6px;">
-                                <i class="bi bi-layout-sidebar-reverse fs-6"></i>
+                    <td class="py-3 pe-4 text-end" onclick="event.stopPropagation();">
+                        <div class="d-inline-flex align-items-center gap-1">
+                            <button class="btn btn-sm btn-light border text-secondary btn-open-drawer shadow-2xs" data-id="${escapeHtml(a.id)}" title="Inspección rápida 360°" style="border-radius: 6px; width: 32px; height: 32px; padding: 0; display: inline-flex; align-items: center; justify-content: center;">
+                                <i class="bi bi-layout-sidebar-reverse"></i>
                             </button>
-                            <button class="btn btn-link text-muted p-1" onclick="window.location.hash='#/inventario/ajustes/ver/${encodeURIComponent(a.id)}'" title="Ver comprobante completo" style="border-radius: 6px;">
-                                <i class="bi bi-eye fs-6"></i>
+                            <button class="btn btn-sm btn-light border text-secondary shadow-2xs" onclick="window.location.hash='#/inventario/ajustes/ver/${encodeURIComponent(a.id)}'" title="Ver comprobante completo" style="border-radius: 6px; width: 32px; height: 32px; padding: 0; display: inline-flex; align-items: center; justify-content: center;">
+                                <i class="bi bi-eye"></i>
                             </button>
                         </div>
                     </td>
@@ -318,26 +308,24 @@ export const AjustesTemplates = {
         }).join('');
 
         return `
-            <div class="card border-0 shadow-xs" style="border-radius: 10px; overflow: hidden; background: #fff;">
-                <div class="table-responsive mb-0">
-                    <table class="table table-borderless align-middle mb-0" id="ajustes-table">
-                        <thead class="bg-light" style="border-bottom: 1px solid var(--border-color, #e2e8f0);">
-                            <tr class="text-uppercase fw-semibold text-muted" style="font-size: 11px; letter-spacing: 0.5px;">
-                                <th class="ps-4 py-3">Número</th>
-                                <th class="py-3">Fecha</th>
-                                <th class="py-3">Tipo</th>
-                                <th class="py-3 text-center">Ítems</th>
-                                <th class="py-3 text-center">Entradas (+)</th>
-                                <th class="py-3 text-center">Salidas (-)</th>
-                                <th class="py-3">Observaciones</th>
-                                <th class="pe-4 py-3 text-end">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${tbodyHtml}
-                        </tbody>
-                    </table>
-                </div>
+            <div class="table-responsive">
+                <table class="table table-borderless align-middle mb-0 w-100" id="ajustes-table">
+                    <thead style="background-color: #f8fafc; border-bottom: 1px solid #e2e8f0;">
+                        <tr>
+                            <th class="py-3 ps-4 text-uppercase text-muted fw-bold" style="font-size: 11px; letter-spacing: 0.5px; width: 110px;">Número</th>
+                            <th class="py-3 text-uppercase text-muted fw-bold" style="font-size: 11px; letter-spacing: 0.5px; width: 120px;">Fecha</th>
+                            <th class="py-3 text-uppercase text-muted fw-bold" style="font-size: 11px; letter-spacing: 0.5px; width: 140px;">Tipo</th>
+                            <th class="py-3 text-center text-uppercase text-muted fw-bold" style="font-size: 11px; letter-spacing: 0.5px; width: 100px;">Ítems</th>
+                            <th class="py-3 text-center text-uppercase text-muted fw-bold" style="font-size: 11px; letter-spacing: 0.5px; width: 110px;">Entradas (+)</th>
+                            <th class="py-3 text-center text-uppercase text-muted fw-bold" style="font-size: 11px; letter-spacing: 0.5px; width: 110px;">Salidas (-)</th>
+                            <th class="py-3 text-uppercase text-muted fw-bold" style="font-size: 11px; letter-spacing: 0.5px;">Observaciones</th>
+                            <th class="py-3 pe-4 text-end text-uppercase text-muted fw-bold" style="font-size: 11px; letter-spacing: 0.5px; width: 100px;">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${tbodyHtml}
+                    </tbody>
+                </table>
             </div>
         `;
     },
@@ -363,10 +351,10 @@ export const AjustesTemplates = {
             } else if (isDis) {
                 qtyBadge = `<span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill">-${this.formatNumero(d.cantidad)}</span>`;
             } else if (d.de !== undefined && d.a !== undefined) {
-                const diff = (parseFloat(d.a) || 0) - (parseFloat(d.de) || 0);
+                const diff = (d.a || 0) - (d.de || 0);
                 qtyBadge = diff >= 0
-                    ? `<span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill">+${this.formatNumero(diff)}</span>`
-                    : `<span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill">${this.formatNumero(diff)}</span>`;
+                    ? `<span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill">+${diff}</span>`
+                    : `<span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill">${diff}</span>`;
             } else if (d.a !== undefined) {
                 qtyBadge = `<span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle rounded-pill">Stock: ${escapeHtml(this.formatNumero(d.a))}</span>`;
             } else {
@@ -392,25 +380,31 @@ export const AjustesTemplates = {
         }).join('');
 
         return `
-            <!-- HEADER DEL DRAWER -->
-            <div class="p-4 border-bottom bg-light bg-opacity-50 d-flex justify-content-between align-items-center">
-                <div>
-                    <div class="d-flex align-items-center gap-2 mb-1">
-                        <h5 class="fw-bold text-dark mb-0">Ajuste #${escapeHtml(ajuste.numero)}</h5>
-                        ${this.getTipoBadge(ajuste.tipo)}
+            <!-- HEADER DEL DRAWER (ESTILO GASTOS OPERATIVOS) -->
+            <div class="payment-drawer-header">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="payment-kpi-icon blue-bg" style="width: 34px; height: 34px; font-size: 14px;">
+                        <i class="bi bi-boxes text-primary"></i>
                     </div>
-                    <div class="text-muted" style="font-size: 12px;">
-                        <i class="bi bi-calendar3 me-1"></i> Fecha: <strong>${this.formatFecha(ajuste.fecha)}</strong>
+                    <div>
+                        <div class="d-flex align-items-center gap-2">
+                            <h5 class="fw-bold mb-0" style="color: #0f172a; font-size: 16px;">Ajuste #${escapeHtml(ajuste.numero)}</h5>
+                            ${this.getTipoBadge(ajuste.tipo)}
+                        </div>
+                        <div class="text-muted" style="font-size: 11px;">
+                            Fecha: <strong>${this.formatFecha(ajuste.fecha)}</strong>
+                        </div>
                     </div>
                 </div>
-                <button type="button" class="btn btn-light bg-white border btn-close-drawer rounded-circle p-2" style="width: 34px; height: 34px; display: flex; align-items: center; justify-content: center;" title="Cerrar">
-                    <i class="bi bi-x fs-5"></i>
+                <button type="button" class="btn btn-sm btn-light border-0 text-muted btn-close-drawer" title="Cerrar panel">
+                    <i class="bi bi-x-lg fs-6"></i>
                 </button>
             </div>
 
-            <!-- SCORECARD 4 MÉTRICAS EN DRAWER -->
-            <div class="p-4 border-bottom bg-white">
-                <div class="row g-2 text-center">
+            <!-- BODY DEL DRAWER -->
+            <div class="payment-drawer-body">
+                <!-- SCORECARD 4 MÉTRICAS -->
+                <div class="row g-2 text-center mb-3">
                     <div class="col-3">
                         <div class="p-2 rounded bg-light">
                             <div class="text-muted text-uppercase" style="font-size: 10px; font-weight: 600;">Ítems</div>
@@ -438,15 +432,13 @@ export const AjustesTemplates = {
                 </div>
 
                 <!-- OBSERVACIONES -->
-                <div class="mt-3 p-3 rounded bg-light border-0">
+                <div class="p-3 rounded bg-light border-0 mb-4">
                     <div class="text-uppercase text-muted fw-bold mb-1" style="font-size: 10px; letter-spacing: 0.5px;">Observaciones</div>
                     <div class="text-dark" style="font-size: 12px; white-space: pre-wrap; line-height: 1.5;">${escapeHtml(ajuste.observaciones || 'Sin observaciones registradas.')}</div>
                 </div>
-            </div>
 
-            <!-- TABLA DE ÍTEMS -->
-            <div class="p-4 flex-grow-1 overflow-auto bg-white">
-                <div class="d-flex justify-content-between align-items-center mb-3">
+                <!-- TABLA DE ÍTEMS AFECTADOS -->
+                <div class="d-flex justify-content-between align-items-center mb-2">
                     <h6 class="fw-bold text-dark mb-0" style="font-size: 13px;">Ítems Afectados (${totalItemsCount})</h6>
                     ${isMassive ? `
                         <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle" style="font-size: 10px;">
@@ -476,12 +468,12 @@ export const AjustesTemplates = {
                 `}
             </div>
 
-            <!-- FOOTER CON BOTONES -->
-            <div class="p-3 border-top bg-light bg-opacity-75 d-flex justify-content-between align-items-center">
-                <button type="button" class="btn btn-sm btn-light border px-3 btn-close-drawer" style="border-radius: 8px;">
+            <!-- FOOTER DEL DRAWER -->
+            <div class="payment-drawer-footer">
+                <button type="button" class="btn btn-light border btn-sm px-3 fw-medium btn-close-drawer">
                     Cerrar
                 </button>
-                <button type="button" class="btn btn-sm btn-primary-action px-3" onclick="window.location.hash='#/inventario/ajustes/ver/${encodeURIComponent(ajuste.id)}'" style="border-radius: 8px;">
+                <button type="button" class="btn btn-primary btn-sm px-3 fw-medium" onclick="window.location.hash='#/inventario/ajustes/ver/${encodeURIComponent(ajuste.id)}'">
                     <i class="bi bi-file-earmark-text me-1"></i> Ver Comprobante Completo
                 </button>
             </div>
@@ -496,7 +488,7 @@ export const AjustesTemplates = {
         const to = Math.min(currentPage * itemsPerPage, totalCount);
 
         return `
-            <div class="d-flex flex-column flex-sm-row justify-content-between align-items-center gap-3 px-2 py-3 bg-white rounded border shadow-xs">
+            <div class="card-footer bg-white border-top p-3 d-flex flex-column flex-sm-row justify-content-between align-items-center gap-2" style="border-radius: 0 0 12px 12px;">
                 <div class="text-muted" style="font-size: 13px;">
                     Mostrando <strong class="text-dark">${from}</strong> a <strong class="text-dark">${to}</strong> de <strong class="text-dark">${totalCount}</strong> ajustes
                 </div>

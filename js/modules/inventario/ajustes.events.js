@@ -11,8 +11,8 @@ export const AjustesEvents = {
         const el = module.element;
         if (!el) return;
 
-        // 1. Selector de Pestañas (Segmented Tabs)
-        el.querySelectorAll('.tab-filter-btn').forEach(btn => {
+        // 1. Selector de Pestañas (Segmented Control - .payment-tab-btn)
+        el.querySelectorAll('.payment-tab-btn, .tab-filter-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const targetBtn = e.currentTarget;
                 const tab = targetBtn.dataset.tab;
@@ -21,13 +21,12 @@ export const AjustesEvents = {
                 module.state.currentTab = tab;
                 module.state.currentPage = 1;
 
-                // Actualizar clases activas en botones
-                el.querySelectorAll('.tab-filter-btn').forEach(b => {
-                    const isActive = b.dataset.tab === tab;
-                    b.className = `btn btn-sm ${isActive ? 'btn-dark text-white fw-semibold' : 'btn-light text-secondary'} rounded-pill px-3 py-1 d-flex align-items-center gap-2 tab-filter-btn`;
-                    const badge = b.querySelector('.badge');
-                    if (badge) {
-                        badge.className = `badge ${isActive ? 'bg-white text-dark' : 'bg-secondary bg-opacity-10 text-secondary'} rounded-pill`;
+                // Actualizar clases activas en botones según estándar de Gastos Operativos
+                el.querySelectorAll('.payment-tab-btn, .tab-filter-btn').forEach(b => {
+                    if (b.dataset.tab === tab) {
+                        b.classList.add('active');
+                    } else {
+                        b.classList.remove('active');
                     }
                 });
 
@@ -147,10 +146,12 @@ export const AjustesEvents = {
 
         const drawerContainer = el.querySelector('#drawer-content-container');
         const drawerRoot = el.querySelector('#ajustes-drawer');
+        const backdrop = el.querySelector('#drawer-backdrop');
 
         if (drawerContainer && drawerRoot) {
             drawerContainer.innerHTML = module.templates.renderDrawerContent(ajuste);
-            drawerRoot.style.display = 'block';
+            drawerRoot.classList.add('show');
+            if (backdrop) backdrop.classList.add('show');
             module.state.isDrawerOpen = true;
 
             // Vincular botones de cerrar dentro del drawer
@@ -164,8 +165,12 @@ export const AjustesEvents = {
         const el = module.element;
         if (!el) return;
         const drawerRoot = el.querySelector('#ajustes-drawer');
+        const backdrop = el.querySelector('#drawer-backdrop');
         if (drawerRoot) {
-            drawerRoot.style.display = 'none';
+            drawerRoot.classList.remove('show');
+        }
+        if (backdrop) {
+            backdrop.classList.remove('show');
         }
         module.state.isDrawerOpen = false;
     },
@@ -206,14 +211,13 @@ export const AjustesEvents = {
                 window.XLSX.utils.book_append_sheet(wb, ws, 'Ajustes');
                 window.XLSX.writeFile(wb, filename);
             } else if (typeof document !== 'undefined') {
-                // Fallback CSV con delimitador ";", BOM UTF-8 y prevención de CSV Formula Injection (CWE-1236)
+                // Fallback CSV con delimitador ";" y BOM UTF-8
                 const headers = Object.keys(rowsToExport[0]);
                 let csv = headers.join(';') + '\r\n';
                 rowsToExport.forEach(row => {
                     csv += headers.map(h => {
                         const raw = (row[h] !== null && row[h] !== undefined) ? String(row[h]) : '';
                         const escaped = raw.replace(/"/g, '""');
-                        // Prevenir CSV Formula Injection si inicia con =, +, -, @, \t, \r y no es un número puro
                         const isFormula = /^[=+\-@\t\r]/.test(escaped);
                         const isNumber = !isNaN(Number(raw)) && raw.trim() !== '';
                         return (isFormula && !isNumber) ? `"'${escaped}"` : `"${escaped}"`;

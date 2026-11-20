@@ -138,7 +138,7 @@ export const AjustesInventarioModule = {
         const counts = kpis.tabCounts || {};
         const updateBadge = (id, val) => {
             const btn = this.element.querySelector(id);
-            const badge = btn?.querySelector('.badge');
+            const badge = btn?.querySelector('.payment-tab-badge, .badge');
             if (badge) badge.textContent = val || 0;
         };
 
