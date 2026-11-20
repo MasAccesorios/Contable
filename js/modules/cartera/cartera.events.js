@@ -2,6 +2,7 @@ import { AbonoModal } from '../../shared/abonoModal.js';
 import { PrintManager } from '../../shared/printManager.js';
 import { CoreActions } from '../../shared/crud.js';
 import { getLocalDate } from '../../core/db.js';
+import { resolveClienteIdFromFactura } from '../../shared/cobranzaUtils.js';
 
 export const CarteraEvents = {
     bindStaticEvents() {
@@ -231,99 +232,21 @@ export const CarteraEvents = {
     },
 
     enviarCobroWhatsAppFactura(f) {
-        const cliente = f.cliente;
-        let tel = cliente?.telefono ? String(cliente.telefono).replace(/\D/g, '') : '';
-        if (!tel) {
-            tel = prompt(`El cliente "${cliente?.nombre || 'General'}" no tiene teléfono registrado.\nIngresa el número de WhatsApp (ej: 3001234567):`);
-            if (!tel) return;
-            tel = tel.replace(/\D/g, '');
-        }
-
-        const finalPhone = tel.startsWith('57') ? tel : (tel.length === 10 ? '57' + tel : tel);
-        if (!finalPhone || finalPhone.length < 7) {
-            CoreActions.showWarningModal("El número de teléfono no es válido o no fue proporcionado.");
+        const clienteId = resolveClienteIdFromFactura(f);
+        if (!clienteId) {
+            CoreActions.showWarningModal("Esta factura no tiene un cliente asignado para generar el Estado de Cuenta.");
             return;
         }
-        const hoyFecha = typeof getLocalDate === 'function' ? getLocalDate() : new Date().toISOString().split('T')[0];
-
-        let moraTexto = '';
-        if (f.diasVencida > 0) {
-            moraTexto = `Presenta *${f.diasVencida} días de mora* (Venció el ${this.formatFecha(f.vencimientoReal)})`;
-        } else {
-            moraTexto = `Se encuentra al día (Vence el ${this.formatFecha(f.vencimientoReal)})`;
-        }
-
-        let msg = `*RECORDATORIO DE PAGO - MAS ACCESORIOS*\n`;
-        msg += `_Fecha: ${hoyFecha}_\n\n`;
-        msg += `Estimado(a) *${cliente?.nombre || 'Cliente'}*, cordial saludo.\n`;
-        msg += `Le recordamos amablemente el saldo pendiente de su *Factura #${f.numero || f.id}*:\n\n`;
-        msg += `• *Monto Total:* ${this.formatMoney(f.total)}\n`;
-        msg += `• *Abonos Realizados:* ${this.formatMoney(f.cobrado)}\n`;
-        msg += `• *Saldo Pendiente por Cobrar:* *${this.formatMoney(f.saldo)}*\n`;
-        msg += `• *Estado:* ${moraTexto}\n\n`;
-
-        msg += `*MEDIOS DE PAGO AUTORIZADOS:*\n`;
-        msg += `• *Bancolombia (Ahorros):* 54700050214\n`;
-        msg += `  Titular: Diego M Izquierdo\n`;
-        msg += `• *Nequi / DaviPlata:* 3158512091\n`;
-        msg += `  Titular: Diego M Izquierdo\n`;
-        msg += `• *Llave Bre-B / Transfiya:* @izquierdo638\n`;
-        msg += `  (Transferencia inmediata desde cualquier banco)\n\n`;
-        msg += `*Confirmar Pago:* Favor enviarnos el comprobante por este medio para registrar su abono de inmediato.\n\n`;
-        msg += `¡Muchas gracias por su preferencia!`;
-
-        const url = `https://wa.me/${finalPhone}?text=${encodeURIComponent(msg)}`;
-        window.open(url, '_blank', 'noopener,noreferrer');
+        PrintManager.printEstadoCuenta(clienteId);
     },
 
     enviarCobroWhatsAppCliente(clienteData) {
-        let tel = clienteData.telefono ? String(clienteData.telefono).replace(/\D/g, '') : '';
-        if (!tel) {
-            tel = prompt(`El cliente "${clienteData.nombre}" no tiene teléfono registrado.\nIngresa el número de WhatsApp (ej: 3001234567):`);
-            if (!tel) return;
-            tel = tel.replace(/\D/g, '');
-        }
-
-        const finalPhone = tel.startsWith('57') ? tel : (tel.length === 10 ? '57' + tel : tel);
-        if (!finalPhone || finalPhone.length < 7) {
-            CoreActions.showWarningModal("El número de teléfono no es válido o no fue proporcionado.");
+        const clienteId = clienteData?.id || clienteData?.clienteId;
+        if (!clienteId) {
+            CoreActions.showWarningModal("No se encontró el identificador del cliente.");
             return;
         }
-        const hoyFecha = typeof getLocalDate === 'function' ? getLocalDate() : new Date().toISOString().split('T')[0];
-
-        let msg = `*ESTADO DE CUENTA - MAS ACCESORIOS*\n`;
-        msg += `_Fecha: ${hoyFecha}_\n\n`;
-        msg += `Estimado(a) *${clienteData.nombre}*, un cordial saludo.\n`;
-        msg += `Le compartimos el resumen de su saldo pendiente con nosotros:\n\n`;
-        msg += `• *Saldo Total Pendiente:* *${this.formatMoney(clienteData.totalSaldo)}*\n`;
-        msg += `• *Facturas Pendientes:* ${clienteData.facturas.length}\n`;
-        if (clienteData.maxDiasMora > 0) {
-            msg += `• *Estado:* Presenta saldo en mora (hasta ${clienteData.maxDiasMora} días)\n`;
-        } else {
-            msg += `• *Estado:* Cartera al día\n`;
-        }
-
-        msg += `\n*Detalle de Facturas:*\n`;
-        clienteData.facturas.slice(0, 6).forEach(f => {
-            const moraTag = f.diasVencida > 0 ? ` [Vencida +${f.diasVencida}d]` : ` [Al día]`;
-            msg += `• *Fac #${f.numero || f.id}* | Vence: ${this.formatFecha(f.vencimientoReal)} | Saldo: *${this.formatMoney(f.saldo)}*${moraTag}\n`;
-        });
-        if (clienteData.facturas.length > 6) {
-            msg += `• _... y ${clienteData.facturas.length - 6} factura(s) más._\n`;
-        }
-
-        msg += `\n*MEDIOS DE PAGO AUTORIZADOS:*\n`;
-        msg += `• *Bancolombia (Ahorros):* 54700050214\n`;
-        msg += `  Titular: Diego M Izquierdo\n`;
-        msg += `• *Nequi / DaviPlata:* 3158512091\n`;
-        msg += `  Titular: Diego M Izquierdo\n`;
-        msg += `• *Llave Bre-B / Transfiya:* @izquierdo638\n`;
-        msg += `  (Transferencia inmediata desde cualquier entidad bancaria)\n\n`;
-        msg += `*Confirmar Pago:* Favor remitir su comprobante a este WhatsApp indicando el número de factura.\n\n`;
-        msg += `Agradecemos regularizar el saldo pendiente a la mayor brevedad. Si ya realizó el pago, por favor compártanos el comprobante.\n¡Muchas gracias!`;
-
-        const url = `https://wa.me/${finalPhone}?text=${encodeURIComponent(msg)}`;
-        window.open(url, '_blank', 'noopener,noreferrer');
+        PrintManager.printEstadoCuenta(clienteId);
     },
 
     exportarExcel() {

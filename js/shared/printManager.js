@@ -3,6 +3,7 @@ import { supabase } from '../core/supabase.js';
 import { numeroALetras } from './numeroALetras.js';
 import { CoreActions } from './crud.js';
 import { escapeHtml } from './formatters.js';
+import { buildEstadoCuentaWhatsAppText, normalizeWhatsAppPhone } from './cobranzaUtils.js';
 /**
  * GESTOR DE IMPRESIÓN DINÁMICA (MEDIA HOJA / HOJA COMPLETA)
  * Genera un contenedor temporal formateado para imprimir un documento.
@@ -71,14 +72,23 @@ export const PrintManager = {
             closeHeader.style.borderBottom = '1px solid #dee2e6';
             closeHeader.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
             closeHeader.innerHTML = `
-                <div class="d-flex justify-content-center gap-2">
-                    <button class="btn btn-success btn-compartir-preview"><i class="bi bi-share me-1"></i>Compartir</button>
-                    <button class="btn btn-danger btn-cerrar-preview"><i class="bi bi-x-circle me-1"></i>Cerrar</button>
+                <div class="d-flex justify-content-center gap-2 flex-wrap">
+                    <button class="btn btn-success btn-whatsapp-preview" title="Enviar reporte por WhatsApp"><i class="bi bi-whatsapp me-1"></i>WhatsApp</button>
+                    <button class="btn btn-primary btn-compartir-preview" title="Compartir o descargar imagen"><i class="bi bi-share me-1"></i>Compartir / Descargar</button>
+                    <button class="btn btn-light border btn-imprimir-preview" title="Imprimir documento"><i class="bi bi-printer me-1"></i>Imprimir</button>
+                    <button class="btn btn-danger btn-cerrar-preview" title="Cerrar vista"><i class="bi bi-x-circle me-1"></i>Cerrar</button>
                 </div>
             `;
             
             closeHeader.querySelector('.btn-cerrar-preview').addEventListener('click', () => {
                 container.remove();
+            });
+
+            const btnImprimir = closeHeader.querySelector('.btn-imprimir-preview');
+            btnImprimir?.addEventListener('click', () => {
+                closeHeader.classList.add('d-none');
+                window.print();
+                closeHeader.classList.remove('d-none');
             });
             
             const btnCompartir = closeHeader.querySelector('.btn-compartir-preview');
@@ -139,6 +149,39 @@ export const PrintManager = {
             }
 
             setTimeout(precacheShareImage, 100);
+
+            const btnWhatsApp = closeHeader.querySelector('.btn-whatsapp-preview');
+            btnWhatsApp?.addEventListener('click', async () => {
+                let targetPhone = phone;
+                if (!targetPhone) {
+                    const promptVal = prompt('Ingresa el número de WhatsApp para enviar el Estado de Cuenta (ej: 3001234567):');
+                    if (!promptVal) return;
+                    targetPhone = promptVal;
+                }
+                const cleanPhone = normalizeWhatsAppPhone(targetPhone);
+                if (!cleanPhone) {
+                    if (window.CoreActions) {
+                        window.CoreActions.showWarningModal('El número de teléfono ingresado no es válido.');
+                    } else {
+                        alert('El número de teléfono ingresado no es válido.');
+                    }
+                    return;
+                }
+
+                // Intentar copiar la imagen generada al portapapeles si el navegador lo soporta
+                if (cachedShareFile && navigator.clipboard && typeof ClipboardItem !== 'undefined') {
+                    try {
+                        await navigator.clipboard.write([
+                            new ClipboardItem({ 'image/png': cachedShareFile })
+                        ]);
+                    } catch (e) {
+                        console.log('Clipboard image write no soportado o denegado', e);
+                    }
+                }
+
+                const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(shareText || '')}`;
+                window.open(waUrl, '_blank', 'noopener,noreferrer');
+            });
             
             btnCompartir.addEventListener('click', async () => {
                 if (!cachedShareFile) return;
@@ -482,19 +525,77 @@ export const PrintManager = {
             p_contacto_id: String(clienteId) 
         });
 
-        if (error || !facturas || facturas.length === 0) {
-            CoreActions.showWarningModal('No se encontraron facturas pendientes para este cliente.');
+        if (error) {
+            CoreActions.showWarningModal('Error al consultar cartera: ' + (error.message || 'Error desconocido'));
+            return;
+        }
+
+        const facturasPendientes = (facturas || []).filter(f => (parseFloat(f?.saldo) || 0) > 0);
+        const hoyStr = typeof getLocalDate === 'function' ? getLocalDate() : new Date().toISOString().split('T')[0];
+
+        // Caso Cliente al Día (0 facturas pendientes o saldo $0)
+        if (!facturas || facturasPendientes.length === 0) {
+            const cleanTextPazYSalvo = buildEstadoCuentaWhatsAppText({
+                cliente,
+                facturas: [],
+                fechaCorte: hoyStr
+            });
+
+            const htmlContentPazYSalvo = `
+                <!-- HEADER -->
+                <div style="display: flex; justify-content: space-between; align-items: start; border-bottom: 2px solid #198754; padding-bottom: 15px; margin-bottom: 25px;">
+                    <div style="width: 40%;">
+                        <img src="LogoMas.png" style="max-height: 80px; margin-bottom: 5px; object-fit: contain;" alt="MAS Accesorios" onerror="this.style.display='none'">
+                    </div>
+                    <div style="text-align: right; width: 40%; padding-top: 15px;">
+                        <h2 style="color: #198754; margin-top: 0; margin-bottom: 5px; font-size: 22px; font-weight: bold;">ESTADO DE CUENTA</h2>
+                        <p style="margin: 0; font-size: 14px; color: #6c757d;">Fecha: ${hoyStr}</p>
+                    </div>
+                </div>
+
+                <!-- BLOQUE CLIENTE Y TOTAL -->
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 30px;">
+                    <div style="width: 50%;">
+                        <p style="margin: 0 0 5px 0; font-weight: bold; font-size: 20px; color: #212529;">${escapeHtml(cliente.nombre) || 'Sin cliente'}</p>
+                        ${cliente.identificacion ? `<p style="margin: 0; font-size: 12px; color: #6c757d;">NIT/CC: ${escapeHtml(cliente.identificacion)}</p>` : ''}
+                    </div>
+                    <div style="background-color: #d1e7dd; padding: 15px 25px; border-radius: 8px; border-left: 4px solid #198754; text-align: right; min-width: 220px;">
+                        <p style="margin: 0 0 5px 0; font-size: 13px; color: #0f5132; font-weight: 600; text-transform: uppercase;">Cuenta al Día</p>
+                        <h3 style="margin: 0; font-size: 26px; color: #0f5132; font-weight: bold; font-family: monospace, sans-serif;">$ 0,00</h3>
+                    </div>
+                </div>
+
+                <div style="padding: 30px; text-align: center; background-color: #f8f9fa; border-radius: 8px; border: 1px solid #dee2e6; margin-bottom: 30px;">
+                    <i class="bi bi-check-circle-fill text-success" style="font-size: 48px;"></i>
+                    <h4 style="margin-top: 15px; color: #198754; font-weight: bold;">¡El cliente no presenta saldo pendiente!</h4>
+                    <p style="color: #6c757d; font-size: 14px; margin-bottom: 0;">Su cartera se encuentra totalmente al día y a paz y salvo.</p>
+                </div>
+
+                <!-- PIE DE PAGINA -->
+                <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #dee2e6; text-align: center; color: #6c757d; font-size: 12px;">
+                    <p style="margin: 0 0 5px 0;">Agradecemos su puntualidad y valiosa preferencia comercial.</p>
+                    <p style="margin: 0; font-weight: bold;">MAS Accesorios &middot; 3158512091</p>
+                </div>
+            `;
+
+            this._renderPreviewShell(htmlContentPazYSalvo, {
+                mode: 'preview',
+                fileName: `PazYSalvo_${cliente.nombre ? cliente.nombre.replace(/[^a-zA-Z0-9]/g, '_') : 'Cliente'}.png`,
+                title: 'Estado de Cuenta - Al Día',
+                printClass: 'hoja-dinamica',
+                phone: cliente.telefono ? String(cliente.telefono).replace(/\D/g, '') : '',
+                shareText: cleanTextPazYSalvo
+            });
             return;
         }
 
         const formatMoney = (val) => '$ ' + parseFloat(val || 0).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        const totalPorCobrar = facturas.reduce((sum, f) => sum + (parseFloat(f.saldo) || 0), 0);
-        const hoyStr = typeof getLocalDate === 'function' ? getLocalDate() : new Date().toISOString().split('T')[0];
+        const totalPorCobrar = facturasPendientes.reduce((sum, f) => sum + (parseFloat(f.saldo) || 0), 0);
         const hoy = new Date();
         hoy.setHours(0, 0, 0, 0);
 
         let rowsHtml = '';
-        facturas.forEach(f => {
+        facturasPendientes.forEach(f => {
             const fechaCreacion = f.fecha ? String(f.fecha).split('T')[0] : hoyStr;
             const fechaVenc = f.vencimiento ? String(f.vencimiento).split('T')[0] : fechaCreacion;
             const dCreacion = new Date(fechaCreacion + 'T00:00:00');
@@ -617,10 +718,11 @@ export const PrintManager = {
             </div>
         `;
 
-        const cleanTextMsg = [
-            `Estimado(a) *${cliente.nombre || 'cliente'}*, un cordial saludo.`,
-            `Le compartimos el estado consolidado de su saldo.`
-        ].join('\n');
+        const cleanTextMsg = buildEstadoCuentaWhatsAppText({
+            cliente,
+            facturas: facturasPendientes,
+            fechaCorte: hoyStr
+        });
 
         this._renderPreviewShell(htmlContent, {
             mode: 'preview',

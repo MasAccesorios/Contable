@@ -268,49 +268,11 @@ export const ContactosEvents = {
 
     async enviarCobroWhatsAppCliente(contactoId, preloadedData = null) {
         try {
-            const data = preloadedData || await this._cargarClienteCompleto(contactoId);
-            const { contacto, facturasPendientes, totalSaldoPendiente } = data;
-
-            let tel = contacto?.telefono ? String(contacto.telefono).replace(/\D/g, '') : '';
-            if (!tel) {
-                tel = prompt(`El cliente "${contacto?.nombre || 'General'}" no tiene teléfono registrado.\nIngresa el número de WhatsApp (ej: 3001234567):`);
-                if (!tel) return;
-                tel = tel.replace(/\D/g, '');
-            }
-
-            const finalPhone = tel.startsWith('57') ? tel : (tel.length === 10 ? '57' + tel : tel);
-            if (!finalPhone || finalPhone.length < 7) {
-                showWarning("El número de teléfono no es válido o no fue proporcionado.");
-                return;
-            }
-
-            const hoyFecha = new Date().toISOString().split('T')[0];
-            const formatMoney = this.formatMoney;
-
-            let msg = `*RECORDATORIO DE ESTADO DE CUENTA - MAS ACCESORIOS*\n`;
-            msg += `_Fecha de corte: ${hoyFecha}_\n\n`;
-            msg += `Estimado(a) *${contacto.nombre}*, cordial saludo.\n`;
-
-            if (totalSaldoPendiente > 0) {
-                msg += `Le compartimos el resumen de su cartera pendiente por valor total de: *${formatMoney(totalSaldoPendiente)}*.\n\n`;
-                msg += `📌 *Facturas pendientes:*\n`;
-                facturasPendientes.forEach(f => {
-                    const moraStr = f.diasMora > 0 ? `(Vencida hace ${f.diasMora} días)` : `(Al día)`;
-                    msg += ` • *Factura #${f.numero || f.id}*: Saldo ${formatMoney(f.saldo)} ${moraStr}\n`;
-                });
-                msg += `\n💳 *Cuentas disponibles para transferencia:*\n`;
-                msg += ` • Bancolombia Cta Corriente: 031-123456-78\n`;
-                msg += ` • Nequi / Daviplata: 310-2628442\n\n`;
-                msg += `Agradecemos enviar su comprobante de pago por este medio. ¡Muchas gracias por su preferencia!`;
-            } else {
-                msg += `Queremos informarle que a la fecha su estado de cuenta se encuentra *al día* y sin saldos pendientes. ¡Muchas gracias por su puntualidad!`;
-            }
-
-            const waUrl = `https://wa.me/${finalPhone}?text=${encodeURIComponent(msg)}`;
-            window.open(waUrl, '_blank');
+            const { PrintManager } = await import('../../shared/printManager.js');
+            await PrintManager.printEstadoCuenta(contactoId);
         } catch (err) {
-            console.error('Error enviando cobro por WhatsApp:', err);
-            showWarning('Error al preparar el mensaje de WhatsApp: ' + err.message);
+            console.error('Error abriendo Estado de Cuenta para WhatsApp:', err);
+            showWarning('Error al generar el Estado de Cuenta: ' + err.message);
         }
     },
 

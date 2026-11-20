@@ -1244,57 +1244,12 @@ export default {
             }
         };
 
-        // 8. COBRANZA PERSONALIZADA POR WHATSAPP
+        // 8. COBRANZA PERSONALIZADA POR WHATSAPP - ESTADO DE CUENTA COMPLETO
         const enviarWhatsAppCobranza = (cliente) => {
-            let tel = String(cliente.telefono || '').replace(/\D/g, '');
-            if (!tel) {
-                tel = prompt(`El cliente "${cliente.nombre}" no tiene teléfono registrado.\nIngresa el número de WhatsApp (ej: 3001234567):`);
-                if (!tel) return;
-                tel = tel.replace(/\D/g, '');
+            const cid = cliente?.id || cliente?.clienteId;
+            if (cid) {
+                PrintManager.printEstadoCuenta(cid);
             }
-
-            const finalPhone = tel.startsWith('57') ? tel : (tel.length === 10 ? '57' + tel : tel);
-            const hoyFecha = typeof getLocalDate === 'function' ? getLocalDate() : new Date().toISOString().split('T')[0];
-
-            let msg = `*ESTADO DE CUENTA - MAS ACCESORIOS*\n`;
-            msg += `_Fecha: ${hoyFecha}_\n\n`;
-            msg += `Estimado(a) *${cliente.nombre}*, un cordial saludo.\n`;
-            msg += `Le compartimos el resumen de su saldo pendiente con nosotros:\n\n`;
-            msg += `• *Saldo Total Pendiente:* *${formatMoney(cliente.totalSaldo)}*\n`;
-            msg += `• *Facturas Pendientes:* ${cliente.facturas.length}\n`;
-            if (cliente.maxDiasMora > 0) {
-                msg += `• *Estado:* Presenta saldo en mora (hasta ${cliente.maxDiasMora} días)\n`;
-            } else {
-                msg += `• *Estado:* Cartera al día\n`;
-            }
-
-            msg += `\n*Detalle de Facturas:*\n`;
-            cliente.facturas.slice(0, 6).forEach(f => {
-                let moraTag = '';
-                if (f.diasMora > 0) {
-                    moraTag = ` [Vencida +${f.diasMora}d]`;
-                } else {
-                    moraTag = ` [Al día]`;
-                }
-                const vStr = f.vencimiento ? String(f.vencimiento).split('T')[0] : f.fecha;
-                msg += `• *Fac #${f.numero}* | Vence: ${vStr} | Saldo: *${formatMoney(f.saldo)}*${moraTag}\n`;
-            });
-            if (cliente.facturas.length > 6) {
-                msg += `• _... y ${cliente.facturas.length - 6} factura(s) más._\n`;
-            }
-
-            msg += `\n*MEDIOS DE PAGO AUTORIZADOS:*\n`;
-            msg += `• *Bancolombia (Ahorros):* 54700050214\n`;
-            msg += `  Titular: Diego M Izquierdo\n`;
-            msg += `• *Nequi / DaviPlata:* 3158512091\n`;
-            msg += `  Titular: Diego M Izquierdo\n`;
-            msg += `• *Llave Bre-B / Transfiya:* @izquierdo638\n`;
-            msg += `  (Transferencia inmediata desde cualquier banco)\n\n`;
-            msg += `*Confirmar Pago:* Favor enviar su comprobante a este WhatsApp (3158512091) indicando el número de factura.\n\n`;
-            msg += `Agradecemos regularizar el saldo pendiente a la mayor brevedad. Si ya realizó el pago, por favor compártanos el comprobante.\n¡Muchas gracias!`;
-
-            const url = `https://wa.me/${finalPhone}?text=${encodeURIComponent(msg)}`;
-            window.open(url, '_blank');
         };
 
         // 9. DRAWER PARA VER FACTURAS DE UN CLIENTE
