@@ -1,6 +1,7 @@
 // js/modules/configuracion/configuracion.events.js
 // Capa de Gestión de Eventos y Ciclo de Vida para Configuración 360°
 
+import { escapeHtml } from '../../shared/formatters.js';
 import { ConfiguracionData } from './configuracion.data.js';
 import { ConfiguracionTemplates } from './configuracion.templates.js';
 
@@ -399,14 +400,17 @@ export const ConfiguracionEvents = {
 
     showToast(message, type = 'success') {
         const toastId = 'toast-' + Date.now();
-        const icon = type === 'success' ? 'check-circle' : (type === 'danger' ? 'x-circle' : 'exclamation-circle');
+        const allowedTypes = ['success', 'danger', 'warning', 'info'];
+        const safeType = allowedTypes.includes(type) ? type : 'info';
+        const icon = safeType === 'success' ? 'check-circle' : (safeType === 'danger' ? 'x-circle' : 'exclamation-circle');
+        const safeMessage = escapeHtml(String(message || ''));
         
         const html = `
-            <div id="${toastId}" class="toast align-items-center text-white bg-${type} border-0 shadow-sm" role="alert" aria-live="assertive" aria-atomic="true">
+            <div id="${toastId}" class="toast align-items-center text-white bg-${safeType} border-0 shadow-sm" role="alert" aria-live="assertive" aria-atomic="true">
                 <div class="d-flex">
                     <div class="toast-body d-flex align-items-center py-2 px-3">
                         <i class="bi bi-${icon} fs-5 me-2"></i>
-                        <span style="font-size: 13px;">${message}</span>
+                        <span style="font-size: 13px;">${safeMessage}</span>
                     </div>
                     <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
                 </div>

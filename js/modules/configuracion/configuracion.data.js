@@ -150,6 +150,15 @@ export const ConfiguracionData = {
             return { valido: false, error: 'El nombre de la categoría debe tener al menos 3 caracteres.' };
         }
 
+        if (nombre.length > 100) {
+            return { valido: false, error: 'El nombre de la categoría no puede superar los 100 caracteres.' };
+        }
+
+        // Rechazar inyecciones de fórmulas (CWE-1236)
+        if (/^[=+\-@\t\r]/.test(nombre)) {
+            return { valido: false, error: 'El nombre de la categoría contiene caracteres de fórmula no permitidos.' };
+        }
+
         if (tipo_flujo !== 'in' && tipo_flujo !== 'out') {
             return { valido: false, error: 'El tipo de flujo debe ser "in" (Ingreso) o "out" (Gasto/Egreso).' };
         }
@@ -175,7 +184,7 @@ export const ConfiguracionData = {
     },
 
     sanitizarPerfilEmpresa(perfil = {}) {
-        const p = perfil || {};
+        const p = (perfil && typeof perfil === 'object' && !Array.isArray(perfil)) ? perfil : {};
         let telLimpio = p.telefono ? String(p.telefono).replace(/\D/g, '') : '';
         if (telLimpio.startsWith('57') && telLimpio.length === 12) {
             telLimpio = telLimpio.slice(2);
@@ -268,11 +277,18 @@ export const ConfiguracionData = {
     },
 
     async guardarConsecutivo(tabla, nuevoNumero) {
+        if (!['facturas', 'cotizaciones'].includes(tabla)) {
+            throw new Error(`Tabla no permitida para consecutivo: ${tabla}`);
+        }
+        const num = Number(nuevoNumero);
+        if (!Number.isSafeInteger(num) || num <= 0) {
+            throw new Error('El consecutivo debe ser un entero positivo válido.');
+        }
         const supabase = await this.getSupabase();
         if (!supabase) throw new Error('Cliente Supabase no disponible');
         const { error } = await supabase.rpc('set_next_numero', {
             p_table: tabla,
-            p_next: nuevoNumero
+            p_next: num
         });
         if (error) throw error;
         return true;
@@ -308,12 +324,19 @@ export const ConfiguracionData = {
     },
 
     async toggleEstadoCategoria(id, nuevoEstado) {
+        if (!['activa', 'inactiva'].includes(nuevoEstado)) {
+            throw new Error('Estado de categoría no válido.');
+        }
+        const numId = Number(id);
+        if (!Number.isSafeInteger(numId) || numId <= 0) {
+            throw new Error('ID de categoría inválido.');
+        }
         const supabase = await this.getSupabase();
         if (!supabase) throw new Error('Cliente Supabase no disponible');
         const { error } = await supabase
             .from('categorias_contables')
             .update({ estado: nuevoEstado })
-            .eq('id', id);
+            .eq('id', numId);
 
         if (error) throw error;
         return true;
@@ -321,7 +344,11 @@ export const ConfiguracionData = {
 
     guardarPerfilEmpresa(perfil) {
         const sanitized = this.sanitizarPerfilEmpresa(perfil);
-        localStorage.setItem(STORAGE_KEY_EMPRESA, JSON.stringify(sanitized));
+        try {
+            localStorage.setItem(STORAGE_KEY_EMPRESA, JSON.stringify(sanitized));
+        } catch (e) {
+            console.warn('[ConfiguracionData] Error guardando perfil en localStorage:', e);
+        }
         return sanitized;
     },
 

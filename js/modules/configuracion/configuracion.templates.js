@@ -383,7 +383,7 @@ export const ConfiguracionTemplates = {
                                                 </span>
                                             </td>
                                             <td style="padding: 12px 16px; text-align: right;">
-                                                <button class="btn btn-sm ${isActiva ? 'btn-outline-danger' : 'btn-outline-success'} btn-toggle-categoria" data-id="${cat.id}" data-estado="${cat.estado}" title="${isActiva ? 'Desactivar categoría' : 'Activar categoría'}" style="font-size: 11px; border-radius: 6px; padding: 3px 8px;">
+                                                <button class="btn btn-sm ${isActiva ? 'btn-outline-danger' : 'btn-outline-success'} btn-toggle-categoria" data-id="${cat.id}" data-estado="${isActiva ? 'activa' : 'inactiva'}" title="${isActiva ? 'Desactivar categoría' : 'Activar categoría'}" style="font-size: 11px; border-radius: 6px; padding: 3px 8px;">
                                                     <i class="bi ${isActiva ? 'bi-slash-circle' : 'bi-check-circle'} me-1"></i> ${isActiva ? 'Inactivar' : 'Activar'}
                                                 </button>
                                             </td>
