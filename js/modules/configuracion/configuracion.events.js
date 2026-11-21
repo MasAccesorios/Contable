@@ -203,12 +203,14 @@ export const ConfiguracionEvents = {
                 try {
                     await ConfiguracionData.toggleEstadoCategoria(id, nuevoEstado);
                     
-                    // Actualizar memoria
-                    const cat = this.module.state.categorias.find(c => c.id === id);
-                    if (cat) cat.estado = nuevoEstado;
+                    // Actualizar memoria de forma inmutable
+                    this.module.state.categorias = this.module.state.categorias.map(c => 
+                        c.id === id ? { ...c, estado: nuevoEstado } : c
+                    );
+                    const catActualizada = this.module.state.categorias.find(c => c.id === id);
 
                     this.actualizarKpisEnDOM();
-                    this.showToast(`Categoría "${cat?.nombre || id}" ahora está ${nuevoEstado}.`, 'success');
+                    this.showToast(`Categoría "${catActualizada?.nombre || id}" ahora está ${nuevoEstado}.`, 'success');
                     this.renderActiveTab();
                 } catch (error) {
                     console.error('[ConfiguracionEvents] Error toggle categoria:', error);
@@ -250,7 +252,7 @@ export const ConfiguracionEvents = {
 
             try {
                 const nueva = await ConfiguracionData.crearCategoria(val.categoriaLimpia);
-                this.module.state.categorias.push(nueva);
+                this.module.state.categorias = [...this.module.state.categorias, nueva];
                 this.actualizarKpisEnDOM();
 
                 // Cerrar modal
@@ -384,10 +386,15 @@ export const ConfiguracionEvents = {
         const btn = this.container.querySelector('#btn-refresh-config');
         if (btn) btn.classList.add('rotate-spin');
 
-        await this.module.recargar();
-
-        if (btn) btn.classList.remove('rotate-spin');
-        this.showToast('Parámetros de configuración actualizados.', 'success');
+        try {
+            await this.module.recargar();
+            this.showToast('Parámetros de configuración actualizados.', 'success');
+        } catch (error) {
+            console.error('[ConfiguracionEvents] Error al recargar configuración:', error);
+            this.showToast('Error al recargar configuración.', 'danger');
+        } finally {
+            if (btn) btn.classList.remove('rotate-spin');
+        }
     },
 
     showToast(message, type = 'success') {

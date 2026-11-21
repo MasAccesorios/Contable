@@ -21,6 +21,8 @@ export const ConfiguracionTemplates = {
         };
 
         const currentTab = s.currentTab || 'consecutivos';
+        const razonSocial = escapeHtml(s.empresa?.razonSocial || 'MAS Accesorios');
+        const nit = escapeHtml(s.empresa?.nit || '79981638-4');
 
         return `
             <div class="dash-layout p-4" style="max-width: 1240px; margin: 0 auto; font-family: 'Inter', system-ui, sans-serif;">
@@ -102,12 +104,12 @@ export const ConfiguracionTemplates = {
                                     <i class="bi bi-building"></i>
                                 </div>
                             </div>
-                            <div class="payment-kpi-value fw-bold text-dark" id="kpi-perfil-empresa" style="font-size: 18px; line-height: 26px;">
-                                MAS Accesorios
+                            <div class="payment-kpi-value fw-bold text-dark text-truncate" id="kpi-perfil-empresa" style="font-size: 18px; line-height: 26px;" title="${razonSocial}">
+                                ${razonSocial}
                             </div>
                             <div class="mt-2 text-muted" style="font-size: 11px;">
                                 ${kpis.perfilCompleto 
-                                    ? '<span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill fw-bold px-2 py-0">Configurado</span> NIT 79981638-4'
+                                    ? `<span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill fw-bold px-2 py-0">Configurado</span> NIT ${nit}`
                                     : '<span class="badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill fw-bold px-2 py-0">Pendiente</span> Requiere revisión'}
                             </div>
                         </div>
