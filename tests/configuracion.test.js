@@ -675,6 +675,51 @@ describe('Módulo Configuración 360° - TDD Test Suite', () => {
             assert.strictEqual(ConfiguracionData.validarNuevoConsecutivo(NaN, 100).valido, false);
             assert.strictEqual(ConfiguracionData.validarNuevoConsecutivo(1e308, 100).valido, false);
         });
+
+        it('6. Neutralización de Formula Injection (CWE-1236) y longitud máxima en categorías', () => {
+            // Rechazo de prefijos de fórmula en nombre de categoría
+            assert.strictEqual(ConfiguracionData.validarCategoria({ nombre: '=cmd|/c calc!A0', tipo_flujo: 'out' }).valido, false);
+            assert.strictEqual(ConfiguracionData.validarCategoria({ nombre: '+SUM(1,2)', tipo_flujo: 'out' }).valido, false);
+            assert.strictEqual(ConfiguracionData.validarCategoria({ nombre: '-100', tipo_flujo: 'out' }).valido, false);
+            assert.strictEqual(ConfiguracionData.validarCategoria({ nombre: '@SUM(A1:A10)', tipo_flujo: 'in' }).valido, false);
+
+            // Rechazo de nombres excesivamente largos (>100 caracteres)
+            const nombreLargo = 'A'.repeat(101);
+            assert.strictEqual(ConfiguracionData.validarCategoria({ nombre: nombreLargo, tipo_flujo: 'out' }).valido, false);
+        });
+
+        it('7. Validación estricta de parámetros en operaciones de datos (RPC & DB)', async () => {
+            // Validación de tabla en guardarConsecutivo
+            await assert.rejects(
+                () => ConfiguracionData.guardarConsecutivo('usuarios', 100),
+                /Tabla no permitida/
+            );
+            await assert.rejects(
+                () => ConfiguracionData.guardarConsecutivo('facturas', -1),
+                /entero positivo válido/
+            );
+
+            // Validación de estado en toggleEstadoCategoria
+            await assert.rejects(
+                () => ConfiguracionData.toggleEstadoCategoria(1, 'estado_malicioso'),
+                /Estado de categoría no válido/
+            );
+            await assert.rejects(
+                () => ConfiguracionData.toggleEstadoCategoria(0, 'activa'),
+                /ID de categoría inválido/
+            );
+        });
+
+        it('8. Tolerancia de tipos corruptos o primitivos en sanitizarPerfilEmpresa', () => {
+            const perfilString = ConfiguracionData.sanitizarPerfilEmpresa('string_invalido');
+            assert.strictEqual(perfilString.razonSocial, 'MAS Accesorios');
+
+            const perfilArray = ConfiguracionData.sanitizarPerfilEmpresa([1, 2, 3]);
+            assert.strictEqual(perfilArray.razonSocial, 'MAS Accesorios');
+
+            const perfilNumero = ConfiguracionData.sanitizarPerfilEmpresa(12345);
+            assert.strictEqual(perfilNumero.razonSocial, 'MAS Accesorios');
+        });
     });
 
 });
