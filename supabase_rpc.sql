@@ -1,4 +1,4 @@
--- ==========================================
+﻿-- ==========================================
 -- RPCs actualizados desde producción Supabase
 -- ==========================================
 
@@ -2254,8 +2254,8 @@ BEGIN
     SELECT 
         COALESCE(f.numero::TEXT, f.id::TEXT) AS "Documento",
         f.fecha AS "Fecha",
-        COALESCE(c.nombre, 'Cliente Genérico / Contado') AS "Cliente",
-        f.estado AS "Estado",
+        COALESCE(c.nombre, 'Cliente Genérico / Contado')::TEXT AS "Cliente",
+        f.estado::TEXT AS "Estado",
         ROUND(f.total) AS "Total de Venta",
         ROUND(COALESCE(f.total_costo, 0)) AS "Costo de Venta (FIFO)",
         ROUND(f.total - COALESCE(f.total_costo, 0)) AS "Utilidad Bruta"
@@ -2265,7 +2265,7 @@ BEGIN
     AND f.estado NOT IN ('anulada', 'void')
     AND f.fecha >= p_fecha_inicio
     AND f.fecha <= p_fecha_fin
-    ORDER BY f.fecha ASC, f.id ASC;
+    ORDER BY f.fecha DESC, f.id DESC;
 END;
 $function$;
 
@@ -2457,7 +2457,8 @@ BEGIN
 
     UPDATE pagos_ingresos
     SET conciliado_en = now(), conciliacion_id = v_id
-    WHERE id = ANY(p_movimientos_conciliados);
+    WHERE id = ANY(p_movimientos_conciliados)
+      AND (cuenta_id = p_banco_id OR cuenta_id IS NULL);
 
     RETURN v_id;
 END;

@@ -1,3 +1,6 @@
+// js/modules/bancos/conciliacion.js
+// Orquestador Principal del Módulo de Conciliación Bancaria 360° (Homologado con Gastos Operativos y Bancos)
+
 import { getLocalDate } from '../../core/db.js';
 import { ConciliacionData } from './conciliacion.data.js';
 import { ConciliacionTemplates } from './conciliacion.templates.js';
@@ -19,7 +22,13 @@ export const ConciliacionModule = {
         saldoTotalSistema: 0,
         ajusteGastos: 0,
         ajusteImpuestos: 0,
-        ajusteEntradas: 0
+        ajusteEntradas: 0,
+        currentTab: 'nueva',
+        filterTipoMovs: 'todos',
+        searchMovsQuery: '',
+        diferenciaActual: 0,
+        estadoSemaforo: 'cuadrado',
+        _seleccionados: new Set()
     },
 
     async init(element) {
@@ -35,23 +44,31 @@ export const ConciliacionModule = {
             await this.renderDetalle(element, id);
         } else {
             const urlParams = new URLSearchParams(window.location.hash.split('?')[1]);
-            this.state.bancoId = urlParams.get('banco_id');
+            const paramBancoId = urlParams.get('banco_id');
+            if (paramBancoId) {
+                this.state.bancoId = parseInt(paramBancoId, 10);
+            }
 
             const hoy = new Date();
             const hace3MesesDate = new Date(hoy);
             hace3MesesDate.setMonth(hace3MesesDate.getMonth() - 3);
             this.state.fechaDesde = getLocalDate(hace3MesesDate);
             this.state.fechaHasta = getLocalDate(hoy);
+            this.state.currentTab = 'nueva';
+            this.state.filterTipoMovs = 'todos';
+            this.state.searchMovsQuery = '';
+            this.state._seleccionados = new Set();
 
             await this.loadData();
             this.renderBase();
             await this.cargarDatosRPC();
             this.calcularTotales();
+            this.recalcularDiferenciaPendiente();
             this.renderTabla();
             this.renderHistorial();
             this.attachEvents();
         }
-    },
+    }
 };
 
 Object.assign(ConciliacionModule, ConciliacionData, ConciliacionTemplates, ConciliacionEvents);

@@ -1,73 +1,72 @@
-import DB from '../../core/db.js';
-import { supabase } from '../../core/supabase.js';
+// js/modules/bancos/conciliacion.events.js
+// Manejo de Eventos, Interacciones Ergonómicas y Cuadre Reactivo de Conciliación Bancaria 360°
 
 export const ConciliacionEvents = {
     attachEvents() {
-        // Rastrear selección en state
+        const el = this.element;
+        if (!el) return;
+
         if (!this.state._seleccionados) {
             this.state._seleccionados = new Set();
         }
 
-        // Select-all: actualiza DOM y state
-        this.element.querySelector('#chk-select-all')?.addEventListener('change', (e) => {
-            const isChecked = e.target.checked;
-            const checks = this.element.querySelectorAll('.concil-check');
-            this.state._seleccionados = new Set();
-            checks.forEach(cb => {
-                cb.checked = isChecked;
-                if (isChecked) {
-                    const id = parseInt(cb.dataset.id, 10);
-                    if (!isNaN(id)) this.state._seleccionados.add(id);
-                }
-            });
-            this.recalcularDiferenciaPendiente();
-        });
+        // 1. Alternancia de Pestañas Principales (payment-tabs-bar)
+        const tabNueva = el.querySelector('#tab-nav-nueva');
+        const tabHistorial = el.querySelector('#tab-nav-historial');
+        const viewActiva = el.querySelector('#view-concil-activa');
+        const viewHistorial = el.querySelector('#view-concil-historial');
 
-        // Checkbox individual: event delegation en tbody
-        this.element.querySelector('#tbody-conciliacion')?.addEventListener('change', (e) => {
-            if (!e.target.classList.contains('concil-check')) return;
-            const id = parseInt(e.target.dataset.id, 10);
-            if (isNaN(id)) return;
-            if (e.target.checked) this.state._seleccionados.add(id);
-            else this.state._seleccionados.delete(id);
-            this.recalcularDiferenciaPendiente();
-        });
-
-        const _resetearInputs = () => { 
-            this.state._seleccionados = new Set(); 
-            this.state.editingConciliacionId = null;
-            this.state.saldoBancario = 0;
-            this.state.ajusteGastos = 0;
-            this.state.ajusteImpuestos = 0;
-            this.state.ajusteEntradas = 0;
-            
-            const saldoInput = this.element.querySelector('#concil-input-saldo');
-            const e1 = this.element.querySelector('#concil-ajuste-gastos');
-            const e2 = this.element.querySelector('#concil-ajuste-impuestos');
-            const e3 = this.element.querySelector('#concil-ajuste-entradas');
-            if (saldoInput) saldoInput.value = '0';
-            if (e1) e1.value = '0';
-            if (e2) e2.value = '0';
-            if (e3) e3.value = '0';
+        const activarTab = async (tabName) => {
+            this.state.currentTab = tabName;
+            if (tabName === 'nueva') {
+                if (tabNueva) tabNueva.classList.add('active');
+                if (tabHistorial) tabHistorial.classList.remove('active');
+                if (viewActiva) viewActiva.style.display = 'block';
+                if (viewHistorial) viewHistorial.style.display = 'none';
+            } else {
+                if (tabHistorial) tabHistorial.classList.add('active');
+                if (tabNueva) tabNueva.classList.remove('active');
+                if (viewActiva) viewActiva.style.display = 'none';
+                if (viewHistorial) viewHistorial.style.display = 'block';
+                await this.loadHistorial(this.state.bancoId);
+                this.renderHistorial();
+            }
         };
 
-        this.element.querySelector('#nueva-tab')?.addEventListener('click', (e) => {
-            // Solo actuar si el usuario hizo clic real (no si se invocó via JS desde "Editar")
-            if (e.isTrusted) {
-                _resetearInputs();
-                this.recalcularDiferenciaPendiente();
-                this.renderTabla();
+        if (tabNueva) tabNueva.addEventListener('click', () => activarTab('nueva'));
+        if (tabHistorial) tabHistorial.addEventListener('click', () => activarTab('historial'));
+
+        // 2. Acordeón de Ajustes Directos de Extracto
+        const headerAjustes = el.querySelector('#header-panel-ajustes');
+        const btnToggleAjustes = el.querySelector('#btn-toggle-ajustes');
+        const bodyAjustes = el.querySelector('#body-panel-ajustes');
+        const iconToggle = el.querySelector('#icon-toggle-ajustes');
+
+        const toggleAjustes = () => {
+            if (!bodyAjustes) return;
+            const isHidden = bodyAjustes.style.display === 'none';
+            bodyAjustes.style.display = isHidden ? 'block' : 'none';
+            if (iconToggle) {
+                iconToggle.className = isHidden ? 'bi bi-chevron-up' : 'bi bi-chevron-down';
             }
+        };
+
+        if (headerAjustes) headerAjustes.addEventListener('click', (e) => {
+            if (e.target.closest('input')) return;
+            toggleAjustes();
+        });
+        if (btnToggleAjustes) btnToggleAjustes.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleAjustes();
         });
 
-        this.element.querySelector('#historial-tab')?.addEventListener('click', async () => {
-            await this.loadHistorial(this.state.bancoId);
-            this.renderHistorial();
-        });
+        // 3. Botón Refrescar Datos
+        el.querySelector('#btn-refresh-concil')?.addEventListener('click', async (e) => {
+            const btn = e.currentTarget;
+            const icon = btn.querySelector('i');
+            if (icon) icon.className = 'spinner-border spinner-border-sm';
+            btn.disabled = true;
 
-        this.element.querySelector('#concil-cuenta').addEventListener('change', async (e) => {
-            _resetearInputs();
-            this.state.bancoId = e.target.value ? parseInt(e.target.value, 10) : null;
             await Promise.all([
                 this.cargarDatosRPC(),
                 this.loadHistorial(this.state.bancoId)
@@ -76,10 +75,151 @@ export const ConciliacionEvents = {
             this.recalcularDiferenciaPendiente();
             this.renderTabla();
             this.renderHistorial();
+
+            if (icon) icon.className = 'bi bi-arrow-clockwise';
+            btn.disabled = false;
         });
 
-        this.element.querySelector('#concil-desde').addEventListener('change', async (e) => {
-            _resetearInputs();
+        // 4. Select-All Checkbox en Tabla de Movimientos
+        el.querySelector('#chk-select-all')?.addEventListener('change', (e) => {
+            const isChecked = e.target.checked;
+            const checks = el.querySelectorAll('.concil-check');
+            
+            checks.forEach(cb => {
+                cb.checked = isChecked;
+                const id = parseInt(cb.dataset.id, 10);
+                if (!isNaN(id)) {
+                    if (isChecked) this.state._seleccionados.add(id);
+                    else this.state._seleccionados.delete(id);
+                }
+                const row = cb.closest('.fila-movimiento-concil');
+                if (row) {
+                    if (isChecked) row.style.setProperty('background-color', '#f0fdf4', 'important');
+                    else row.style.removeProperty('background-color');
+                }
+            });
+            this.recalcularDiferenciaPendiente();
+        });
+
+        // 5. Checkbox individual y clic en fila de movimiento
+        el.querySelector('#tbody-conciliacion')?.addEventListener('click', (e) => {
+            const row = e.target.closest('.fila-movimiento-concil');
+            if (!row) return;
+
+            const cb = row.querySelector('.concil-check');
+            if (!cb) return;
+
+            // Si se hizo clic directo en el checkbox, dejamos que el evento change nativo actúe
+            if (e.target === cb) return;
+
+            cb.checked = !cb.checked;
+            const id = parseInt(cb.dataset.id, 10);
+            if (!isNaN(id)) {
+                if (cb.checked) {
+                    this.state._seleccionados.add(id);
+                    row.style.setProperty('background-color', '#f0fdf4', 'important');
+                } else {
+                    this.state._seleccionados.delete(id);
+                    row.style.removeProperty('background-color');
+                }
+            }
+            this.recalcularDiferenciaPendiente();
+        });
+
+        el.querySelector('#tbody-conciliacion')?.addEventListener('change', (e) => {
+            if (!e.target.classList.contains('concil-check')) return;
+            const cb = e.target;
+            const id = parseInt(cb.dataset.id, 10);
+            const row = cb.closest('.fila-movimiento-concil');
+
+            if (!isNaN(id)) {
+                if (cb.checked) {
+                    this.state._seleccionados.add(id);
+                    if (row) row.style.setProperty('background-color', '#f0fdf4', 'important');
+                } else {
+                    this.state._seleccionados.delete(id);
+                    if (row) row.style.removeProperty('background-color');
+                }
+            }
+            this.recalcularDiferenciaPendiente();
+        });
+
+        // 6. Botones de Selección Rápida en Filtro
+        el.querySelector('#btn-marcar-todos-filtro')?.addEventListener('click', () => {
+            const checks = el.querySelectorAll('.concil-check');
+            checks.forEach(cb => {
+                cb.checked = true;
+                const id = parseInt(cb.dataset.id, 10);
+                if (!isNaN(id)) this.state._seleccionados.add(id);
+                const row = cb.closest('.fila-movimiento-concil');
+                if (row) row.style.setProperty('background-color', '#f0fdf4', 'important');
+            });
+            this.recalcularDiferenciaPendiente();
+        });
+
+        el.querySelector('#btn-desmarcar-todos')?.addEventListener('click', () => {
+            const checks = el.querySelectorAll('.concil-check');
+            checks.forEach(cb => {
+                cb.checked = false;
+                const row = cb.closest('.fila-movimiento-concil');
+                if (row) row.style.removeProperty('background-color');
+            });
+            this.state._seleccionados.clear();
+            const chkAll = el.querySelector('#chk-select-all');
+            if (chkAll) chkAll.checked = false;
+            this.recalcularDiferenciaPendiente();
+        });
+
+        // 7. Filtros por Tipo de Movimiento (.btn-filtro-movs)
+        el.querySelectorAll('.btn-filtro-movs').forEach(btn => {
+            btn.addEventListener('click', () => {
+                el.querySelectorAll('.btn-filtro-movs').forEach(b => {
+                    b.classList.remove('active', 'btn-white', 'bg-white', 'shadow-xs', 'fw-bold');
+                    b.classList.add('btn-light', 'border-0', 'text-muted');
+                });
+                btn.classList.add('active', 'btn-white', 'bg-white', 'shadow-xs', 'fw-bold');
+                btn.classList.remove('btn-light', 'border-0', 'text-muted');
+
+                this.state.filterTipoMovs = btn.dataset.filter || 'todos';
+                this.renderTabla();
+            });
+        });
+
+        // 8. Buscador en Vivo de Movimientos
+        const inputSearchMovs = el.querySelector('#search-movimientos-concil');
+        let searchTimeout;
+        if (inputSearchMovs) {
+            inputSearchMovs.addEventListener('input', (e) => {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    this.state.searchMovsQuery = e.target.value;
+                    this.renderTabla();
+                }, 250);
+            });
+        }
+
+        // 9. Selector Global de Cuenta
+        el.querySelector('#concil-cuenta')?.addEventListener('change', async (e) => {
+            this.state._seleccionados = new Set();
+            this.state.editingConciliacionId = null;
+            this.state.bancoId = e.target.value ? parseInt(e.target.value, 10) : null;
+
+            await Promise.all([
+                this.cargarDatosRPC(),
+                this.loadHistorial(this.state.bancoId)
+            ]);
+
+            this.renderBase();
+            this.attachEvents();
+            this.calcularTotales();
+            this.recalcularDiferenciaPendiente();
+            this.renderTabla();
+            this.renderHistorial();
+        });
+
+        // 10. Rango de Fechas
+        el.querySelector('#concil-desde')?.addEventListener('change', async (e) => {
+            this.state._seleccionados = new Set();
             this.state.fechaDesde = e.target.value;
             await this.cargarDatosRPC();
             this.calcularTotales();
@@ -87,8 +227,8 @@ export const ConciliacionEvents = {
             this.renderTabla();
         });
 
-        this.element.querySelector('#concil-hasta').addEventListener('change', async (e) => {
-            _resetearInputs();
+        el.querySelector('#concil-hasta')?.addEventListener('change', async (e) => {
+            this.state._seleccionados = new Set();
             this.state.fechaHasta = e.target.value;
             await this.cargarDatosRPC();
             this.calcularTotales();
@@ -96,10 +236,11 @@ export const ConciliacionEvents = {
             this.renderTabla();
         });
 
-        const saldoInput = this.element.querySelector('#concil-input-saldo');
-        const inputGastos = this.element.querySelector('#concil-ajuste-gastos');
-        const inputImp = this.element.querySelector('#concil-ajuste-impuestos');
-        const inputEnt = this.element.querySelector('#concil-ajuste-entradas');
+        // 11. Formateo y Entradas Numéricas Reactivas
+        const saldoInput = el.querySelector('#concil-input-saldo');
+        const inputGastos = el.querySelector('#concil-ajuste-gastos');
+        const inputImp = el.querySelector('#concil-ajuste-impuestos');
+        const inputEnt = el.querySelector('#concil-ajuste-entradas');
 
         import('../../shared/formatters.js').then(fmt => {
             if (saldoInput) {
@@ -132,119 +273,174 @@ export const ConciliacionEvents = {
             }
         });
 
-        this.element.querySelector('#btn-guardar-concil').addEventListener('click', async () => {
-            if (Math.abs(this.state.diferenciaActual) >= 1) {
-                const continuar = confirm(`Vas a guardar esta conciliación con una diferencia de ${this.formatMoney(this.state.diferenciaActual)} sin resolver. ¿Deseas continuar de todas formas?`);
-                if (!continuar) return;
-            }
+        // 12. Botón Guardar Conciliación con Transaccionalidad Segura
+        el.querySelector('#btn-guardar-concil')?.addEventListener('click', async () => {
+            if (this._isSaving) return;
+            this._isSaving = true;
 
-            const movimientosConciliados = Array.from(this.state._seleccionados);
-            
-            // Crear ajustes si hay
-            const ajustes = [
-                { valor: this.state.ajusteGastos, tipo: 'egreso', categoria: 'Gastos bancarios' },
-                { valor: this.state.ajusteImpuestos, tipo: 'egreso', categoria: 'Impuestos bancarios' },
-                { valor: this.state.ajusteEntradas, tipo: 'ingreso', categoria: 'Entradas bancarias' }
-            ];
-            
-            const ajustesCreados = [];
-            for (const adj of ajustes) {
-                if (adj.valor > 0) {
-                    const payloadAdj = {
-                        tipo: adj.tipo,
-                        fecha: this.state.fechaHasta,
-                        monto: adj.valor,
-                        cuenta_id: parseInt(this.state.bancoId, 10),
-                        categoria: adj.categoria,
-                        observaciones: 'Ajuste automático de conciliación',
-                        estado: 'open'
-                    };
-                    try {
-                        const res = await DB.save('transacciones', payloadAdj);
-                        const resId = (res && res.id) || (res && res[0] && res[0].id);
-                        if (resId) {
-                            movimientosConciliados.push(resId);
-                            ajustesCreados.push(resId);
-                        } else {
-                            if (ajustesCreados.length > 0) {
-                                await supabase.from('pagos_ingresos').delete().in('id', ajustesCreados);
+            const btn = el.querySelector('#btn-guardar-concil');
+            try {
+                if (!this.state.bancoId || isNaN(parseInt(this.state.bancoId, 10))) {
+                    alert('Debes seleccionar una cuenta bancaria válida.');
+                    return;
+                }
+                if (!this.state.fechaDesde || !this.state.fechaHasta) {
+                    alert('Debes definir las fechas del periodo a conciliar.');
+                    return;
+                }
+
+                const absDif = Math.abs(Number(this.state.diferenciaActual) || 0);
+                if (absDif >= 1) {
+                    const continuar = confirm(`Vas a guardar esta conciliación con una diferencia de ${this.formatMoney(this.state.diferenciaActual)} sin resolver. ¿Deseas continuar de todas formas?`);
+                    if (!continuar) return;
+                }
+
+                if (btn) {
+                    btn.disabled = true;
+                    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Guardando...';
+                }
+
+                const DB = await this.getDB();
+                const supabaseClient = await this.getSupabase();
+                const movimientosConciliados = Array.from(this.state._seleccionados || []);
+
+                const ajustesCreados = [];
+                const rollbackAjustes = async () => {
+                    if (ajustesCreados.length > 0 && supabaseClient) {
+                        try {
+                            await supabaseClient.from('pagos_ingresos').delete().in('id', ajustesCreados);
+                        } catch (e) {
+                            console.error('[Conciliacion] Error en rollback de ajustes:', e);
+                        }
+                    }
+                    if (DB && typeof DB.invalidateCache === 'function') {
+                        DB.invalidateCache('transacciones');
+                        DB.invalidateCache('pagos_ingresos');
+                    }
+                };
+
+                // Crear ajustes automáticos si fueron especificados
+                const ajustes = [
+                    { valor: this.state.ajusteGastos, tipo: 'egreso', categoria: 'Gastos bancarios' },
+                    { valor: this.state.ajusteImpuestos, tipo: 'egreso', categoria: 'Impuestos bancarios' },
+                    { valor: this.state.ajusteEntradas, tipo: 'ingreso', categoria: 'Entradas bancarias' }
+                ];
+
+                for (const adj of ajustes) {
+                    if (adj.valor > 0) {
+                        const payloadAdj = {
+                            tipo: adj.tipo,
+                            fecha: this.state.fechaHasta,
+                            monto: adj.valor,
+                            cuenta_id: parseInt(this.state.bancoId, 10),
+                            categoria: adj.categoria,
+                            observaciones: 'Ajuste automático de conciliación',
+                            estado: 'open'
+                        };
+                        try {
+                            const res = await DB.save('transacciones', payloadAdj);
+                            const resId = (res && res.id) || (res && res[0] && res[0].id);
+                            if (resId) {
+                                movimientosConciliados.push(resId);
+                                ajustesCreados.push(resId);
+                            } else {
+                                await rollbackAjustes();
+                                alert('No se pudo guardar el ajuste "' + adj.categoria + '". La conciliación NO se guardó.');
+                                return;
                             }
-                            alert('No se pudo guardar el ajuste "' + adj.categoria + '": no se obtuvo ID. La conciliación NO se guardó.');
+                        } catch (err) {
+                            await rollbackAjustes();
+                            alert('No se pudo guardar el ajuste "' + adj.categoria + '": ' + (err?.message || err));
                             return;
                         }
-                    } catch (err) {
-                        if (ajustesCreados.length > 0) {
-                            await supabase.from('pagos_ingresos').delete().in('id', ajustesCreados);
-                        }
-                        alert('No se pudo guardar el ajuste "' + adj.categoria + '": ' + (err?.message || err) + '. La conciliación NO se guardó.');
-                        return;
                     }
                 }
-            }
 
-            this.recalcularDiferenciaPendiente();
-            const difFinal = Math.abs(this.state.diferenciaActual) < 1 ? 0 : Number(this.state.diferenciaActual);
-            const saldoBanco = Number(this.state.saldoBancario) || 0;
+                this.recalcularDiferenciaPendiente();
+                const difFinal = Math.abs(this.state.diferenciaActual) < 1 ? 0 : Number(this.state.diferenciaActual);
+                const saldoBanco = Number(this.state.saldoBancario) || 0;
+                const editId = this.state.editingConciliacionId ? parseInt(this.state.editingConciliacionId, 10) : null;
 
-            const editId = this.state.editingConciliacionId ? parseInt(this.state.editingConciliacionId, 10) : null;
-            const payload = {
-                p_id: (editId !== null && !isNaN(editId) && editId > 0) ? editId : null,
-                p_banco_id: parseInt(this.state.bancoId, 10),
-                p_fecha_desde: this.state.fechaDesde,
-                p_fecha_hasta: this.state.fechaHasta,
-                p_saldo_bancario: saldoBanco,
-                p_saldo_sistema: saldoBanco - difFinal,
-                p_diferencia: difFinal,
-                p_movimientos_conciliados: movimientosConciliados.map(mid => parseInt(mid, 10)).filter(mid => !isNaN(mid))
-            };
+                const payload = this.prepararPayloadGuardado({
+                    editingId: editId,
+                    bancoId: this.state.bancoId,
+                    fechaDesde: this.state.fechaDesde,
+                    fechaHasta: this.state.fechaHasta,
+                    saldoBancario: saldoBanco,
+                    saldoSistema: Number(this.state.saldoTotalSistema) || (saldoBanco - difFinal),
+                    diferenciaFinal: difFinal,
+                    movimientosConciliados
+                });
 
-            try {
-                const { error } = await supabase.rpc('guardar_conciliacion_bancaria', payload);
+                if (!supabaseClient) throw new Error('Cliente Supabase no disponible.');
+                const { error } = await supabaseClient.rpc('guardar_conciliacion_bancaria', payload);
                 if (error) {
-                    if (ajustesCreados.length > 0) {
-                        await supabase.from('pagos_ingresos').delete().in('id', ajustesCreados);
-                    }
+                    await rollbackAjustes();
                     throw error;
                 }
-                
+
+                if (DB && typeof DB.invalidateCache === 'function') {
+                    DB.invalidateCache('conciliaciones');
+                    DB.invalidateCache('transacciones');
+                    DB.invalidateCache('pagos_ingresos');
+                }
+
                 this.state.editingConciliacionId = null;
                 alert('Conciliación guardada exitosamente.');
-                
-                _resetearInputs();
-                await this.loadHistorial(this.state.bancoId);
-                this.renderHistorial();
-                await this.cargarDatosRPC();
+
+                // Limpiar inputs y recargar
+                this.state._seleccionados = new Set();
+                this.state.saldoBancario = 0;
+                this.state.ajusteGastos = 0;
+                this.state.ajusteImpuestos = 0;
+                this.state.ajusteEntradas = 0;
+
+                await Promise.all([
+                    this.loadHistorial(this.state.bancoId),
+                    this.cargarDatosRPC()
+                ]);
+
+                this.renderBase();
+                this.attachEvents();
                 this.calcularTotales();
                 this.recalcularDiferenciaPendiente();
                 this.renderTabla();
+                this.renderHistorial();
 
-                // Cambiar automáticamente a la pestaña Historial para mostrar el registro actualizado
-                const tabHistorial = this.element.querySelector('#historial-tab');
-                if (tabHistorial && typeof bootstrap !== 'undefined' && bootstrap.Tab) {
-                    const tab = bootstrap.Tab.getInstance(tabHistorial) || new bootstrap.Tab(tabHistorial);
-                    tab.show();
-                }
+                // Cambiar a pestaña Historial para mostrar el comprobante
+                await activarTab('historial');
             } catch (error) {
-                console.error("[Conciliacion] Error al guardar:", error);
+                console.error('[Conciliacion] Error al guardar conciliación:', error);
                 alert('Hubo un error al guardar la conciliación: ' + (error?.message || JSON.stringify(error)));
+            } finally {
+                this._isSaving = false;
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="bi bi-check2-circle"></i> Guardar Conciliación';
+                }
             }
         });
 
-        // Eventos para la tabla de historial (Ver, Editar, Eliminar)
-        this.element.querySelector('#tbody-historial')?.addEventListener('click', async (e) => {
+        // 13. Eventos en Tabla Historial (Ver Detalle, Editar, Eliminar)
+        el.querySelector('#tbody-historial')?.addEventListener('click', async (e) => {
             const rowVer = e.target.closest('.row-historial-concil');
+            const btnVer = e.target.closest('.btn-ver-detalle-concil');
             const btnEditar = e.target.closest('.btn-editar-concil');
             const btnEliminar = e.target.closest('.btn-eliminar-concil');
 
-            if (rowVer && !e.target.closest('button')) {
-                const id = rowVer.getAttribute('data-id');
-                window.location.hash = `#/bancos/conciliacion/detalle/${id}`;
+            if (btnVer || (rowVer && !e.target.closest('button'))) {
+                const id = btnVer?.getAttribute('data-id') || rowVer?.getAttribute('data-id');
+                if (id) {
+                    window.location.hash = `#/bancos/conciliacion/detalle/${id}`;
+                }
+                return;
             }
 
             if (btnEditar) {
+                e.stopPropagation();
                 const id = btnEditar.getAttribute('data-id');
                 const targetId = parseInt(id, 10);
-                const concil = this.state.historialConciliaciones.find(c => parseInt(c.id, 10) === targetId);
+                const concil = (this.state.historialConciliaciones || []).find(c => parseInt(c.id, 10) === targetId);
                 if (!concil) return;
 
                 this.state.editingConciliacionId = targetId;
@@ -252,55 +448,47 @@ export const ConciliacionEvents = {
                     (concil.movimientos_conciliados || []).map(mid => parseInt(mid, 10)).filter(mid => !isNaN(mid))
                 );
 
-                // Llenar inputs
-                const inputCuenta = document.getElementById('concil-cuenta');
-                const inputDesde = document.getElementById('concil-desde');
-                const inputHasta = document.getElementById('concil-hasta');
-                const inputSaldo = document.getElementById('concil-input-saldo');
-                
-                if (inputCuenta && concil.banco_id) {
-                    const bId = parseInt(concil.banco_id, 10);
-                    inputCuenta.value = bId;
-                    this.state.bancoId = bId;
+                if (concil.banco_id) {
+                    this.state.bancoId = parseInt(concil.banco_id, 10);
                 }
-                if (inputDesde) inputDesde.value = concil.fecha_desde;
-                if (inputHasta) inputHasta.value = concil.fecha_hasta;
-                if (inputSaldo) {
-                    inputSaldo.value = concil.saldo_bancario;
-                    import('../../shared/formatters.js').then(fmt => fmt.applyCurrencyFormatting(inputSaldo));
-                }
-                
                 this.state.fechaDesde = concil.fecha_desde;
                 this.state.fechaHasta = concil.fecha_hasta;
                 this.state.saldoBancario = Number(concil.saldo_bancario) || 0;
 
                 await this.cargarDatosRPC();
+                this.renderBase();
+                this.attachEvents();
                 this.calcularTotales();
                 this.recalcularDiferenciaPendiente();
                 this.renderTabla();
-
-                // Cambiar a la pestaña Nueva Conciliacion
-                const tabBtn = document.getElementById('nueva-tab');
-                if (tabBtn && typeof bootstrap !== 'undefined' && bootstrap.Tab) {
-                    const tab = bootstrap.Tab.getInstance(tabBtn) || new bootstrap.Tab(tabBtn);
-                    tab.show();
-                }
+                await activarTab('nueva');
+                return;
             }
 
             if (btnEliminar) {
+                e.stopPropagation();
                 const id = btnEliminar.getAttribute('data-id');
                 const targetId = parseInt(id, 10);
                 if (isNaN(targetId)) return;
-                if (confirm("¿Seguro que deseas eliminar el registro de esta conciliación?\n(Los movimientos bancarios asociados volverán a quedar pendientes)")) {
+
+                if (confirm('¿Seguro que deseas eliminar el registro de esta conciliación?\n(Los movimientos bancarios asociados volverán a quedar pendientes en el extracto)')) {
                     try {
-                        const { error: rpcError } = await supabase.rpc('eliminar_conciliacion_bancaria', { p_id: targetId });
+                        const supabaseClient = await this.getSupabase();
+                        const DB = await this.getDB();
+                        if (!supabaseClient) throw new Error('Cliente Supabase no disponible.');
+
+                        const { error: rpcError } = await supabaseClient.rpc('eliminar_conciliacion_bancaria', { p_id: targetId });
                         if (rpcError) throw rpcError;
-                        DB.invalidateCache('conciliaciones');
+
+                        if (DB && typeof DB.invalidateCache === 'function') {
+                            DB.invalidateCache('conciliaciones');
+                        }
+
                         await this.loadHistorial(this.state.bancoId);
                         this.renderHistorial();
                     } catch (error) {
                         console.error('[Conciliacion] Error al eliminar:', error);
-                        alert("Error al eliminar la conciliación: " + (error?.message || JSON.stringify(error)));
+                        alert('Error al eliminar la conciliación: ' + (error?.message || JSON.stringify(error)));
                     }
                 }
             }
