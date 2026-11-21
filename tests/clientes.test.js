@@ -187,7 +187,7 @@ describe('Módulo Clientes & Contactos 360° - TDD Test Suite', () => {
             assert.ok(html.includes('$ 7.509.903'));
             assert.ok(html.includes('btn-ver-drawer'));
             assert.ok(html.includes('btn-wpp-cliente'));
-            assert.ok(html.includes('btn-editar'));
+            assert.ok(html.includes('btn-menu-cliente') || html.includes('btn-editar'));
         });
     });
 

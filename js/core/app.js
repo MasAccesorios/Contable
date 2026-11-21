@@ -60,7 +60,7 @@ const routes = {
     'bancos/conciliacion': () => import('../modules/bancos/conciliacion.js?v=2'),
     'bancos/detalle': () => import('../modules/bancos/detalle.js'),
     'reportes': () => import('../modules/reportes.js?v=23'),
-    'configuracion': () => import('../modules/configuracion.js'),
+    'configuracion': () => import('../modules/configuracion.js?v=2'),
     'auditoria': () => import('../modules/auditoria.js'),
     'vendedores': () => import('../modules/vendedores/vendedores.js'),
     // Soporte para alias de compatibilidad con módulos anteriores
