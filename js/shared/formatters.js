@@ -27,7 +27,8 @@ export function formatCurrencyInput(e) {
 export function parseCurrencyValue(value) {
     if (value === null || value === undefined || value === '') return 0;
     if (typeof value === 'number') return value;
-    const strVal = String(value).replace(/\./g, '').replace(/,/g, '.');
+    const clean = String(value).replace(/[^0-9.,-]/g, '');
+    const strVal = clean.replace(/\./g, '').replace(/,/g, '.');
     const parsed = parseFloat(strVal);
     return isNaN(parsed) ? 0 : parsed;
 }
@@ -96,4 +97,20 @@ export function getClientAvatar(name) {
     for (let i = 0; i < clean.length; i++) hash = clean.charCodeAt(i) + ((hash << 5) - hash);
     const index = Math.abs(hash) % palette.length;
     return { initials, ...palette[index] };
+}
+
+/**
+ * Sanitiza valores de texto para exportaciones CSV/Excel,
+ * neutralizando Formula Injection (CWE-1236) anteponiendo apóstrofe si inicia con =, +, -, @, \t o \r.
+ * @param {any} val
+ * @returns {string}
+ */
+export function sanitizeForCSV(val) {
+    if (val === null || val === undefined) return '';
+    let str = String(val);
+    const trimmed = str.trim();
+    if (/^[=+\-@\t\r]/.test(str) || /^[=+\-@\t\r]/.test(trimmed)) {
+        return "'" + str.replace(/"/g, '""');
+    }
+    return str.replace(/"/g, '""');
 }

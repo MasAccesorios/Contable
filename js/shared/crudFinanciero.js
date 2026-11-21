@@ -669,6 +669,7 @@ export class CrudFinanciero {
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
             const btn = element.querySelector('#btn-guardar-transaccion');
+            if (btn && btn.disabled) return;
             const cuentaIdRaw = hiddenCuentaId.value.trim();
 
             const cuentaValida = this.cuentasActivas.find(b => String(b.id) === cuentaIdRaw);

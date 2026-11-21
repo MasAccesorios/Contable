@@ -1,6 +1,7 @@
 // js/modules/dashboard.js
 import DB from '../core/db.js';
 import { supabase } from '../core/supabase.js';
+import { escapeHtml } from '../shared/formatters.js';
 
 export const DashboardModule = {
     async init(element) {
@@ -645,7 +646,7 @@ export const DashboardModule = {
                     <tr>
                         <td class="py-2.5 px-3">
                             <div class="d-flex flex-column">
-                                <span class="fw-semibold text-main text-truncate" style="max-width: 220px;" title="${contacto.nombre}">${contacto.nombre}</span>
+                                <span class="fw-semibold text-main text-truncate" style="max-width: 220px;" title="${escapeHtml(contacto.nombre)}">${escapeHtml(contacto.nombre)}</span>
                                 <span class="text-muted" style="font-size: 11px;">Factura #${f.numero || f.id}</span>
                             </div>
                         </td>

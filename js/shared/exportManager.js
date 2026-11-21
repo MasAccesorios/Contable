@@ -1,5 +1,6 @@
 import DB, { getLocalDate } from '../core/db.js';
 import { CoreActions } from './crud.js';
+import { sanitizeForCSV } from './formatters.js';
 
 /**
  * GESTOR DE EXPORTACIÓN (EXCEL / CSV)
@@ -85,10 +86,24 @@ export const ExportManager = {
                 // 3. Extracción de Cabeceras
                 const headers = Object.keys(rows[0]);
                 
+                // Sanitización contra Formula Injection (CWE-1236)
+                const sanitizedRows = rows.map(row => {
+                    const cleanRow = {};
+                    Object.keys(row).forEach(k => {
+                        const val = row[k];
+                        if (typeof val === 'string' && /^[=+\-@\t\r]/.test(val.trim())) {
+                            cleanRow[k] = "'" + val.trim();
+                        } else {
+                            cleanRow[k] = val;
+                        }
+                    });
+                    return cleanRow;
+                });
+
                 // 5. Exportar preferentemente a .xlsx si SheetJS está disponible
                 const dateStr = getLocalDate();
                 if (typeof window !== 'undefined' && window.XLSX) {
-                    const ws = window.XLSX.utils.json_to_sheet(rows);
+                    const ws = window.XLSX.utils.json_to_sheet(sanitizedRows);
                     const wb = window.XLSX.utils.book_new();
                     const sheetTitle = (tipoModulo || 'Reporte').replace(/[^a-zA-Z0-9_]/g, '').substring(0, 31);
                     window.XLSX.utils.book_append_sheet(wb, ws, sheetTitle);
@@ -101,9 +116,7 @@ export const ExportManager = {
                 
                 rows.forEach(row => {
                     const values = headers.map(header => {
-                        let val = row[header] !== null && row[header] !== undefined ? String(row[header]) : '';
-                        val = val.replace(/"/g, '""'); // Escapar comillas internas
-                        return `"${val}"`;             // Envolver valor en comillas
+                        return `"${sanitizeForCSV(row[header])}"`;
                     });
                     csvContent += values.join(';') + '\r\n';
                 });

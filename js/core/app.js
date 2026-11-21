@@ -74,14 +74,31 @@ let currentModuleCleanup = null;
 async function router() {
     const myNavId = ++currentNavId;
 
-    // Limpieza de gráficos y observadores previos para evitar fugas de memoria
+    // Validación estricta de sesión antes de procesar cualquier módulo
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+        if (window.location.hash !== '') window.history.replaceState(null, null, ' ');
+        const currentViewport = document.getElementById('view-viewport');
+        if (currentViewport) renderLogin(currentViewport);
+        return;
+    }
+
+    // Limpieza universal de instancias de Chart.js para evitar fugas de memoria
+    if (typeof Chart !== 'undefined' && Chart.instances) {
+        Object.values(Chart.instances).forEach(ch => {
+            try { ch.destroy(); } catch (e) {}
+        });
+    }
     const globalCharts = [
         window.myVentasChart,
         window.currentChartInstance,
         window.myPagosRecibidosChart,
         window.myPagosRealizadosChart,
         window.myCrudDonutChart,
-        window.myCrudColumnChart
+        window.myCrudColumnChart,
+        window.myIngresosDailyChart,
+        window.myEgresosDailyChart,
+        window.myCrudDailyChart
     ];
     globalCharts.forEach(ch => {
         if (ch && typeof ch.destroy === 'function') {
@@ -94,6 +111,9 @@ async function router() {
     window.myPagosRealizadosChart = null;
     window.myCrudDonutChart = null;
     window.myCrudColumnChart = null;
+    window.myIngresosDailyChart = null;
+    window.myEgresosDailyChart = null;
+    window.myCrudDailyChart = null;
     if (typeof currentModuleCleanup === 'function') {
         try { currentModuleCleanup(); } catch (e) { console.warn('Cleanup error:', e); }
         currentModuleCleanup = null;
