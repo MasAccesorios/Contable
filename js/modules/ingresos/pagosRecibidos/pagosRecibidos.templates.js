@@ -436,7 +436,7 @@ export const PagosRecibidosTemplates = {
         const cuentas = this.state.cuentasBancarias || [];
 
         this.element.innerHTML = `
-            <div class="dash-layout p-4" id="pagos-list-container" style="max-width: 1200px; margin: 0 auto;">
+            <div class="dash-layout p-3 p-md-4" id="pagos-list-container" style="max-width: 1260px; margin: 0 auto;">
                 
                 <!-- TOP BAR DE ALTO IMPACTO -->
                 <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
@@ -686,17 +686,17 @@ export const PagosRecibidosTemplates = {
                 </div>
             ` : ''}
 
-            <div class="table-responsive">
-                <table class="table table-borderless align-middle mb-0 w-100">
+            <div class="table-responsive" style="overflow-x: hidden; width: 100%;">
+                <table class="table table-hover table-borderless align-middle mb-0 w-100" style="table-layout: auto;">
                     <thead style="background-color: #f8fafc; border-bottom: 1px solid #e2e8f0;">
                         <tr>
-                            <th class="py-3 ps-4 text-uppercase text-muted fw-bold" style="font-size: 11px; letter-spacing: 0.5px; width: 140px;">Comprobante</th>
+                            <th class="py-3 ps-3 text-uppercase text-muted fw-bold" style="font-size: 11px; letter-spacing: 0.5px; width: 120px;">Comprobante</th>
                             <th class="py-3 text-uppercase text-muted fw-bold" style="font-size: 11px; letter-spacing: 0.5px;">Cliente / Tercero</th>
                             <th class="py-3 text-uppercase text-muted fw-bold" style="font-size: 11px; letter-spacing: 0.5px;">Trazabilidad / Factura</th>
                             <th class="py-3 text-uppercase text-muted fw-bold" style="font-size: 11px; letter-spacing: 0.5px;">Cuenta Destino</th>
-                            <th class="py-3 text-center text-uppercase text-muted fw-bold" style="font-size: 11px; letter-spacing: 0.5px;">Conciliación</th>
-                            <th class="py-3 text-end text-uppercase text-muted fw-bold" style="font-size: 11px; letter-spacing: 0.5px;">Monto Recibido</th>
-                            <th class="py-3 pe-4 text-end text-uppercase text-muted fw-bold" style="width: 100px;">Acciones</th>
+                            <th class="py-3 text-center text-uppercase text-muted fw-bold" style="font-size: 11px; letter-spacing: 0.5px; width: 120px;">Conciliación</th>
+                            <th class="py-3 text-end text-uppercase text-muted fw-bold" style="font-size: 11px; letter-spacing: 0.5px; width: 125px;">Monto Recibido</th>
+                            <th class="py-3 pe-3 text-end text-uppercase text-muted fw-bold" style="width: 85px;"></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -720,7 +720,7 @@ export const PagosRecibidosTemplates = {
                         return `
                         <tr class="payment-row row-pago" data-id="${pago.id}">
                             <!-- Columna 1: Comprobante & Fecha -->
-                            <td class="py-3 ps-4">
+                            <td class="py-3 ps-3">
                                 <div class="payment-code-badge mb-1"># ${pago.numero}</div>
                                 <div class="text-muted" style="font-size: 11px;">
                                     <i class="bi bi-calendar3 me-1"></i> ${formatFecha(pago.fecha)}
@@ -733,7 +733,7 @@ export const PagosRecibidosTemplates = {
                                     <div class="payment-avatar" style="background-color: ${avatar.bg}; color: ${avatar.color};">
                                         ${avatar.initials}
                                     </div>
-                                    <div class="text-truncate" style="max-width: 220px;">
+                                    <div class="text-truncate" style="max-width: 180px;">
                                         <div class="fw-bold text-dark text-truncate" style="font-size: 13px;" title="${escapeHtml(clienteNombre)}">
                                             ${escapeHtml(clienteNombre)}
                                         </div>
@@ -747,7 +747,7 @@ export const PagosRecibidosTemplates = {
                             <!-- Columna 3: Trazabilidad / Factura -->
                             <td class="py-3">
                                 ${pago.factura_id ? `
-                                    <a href="#/ingresos/facturas/ver/${pago.factura_id}" class="payment-invoice-tag" onclick="event.stopPropagation()" title="Ver factura relacionada">
+                                    <a href="#/ingresos/facturas/ver/${pago.factura_id}" class="payment-invoice-tag text-truncate" onclick="event.stopPropagation()" title="Ver factura relacionada" style="max-width: 145px;">
                                         <i class="bi bi-file-earmark-text"></i> Factura #${pago.factura_numero || pago.factura_id}
                                     </a>
                                 ` : `
@@ -759,7 +759,7 @@ export const PagosRecibidosTemplates = {
 
                             <!-- Columna 4: Cuenta Bancaria -->
                             <td class="py-3">
-                                <span class="payment-bank-tag text-truncate" style="max-width: 170px;" title="${escapeHtml(pago.cuenta_bancaria)}">
+                                <span class="payment-bank-tag text-truncate" style="max-width: 140px;" title="${escapeHtml(pago.cuenta_bancaria)}">
                                     <i class="bi bi-bank text-secondary"></i> ${escapeHtml(pago.cuenta_bancaria || 'Caja / Efectivo')}
                                 </span>
                             </td>
@@ -787,7 +787,7 @@ export const PagosRecibidosTemplates = {
                             </td>
 
                             <!-- Columna 7: Acciones Rápidas -->
-                            <td class="py-3 pe-4 text-end">
+                            <td class="py-3 pe-3 text-end">
                                 <div class="payment-row-actions">
                                     <button class="btn btn-sm btn-light border-0 p-1 btn-quick-preview" data-id="${pago.id}" title="Ver Comprobante">
                                         <i class="bi bi-eye text-primary"></i>

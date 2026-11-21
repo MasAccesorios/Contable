@@ -194,7 +194,7 @@ export class CrudFinanciero {
         const variacion = this.kpis.variacion || 0;
 
         element.innerHTML = `
-            <div class="dash-layout p-4" style="max-width: 1200px; margin: 0 auto;">
+            <div class="dash-layout p-3 p-md-4" style="max-width: 1260px; margin: 0 auto;">
                 
                 <!-- TOP BAR DE ALTO IMPACTO -->
                 <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
@@ -445,20 +445,20 @@ export class CrudFinanciero {
                         </div>
 
                         <!-- TABLA DE FILAS INTELIGENTES -->
-                        <div class="table-responsive position-relative">
+                        <div class="table-responsive position-relative" style="overflow-x: hidden; width: 100%;">
                             <div id="crud-loading-overlay" class="position-absolute top-0 start-0 w-100 h-100 justify-content-center align-items-center bg-white bg-opacity-75" style="z-index: 10; display: none !important;">
                                 <div class="spinner-border ${esIngreso ? 'text-primary' : 'text-danger'}" role="status"><span class="visually-hidden">Cargando...</span></div>
                             </div>
-                            <table class="table table-borderless align-middle mb-0 w-100">
+                            <table class="table table-hover table-borderless align-middle mb-0 w-100" style="table-layout: auto;">
                                 <thead style="background-color: #f8fafc; border-bottom: 1px solid #e2e8f0;">
                                     <tr>
-                                        <th class="py-3 ps-4 text-uppercase text-muted fw-bold" style="font-size: 11px; letter-spacing: 0.5px; width: 130px;">Fecha / ID</th>
+                                        <th class="py-3 ps-3 text-uppercase text-muted fw-bold" style="font-size: 11px; letter-spacing: 0.5px; width: 115px;">Fecha / ID</th>
                                         <th class="py-3 text-uppercase text-muted fw-bold" style="font-size: 11px; letter-spacing: 0.5px;">Concepto & Categoría</th>
                                         <th class="py-3 text-uppercase text-muted fw-bold" style="font-size: 11px; letter-spacing: 0.5px;">${esIngreso ? 'Cliente / Tercero' : 'Proveedor / Tercero'}</th>
                                         <th class="py-3 text-uppercase text-muted fw-bold" style="font-size: 11px; letter-spacing: 0.5px;">Cuenta Bancaria</th>
-                                        <th class="py-3 text-center text-uppercase text-muted fw-bold" style="font-size: 11px; letter-spacing: 0.5px;">Conciliación</th>
-                                        <th class="py-3 text-end text-uppercase text-muted fw-bold" style="font-size: 11px; letter-spacing: 0.5px;">Monto</th>
-                                        <th class="py-3 pe-4 text-end text-uppercase text-muted fw-bold" style="width: 90px;">Acciones</th>
+                                        <th class="py-3 text-center text-uppercase text-muted fw-bold" style="font-size: 11px; letter-spacing: 0.5px; width: 120px;">Conciliación</th>
+                                        <th class="py-3 text-end text-uppercase text-muted fw-bold" style="font-size: 11px; letter-spacing: 0.5px; width: 120px;">Monto</th>
+                                        <th class="py-3 pe-3 text-end text-uppercase text-muted fw-bold" style="width: 80px;"></th>
                                     </tr>
                                 </thead>
                                 <tbody id="${this.config.tbodyId}">
@@ -891,7 +891,7 @@ export class CrudFinanciero {
                 return `
                     <tr class="payment-row fila-crud-registro" data-id="${g.id}">
                         <!-- Columna 1: Fecha & ID -->
-                        <td class="py-3 ps-4">
+                        <td class="py-3 ps-3">
                             <div class="payment-code-badge mb-1"># ${g.id}</div>
                             <div class="text-muted" style="font-size: 11px;">
                                 <i class="bi bi-calendar3 me-1"></i> ${formatFecha(g.fecha)}
@@ -900,14 +900,14 @@ export class CrudFinanciero {
 
                         <!-- Columna 2: Concepto & Categoría -->
                         <td class="py-3">
-                            <div class="fw-bold text-dark text-truncate" style="max-width: 260px; font-size: 13px;" title="${escapeHtml(g.observaciones || '')}">
+                            <div class="fw-bold text-dark text-truncate" style="max-width: 200px; font-size: 13px;" title="${escapeHtml(g.observaciones || '')}">
                                 ${escapeHtml(g.observaciones || 'Sin descripción')}
                             </div>
-                            <div class="mt-1">
-                                <span class="badge bg-light text-secondary border fw-medium" style="font-size: 10px;">
+                            <div class="mt-1 d-flex align-items-center gap-1">
+                                <span class="badge bg-light text-secondary border fw-medium text-truncate" style="font-size: 10px; max-width: 130px;">
                                     ${escapeHtml(g.categoria || 'Sin categoría')}
                                 </span>
-                                ${g.referencia ? `<span class="text-muted ms-1" style="font-size: 11px;">Ref: ${escapeHtml(g.referencia)}</span>` : ''}
+                                ${g.referencia ? `<span class="text-muted text-truncate" style="font-size: 11px; max-width: 90px;">Ref: ${escapeHtml(g.referencia)}</span>` : ''}
                             </div>
                         </td>
 
@@ -917,18 +917,18 @@ export class CrudFinanciero {
                                 <div class="payment-avatar" style="background-color: ${avatar.bg}; color: ${avatar.color};">
                                     ${avatar.initials}
                                 </div>
-                                <div class="text-truncate" style="max-width: 180px;">
+                                <div class="text-truncate" style="max-width: 155px;">
                                     <div class="fw-semibold text-dark text-truncate" style="font-size: 13px;" title="${escapeHtml(provNombre)}">
                                         ${escapeHtml(provNombre)}
                                     </div>
-                                    ${(prov?.identificacion || prov?.nit) ? `<div class="text-muted" style="font-size: 11px;">${escapeHtml(prov.identificacion || prov.nit)}</div>` : ''}
+                                    ${(prov?.identificacion || prov?.nit) ? `<div class="text-muted text-truncate" style="font-size: 11px;">${escapeHtml(prov.identificacion || prov.nit)}</div>` : ''}
                                 </div>
                             </div>
                         </td>
 
                         <!-- Columna 4: Cuenta Bancaria -->
                         <td class="py-3">
-                            <span class="payment-bank-tag text-truncate" style="max-width: 160px;" title="${escapeHtml(ctaNombre)}">
+                            <span class="payment-bank-tag text-truncate" style="max-width: 140px;" title="${escapeHtml(ctaNombre)}">
                                 <i class="bi bi-bank text-secondary"></i> ${escapeHtml(ctaNombre)}
                             </span>
                         </td>
@@ -956,7 +956,7 @@ export class CrudFinanciero {
                         </td>
 
                         <!-- Columna 7: Acciones Rápidas -->
-                        <td class="py-3 pe-4 text-end">
+                        <td class="py-3 pe-3 text-end">
                             <div class="payment-row-actions">
                                 <button class="btn btn-sm btn-light border-0 p-1 btn-quick-view-crud" data-id="${g.id}" title="Ver Detalle">
                                     <i class="bi bi-eye ${esIngreso ? 'text-primary' : 'text-danger'}"></i>
