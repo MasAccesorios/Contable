@@ -62,7 +62,7 @@ const routes = {
     'reportes': () => import('../modules/reportes.js?v=23'),
     'configuracion': () => import('../modules/configuracion.js?v=2'),
     'auditoria': () => import('../modules/auditoria.js'),
-    'vendedores': () => import('../modules/vendedores/vendedores.js'),
+    'vendedores': () => import('../modules/vendedores/vendedores.js?v=2'),
     // Soporte para alias de compatibilidad con módulos anteriores
     'dashboard': () => import('../modules/dashboard.js?v=2'),
     'tesoreria': () => import('../modules/bancos/bancos.js?v=2')
