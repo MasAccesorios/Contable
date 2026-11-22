@@ -720,6 +720,63 @@ describe('Módulo Configuración 360° - TDD Test Suite', () => {
             const perfilNumero = ConfiguracionData.sanitizarPerfilEmpresa(12345);
             assert.strictEqual(perfilNumero.razonSocial, 'MAS Accesorios');
         });
+
+        it('9. ConfiguracionData.crearCategoria genera payload seguro para identity column', async () => {
+            let insertPayload = null;
+            const mockSupabase = {
+                from(table) {
+                    assert.strictEqual(table, 'categorias_contables');
+                    return {
+                        insert(arr) {
+                            insertPayload = arr[0];
+                            return {
+                                select() {
+                                    return {
+                                        single() {
+                                            return Promise.resolve({
+                                                data: { id: 23, ...insertPayload },
+                                                error: null
+                                            });
+                                        }
+                                    };
+                                }
+                            };
+                        }
+                    };
+                }
+            };
+
+            const prevSupabase = ConfiguracionData._supabase;
+            ConfiguracionData._supabase = mockSupabase;
+
+            try {
+                // Caso A: Sin ID provisto (debe omitir id para que Postgres use su secuencia)
+                const res = await ConfiguracionData.crearCategoria({
+                    nombre: 'Obligaciones Financieras',
+                    tipo_flujo: 'out'
+                });
+
+                assert.strictEqual(insertPayload.id, undefined);
+                assert.strictEqual(insertPayload.nombre, 'Obligaciones Financieras');
+                assert.strictEqual(insertPayload.tipo_flujo, 'out');
+                assert.strictEqual(insertPayload.estado, 'activa');
+                assert.strictEqual(res.id, 23);
+
+                // Caso B: Con ID explícito provisto
+                const resExplicit = await ConfiguracionData.crearCategoria({
+                    id: 99,
+                    nombre: 'Prueba Específica',
+                    tipo_flujo: 'in',
+                    estado: 'inactiva'
+                });
+
+                assert.strictEqual(insertPayload.id, 99);
+                assert.strictEqual(insertPayload.estado, 'inactiva');
+                assert.strictEqual(resExplicit.id, 99);
+            } finally {
+                ConfiguracionData._supabase = prevSupabase;
+            }
+        });
     });
 
 });

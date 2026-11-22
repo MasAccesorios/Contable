@@ -178,7 +178,7 @@ export const ConfiguracionData = {
             categoriaLimpia: {
                 nombre,
                 tipo_flujo,
-                estado: categoria.estado || 'activa'
+                estado: categoria.estado === 'inactiva' ? 'inactiva' : 'activa'
             }
         };
     },
@@ -297,21 +297,18 @@ export const ConfiguracionData = {
     async crearCategoria(categoria) {
         const supabase = await this.getSupabase();
         if (!supabase) throw new Error('Cliente Supabase no disponible');
-        // Obtener el siguiente ID determinista
-        const { data: maxRows } = await supabase
-            .from('categorias_contables')
-            .select('id')
-            .order('id', { ascending: false })
-            .limit(1);
-
-        const nextId = (maxRows?.[0]?.id || 0) + 1;
 
         const payload = {
-            id: nextId,
-            nombre: categoria.nombre.trim(),
+            nombre: (categoria.nombre || '').trim(),
             tipo_flujo: categoria.tipo_flujo,
-            estado: 'activa'
+            estado: categoria.estado || 'activa'
         };
+
+        // Si se suministra un id explícito válido, se incluye;
+        // de lo contrario, la base de datos genera automáticamente el siguiente ID secuencial
+        if (categoria.id !== undefined && categoria.id !== null) {
+            payload.id = categoria.id;
+        }
 
         const { data, error } = await supabase
             .from('categorias_contables')
