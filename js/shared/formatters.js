@@ -114,3 +114,31 @@ export function sanitizeForCSV(val) {
     }
     return str.replace(/"/g, '""');
 }
+
+/**
+ * Extrae de forma segura e intencional un número de documento contable (factura o cotización)
+ * a partir de la consulta del buscador, evitando falsos positivos con nombres de productos,
+ * referencias técnicas o textos compuestos (ej. "2 en 1 Wireless T67", "Cable 3 en 1", "iPhone 15").
+ *
+ * @param {string|null|undefined} query
+ * @returns {number|null} El número de documento si la intención de búsqueda es un documento, o null en caso contrario.
+ */
+export function extractDocumentNumber(query) {
+    if (!query || typeof query !== 'string') return null;
+    const clean = query.trim();
+    if (!clean) return null;
+
+    // 1. Número puro o con prefijo directo de código: "2167", "#2167", "# 6882", "FE-2167", "FAC-2167", "COT-45"
+    const matchDirecto = clean.match(/^(?:#\s*|(?:fe|fac|cot)[-_ ]\s*)?(\d{1,8})$/i);
+    if (matchDirecto) {
+        return parseInt(matchDirecto[1], 10);
+    }
+
+    // 2. Prefijo explícito de factura o cotización en palabras: "Factura #2167", "factura 6882", "fac 2167", "cotización #12", "cot 45"
+    const matchPalabras = clean.match(/^(?:factura|fac\.?|cotizaci[oó]n|cot\.?)\s*(?:#|no\.?|n[°º])?\s*(\d{1,8})$/i);
+    if (matchPalabras) {
+        return parseInt(matchPalabras[1], 10);
+    }
+
+    return null;
+}

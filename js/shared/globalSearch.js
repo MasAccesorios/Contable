@@ -1,5 +1,5 @@
 import { supabase } from '../core/supabase.js';
-import { escapeHtml } from './formatters.js';
+import { escapeHtml, extractDocumentNumber } from './formatters.js';
 
 const FREQ_STORAGE_KEY = 'gs_busquedas_frecuentes';
 const MAX_STORED = 6;
@@ -287,7 +287,7 @@ export const GlobalSearch = {
                 e.preventDefault();
                 const query = l.getAttribute('data-query');
                 input.value = query;
-                this.performSearch(query, input, true);
+                this.performSearch(query, input, false);
             });
         });
 
@@ -323,10 +323,10 @@ export const GlobalSearch = {
             </div>
         `);
 
-        // Extraer números limpios si existen (soporta "#1042", "FE-1042", "1042")
-        const numDigits = query.replace(/\D/g, '');
-        const hasDigits = numDigits.length > 0;
-        const numValue = hasDigits ? parseInt(numDigits, 10) : null;
+        // Extraer número de documento SOLO si la intención de búsqueda es explícitamente un documento
+        // (ej. "2167", "#6882", "FE-1042", "Factura #6882", "Cotización #12")
+        // Previene que textos con números intercalados como "2 en 1 Wireless T67" o "Cable 3 en 1" extraigan falsos números de factura.
+        const numValue = extractDocumentNumber(query);
         const qLower = query.toLowerCase();
 
         // 1. Filtrar Comandos del Sistema
@@ -337,6 +337,11 @@ export const GlobalSearch = {
 
         // Sanitizar query para sintaxis PostgREST (elimina comas, comillas y paréntesis que rompen .or())
         const safeQuery = query.replace(/[,()"\\]/g, ' ').trim();
+
+        if (safeQuery.length < 2 && numValue === null) {
+            this.closeDropdown();
+            return;
+        }
 
         const promises = [];
 
@@ -361,11 +366,11 @@ export const GlobalSearch = {
                 p_search_query: safeQuery,
                 p_filter_criteria: 'todos'
             })
-            .then(res => {
+            .then(async res => {
                 if (res.error) throw res.error;
                 const raw = res.data;
                 const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
-                const items = (parsed?.data || []).map(p => ({
+                let items = (parsed?.data || []).map(p => ({
                     id: p.id,
                     nombre: p.nombre,
                     sku: p.sku,
@@ -376,13 +381,43 @@ export const GlobalSearch = {
                     stock_minimo: Number(p.stockMinimo ?? p.stock_minimo ?? 5),
                     estadoStock: p.estadoStock || 'optimo'
                 }));
+
+                // Búsqueda inteligente por palabras clave si la frase exacta no arrojó resultados
+                if (items.length === 0 && safeQuery.includes(' ')) {
+                    const tokens = safeQuery.split(/\s+/).filter(t => t.length >= 2 && !['para', 'con', 'del', 'los', 'las', 'una', 'uno', 'por'].includes(t.toLowerCase()));
+                    if (tokens.length >= 2) {
+                        try {
+                            const orFilter = tokens.slice(0, 3).map(t => `nombre.ilike.%${t}%,sku.ilike.%${t}%`).join(',');
+                            const { data: altProds } = await supabase.from('productos')
+                                .select('id, nombre, sku, precio_venta, stock_minimo, estado')
+                                .or(orFilter)
+                                .limit(5);
+                            if (altProds && altProds.length > 0) {
+                                items = altProds.map(p => ({
+                                    id: p.id,
+                                    nombre: p.nombre,
+                                    sku: p.sku,
+                                    precioVenta: Number(p.precio_venta || 0),
+                                    precio_venta: Number(p.precio_venta || 0),
+                                    stock: 0,
+                                    stockMinimo: Number(p.stock_minimo || 5),
+                                    stock_minimo: Number(p.stock_minimo || 5),
+                                    estadoStock: 'desconocido'
+                                }));
+                            }
+                        } catch (tokErr) {
+                            console.warn('[GlobalSearch] Búsqueda por tokens secundarios:', tokErr);
+                        }
+                    }
+                }
+
                 return { type: 'productos', data: items };
             })
             .catch(async (err) => {
                 console.warn('[GlobalSearch] RPC get_productos_page_v2 falló, usando fallback defensivo:', err);
                 try {
                     const { data: prods, error: pErr } = await supabase.from('productos')
-                        .select('id, nombre, sku, precio_venta, costo_base, stock_minimo, estado')
+                        .select('id, nombre, sku, precio_venta, stock_minimo, estado')
                         .or(`nombre.ilike.%${safeQuery}%,sku.ilike.%${safeQuery}%`)
                         .limit(5);
                     if (pErr) throw pErr;
@@ -405,8 +440,8 @@ export const GlobalSearch = {
             })
         );
 
-        // 4. Consulta de Facturas (Si hay número, buscar directamente)
-        if (hasDigits && numValue) {
+        // 4. Consulta de Facturas por número (Solo si se detectó un número de documento intencional)
+        if (numValue !== null) {
             promises.push(
                 supabase.from('facturas')
                     .select('id, numero, total, estado, tipo, fecha, contacto_id, saldo_original, contactos(id, nombre, identificacion)')
@@ -504,28 +539,34 @@ export const GlobalSearch = {
             productosGroup
         ].filter(Boolean);
 
-        // Si se solicitó autoNavegación (ej. al presionar Enter sobre 1 único resultado)
+        // Si se solicitó autoNavegación (ej. al presionar Enter con 1 única coincidencia unívoca en todo el sistema)
         if (autoNavigate) {
-            let totalItems = 0;
-            let firstActionHash = null;
+            const countContactos = contactos.length;
+            const countFacturas = facturasGroup.data.length;
+            const countCotizaciones = cotizacionesGroup.data.length;
+            const countProductos = productosGroup?.data?.length || 0;
+            const totalResultados = countContactos + countFacturas + countCotizaciones + countProductos;
 
-            if (contactos.length === 1) {
-                firstActionHash = `#/contactos/ver/${contactos[0].id}?search=${encodeURIComponent(contactos[0].nombre)}`;
-                totalItems = 1;
-            } else if (facturasGroup.data.length === 1 && contactos.length === 0) {
-                firstActionHash = `#/ingresos/facturas/ver/${facturasGroup.data[0].id}`;
-                totalItems = 1;
-            } else if (productosGroup?.data.length === 1 && contactos.length === 0) {
-                firstActionHash = `#/inventario/items/ver/${productosGroup.data[0].id}`;
-                totalItems = 1;
-            }
+            // ÚNICAMENTE auto-navegar si existe exactamente 1 resultado en TODO el sistema sin ambigüedad
+            if (totalResultados === 1) {
+                let firstActionHash = null;
+                if (countContactos === 1) {
+                    firstActionHash = `#/contactos/ver/${contactos[0].id}?search=${encodeURIComponent(contactos[0].nombre)}`;
+                } else if (countProductos === 1) {
+                    firstActionHash = `#/inventario/items/ver/${productosGroup.data[0].id}`;
+                } else if (countFacturas === 1) {
+                    firstActionHash = `#/ingresos/facturas/ver/${facturasGroup.data[0].id}`;
+                } else if (countCotizaciones === 1) {
+                    firstActionHash = `#/ingresos/cotizaciones/ver/${cotizacionesGroup.data[0].id}`;
+                }
 
-            if (totalItems === 1 && firstActionHash) {
-                this.registrarBusquedaExitosa(query);
-                this.closeDropdown();
-                input.value = '';
-                window.location.hash = firstActionHash;
-                return;
+                if (firstActionHash) {
+                    this.registrarBusquedaExitosa(query);
+                    this.closeDropdown();
+                    input.value = '';
+                    window.location.hash = firstActionHash;
+                    return;
+                }
             }
         }
 

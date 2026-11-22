@@ -1,7 +1,7 @@
 import test, { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { parseCurrencyValue, getClientAvatar, sanitizeForCSV } from '../js/shared/formatters.js';
+import { parseCurrencyValue, getClientAvatar, sanitizeForCSV, extractDocumentNumber } from '../js/shared/formatters.js';
 
 describe('Shared Formatters & Security Sanitizers - Test Suite', () => {
 
@@ -88,6 +88,26 @@ describe('Shared Formatters & Security Sanitizers - Test Suite', () => {
 
             const avatarGenerico = getClientAvatar('General / Sin tercero');
             assert.strictEqual(avatarGenerico.initials, '?');
+        });
+    });
+
+    describe('extractDocumentNumber (Reconocimiento Inteligente de Facturas y Cotizaciones)', () => {
+        it('debe reconocer números puros y con prefijo de factura/cotización', () => {
+            assert.strictEqual(extractDocumentNumber('2167'), 2167);
+            assert.strictEqual(extractDocumentNumber('#6882'), 6882);
+            assert.strictEqual(extractDocumentNumber('FE-2167'), 2167);
+            assert.strictEqual(extractDocumentNumber('FAC-6882'), 6882);
+            assert.strictEqual(extractDocumentNumber('COT-45'), 45);
+            assert.strictEqual(extractDocumentNumber('Factura #2167'), 2167);
+            assert.strictEqual(extractDocumentNumber('cotizacion 12'), 12);
+        });
+
+        it('no debe interpretar nombres de productos o referencias compuestas con números como documentos', () => {
+            assert.strictEqual(extractDocumentNumber('2 en 1 Wireless Transmiso y Receptor T67'), null);
+            assert.strictEqual(extractDocumentNumber('Cable 3 en 1'), null);
+            assert.strictEqual(extractDocumentNumber('iPhone 15 128GB'), null);
+            assert.strictEqual(extractDocumentNumber('T67'), null);
+            assert.strictEqual(extractDocumentNumber('Cargador 20W'), null);
         });
     });
 });
