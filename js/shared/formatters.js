@@ -142,3 +142,157 @@ export function extractDocumentNumber(query) {
 
     return null;
 }
+
+/**
+ * Diccionario de patrones fonéticos y terminaciones comunes en español
+ * para búsqueda tolerante a acentos cuando la base de datos no tiene extensión unaccent.
+ */
+const SPANISH_ACCENT_PATTERNS = [
+    { regex: /cion\b/gi, replacement: 'ci_n' },
+    { regex: /sion\b/gi, replacement: 'si_n' },
+    { regex: /bateria/gi, replacement: 'bater_a' },
+    { regex: /hibrid/gi, replacement: 'h_brid' },
+    { regex: /camara/gi, replacement: 'c_mara' },
+    { regex: /telefono/gi, replacement: 'tel_fono' },
+    { regex: /lampara/gi, replacement: 'l_mpara' },
+    { regex: /debito/gi, replacement: 'd_bito' },
+    { regex: /credito/gi, replacement: 'cr_dito' },
+    { regex: /numero/gi, replacement: 'n_mero' },
+    { regex: /linea/gi, replacement: 'l_nea' },
+    { regex: /musica/gi, replacement: 'm_sica' },
+    { regex: /optico/gi, replacement: '_ptico' },
+    { regex: /inalambrico/gi, replacement: 'inal_mbrico' },
+    { regex: /electronico/gi, replacement: 'electr_nico' },
+    { regex: /articul/gi, replacement: 'art_cul' }
+];
+
+/**
+ * Genera variantes de texto seguras para búsquedas en español tolerantes a acentos en PostgreSQL/PostgREST.
+ * @param {string|null|undefined} query
+ * @returns {{ safeQuery: string, wildcardQuery: string, hasDiacritics: boolean }}
+ */
+export function toSpanishSearchVariants(query) {
+    if (!query || typeof query !== 'string') {
+        return { safeQuery: '', wildcardQuery: '', hasDiacritics: false };
+    }
+
+    // 1. Sanitizar comas, paréntesis, comillas y barras invertidas que rompen la sintaxis .or() de PostgREST
+    const safeQuery = query.replace(/[,()"\\]/g, ' ').replace(/\s+/g, ' ').trim();
+    if (!safeQuery) {
+        return { safeQuery: '', wildcardQuery: '', hasDiacritics: false };
+    }
+
+    const hasDiacritics = /[áéíóúüñÁÉÍÓÚÜÑ]/.test(safeQuery);
+    let wildcardQuery = safeQuery;
+
+    if (hasDiacritics) {
+        // Sustituir vocales acentuadas por el comodín SQL '_' (coincide con cualquier carácter en PostgreSQL ILIKE)
+        wildcardQuery = safeQuery.replace(/[áéíóúüÁÉÍÓÚÜ]/gi, '_');
+    } else {
+        // Probar si contiene palabras o sufijos comunes que suelen llevar tilde
+        for (const pattern of SPANISH_ACCENT_PATTERNS) {
+            wildcardQuery = wildcardQuery.replace(pattern.regex, pattern.replacement);
+        }
+    }
+
+    return { safeQuery, wildcardQuery, hasDiacritics };
+}
+
+/**
+ * Resalta de forma 100% segura contra XSS y tolerante a tildes los términos coincidentes dentro de un texto.
+ * Utiliza <mark class="gs-highlight"> sobre fragmentos escapados.
+ *
+ * @param {string|null|undefined} text Texto original a mostrar
+ * @param {string|null|undefined} query Términos de búsqueda ingresados
+ * @returns {string} Fragmento HTML seguro con coincidencias resaltadas
+ */
+export function highlightMatches(text, query) {
+    if (text == null || text === '') return '';
+    const rawText = String(text);
+
+    if (!query || typeof query !== 'string') {
+        return escapeHtml(rawText);
+    }
+
+    const cleanQuery = query.trim();
+    if (!cleanQuery) {
+        return escapeHtml(rawText);
+    }
+
+    // Mapa de correspondencia de diacríticos para regex
+    const charMap = {
+        'a': '[aáAÁ]', 'á': '[aáAÁ]', 'A': '[aáAÁ]', 'Á': '[aáAÁ]',
+        'e': '[eéEÉ]', 'é': '[eéEÉ]', 'E': '[eéEÉ]', 'É': '[eéEÉ]',
+        'i': '[iíIÍ]', 'í': '[iíIÍ]', 'I': '[iíIÍ]', 'Í': '[iíIÍ]',
+        'o': '[oóOÓ]', 'ó': '[oóOÓ]', 'O': '[oóOÓ]', 'Ó': '[oóOÓ]',
+        'u': '[uúüUÚÜ]', 'ú': '[uúüUÚÜ]', 'ü': '[uúüUÚÜ]', 'U': '[uúüUÚÜ]', 'Ú': '[uúüUÚÜ]', 'Ü': '[uúüUÚÜ]',
+        'n': '[nñNÑ]', 'ñ': '[nñNÑ]', 'N': '[nñNÑ]', 'Ñ': '[nñNÑ]'
+    };
+
+    function buildPattern(str) {
+        let pattern = '';
+        for (let i = 0; i < str.length; i++) {
+            const ch = str[i];
+            if (charMap[ch]) {
+                pattern += charMap[ch];
+            } else if (/[.*+?^${}()|[\]\\]/.test(ch)) {
+                pattern += '\\' + ch;
+            } else {
+                pattern += ch;
+            }
+        }
+        return pattern;
+    }
+
+    // Extraer términos a buscar (la frase completa y cada palabra individual >= 2 caracteres)
+    const terms = [cleanQuery];
+    if (cleanQuery.includes(' ')) {
+        const tokens = cleanQuery.split(/\s+/).filter(t => t.length >= 2);
+        terms.push(...tokens);
+    }
+
+    const intervals = [];
+    terms.forEach(term => {
+        try {
+            const rx = new RegExp(buildPattern(term), 'gi');
+            let match;
+            while ((match = rx.exec(rawText)) !== null) {
+                if (match[0].length === 0) break;
+                intervals.push([match.index, match.index + match[0].length]);
+            }
+        } catch {
+            // Ignorar expresiones no válidas defensivamente
+        }
+    });
+
+    if (intervals.length === 0) {
+        return escapeHtml(rawText);
+    }
+
+    // Ordenar y fusionar intervalos solapados
+    intervals.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+    const merged = [];
+    for (const [start, end] of intervals) {
+        if (merged.length === 0 || merged[merged.length - 1][1] < start) {
+            merged.push([start, end]);
+        } else {
+            merged[merged.length - 1][1] = Math.max(merged[merged.length - 1][1], end);
+        }
+    }
+
+    // Construir HTML sanitizado aplicando <mark class="gs-highlight">
+    let result = '';
+    let lastIndex = 0;
+    for (const [start, end] of merged) {
+        if (start > lastIndex) {
+            result += escapeHtml(rawText.slice(lastIndex, start));
+        }
+        result += `<mark class="gs-highlight">${escapeHtml(rawText.slice(start, end))}</mark>`;
+        lastIndex = end;
+    }
+    if (lastIndex < rawText.length) {
+        result += escapeHtml(rawText.slice(lastIndex));
+    }
+
+    return result;
+}

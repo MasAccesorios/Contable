@@ -1,5 +1,5 @@
 import { supabase } from '../core/supabase.js';
-import { escapeHtml, extractDocumentNumber } from './formatters.js';
+import { escapeHtml, extractDocumentNumber, highlightMatches, toSpanishSearchVariants } from './formatters.js';
 
 const FREQ_STORAGE_KEY = 'gs_busquedas_frecuentes';
 const MAX_STORED = 6;
@@ -46,6 +46,9 @@ export const GlobalSearch = {
     searchAbortController: null,
     activeIndex: -1,
     isInitialized: false,
+    currentFilter: 'todos',
+    cachedGroups: [],
+    cachedQuery: '',
 
     init() {
         const input = document.getElementById('global-search');
@@ -60,13 +63,40 @@ export const GlobalSearch = {
 
         let debounceTimer;
 
-        // 1. Envolver el input en un contenedor relativo para ubicar el dropdown y hint de atajo
+        // 1. Envolver el input en un contenedor relativo para ubicar el dropdown y controles
         let wrapper = input.closest('.gs-container');
         if (!wrapper) {
             wrapper = document.createElement('div');
             wrapper.className = 'gs-container position-relative flex-grow-1 d-flex align-items-center';
             input.parentNode.insertBefore(wrapper, input);
             wrapper.appendChild(input);
+        }
+
+        // 1.1 Inyectar icono de lupa a la izquierda si no existe
+        if (!wrapper.querySelector('.gs-search-icon')) {
+            const icon = document.createElement('i');
+            icon.className = 'bi bi-search gs-search-icon';
+            wrapper.insertBefore(icon, input);
+        }
+
+        // 1.2 Inyectar botón de limpieza rápida (✕)
+        let clearBtn = wrapper.querySelector('.gs-clear-btn');
+        if (!clearBtn) {
+            clearBtn = document.createElement('button');
+            clearBtn.type = 'button';
+            clearBtn.className = 'gs-clear-btn';
+            clearBtn.setAttribute('title', 'Limpiar búsqueda (Esc)');
+            clearBtn.setAttribute('aria-label', 'Limpiar búsqueda');
+            clearBtn.innerHTML = '<i class="bi bi-x-lg"></i>';
+            wrapper.appendChild(clearBtn);
+
+            clearBtn.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.clear();
+                input.focus();
+                this.renderFrecuentes(input);
+            });
         }
 
         // 2. Inyectar indicador de atajo (Ctrl K / ⌘K)
@@ -127,17 +157,29 @@ export const GlobalSearch = {
 
             debounceTimer = setTimeout(() => {
                 this.performSearch(query, input);
-            }, 300);
+            }, 250);
         });
 
-        // 6. Navegación por teclado en dropdown (Flechas, Enter, Escape)
+        // 6. Navegación por teclado en dropdown (Flechas, Enter, Tab, Escape)
         input.addEventListener('keydown', (e) => {
             const dropdown = document.getElementById('global-search-results');
             const isDropdownVisible = dropdown && dropdown.style.display !== 'none';
 
             if (e.key === 'Escape') {
-                this.closeDropdown();
-                input.blur();
+                if (input.value.trim().length > 0) {
+                    this.clear();
+                    this.renderFrecuentes(input);
+                } else {
+                    this.closeDropdown();
+                    input.blur();
+                }
+                return;
+            }
+
+            // Alternar filtros con tecla Tab cuando el dropdown esté abierto
+            if (isDropdownVisible && e.key === 'Tab') {
+                e.preventDefault();
+                this.cycleFilterTab(e.shiftKey ? -1 : 1, input);
                 return;
             }
 
@@ -178,6 +220,26 @@ export const GlobalSearch = {
         });
     },
 
+    setFilter(filter, input) {
+        this.currentFilter = filter;
+        this.renderFilteredResults(input, this.cachedQuery);
+    },
+
+    cycleFilterTab(direction, input) {
+        const availableFilters = ['todos'];
+        (this.cachedGroups || []).forEach(g => {
+            if (g && g.data && g.data.length > 0 && !availableFilters.includes(g.type)) {
+                availableFilters.push(g.type);
+            }
+        });
+        if (availableFilters.length <= 1) return;
+        const currentIndex = availableFilters.indexOf(this.currentFilter);
+        let nextIndex = currentIndex + direction;
+        if (nextIndex < 0) nextIndex = availableFilters.length - 1;
+        if (nextIndex >= availableFilters.length) nextIndex = 0;
+        this.setFilter(availableFilters[nextIndex], input);
+    },
+
     updateActiveItem(items, newIndex) {
         items.forEach(el => el.classList.remove('gs-item-active'));
         if (newIndex >= 0 && newIndex < items.length) {
@@ -200,13 +262,31 @@ export const GlobalSearch = {
         }
     },
 
-    registrarBusquedaExitosa(query) {
-        const key = (query || '').trim();
-        if (!key || key.length < 2) return;
+    registrarBusquedaExitosa(item) {
+        if (!item) return;
+        let entry = null;
+        if (typeof item === 'object') {
+            const title = (item.title || '').trim();
+            if (!title) return;
+            entry = {
+                title,
+                type: item.type || 'general',
+                hash: item.hash || '',
+                subtitle: item.subtitle || '',
+                icon: item.icon || 'bi-clock-history'
+            };
+        } else {
+            const clean = String(item).trim();
+            if (!clean || clean.length < 2) return;
+            entry = clean;
+        }
 
         let historial = this.getFrecuentes();
-        historial = historial.filter(q => q.toLowerCase() !== key.toLowerCase());
-        historial.unshift(key);
+        const getKey = (e) => typeof e === 'object' ? (e.title || '').toLowerCase() : String(e).toLowerCase();
+        const newKey = getKey(entry);
+
+        historial = historial.filter(e => getKey(e) !== newKey);
+        historial.unshift(entry);
         historial = historial.slice(0, MAX_STORED);
         try {
             localStorage.setItem(FREQ_STORAGE_KEY, JSON.stringify(historial));
@@ -215,8 +295,10 @@ export const GlobalSearch = {
         }
     },
 
-    eliminarFrecuente(query) {
-        const historial = this.getFrecuentes().filter(q => q.toLowerCase() !== query.toLowerCase());
+    eliminarFrecuente(key) {
+        const target = String(key || '').toLowerCase();
+        const getKey = (e) => typeof e === 'object' ? (e.title || '').toLowerCase() : String(e).toLowerCase();
+        const historial = this.getFrecuentes().filter(e => getKey(e) !== target);
         localStorage.setItem(FREQ_STORAGE_KEY, JSON.stringify(historial));
     },
 
@@ -226,14 +308,15 @@ export const GlobalSearch = {
 
     renderFrecuentes(input) {
         const top = this.getFrecuentes().slice(0, MAX_SHOWN);
+        const wrapper = input.closest('.gs-container');
 
         // Si no hay búsquedas frecuentes, mostrar sugerencias de accesos rápidos
         if (top.length === 0) {
             const sugerenciasHtml = SYSTEM_COMMANDS.slice(0, 4).map(cmd => `
-                <a href="${cmd.hash}" class="dropdown-item py-2 px-3 d-flex align-items-center gap-2 gs-nav-item text-decoration-none text-dark" data-registrar="${escapeHtml(cmd.title)}">
+                <a href="${cmd.hash}" class="dropdown-item py-2 px-3 d-flex align-items-center gap-2 gs-nav-item text-decoration-none" style="color: var(--text-main);" data-entity-title="${escapeHtml(cmd.title)}" data-entity-type="comando" data-entity-hash="${cmd.hash}" data-entity-icon="${cmd.icon}">
                     <i class="bi ${cmd.icon} text-primary" style="font-size: 15px;"></i>
                     <div class="flex-grow-1">
-                        <div class="fw-medium" style="font-size: 13px;">${escapeHtml(cmd.title)}</div>
+                        <div class="fw-medium" style="font-size: 13px; color: var(--text-main);">${escapeHtml(cmd.title)}</div>
                         <div class="text-muted" style="font-size: 11px;">${escapeHtml(cmd.desc)}</div>
                     </div>
                 </a>
@@ -247,7 +330,7 @@ export const GlobalSearch = {
                 ${sugerenciasHtml}
                 <div class="gs-footer-hints">
                     <span>Escribe para buscar clientes, facturas, cotizaciones o productos</span>
-                    <kbd class="px-1 py-0 bg-white border rounded">Esc</kbd>
+                    <kbd class="px-1 py-0 gs-kbd rounded">Esc</kbd>
                 </div>
             `;
             this.renderDropdown(input, html);
@@ -255,17 +338,30 @@ export const GlobalSearch = {
             return;
         }
 
-        const itemsHtml = top.map(query => `
-            <div class="dropdown-item py-2 gs-frecuente-item px-3 d-flex align-items-center justify-content-between gap-2 gs-nav-item">
-                <a href="javascript:void(0)" class="gs-frecuente-link flex-grow-1 d-flex align-items-center gap-2 text-decoration-none text-dark" data-query="${escapeHtml(query)}" style="min-width: 0;">
-                    <i class="bi bi-clock-history text-muted" style="font-size: 13px;"></i>
-                    <span style="font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(query)}</span>
-                </a>
-                <button type="button" class="btn btn-sm btn-link text-muted p-0 gs-frecuente-borrar" data-query="${escapeHtml(query)}" title="Quitar de frecuentes" style="line-height: 1;">
-                    <i class="bi bi-x-lg" style="font-size: 11px;"></i>
-                </button>
-            </div>
-        `).join('');
+        const itemsHtml = top.map(item => {
+            const isObj = item && typeof item === 'object';
+            const title = isObj ? item.title : item;
+            const subtitle = isObj && item.subtitle ? item.subtitle : null;
+            const rawIcon = isObj ? item.icon : 'bi-clock-history';
+            const icon = (typeof rawIcon === 'string' && /^bi-[a-z0-9-]+$/.test(rawIcon)) ? rawIcon : 'bi-bookmark';
+            const rawHash = isObj ? item.hash : null;
+            const hash = (typeof rawHash === 'string' && rawHash.startsWith('#')) ? rawHash : null;
+
+            return `
+                <div class="dropdown-item py-2 gs-frecuente-item px-3 d-flex align-items-center justify-content-between gap-2 gs-nav-item" ${hash ? `data-hash="${escapeHtml(hash)}"` : ''} data-entity-title="${escapeHtml(title)}">
+                    <a href="${hash ? escapeHtml(hash) : 'javascript:void(0)'}" class="gs-frecuente-link flex-grow-1 d-flex align-items-center gap-2 text-decoration-none" style="color: var(--text-main); min-width: 0;" data-query="${escapeHtml(title)}" ${hash ? `data-hash="${escapeHtml(hash)}"` : ''}>
+                        <i class="bi ${icon} text-muted" style="font-size: 14px;"></i>
+                        <div class="text-truncate">
+                            <span style="font-size: 13px; font-weight: 500;">${escapeHtml(title)}</span>
+                            ${subtitle ? `<div class="text-muted" style="font-size: 10.5px;">${escapeHtml(subtitle)}</div>` : ''}
+                        </div>
+                    </a>
+                    <button type="button" class="btn btn-sm btn-link text-muted p-0 gs-frecuente-borrar" data-query="${escapeHtml(title)}" title="Quitar de recientes" style="line-height: 1;">
+                        <i class="bi bi-x-lg" style="font-size: 11px;"></i>
+                    </button>
+                </div>
+            `;
+        }).join('');
 
         const html = `
             <div class="gs-section-header">
@@ -274,8 +370,7 @@ export const GlobalSearch = {
             </div>
             ${itemsHtml}
             <div class="gs-footer-hints">
-                <span>Selecciona con flechas o presiona Enter</span>
-                <kbd class="px-1 py-0 bg-white border rounded">↑↓</kbd>
+                <span><kbd class="px-1 py-0 gs-kbd rounded">↑↓</kbd> Seleccionar • <kbd class="px-1 py-0 gs-kbd rounded">↵</kbd> Abrir • <kbd class="px-1 py-0 gs-kbd rounded">Esc</kbd> Cerrar</span>
             </div>
         `;
 
@@ -285,9 +380,17 @@ export const GlobalSearch = {
         document.querySelectorAll('.gs-frecuente-link').forEach(l => {
             l.addEventListener('mousedown', (e) => {
                 e.preventDefault();
-                const query = l.getAttribute('data-query');
-                input.value = query;
-                this.performSearch(query, input, false);
+                const hash = l.getAttribute('data-hash');
+                if (hash && hash !== 'javascript:void(0)') {
+                    this.closeDropdown();
+                    input.value = '';
+                    window.location.hash = hash;
+                } else {
+                    const query = l.getAttribute('data-query');
+                    input.value = query;
+                    wrapper?.classList.add('has-value');
+                    this.performSearch(query, input, false);
+                }
             });
         });
 
@@ -312,6 +415,11 @@ export const GlobalSearch = {
     // ─── Búsqueda inteligente Multi-Entidad ────────────────────────────────────
 
     async performSearch(query, input, autoNavigate = false) {
+        if (this.searchAbortController) {
+            try { this.searchAbortController.abort(); } catch {}
+        }
+        this.searchAbortController = new AbortController();
+
         const searchToken = Date.now();
         this.currentSearchToken = searchToken;
         this.activeIndex = -1;
@@ -335,8 +443,8 @@ export const GlobalSearch = {
             cmd.keywords.some(k => k.includes(qLower) || qLower.includes(k))
         ).slice(0, 3);
 
-        // Sanitizar query para sintaxis PostgREST (elimina comas, comillas y paréntesis que rompen .or())
-        const safeQuery = query.replace(/[,()"\\]/g, ' ').trim();
+        // Generar variantes tolerantes a tildes y sanitizadas para PostgREST .or()
+        const { safeQuery, wildcardQuery } = toSpanishSearchVariants(query);
 
         if (safeQuery.length < 2 && numValue === null) {
             this.closeDropdown();
@@ -346,24 +454,29 @@ export const GlobalSearch = {
         const promises = [];
 
         // 2. Consulta de Contactos (Clientes / Proveedores por Nombre, NIT, Email o Teléfono)
+        const contactosFilter = (wildcardQuery && wildcardQuery !== safeQuery)
+            ? `nombre.ilike.%${safeQuery}%,nombre.ilike.%${wildcardQuery}%,identificacion.ilike.%${safeQuery}%,email.ilike.%${safeQuery}%,telefono.ilike.%${safeQuery}%`
+            : `nombre.ilike.%${safeQuery}%,identificacion.ilike.%${safeQuery}%,email.ilike.%${safeQuery}%,telefono.ilike.%${safeQuery}%`;
+
         promises.push(
             supabase.from('contactos')
                 .select('id, nombre, identificacion, email, telefono, tipo, es_cliente, es_proveedor')
                 .neq('estado', 'inactive')
-                .or(`nombre.ilike.%${safeQuery}%,identificacion.ilike.%${safeQuery}%,email.ilike.%${safeQuery}%,telefono.ilike.%${safeQuery}%`)
+                .or(contactosFilter)
                 .limit(4)
                 .then(res => ({ type: 'contactos', data: res.data || [] }))
                 .catch(err => { console.error('[GlobalSearch] Error buscando contactos:', err); return { type: 'contactos', data: [] }; })
         );
 
         // 3. Consulta de Productos (Inventario con stock real calculado por FIFO y búsqueda por nombre o SKU)
+        const prodSearchTerm = (wildcardQuery && wildcardQuery !== safeQuery) ? wildcardQuery : safeQuery;
         promises.push(
             supabase.rpc('get_productos_page_v2', {
                 p_page: 1,
                 p_limit: 5,
                 p_sort_column: 'nombre',
                 p_sort_direction: 'asc',
-                p_search_query: safeQuery,
+                p_search_query: prodSearchTerm,
                 p_filter_criteria: 'todos'
             })
             .then(async res => {
@@ -416,9 +529,12 @@ export const GlobalSearch = {
             .catch(async (err) => {
                 console.warn('[GlobalSearch] RPC get_productos_page_v2 falló, usando fallback defensivo:', err);
                 try {
+                    const fallbackFilter = (wildcardQuery && wildcardQuery !== safeQuery)
+                        ? `nombre.ilike.%${safeQuery}%,nombre.ilike.%${wildcardQuery}%,sku.ilike.%${safeQuery}%`
+                        : `nombre.ilike.%${safeQuery}%,sku.ilike.%${safeQuery}%`;
                     const { data: prods, error: pErr } = await supabase.from('productos')
                         .select('id, nombre, sku, precio_venta, stock_minimo, estado')
-                        .or(`nombre.ilike.%${safeQuery}%,sku.ilike.%${safeQuery}%`)
+                        .or(fallbackFilter)
                         .limit(5);
                     if (pErr) throw pErr;
                     const mapped = (prods || []).map(p => ({
@@ -539,6 +655,9 @@ export const GlobalSearch = {
             productosGroup
         ].filter(Boolean);
 
+        this.cachedGroups = finalResults;
+        this.cachedQuery = query;
+
         // Si se solicitó autoNavegación (ej. al presionar Enter con 1 única coincidencia unívoca en todo el sistema)
         if (autoNavigate) {
             const countContactos = contactos.length;
@@ -550,45 +669,120 @@ export const GlobalSearch = {
             // ÚNICAMENTE auto-navegar si existe exactamente 1 resultado en TODO el sistema sin ambigüedad
             if (totalResultados === 1) {
                 let firstActionHash = null;
+                let singleEntity = null;
                 if (countContactos === 1) {
                     firstActionHash = `#/contactos/ver/${contactos[0].id}?search=${encodeURIComponent(contactos[0].nombre)}`;
+                    singleEntity = { title: contactos[0].nombre, type: 'contacto', hash: firstActionHash, subtitle: `NIT: ${contactos[0].identificacion || 'Sin NIT'}`, icon: 'bi-person' };
                 } else if (countProductos === 1) {
                     firstActionHash = `#/inventario/items/ver/${productosGroup.data[0].id}`;
+                    singleEntity = { title: productosGroup.data[0].nombre, type: 'producto', hash: firstActionHash, subtitle: `SKU: ${productosGroup.data[0].sku || 'N/A'}`, icon: 'bi-box-seam' };
                 } else if (countFacturas === 1) {
                     firstActionHash = `#/ingresos/facturas/ver/${facturasGroup.data[0].id}`;
+                    singleEntity = { title: `Factura #${facturasGroup.data[0].numero}`, type: 'factura', hash: firstActionHash, subtitle: fmtMoney(facturasGroup.data[0].total), icon: 'bi-receipt' };
                 } else if (countCotizaciones === 1) {
                     firstActionHash = `#/ingresos/cotizaciones/ver/${cotizacionesGroup.data[0].id}`;
+                    singleEntity = { title: `Cotización #${cotizacionesGroup.data[0].numero}`, type: 'cotizacion', hash: firstActionHash, subtitle: fmtMoney(cotizacionesGroup.data[0].total), icon: 'bi-file-earmark-text' };
                 }
 
                 if (firstActionHash) {
-                    this.registrarBusquedaExitosa(query);
+                    this.registrarBusquedaExitosa(singleEntity || query);
                     this.closeDropdown();
                     input.value = '';
+                    input.closest('.gs-container')?.classList.remove('has-value');
                     window.location.hash = firstActionHash;
                     return;
                 }
             }
         }
 
-        this.displayResults(input, finalResults, query);
+        this.renderFilteredResults(input, query);
     },
 
-    displayResults(input, groups, query) {
-        let html = '';
-        let totalCount = 0;
+    renderFilteredResults(input, query) {
+        const groups = this.cachedGroups || [];
+        
+        // Calcular conteos por categoría
+        const counts = {
+            todos: 0,
+            contactos: 0,
+            productos: 0,
+            facturas: 0,
+            cotizaciones: 0,
+            comandos: 0
+        };
+
+        groups.forEach(g => {
+            if (!g || !Array.isArray(g.data)) return;
+            const len = g.data.length;
+            counts[g.type] = len;
+            counts.todos += len;
+        });
+
+        // Si el filtro actual no tiene resultados disponibles, volver a 'todos'
+        if (this.currentFilter !== 'todos' && (!counts[this.currentFilter] || counts[this.currentFilter] === 0)) {
+            this.currentFilter = 'todos';
+        }
+
+        // Pestañas / Chips de filtrado interactivo
+        let filterTabsHtml = '';
+        if (counts.todos > 0) {
+            filterTabsHtml = `
+                <div class="gs-filter-tabs">
+                    <button type="button" class="gs-filter-chip ${this.currentFilter === 'todos' ? 'active' : ''}" data-filter="todos">
+                        Todos <span class="badge-count">(${counts.todos})</span>
+                    </button>
+                    ${counts.contactos > 0 ? `
+                        <button type="button" class="gs-filter-chip ${this.currentFilter === 'contactos' ? 'active' : ''}" data-filter="contactos">
+                            <i class="bi bi-people-fill"></i> Clientes <span class="badge-count">(${counts.contactos})</span>
+                        </button>
+                    ` : ''}
+                    ${counts.productos > 0 ? `
+                        <button type="button" class="gs-filter-chip ${this.currentFilter === 'productos' ? 'active' : ''}" data-filter="productos">
+                            <i class="bi bi-box-seam"></i> Productos <span class="badge-count">(${counts.productos})</span>
+                        </button>
+                    ` : ''}
+                    ${counts.facturas > 0 ? `
+                        <button type="button" class="gs-filter-chip ${this.currentFilter === 'facturas' ? 'active' : ''}" data-filter="facturas">
+                            <i class="bi bi-receipt"></i> Facturas <span class="badge-count">(${counts.facturas})</span>
+                        </button>
+                    ` : ''}
+                    ${counts.cotizaciones > 0 ? `
+                        <button type="button" class="gs-filter-chip ${this.currentFilter === 'cotizaciones' ? 'active' : ''}" data-filter="cotizaciones">
+                            <i class="bi bi-file-earmark-text"></i> Cotizaciones <span class="badge-count">(${counts.cotizaciones})</span>
+                        </button>
+                    ` : ''}
+                    ${counts.comandos > 0 ? `
+                        <button type="button" class="gs-filter-chip ${this.currentFilter === 'comandos' ? 'active' : ''}" data-filter="comandos">
+                            <i class="bi bi-lightning-charge-fill"></i> Acciones <span class="badge-count">(${counts.comandos})</span>
+                        </button>
+                    ` : ''}
+                </div>
+            `;
+        }
+
+        const filteredGroups = this.currentFilter === 'todos'
+            ? groups
+            : groups.filter(g => g.type === this.currentFilter);
+
+        this.displayResults(input, filteredGroups, query, filterTabsHtml, counts.todos);
+    },
+
+    displayResults(input, groups, query, filterTabsHtml = '', totalCount = 0) {
+        let html = filterTabsHtml;
+        let displayedCount = 0;
 
         groups.forEach(group => {
             if (!group || !group.data || group.data.length === 0) return;
-            totalCount += group.data.length;
+            displayedCount += group.data.length;
 
             switch (group.type) {
                 case 'comandos': {
                     const itemsHtml = group.data.map(cmd => `
-                        <a href="${cmd.hash}" class="dropdown-item py-2 px-3 d-flex align-items-center gap-2 gs-nav-item text-decoration-none text-dark" data-registrar="${escapeHtml(cmd.title)}">
+                        <a href="${cmd.hash}" class="dropdown-item py-2 px-3 d-flex align-items-center gap-2 gs-nav-item text-decoration-none" style="color: var(--text-main);" data-entity-title="${escapeHtml(cmd.title)}" data-entity-type="comando" data-entity-hash="${cmd.hash}" data-entity-icon="${cmd.icon}">
                             <i class="bi ${cmd.icon} text-primary" style="font-size: 15px;"></i>
                             <div class="flex-grow-1">
-                                <div class="fw-medium" style="font-size: 13px;">${escapeHtml(cmd.title)}</div>
-                                <div class="text-muted" style="font-size: 11px;">${escapeHtml(cmd.desc)}</div>
+                                <div class="fw-medium" style="font-size: 13px; color: var(--text-main);">${highlightMatches(cmd.title, query)}</div>
+                                <div class="text-muted" style="font-size: 11px;">${highlightMatches(cmd.desc, query)}</div>
                             </div>
                             <span class="badge bg-light text-muted border" style="font-size: 10px;">Acción</span>
                         </a>
@@ -621,7 +815,7 @@ export const GlobalSearch = {
                         let facturasRecientesHtml = '';
                         if (tieneFacturas) {
                             facturasRecientesHtml = `
-                                <div class="mt-2 p-2 bg-light bg-opacity-75 rounded-2 border" style="font-size: 11.5px;">
+                                <div class="mt-2 p-2 gs-embedded-facturas rounded-2 border" style="font-size: 11.5px;">
                                     <div class="text-muted fw-bold mb-1 d-flex justify-content-between align-items-center" style="font-size: 10px; text-transform: uppercase;">
                                         <span><i class="bi bi-receipt me-1"></i> Facturas de ${escapeHtml(item.nombre)}:</span>
                                         <a href="#/ingresos/facturas?search=${encodeURIComponent(item.nombre)}" class="text-primary text-decoration-none gs-nav-item" style="font-size: 10px;">Ver todas (${item.facturasRecientes.length}) &rarr;</a>
@@ -630,10 +824,10 @@ export const GlobalSearch = {
                                         ${item.facturasRecientes.slice(0, 3).map(f => {
                                             const esCobrada = ['cobrada', 'pagada'].includes((f.estado || '').toLowerCase());
                                             return `
-                                                <a href="#/ingresos/facturas/ver/${f.id}" class="d-flex justify-content-between align-items-center py-1 px-2 text-decoration-none text-dark gs-nav-item rounded bg-white border" data-registrar="Factura #${f.numero}">
-                                                    <span><strong>Factura #${f.numero}</strong> <span class="text-muted small">(${f.fecha || 'Sin fecha'})</span></span>
+                                                <a href="#/ingresos/facturas/ver/${f.id}" class="d-flex justify-content-between align-items-center py-1 px-2 text-decoration-none gs-nav-item gs-embedded-item rounded border" data-entity-title="Factura #${f.numero}" data-entity-type="factura" data-entity-hash="#/ingresos/facturas/ver/${f.id}" data-entity-subtitle="${fmtMoney(f.total)}" data-entity-icon="bi-receipt">
+                                                    <span style="color: var(--text-main);"><strong>Factura #${f.numero}</strong> <span class="text-muted small">(${f.fecha || 'Sin fecha'})</span></span>
                                                     <span class="d-flex align-items-center gap-2">
-                                                        <span class="fw-semibold">${fmtMoney(f.total)}</span>
+                                                        <span class="fw-semibold" style="color: var(--text-main);">${fmtMoney(f.total)}</span>
                                                         <span class="badge ${esCobrada ? 'bg-success-subtle text-success' : 'bg-warning-subtle text-warning-emphasis'} rounded-pill" style="font-size: 9.5px;">${escapeHtml(f.estado || 'por_cobrar')}</span>
                                                     </span>
                                                 </a>
@@ -653,10 +847,10 @@ export const GlobalSearch = {
                                             ${escapeHtml(avatar.initials)}
                                         </div>
                                         <div class="text-truncate">
-                                            <div class="fw-bold text-dark text-truncate" style="font-size: 13.5px;">${escapeHtml(item.nombre)}</div>
+                                            <div class="fw-bold text-truncate" style="color: var(--text-main); font-size: 13.5px;">${highlightMatches(item.nombre, query)}</div>
                                             <div class="text-muted small d-flex align-items-center gap-1" style="font-size: 11px;">
-                                                <span>NIT: ${escapeHtml(item.identificacion || 'Sin NIT')}</span>
-                                                ${item.telefono ? `<span>• Tel: ${escapeHtml(item.telefono)}</span>` : ''}
+                                                <span>NIT: ${highlightMatches(item.identificacion || 'Sin NIT', query)}</span>
+                                                ${item.telefono ? `<span>• Tel: ${highlightMatches(item.telefono, query)}</span>` : ''}
                                             </div>
                                         </div>
                                     </div>
@@ -668,19 +862,19 @@ export const GlobalSearch = {
 
                                 <!-- SUBMENÚ DE ACCIONES RÁPIDAS -->
                                 <div class="d-flex flex-wrap gap-1 mt-2 pt-2 border-top">
-                                    <a href="#/ingresos/facturas?search=${encodeURIComponent(item.nombre)}" class="gs-action-chip gs-nav-item" title="Ver sólo las facturas de este cliente" data-registrar="${escapeHtml(item.nombre)}">
+                                    <a href="#/ingresos/facturas?search=${encodeURIComponent(item.nombre)}" class="gs-action-chip gs-nav-item" title="Ver sólo las facturas de este cliente" data-entity-title="${escapeHtml(item.nombre)}" data-entity-type="contacto" data-entity-hash="#/ingresos/facturas?search=${encodeURIComponent(item.nombre)}" data-entity-icon="bi-receipt">
                                         <i class="bi bi-receipt text-primary"></i> Ver Facturas
                                     </a>
-                                    <a href="#/contactos/ver/${item.id}?search=${encodeURIComponent(item.nombre)}" class="gs-action-chip gs-nav-item" title="Abrir perfil 360° y cartera" data-registrar="${escapeHtml(item.nombre)}">
+                                    <a href="#/contactos/ver/${item.id}?search=${encodeURIComponent(item.nombre)}" class="gs-action-chip gs-nav-item" title="Abrir perfil 360° y cartera" data-entity-title="${escapeHtml(item.nombre)}" data-entity-type="contacto" data-entity-hash="#/contactos/ver/${item.id}?search=${encodeURIComponent(item.nombre)}" data-entity-subtitle="NIT: ${escapeHtml(item.identificacion || '')}" data-entity-icon="bi-person">
                                         <i class="bi bi-person-vcard text-secondary"></i> Ficha 360°
                                     </a>
-                                    <a href="#/ingresos/facturas/nueva?clienteId=${item.id}" class="gs-action-chip gs-chip-success gs-nav-item" title="Crear nueva factura de venta para este cliente" data-registrar="${escapeHtml(item.nombre)}">
+                                    <a href="#/ingresos/facturas/nueva?clienteId=${item.id}" class="gs-action-chip gs-chip-success gs-nav-item" title="Crear nueva factura de venta para este cliente" data-entity-title="Facturar a ${escapeHtml(item.nombre)}" data-entity-type="comando" data-entity-hash="#/ingresos/facturas/nueva?clienteId=${item.id}" data-entity-icon="bi-plus-circle-fill">
                                         <i class="bi bi-plus-circle-fill text-success"></i> Facturar
                                     </a>
-                                    <a href="#/ingresos/pagos/nuevo?clienteId=${item.id}" class="gs-action-chip gs-nav-item" title="Registrar recibo de caja / abono" data-registrar="${escapeHtml(item.nombre)}">
+                                    <a href="#/ingresos/pagos/nuevo?clienteId=${item.id}" class="gs-action-chip gs-nav-item" title="Registrar recibo de caja / abono" data-entity-title="Cobrar a ${escapeHtml(item.nombre)}" data-entity-type="comando" data-entity-hash="#/ingresos/pagos/nuevo?clienteId=${item.id}" data-entity-icon="bi-cash-coin">
                                         <i class="bi bi-cash-coin text-warning"></i> Cobrar
                                     </a>
-                                    <a href="#/ingresos/cotizaciones/nueva?clienteId=${item.id}" class="gs-action-chip gs-nav-item" title="Crear cotización comercial" data-registrar="${escapeHtml(item.nombre)}">
+                                    <a href="#/ingresos/cotizaciones/nueva?clienteId=${item.id}" class="gs-action-chip gs-nav-item" title="Crear cotización comercial" data-entity-title="Cotizar a ${escapeHtml(item.nombre)}" data-entity-type="comando" data-entity-hash="#/ingresos/cotizaciones/nueva?clienteId=${item.id}" data-entity-icon="bi-file-earmark-plus">
                                         <i class="bi bi-file-earmark-plus text-info"></i> Cotizar
                                     </a>
                                 </div>
@@ -711,18 +905,18 @@ export const GlobalSearch = {
                         const clienteNombre = item.contactos?.nombre || 'Cliente General';
 
                         return `
-                            <div class="dropdown-item py-2 px-3 border-bottom d-flex align-items-center justify-content-between gap-2 gs-nav-item" data-hash="${hash}" data-registrar="${escapeHtml(label)}">
-                                <a href="${hash}" class="flex-grow-1 text-decoration-none text-dark d-flex align-items-center gap-2" style="min-width: 0;">
+                            <div class="dropdown-item py-2 px-3 border-bottom d-flex align-items-center justify-content-between gap-2 gs-nav-item" data-hash="${hash}" data-entity-title="${escapeHtml(label)}" data-entity-type="factura" data-entity-hash="${hash}" data-entity-subtitle="${escapeHtml(clienteNombre)} • ${fmtMoney(item.total)}" data-entity-icon="bi-receipt">
+                                <a href="${hash}" class="flex-grow-1 text-decoration-none d-flex align-items-center gap-2" style="color: var(--text-main); min-width: 0;">
                                     <i class="bi bi-receipt-cutoff ${esCompra ? 'text-danger' : 'text-primary'}" style="font-size: 18px;"></i>
                                     <div class="text-truncate">
-                                        <div class="fw-semibold text-truncate" style="font-size: 13px;">${label}</div>
+                                        <div class="fw-semibold text-truncate" style="color: var(--text-main); font-size: 13px;">Factura de ${badgeTipo} #${highlightMatches(String(item.numero), query)}</div>
                                         <div class="text-muted" style="font-size: 11px;">
-                                            <span>${escapeHtml(clienteNombre)}</span> • <span>${item.fecha || 'Sin fecha'}</span>
+                                            <span>${highlightMatches(clienteNombre, query)}</span> • <span>${item.fecha || 'Sin fecha'}</span>
                                         </div>
                                     </div>
                                 </a>
                                 <div class="d-flex align-items-center gap-2 flex-shrink-0">
-                                    <span class="fw-bold text-dark" style="font-size: 13px;">${fmtMoney(item.total)}</span>
+                                    <span class="fw-bold" style="color: var(--text-main); font-size: 13px;">${fmtMoney(item.total)}</span>
                                     <span class="badge ${esCobrada ? 'bg-success-subtle text-success' : 'bg-warning-subtle text-warning-emphasis'} rounded-pill" style="font-size: 10px;">
                                         ${escapeHtml(item.estado || 'pendiente')}
                                     </span>
@@ -745,18 +939,19 @@ export const GlobalSearch = {
                     const itemsHtml = group.data.map(item => {
                         const label = `Cotización #${item.numero}`;
                         const clienteNombre = item.contactos?.nombre || 'Cliente General';
+                        const hash = `#/ingresos/cotizaciones/ver/${item.id}`;
 
                         return `
-                            <a href="#/ingresos/cotizaciones/ver/${item.id}" class="dropdown-item py-2 px-3 border-bottom d-flex align-items-center justify-content-between gap-2 gs-nav-item text-decoration-none text-dark" data-registrar="${escapeHtml(label)}">
+                            <a href="${hash}" class="dropdown-item py-2 px-3 border-bottom d-flex align-items-center justify-content-between gap-2 gs-nav-item text-decoration-none" style="color: var(--text-main);" data-entity-title="${escapeHtml(label)}" data-entity-type="cotizacion" data-entity-hash="${hash}" data-entity-subtitle="${escapeHtml(clienteNombre)} • ${fmtMoney(item.total)}" data-entity-icon="bi-file-earmark-text">
                                 <div class="d-flex align-items-center gap-2 text-truncate">
                                     <i class="bi bi-file-earmark-text text-info" style="font-size: 18px;"></i>
                                     <div class="text-truncate">
-                                        <div class="fw-semibold text-truncate" style="font-size: 13px;">${label}</div>
-                                        <div class="text-muted" style="font-size: 11px;">${escapeHtml(clienteNombre)} • ${item.fecha || ''}</div>
+                                        <div class="fw-semibold text-truncate" style="color: var(--text-main); font-size: 13px;">Cotización #${highlightMatches(String(item.numero), query)}</div>
+                                        <div class="text-muted" style="font-size: 11px;">${highlightMatches(clienteNombre, query)} • ${item.fecha || ''}</div>
                                     </div>
                                 </div>
                                 <div class="d-flex align-items-center gap-2 flex-shrink-0">
-                                    <span class="fw-bold" style="font-size: 13px;">${fmtMoney(item.total)}</span>
+                                    <span class="fw-bold" style="color: var(--text-main); font-size: 13px;">${fmtMoney(item.total)}</span>
                                     <span class="badge bg-info-subtle text-info border border-info-subtle rounded-pill" style="font-size: 10px;">
                                         ${escapeHtml(item.estado || 'abierta')}
                                     </span>
@@ -780,6 +975,7 @@ export const GlobalSearch = {
                         const stock = Number(item.stock !== undefined ? item.stock : 0);
                         const minStock = Number(item.stockMinimo ?? item.stock_minimo ?? 5);
                         const precio = Number(item.precioVenta ?? item.precio_venta ?? 0);
+                        const hash = `#/inventario/items/ver/${item.id}`;
                         let stockBadge = '';
 
                         if (stock > minStock) {
@@ -792,20 +988,20 @@ export const GlobalSearch = {
 
                         return `
                             <div class="dropdown-item py-2 px-3 border-bottom d-flex align-items-center justify-content-between gap-2 gs-card-producto">
-                                <a href="#/inventario/items/ver/${item.id}" class="flex-grow-1 text-decoration-none text-dark d-flex align-items-center gap-2 gs-nav-item" style="min-width: 0;" data-registrar="${escapeHtml(item.nombre)}">
+                                <a href="${hash}" class="flex-grow-1 text-decoration-none d-flex align-items-center gap-2 gs-nav-item" style="color: var(--text-main); min-width: 0;" data-entity-title="${escapeHtml(item.nombre)}" data-entity-type="producto" data-entity-hash="${hash}" data-entity-subtitle="SKU: ${escapeHtml(item.sku || 'N/A')} • ${fmtMoney(precio)}" data-entity-icon="bi-box-seam">
                                     <i class="bi bi-box-seam text-primary" style="font-size: 18px;"></i>
                                     <div class="text-truncate">
-                                        <div class="fw-semibold text-truncate" style="font-size: 13px;">${escapeHtml(item.nombre)}</div>
-                                        <div class="text-muted" style="font-size: 11px;">SKU / Ref: <span class="fw-medium text-dark">${escapeHtml(item.sku || 'N/A')}</span>${item.categoria ? ` • ${escapeHtml(item.categoria)}` : ''}</div>
+                                        <div class="fw-semibold text-truncate" style="color: var(--text-main); font-size: 13px;">${highlightMatches(item.nombre, query)}</div>
+                                        <div class="text-muted" style="font-size: 11px;">SKU / Ref: <span class="fw-medium" style="color: var(--text-main);">${highlightMatches(item.sku || 'N/A', query)}</span>${item.categoria ? ` • ${escapeHtml(item.categoria)}` : ''}</div>
                                     </div>
                                 </a>
                                 <div class="d-flex align-items-center gap-2 flex-shrink-0">
                                     <div class="text-end">
-                                        <div class="fw-bold text-dark" style="font-size: 13px;">${fmtMoney(precio)}</div>
+                                        <div class="fw-bold" style="color: var(--text-main); font-size: 13px;">${fmtMoney(precio)}</div>
                                         ${stockBadge}
                                     </div>
                                     <div class="d-flex gap-1 ms-1">
-                                        <a href="#/ingresos/facturas/nueva?productoId=${item.id}" class="gs-action-chip gs-chip-success gs-nav-item" title="Facturar este producto">
+                                        <a href="#/ingresos/facturas/nueva?productoId=${item.id}" class="gs-action-chip gs-chip-success gs-nav-item" title="Facturar este producto" data-entity-title="Facturar ${escapeHtml(item.nombre)}" data-entity-type="comando" data-entity-hash="#/ingresos/facturas/nueva?productoId=${item.id}" data-entity-icon="bi-cart-plus">
                                             <i class="bi bi-cart-plus"></i>
                                         </a>
                                     </div>
@@ -826,8 +1022,8 @@ export const GlobalSearch = {
             }
         });
 
-        if (totalCount === 0) {
-            html = `
+        if (displayedCount === 0) {
+            html += `
                 <div class="p-4 text-center text-muted">
                     <i class="bi bi-search text-muted opacity-50" style="font-size: 2rem;"></i>
                     <div class="fw-semibold mt-2" style="font-size: 13.5px;">Sin coincidencias para "${escapeHtml(query)}"</div>
@@ -838,8 +1034,8 @@ export const GlobalSearch = {
 
         html += `
             <div class="gs-footer-hints">
-                <span><kbd class="px-1 py-0 bg-white border rounded">↑↓</kbd> Navegar • <kbd class="px-1 py-0 bg-white border rounded">↵</kbd> Abrir • <kbd class="px-1 py-0 bg-white border rounded">Esc</kbd> Cerrar</span>
-                <span class="text-muted">${totalCount} resultado(s)</span>
+                <span><kbd class="px-1 py-0 gs-kbd rounded">↑↓</kbd> Navegar • <kbd class="px-1 py-0 gs-kbd rounded">↵</kbd> Abrir • <kbd class="px-1 py-0 gs-kbd rounded">Tab</kbd> Filtrar • <kbd class="px-1 py-0 gs-kbd rounded">Esc</kbd> Cerrar</span>
+                <span class="text-muted">${totalCount || displayedCount} resultado(s)</span>
             </div>
         `;
 
@@ -849,24 +1045,48 @@ export const GlobalSearch = {
 
     seleccionarElemento(el, input) {
         if (!el) return;
-        const registrar = el.dataset.registrar || el.getAttribute('title') || input.value;
-        this.registrarBusquedaExitosa(registrar);
+        const entityTitle = el.dataset.entityTitle;
+        const entityData = entityTitle ? {
+            title: entityTitle,
+            type: el.dataset.entityType || 'item',
+            hash: el.dataset.entityHash || el.getAttribute('href') || '',
+            subtitle: el.dataset.entitySubtitle || '',
+            icon: el.dataset.entityIcon || 'bi-bookmark'
+        } : (el.dataset.registrar || el.getAttribute('title') || input.value);
+
+        this.registrarBusquedaExitosa(entityData);
         this.closeDropdown();
         input.value = '';
+        input.closest('.gs-container')?.classList.remove('has-value');
 
-        const targetHref = el.getAttribute('href') || el.dataset.hash || el.querySelector('a')?.getAttribute('href');
-        if (targetHref && targetHref !== 'javascript:void(0)') {
-            if (targetHref.startsWith('#')) {
-                window.location.hash = targetHref;
-            } else {
-                window.location.href = targetHref;
-            }
+        const targetHref = el.getAttribute('href') || el.dataset.hash || el.dataset.entityHash || el.querySelector('a')?.getAttribute('href');
+        if (targetHref && targetHref.startsWith('#')) {
+            window.location.hash = targetHref;
         }
     },
 
     bindDropdownClicks(input) {
-        const items = document.querySelectorAll('#global-search-results a[href], #global-search-results .gs-nav-item');
+        const dropdown = document.getElementById('global-search-results');
+        if (!dropdown) return;
+
+        // Clics en pestañas / chips de filtro
+        dropdown.querySelectorAll('.gs-filter-chip').forEach(chip => {
+            chip.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const filter = chip.getAttribute('data-filter');
+                if (filter) this.setFilter(filter, input);
+            });
+            chip.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+            });
+        });
+
+        // Clics en elementos navegables
+        const items = dropdown.querySelectorAll('a[href], .gs-nav-item');
         items.forEach(el => {
+            if (el.classList.contains('gs-filter-chip')) return;
             const handler = (e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -900,6 +1120,9 @@ export const GlobalSearch = {
             input.value = '';
             input.parentElement?.classList.remove('has-value');
         }
+        this.currentFilter = 'todos';
+        this.cachedGroups = [];
+        this.cachedQuery = '';
         this.closeDropdown();
     }
 };
