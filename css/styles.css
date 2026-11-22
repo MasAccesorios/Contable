@@ -698,6 +698,21 @@ html[data-theme="dark-blue"] .dropdown-content a.active {
         page: hoja-media-carta;
         padding: 15px !important;
     }
+
+    .preview-viewport-wrapper, .preview-scale-wrapper {
+        display: block !important;
+        width: 100% !important;
+        height: auto !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        overflow: visible !important;
+    }
+    .preview-scale-wrapper > div {
+        transform: none !important;
+        width: 100% !important;
+        margin: 0 !important;
+        box-shadow: none !important;
+    }
 }
 
 /* ==========================================================

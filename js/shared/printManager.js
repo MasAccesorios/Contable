@@ -81,14 +81,32 @@ export const PrintManager = {
             `;
             
             closeHeader.querySelector('.btn-cerrar-preview').addEventListener('click', () => {
+                if (typeof cleanupPreview === 'function') cleanupPreview();
                 container.remove();
             });
 
             const btnImprimir = closeHeader.querySelector('.btn-imprimir-preview');
             btnImprimir?.addEventListener('click', () => {
                 closeHeader.classList.add('d-none');
+                const prevTransform = paperContent?.style.transform;
+                const prevOrigin = paperContent?.style.transformOrigin;
+                const prevW = scaleWrapper?.style.width;
+                const prevH = scaleWrapper?.style.height;
+                if (paperContent) {
+                    paperContent.style.transform = 'none';
+                    paperContent.style.transformOrigin = 'top center';
+                }
+                if (scaleWrapper) {
+                    scaleWrapper.style.width = '100%';
+                    scaleWrapper.style.height = 'auto';
+                }
                 window.print();
                 closeHeader.classList.remove('d-none');
+                if (paperContent && prevTransform !== undefined) paperContent.style.transform = prevTransform;
+                if (paperContent && prevOrigin !== undefined) paperContent.style.transformOrigin = prevOrigin;
+                if (scaleWrapper && prevW !== undefined) scaleWrapper.style.width = prevW;
+                if (scaleWrapper && prevH !== undefined) scaleWrapper.style.height = prevH;
+                if (typeof applyResponsiveScale === 'function') applyResponsiveScale();
             });
             
             const btnCompartir = closeHeader.querySelector('.btn-compartir-preview');
@@ -99,6 +117,9 @@ export const PrintManager = {
             
             let cachedShareFile = null;
             let paperContent;
+            let scaleWrapper;
+            let applyResponsiveScale = null;
+            let cleanupPreview = null;
             
             const precacheShareImage = async () => {
                 try {
@@ -115,13 +136,26 @@ export const PrintManager = {
                     const oldScrollTop = container.scrollTop;
                     container.scrollTop = 0;
                     
-                    const canvas = await window.html2canvas(paperContent, { 
-                        scale: 2,
-                        useCORS: true,
-                        backgroundColor: '#ffffff',
-                        windowWidth: Math.max(document.documentElement.scrollWidth, paperContent.scrollWidth + 40),
-                        windowHeight: Math.max(document.documentElement.scrollHeight, paperContent.scrollHeight + 40)
-                    });
+                    // Desactivar temporalmente el escalado visual para capturar en resolución nativa HD (816px)
+                    const savedTransform = paperContent.style.transform;
+                    const savedOrigin = paperContent.style.transformOrigin;
+                    paperContent.style.transform = 'none';
+                    paperContent.style.transformOrigin = 'top center';
+
+                    let canvas;
+                    try {
+                        canvas = await window.html2canvas(paperContent, { 
+                            scale: 2,
+                            useCORS: true,
+                            backgroundColor: '#ffffff',
+                            windowWidth: 856,
+                            windowHeight: Math.max(1100, (paperContent.scrollHeight || 1056) + 40)
+                        });
+                    } finally {
+                        paperContent.style.transform = savedTransform;
+                        paperContent.style.transformOrigin = savedOrigin;
+                        if (typeof applyResponsiveScale === 'function') applyResponsiveScale();
+                    }
                     
                     container.scrollTop = oldScrollTop;
                     
@@ -227,18 +261,105 @@ export const PrintManager = {
                 paperContent.style.width = '816px';
                 paperContent.style.minHeight = '1056px';
             }
-            paperContent.style.margin = '20px auto';
+            paperContent.style.margin = '0 auto';
             paperContent.style.padding = '40px';
             paperContent.style.boxSizing = 'border-box';
             paperContent.style.backgroundColor = '#fff';
             paperContent.style.boxShadow = '0 0 10px rgba(0,0,0,0.1)';
             paperContent.style.fontFamily = "'Inter', sans-serif";
             paperContent.style.color = "#212529";
+            paperContent.style.position = 'relative';
 
             while (container.childNodes.length > 1) {
                 paperContent.appendChild(container.childNodes[1]);
             }
-            container.appendChild(paperContent);
+
+            const viewportWrapper = document.createElement('div');
+            viewportWrapper.className = 'preview-viewport-wrapper';
+            viewportWrapper.style.width = '100%';
+            viewportWrapper.style.display = 'flex';
+            viewportWrapper.style.justifyContent = 'center';
+            viewportWrapper.style.padding = '20px 10px 40px 10px';
+            viewportWrapper.style.boxSizing = 'border-box';
+            viewportWrapper.style.overflowX = 'hidden';
+
+            scaleWrapper = document.createElement('div');
+            scaleWrapper.className = 'preview-scale-wrapper';
+            scaleWrapper.style.position = 'relative';
+            scaleWrapper.style.transition = 'transform 0.15s ease, width 0.15s ease, height 0.15s ease';
+
+            scaleWrapper.appendChild(paperContent);
+            viewportWrapper.appendChild(scaleWrapper);
+            container.appendChild(viewportWrapper);
+
+            const BASE_WIDTH = 816;
+            let isZoomed100 = false;
+
+            applyResponsiveScale = () => {
+                if (!document.body.contains(container)) return;
+                const availableWidth = container.clientWidth || window.innerWidth;
+                const padding = 20; // 10px de margen a cada lado
+                const maxUsableWidth = Math.max(280, availableWidth - padding);
+
+                if (availableWidth < BASE_WIDTH + padding && !isZoomed100) {
+                    const scale = maxUsableWidth / BASE_WIDTH;
+                    paperContent.style.transform = `scale(${scale})`;
+                    paperContent.style.transformOrigin = 'top left';
+                    paperContent.style.margin = '0';
+
+                    scaleWrapper.style.width = `${Math.ceil(BASE_WIDTH * scale)}px`;
+                    const contentHeight = paperContent.scrollHeight || paperContent.offsetHeight || 1056;
+                    scaleWrapper.style.height = `${Math.ceil(contentHeight * scale)}px`;
+                    viewportWrapper.style.overflowX = 'hidden';
+                    viewportWrapper.style.justifyContent = 'center';
+                    scaleWrapper.style.cursor = 'zoom-in';
+                    scaleWrapper.title = 'Toca para ampliar al 100%';
+                } else if (isZoomed100 && availableWidth < BASE_WIDTH + padding) {
+                    paperContent.style.transform = 'none';
+                    paperContent.style.transformOrigin = 'top left';
+                    paperContent.style.margin = '0 10px';
+                    scaleWrapper.style.width = `${BASE_WIDTH}px`;
+                    scaleWrapper.style.height = 'auto';
+                    viewportWrapper.style.overflowX = 'auto';
+                    viewportWrapper.style.justifyContent = 'flex-start';
+                    scaleWrapper.style.cursor = 'zoom-out';
+                    scaleWrapper.title = 'Toca para ajustar a la pantalla';
+                } else {
+                    paperContent.style.transform = 'none';
+                    paperContent.style.transformOrigin = 'top center';
+                    paperContent.style.margin = '0 auto';
+                    scaleWrapper.style.width = `${BASE_WIDTH}px`;
+                    scaleWrapper.style.height = 'auto';
+                    viewportWrapper.style.overflowX = 'hidden';
+                    viewportWrapper.style.justifyContent = 'center';
+                    scaleWrapper.style.cursor = 'default';
+                    scaleWrapper.title = '';
+                }
+            };
+
+            scaleWrapper.addEventListener('click', () => {
+                const availableWidth = container.clientWidth || window.innerWidth;
+                if (availableWidth < BASE_WIDTH + 20) {
+                    isZoomed100 = !isZoomed100;
+                    applyResponsiveScale();
+                }
+            });
+
+            const handleResize = () => applyResponsiveScale();
+            window.addEventListener('resize', handleResize);
+
+            let ro = null;
+            if (typeof ResizeObserver !== 'undefined') {
+                ro = new ResizeObserver(() => applyResponsiveScale());
+                ro.observe(paperContent);
+            }
+
+            cleanupPreview = () => {
+                window.removeEventListener('resize', handleResize);
+                if (ro) ro.disconnect();
+            };
+
+            applyResponsiveScale();
         }
     },
 
