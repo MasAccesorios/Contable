@@ -575,7 +575,7 @@ export const PrintManager = {
             </div>
 
             <!-- TABLA DE PRODUCTOS -->
-            <table style="width: 100%; border-collapse: collapse; margin-bottom: 10px; table-layout: fixed;">
+            <table style="width: 100% !important; border-collapse: collapse; margin-bottom: 10px; table-layout: fixed !important; display: table !important; box-sizing: border-box;">
                 <colgroup>
                     <col style="width: 10%;">
                     <col style="width: 50%;">
@@ -584,10 +584,7 @@ export const PrintManager = {
                     <col style="width: 5%;">
                     <col style="width: 16%;">
                 </colgroup>
-                <thead style="display: table-header-group;">
-                    <tr>
-                        <td colspan="6" style="height: 4px; border: none; padding: 0;"></td>
-                    </tr>
+                <thead style="display: table-header-group !important;">
                     <tr style="border-bottom: 2px solid #dee2e6; color: #495057; font-size: 13px;">
                         <th style="text-align: left; padding: 5px 4px; width: 10%; word-break: break-word; overflow-wrap: break-word;">Ref.</th>
                         <th style="text-align: left; padding: 5px 4px; width: 50%; word-break: break-word; overflow-wrap: break-word;">Ítem</th>

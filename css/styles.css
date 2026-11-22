@@ -767,16 +767,69 @@ html[data-theme="dark-blue"] .dropdown-content a.active {
         justify-content: center !important;
     }
     
-    /* Prevenir que las tablas grandes rompan la pantalla en móvil */
+    /* Prevenir que las tablas grandes rompan la pantalla en móvil (excluyendo plantillas de documentos) */
     .table-responsive,
     .form-table-wrapper,
-    table {
+    table:not(.preview-document-template table):not(.print-document-template table):not(.preview-scale-wrapper table) {
         display: block;
         width: 100%;
         overflow-x: scroll;
         -webkit-overflow-scrolling: touch;
         -webkit-transform: translateZ(0);
         will-change: scroll-position;
+    }
+
+    /* Blindaje: tablas en documentos imprimibles y vista previa siempre conservan layout rígido tabular */
+    .preview-document-template table,
+    .print-document-template table,
+    .preview-scale-wrapper table,
+    .documento-venta table,
+    .hoja-dinamica table,
+    .cuenta-cobro table {
+        display: table !important;
+        width: 100% !important;
+        overflow-x: visible !important;
+        table-layout: fixed !important;
+        -webkit-transform: none !important;
+        will-change: auto !important;
+    }
+    .preview-document-template thead,
+    .print-document-template thead,
+    .preview-scale-wrapper thead,
+    .documento-venta thead,
+    .hoja-dinamica thead,
+    .cuenta-cobro thead {
+        display: table-header-group !important;
+    }
+    .preview-document-template tbody,
+    .print-document-template tbody,
+    .preview-scale-wrapper tbody,
+    .documento-venta tbody,
+    .hoja-dinamica tbody,
+    .cuenta-cobro tbody {
+        display: table-row-group !important;
+    }
+    .preview-document-template tr,
+    .print-document-template tr,
+    .preview-scale-wrapper tr,
+    .documento-venta tr,
+    .hoja-dinamica tr,
+    .cuenta-cobro tr {
+        display: table-row !important;
+    }
+    .preview-document-template th,
+    .preview-document-template td,
+    .print-document-template th,
+    .print-document-template td,
+    .preview-scale-wrapper th,
+    .preview-scale-wrapper td,
+    .documento-venta th,
+    .documento-venta td,
+    .hoja-dinamica th,
+    .hoja-dinamica td,
+    .cuenta-cobro th,
+    .cuenta-cobro td {
+        display: table-cell !important;
     }
 
     .dash-table-container .card-header.bg-white {
