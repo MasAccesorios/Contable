@@ -239,7 +239,7 @@ export const AnalisisRecompraTemplates = {
         const umbral = state.umbralCobertura || 30;
 
         return `
-            <div class="dash-layout p-3 p-md-4" style="max-width: 100%; overflow-x: hidden;">
+            <div class="dash-layout p-3 p-md-4" style="max-width: 1260px; margin: 0 auto;">
                 <!-- TOP BAR EJECUTIVA -->
                 <div class="d-flex justify-content-between align-items-center mb-3 mb-md-4 flex-wrap gap-2">
                     <div>

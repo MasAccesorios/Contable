@@ -44,7 +44,7 @@ const routes = {
         if (typeof window !== 'undefined') window.location.hash = '#/inventario/items';
         return import('../modules/productos/productos.js?v=36');
     },
-    'inventario/analisis-recompra': () => import('../modules/inventario/analisisRecompra.js?v=2'),
+    'inventario/analisis-recompra': () => import('../modules/inventario/analisisRecompra.js?v=3'),
     'inventario/analisis-nanocarbon': () => import('../modules/inventario/analisisNanocarbon.js'),
     'inventario/ajustes': () => import('../modules/inventario/ajustes.js?v=3'),
     'ingresos/cotizaciones': () => import('../modules/ingresos/cotizaciones.js?v=2'),

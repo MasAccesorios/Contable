@@ -204,6 +204,7 @@ describe('Módulo Análisis de Recompra 360° - TDD Test Suite', () => {
             assert.ok(html.includes('payment-tabs-bar'), 'Debe usar payment-tabs-bar');
             assert.ok(html.includes('payment-drawer'), 'Debe contener payment-drawer para ficha 360°');
             assert.ok(html.includes('dash-table-container'), 'Debe usar dash-table-container');
+            assert.ok(html.includes('max-width: 1260px; margin: 0 auto;'), 'Debe mantener el layout centrado y compacto estilo Gastos Operativos');
             // Cero scrollbars
             assert.ok(!html.includes('table-responsive'), 'No debe usar table-responsive para evitar scroll horizontal');
             assert.ok(html.includes('overflow-x: hidden'), 'Debe prevenir overflow horizontal explícitamente');
