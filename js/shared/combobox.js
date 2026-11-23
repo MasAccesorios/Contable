@@ -259,13 +259,29 @@ export const UI = {
         }
 
         const dropdown = document.createElement('div');
-        dropdown.className = 'combobox-dropdown shadow rounded bg-white';
+        dropdown.className = 'combobox-dropdown shadow-lg rounded bg-white';
         dropdown.style.cssText = `
-            position: absolute; top: 100%; left: 0; right: 0; z-index: 1050;
+            position: absolute; top: 100%; left: 0; right: 0; z-index: 1060;
             max-height: 250px; overflow-y: auto; display: none;
             border: 1px solid var(--border-color); margin-top: 4px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.18), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
+            background: #ffffff;
         `;
         inputEl.parentElement.appendChild(dropdown);
+
+        const showDropdown = () => {
+            dropdown.style.display = 'block';
+            inputEl.parentElement.style.zIndex = '1060';
+            const trParent = inputEl.closest('tr');
+            if (trParent) trParent.style.zIndex = '1060';
+        };
+
+        const hideDropdown = () => {
+            dropdown.style.display = 'none';
+            inputEl.parentElement.style.zIndex = '';
+            const trParent = inputEl.closest('tr');
+            if (trParent) trParent.style.zIndex = '';
+        };
 
         let debounceTimer;
         let lastQuery = null;
@@ -275,7 +291,7 @@ export const UI = {
             lastQuery = query;
 
             dropdown.innerHTML = `<div class="p-2 text-muted small text-center"><span class="spinner-border spinner-border-sm me-2" role="status"></span>Buscando...</div>`;
-            dropdown.style.display = 'block';
+            showDropdown();
 
             try {
                 const items = await fetchItems(query);
@@ -319,7 +335,7 @@ export const UI = {
                             }
                             if (onSelect) onSelect(selectedItem);
                         }
-                        dropdown.style.display = 'none';
+                        hideDropdown();
                     });
                 });
 
@@ -329,7 +345,7 @@ export const UI = {
                     btnCreate.addEventListener('mouseleave', () => btnCreate.style.backgroundColor = '#f8f9fa');
                     btnCreate.addEventListener('mousedown', (e) => {
                         e.preventDefault();
-                        dropdown.style.display = 'none';
+                        hideDropdown();
                         if (onCreate) onCreate(inputEl.value);
                     });
                 }
@@ -348,10 +364,10 @@ export const UI = {
             clearTimeout(debounceTimer);
             debounceTimer = setTimeout(() => renderResults(e.target.value), 300);
         });
-        inputEl.addEventListener('blur', () => setTimeout(() => dropdown.style.display = 'none', 200));
+        inputEl.addEventListener('blur', () => setTimeout(() => hideDropdown(), 200));
         inputEl.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
-                dropdown.style.display = 'none';
+                hideDropdown();
                 inputEl.blur();
             }
         });

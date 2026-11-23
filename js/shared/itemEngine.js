@@ -12,15 +12,14 @@ export const ItemEngine = {
         const customDesc = detalle.descripcion_personalizada || detalle.descripcionPersonalizada || '';
         
         return `
-            <div class="position-relative">
-                <input type="hidden" class="input-prod-id" value="${escapeHtml(detalle.productoId) || ''}">
-                <input type="text" class="form-control form-control-sm text-dark border-0 bg-light input-prod-search mb-1 fw-medium" 
-                       placeholder="Escriba código o nombre..." autocomplete="off" value="${initialText}" ${isViewOnly ? 'disabled' : ''} style="border-radius: 6px;">
+            <div class="product-search-cell">
+                <div class="position-relative product-search-wrapper">
+                    <input type="hidden" class="input-prod-id" value="${escapeHtml(detalle.productoId) || ''}">
+                    <input type="text" class="form-control form-control-sm text-dark border-0 bg-light input-prod-search mb-1 fw-medium" 
+                           placeholder="Escriba código o nombre..." autocomplete="off" value="${initialText}" ${isViewOnly ? 'disabled' : ''} style="border-radius: 6px;">
+                </div>
                 <input type="text" class="form-control form-control-sm text-muted border-0 bg-light mt-1 input-prod-desc" 
                        placeholder="Descripción adicional (opcional)..." value="${escapeHtml(customDesc)}" ${isViewOnly ? 'disabled' : ''} style="border-radius: 6px; font-size: 11px;">
-                <div class="search-results-dropdown position-absolute w-100 bg-white shadow-sm" 
-                     style="display: none; z-index: 1050; max-height: 250px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 6px; top: 100%;">
-                </div>
             </div>
         `;
     },
@@ -125,37 +124,7 @@ export const ItemEngine = {
 
                     // Lógica de precio sugerido para Mercado Libre
                     if (!options.isCompra) {
-                        const container = tr.closest('.dash-layout') || tr.closest('form') || document;
-                        const clienteInput = container.querySelector('#select-cliente');
-                        if (clienteInput && String(clienteInput.value) === "698") {
-                            try {
-                                const { supabase } = await import('../core/supabase.js');
-                                const { data, error } = await supabase.rpc('get_precio_promedio_ml', { p_producto_id: p.id });
-                                
-                                if (!error && data) {
-                                    const mlInfo = Array.isArray(data) ? data[0] : data;
-                                    if (mlInfo && mlInfo.veces_vendido > 0) {
-                                        if (inpPrice) {
-                                            const datalistId = `ml-datalist-${p.id}-${Date.now()}`;
-                                            const datalist = document.createElement('datalist');
-                                            datalist.id = datalistId;
-                                            datalist.className = 'price-ml-datalist';
-                                            
-                                            datalist.innerHTML = `
-                                                <option value="${mlInfo.precio_promedio}">Promedio</option>
-                                                <option value="${mlInfo.precio_minimo}">Mínimo</option>
-                                                <option value="${mlInfo.precio_maximo}">Máximo</option>
-                                            `;
-                                            
-                                            inpPrice.parentNode.appendChild(datalist);
-                                            inpPrice.setAttribute('list', datalistId);
-                                        }
-                                    }
-                                }
-                            } catch (err) {
-                                console.error("Error cargando precio ML:", err);
-                            }
-                        }
+                        ItemEngine.cargarPreciosMercadoLibre(tr, p.id, calcEngine);
                     }
                     
                     // Disparo Manual Forzado de Eventos (Math Engine Trigger)
@@ -266,9 +235,142 @@ export const ItemEngine = {
                     metaQty.innerHTML = `<span class="${pillClass}" style="margin-top: 4px;">${pillIcon}Disp: ${stockVal}</span>`;
                 }
             }
+
+            if (!isCompra) {
+                this.cargarPreciosMercadoLibre(tr, parseInt(detalle.productoId, 10), calcEngine);
+            }
         }
         
         return tr;
+    },
+
+    async cargarPreciosMercadoLibre(tr, productoId, calcEngine) {
+        if (!tr || !productoId) return;
+
+        // Limpiar contenedor previo
+        const existingContainer = tr.querySelector('.ml-price-container');
+        if (existingContainer) existingContainer.remove();
+
+        const container = tr.closest('.dash-layout') || tr.closest('form') || document;
+        const clienteInput = container.querySelector('#select-cliente');
+        const searchCliente = container.querySelector('#search-cliente');
+        const cliId = String(clienteInput?.value || '').trim();
+        const cliName = String(searchCliente?.value || '').toLowerCase();
+        const esMercadoLibre = cliId === "698" || cliName.includes('mercado libre') || cliName.includes('mercadolibre');
+
+        if (!esMercadoLibre) return;
+
+        const inpPrice = tr.querySelector('.input-price');
+        if (!inpPrice) return;
+
+        try {
+            const { supabase } = await import('../core/supabase.js');
+
+            // Consultar estadísticas de venta a Mercado Libre y la venta más reciente en paralelo
+            const [statsRes, lastSaleRes] = await Promise.all([
+                supabase.rpc('get_precio_promedio_ml', { p_producto_id: productoId }),
+                supabase.from('factura_detalles')
+                    .select('precio_unitario, facturas!inner(id, fecha, numero, contacto_id, tipo, estado)')
+                    .eq('producto_id', productoId)
+                    .eq('facturas.contacto_id', 698)
+                    .eq('facturas.tipo', 'venta')
+                    .not('facturas.estado', 'in', '("anulada","void","voided")')
+                    .order('id', { ascending: false })
+                    .limit(1)
+            ]);
+
+            const mlData = statsRes.data;
+            const mlInfo = Array.isArray(mlData) ? mlData[0] : mlData;
+            const ultimoPrecio = lastSaleRes.data?.[0]?.precio_unitario ? Number(lastSaleRes.data[0].precio_unitario) : null;
+
+            const tieneVentas = (mlInfo && Number(mlInfo.veces_vendido) > 0) || (ultimoPrecio !== null && ultimoPrecio > 0);
+            if (!tieneVentas) return;
+
+            const formatCOP = (num) => Number(Math.round(num || 0)).toLocaleString('es-CO');
+            const formatInput = (num) => Number(num || 0).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+            const mlContainer = document.createElement('div');
+            mlContainer.className = 'ml-price-container mt-1 pt-1';
+            mlContainer.style.cssText = 'border-top: 1px dashed #bfdbfe; font-size: 11px;';
+
+            let buttonsHtml = '';
+            if (ultimoPrecio) {
+                buttonsHtml += `
+                    <button type="button" class="btn btn-xs py-0 px-1 border btn-ml-price shadow-2xs" data-price="${ultimoPrecio}"
+                            title="Haga clic para aplicar el último precio facturado ($${formatCOP(ultimoPrecio)})"
+                            style="font-size: 10px; border-radius: 4px; background: #ecfdf5; border-color: #a7f3d0 !important; color: #065f46; font-weight: 700;">
+                        Últ: $${formatCOP(ultimoPrecio)}
+                    </button>
+                `;
+            }
+            if (mlInfo?.precio_minimo) {
+                buttonsHtml += `
+                    <button type="button" class="btn btn-xs py-0 px-1 border btn-ml-price shadow-2xs" data-price="${mlInfo.precio_minimo}"
+                            title="Haga clic para aplicar el precio mínimo ($${formatCOP(mlInfo.precio_minimo)})"
+                            style="font-size: 10px; border-radius: 4px; background: #f8fafc; border-color: #cbd5e1 !important; color: #334155;">
+                        Mín: $${formatCOP(mlInfo.precio_minimo)}
+                    </button>
+                `;
+            }
+            if (mlInfo?.precio_promedio) {
+                buttonsHtml += `
+                    <button type="button" class="btn btn-xs py-0 px-1 border btn-ml-price shadow-2xs" data-price="${mlInfo.precio_promedio}"
+                            title="Haga clic para aplicar el precio promedio ($${formatCOP(mlInfo.precio_promedio)})"
+                            style="font-size: 10px; border-radius: 4px; background: #eff6ff; border-color: #bfdbfe !important; color: #1d4ed8; font-weight: 700;">
+                        Prom: $${formatCOP(mlInfo.precio_promedio)}
+                    </button>
+                `;
+            }
+            if (mlInfo?.precio_maximo) {
+                buttonsHtml += `
+                    <button type="button" class="btn btn-xs py-0 px-1 border btn-ml-price shadow-2xs" data-price="${mlInfo.precio_maximo}"
+                            title="Haga clic para aplicar el precio máximo ($${formatCOP(mlInfo.precio_maximo)})"
+                            style="font-size: 10px; border-radius: 4px; background: #fff7ed; border-color: #fed7aa !important; color: #9a3412;">
+                        Máx: $${formatCOP(mlInfo.precio_maximo)}
+                    </button>
+                `;
+            }
+
+            mlContainer.innerHTML = `
+                <div class="d-flex align-items-center justify-content-between mb-1" style="font-size: 10px; color: #1e40af;">
+                    <span class="fw-semibold"><i class="bi bi-shop me-1"></i>Precios ML:</span>
+                    ${mlInfo?.veces_vendido ? `<span class="badge bg-light text-muted border py-0 px-1" style="font-size: 9px;">${mlInfo.veces_vendido} ${mlInfo.veces_vendido === 1 ? 'venta' : 'ventas'}</span>` : ''}
+                </div>
+                <div class="d-flex flex-wrap gap-1 align-items-center">
+                    ${buttonsHtml}
+                </div>
+            `;
+
+            inpPrice.parentNode.appendChild(mlContainer);
+
+            mlContainer.querySelectorAll('.btn-ml-price').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const selectedPrice = parseFloat(btn.dataset.price);
+                    if (!isNaN(selectedPrice) && inpPrice) {
+                        inpPrice.value = formatInput(selectedPrice);
+                        inpPrice.dispatchEvent(new Event('input', { bubbles: true }));
+                        if (typeof calcEngine === 'function') calcEngine();
+                    }
+                });
+            });
+        } catch (err) {
+            console.warn("No se pudo cargar precios de Mercado Libre:", err);
+        }
+    },
+
+    actualizarPreciosMercadoLibreEnTabla(tbody, calcEngine) {
+        if (!tbody) return;
+        const rows = tbody.querySelectorAll('tr');
+        rows.forEach(tr => {
+            const pId = tr.querySelector('.input-prod-id')?.value;
+            if (pId) {
+                this.cargarPreciosMercadoLibre(tr, parseInt(pId, 10), calcEngine);
+            } else {
+                const existing = tr.querySelector('.ml-price-container');
+                if (existing) existing.remove();
+            }
+        });
     },
 
     formatMoney(val) {

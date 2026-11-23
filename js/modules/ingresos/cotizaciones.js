@@ -1501,7 +1501,7 @@ export const CotizacionesModule = {
                                 ` : ''}
                             </div>
                             <div class="card-body p-0">
-                                <div class="table-responsive" style="overflow-x: auto; min-height: 120px;">
+                                <div class="table-responsive" style="overflow: visible; min-height: 200px;">
                                     <table class="table align-middle mb-0" id="tabla-detalles" style="font-size: 13px;">
                                         <thead class="bg-light" style="border-bottom: 1px solid var(--border-color);">
                                             <tr class="text-muted fw-semibold" style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">
@@ -1846,6 +1846,7 @@ export const CotizacionesModule = {
                 onSelect: (selectedItem) => {
                     calcularVencimiento(selectedItem);
                     actualizarBadgeCliente(selectedItem);
+                    ItemEngine.actualizarPreciosMercadoLibreEnTabla(tbody, calcEngine);
                 },
                 onCreate: (query) => {
                     ContactosModule.renderQuickModal(query, (nuevoContacto) => {
@@ -1854,6 +1855,7 @@ export const CotizacionesModule = {
                         hiddenInput.value = nuevoContacto.id;
                         calcularVencimiento(nuevoContacto);
                         actualizarBadgeCliente(nuevoContacto);
+                        ItemEngine.actualizarPreciosMercadoLibreEnTabla(tbody, calcEngine);
                     });
                 }
             });

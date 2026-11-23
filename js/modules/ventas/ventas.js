@@ -1563,7 +1563,7 @@ export const FacturasModule = {
                                 ` : ''}
                             </div>
                             <div class="card-body p-0">
-                                <div class="table-responsive" style="overflow-x: auto; min-height: 120px;">
+                                <div class="table-responsive" style="overflow: visible; min-height: 200px;">
                                     <table class="table align-middle mb-0" id="tabla-detalles" style="font-size: 13px;">
                                         <thead class="bg-light" style="border-bottom: 1px solid var(--border-color);">
                                             <tr class="text-muted fw-semibold" style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">
@@ -2046,6 +2046,7 @@ export const FacturasModule = {
                     calcularVencimiento(selectedItem);
                     actualizarBadgeCliente(selectedItem);
                     actualizarCarteraCliente(selectedItem.id);
+                    ItemEngine.actualizarPreciosMercadoLibreEnTabla(tbody, calcEngine);
                     const selectVendedor = element.querySelector('#select-vendedor');
                     if (selectVendedor && selectedItem.vendedor_id) {
                         selectVendedor.value = selectedItem.vendedor_id;
@@ -2061,6 +2062,7 @@ export const FacturasModule = {
                         calcularVencimiento(nuevoContacto);
                         actualizarBadgeCliente(nuevoContacto);
                         actualizarCarteraCliente(nuevoContacto.id);
+                        ItemEngine.actualizarPreciosMercadoLibreEnTabla(tbody, calcEngine);
                         
                         const selectVendedor = element.querySelector('#select-vendedor');
                         if (selectVendedor && nuevoContacto.vendedor_id) {

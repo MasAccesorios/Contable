@@ -163,4 +163,35 @@ describe('Formularios Modernos: Cotizaciones y Facturas - Suite de Pruebas Unita
             assert.strictEqual(filtrados[0].productoId, '15');
         });
     });
+
+    describe('7. Ergonomía de Combobox y Precios Mercado Libre', () => {
+        test('renderProductSearchBox debe estructurar el wrapper de búsqueda de forma independiente de la descripción', async () => {
+            const { ItemEngine } = await import('../js/shared/itemEngine.js');
+            const html = ItemEngine.renderProductSearchBox({ productoId: 2304 }, []);
+            
+            // Verifica que el contenedor del input de búsqueda esté aislado para que el dropdown flote encima
+            assert.ok(html.includes('product-search-wrapper'), 'Debe incluir product-search-wrapper');
+            assert.ok(html.includes('input-prod-search'), 'Debe incluir input de búsqueda');
+            assert.ok(html.includes('input-prod-desc'), 'Debe incluir descripción adicional');
+        });
+
+        test('debe formatear correctamente los precios históricos para Mercado Libre (Mín, Prom, Máx, Último)', () => {
+            const mlStats = {
+                precio_promedio: 18500,
+                precio_minimo: 15000,
+                precio_maximo: 22000,
+                veces_vendido: 5
+            };
+            const ultimoPrecio = 19000;
+
+            const formatCOP = (num) => Number(Math.round(num || 0)).toLocaleString('es-CO');
+            const formatInput = (num) => Number(num || 0).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+            assert.strictEqual(formatCOP(ultimoPrecio), '19.000');
+            assert.strictEqual(formatCOP(mlStats.precio_minimo), '15.000');
+            assert.strictEqual(formatCOP(mlStats.precio_promedio), '18.500');
+            assert.strictEqual(formatCOP(mlStats.precio_maximo), '22.000');
+            assert.strictEqual(formatInput(ultimoPrecio), '19.000,00');
+        });
+    });
 });

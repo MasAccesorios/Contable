@@ -2909,5 +2909,27 @@ html[data-theme^="dark"] .stock-pill-danger {
     color: #f87171 !important;
 }
 
+/* Mercado Libre Price Helper & Product Combobox Fix */
+.ml-price-container {
+    animation: fadeIn 0.15s ease-in-out;
+}
+.btn-ml-price {
+    transition: transform 0.1s ease, filter 0.1s ease;
+    cursor: pointer;
+}
+.btn-ml-price:hover {
+    transform: translateY(-1px);
+    filter: brightness(0.95);
+}
+.product-search-cell {
+    position: relative;
+    width: 100%;
+}
+.product-search-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+
 
 
