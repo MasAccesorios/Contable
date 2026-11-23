@@ -56,10 +56,18 @@ export const QUICK_ACTIONS_CONFIG = {
                 },
                 {
                     key: '6',
-                    titulo: 'Comprobante de Egreso',
-                    descripcion: 'Registrar salida de dinero o gasto operativo',
-                    icono: 'bi-wallet2',
+                    titulo: 'Gasto Operativo',
+                    descripcion: 'Servicios, arriendos, nómina y salidas de caja',
+                    icono: 'bi-dash-circle',
                     claseIcono: 'qa-icon-gastos',
+                    ruta: '#/gastos/pagos?nuevo=true'
+                },
+                {
+                    key: '7',
+                    titulo: 'Pago a Proveedor',
+                    descripcion: 'Comprobante de egreso o abono a compra',
+                    icono: 'bi-wallet2',
+                    claseIcono: 'qa-icon-compras',
                     ruta: '#/gastos/pagos/nuevo'
                 }
             ]
@@ -68,7 +76,7 @@ export const QUICK_ACTIONS_CONFIG = {
             categoria: 'Catálogo & Terceros',
             items: [
                 {
-                    key: '7',
+                    key: '8',
                     titulo: 'Nuevo Contacto',
                     descripcion: 'Registrar cliente, proveedor o tercero',
                     icono: 'bi-person-plus',
@@ -76,7 +84,7 @@ export const QUICK_ACTIONS_CONFIG = {
                     ruta: '#/contactos/nueva'
                 },
                 {
-                    key: '8',
+                    key: '9',
                     titulo: 'Ajuste de Inventario',
                     descripcion: 'Incremento o merma manual (Kardex FIFO)',
                     icono: 'bi-sliders',
@@ -122,6 +130,13 @@ export const QUICK_ACTIONS_CONFIG = {
                     icono: 'bi-bag',
                     claseIcono: 'qa-icon-list',
                     ruta: '#/gastos/proveedores'
+                },
+                {
+                    titulo: 'Gastos Operativos',
+                    descripcion: 'Control de egresos generales y salidas de caja',
+                    icono: 'bi-dash-circle',
+                    claseIcono: 'qa-icon-list',
+                    ruta: '#/gastos/pagos'
                 },
                 {
                     titulo: 'Histórico de Egresos',
@@ -308,7 +323,7 @@ export const QuickActions = {
         html += `
             </div>
             <div class="qa-hub-footer">
-                <span>Atajo: <kbd>1</kbd> - <kbd>8</kbd> o <kbd>↑</kbd><kbd>↓</kbd></span>
+                <span>Atajo: <kbd>1</kbd> - <kbd>9</kbd> o <kbd>↑</kbd><kbd>↓</kbd></span>
                 <span>Cerrar con <kbd>Esc</kbd></span>
             </div>
         `;
@@ -380,10 +395,10 @@ export const QuickActions = {
             return;
         }
 
-        // Atajo numérico rápido (1-8 en pestaña 'crear')
+        // Atajo numérico rápido (1-9 en pestaña 'crear')
         if (this.activeTab === 'crear' && !e.ctrlKey && !e.altKey && !e.metaKey) {
             const num = parseInt(e.key, 10);
-            if (!isNaN(num) && num >= 1 && num <= 8) {
+            if (!isNaN(num) && num >= 1 && num <= 9) {
                 const targetCard = actionCards.find(card => {
                     const badge = card.querySelector('.qa-key-badge');
                     return badge && badge.textContent.trim() === String(num);

@@ -562,6 +562,22 @@ export class CrudFinanciero {
             cerrarFormulario();
         });
 
+        // Auto-abrir formulario si la URL contiene el parámetro ?nuevo=true (ej. desde Acciones Rápidas)
+        try {
+            const hashParts = (typeof window !== 'undefined' && window.location.hash) ? window.location.hash.split('?') : [];
+            const queryParams = new URLSearchParams(hashParts[1] || (typeof window !== 'undefined' ? window.location.search : ''));
+            const isNuevo = queryParams.get('nuevo') === 'true' || (queryParams.has('nuevo') && queryParams.get('nuevo') !== 'false');
+            if (isNuevo) {
+                abrirFormulario();
+                if (typeof window !== 'undefined' && window.history && typeof window.history.replaceState === 'function') {
+                    const cleanHash = (hashParts.length > 0 && hashParts[0]) ? hashParts[0] : (window.location.hash || '');
+                    window.history.replaceState(null, '', window.location.pathname + cleanHash);
+                }
+            }
+        } catch (e) {
+            console.warn('Error procesando parámetro nuevo en crudFinanciero:', e);
+        }
+
         // 4. Tabs de Filtro Rápido
         element.querySelectorAll('.payment-tab-btn').forEach(tabBtn => {
             tabBtn.addEventListener('click', () => {

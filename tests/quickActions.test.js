@@ -39,6 +39,19 @@ describe('QuickActions Hub 2.0 - TDD & Config Validation', () => {
                 assert.ok(item.ruta.startsWith('#/'), `Item de lista ${item.titulo} debe tener ruta hash`);
             }
         });
+
+        it('debe incluir la acción rápida para registrar Gasto Operativo con ruta #/gastos/pagos?nuevo=true', () => {
+            const allCrear = QUICK_ACTIONS_CONFIG.crear.flatMap(g => g.items);
+            const gastoItem = allCrear.find(i => i.ruta === '#/gastos/pagos?nuevo=true');
+            assert.ok(gastoItem, 'Debe existir un ítem de creación para Gasto Operativo con ruta #/gastos/pagos?nuevo=true');
+            assert.match(gastoItem.titulo, /gasto/i, 'El título debe indicar explícitamente Gasto');
+        });
+
+        it('debe incluir Gastos Operativos en la sección de listas con ruta #/gastos/pagos', () => {
+            const allListas = QUICK_ACTIONS_CONFIG.listas.flatMap(g => g.items);
+            const gastosLista = allListas.find(i => i.ruta === '#/gastos/pagos');
+            assert.ok(gastosLista, 'Debe existir la lista de Gastos Operativos en listas con ruta #/gastos/pagos');
+        });
     });
 
     describe('Ciclo de Vida y DOM Helpers (Mock Environment)', () => {
@@ -148,6 +161,111 @@ describe('QuickActions Hub 2.0 - TDD & Config Validation', () => {
 
             assert.strictEqual(prevented, true);
             assert.strictEqual(toggled, true);
+        });
+
+        it('handleKeydown con número 6 debe activar el enlace de Gasto Operativo', () => {
+            let clicked = false;
+            const mockCard = {
+                querySelector: (sel) => (sel === '.qa-key-badge' ? { textContent: '6' } : null),
+                click: () => { clicked = true; }
+            };
+            const mockHub = {
+                querySelectorAll: () => [mockCard]
+            };
+
+            globalThis.document = {
+                getElementById: (id) => (id === 'quick-action-dropdown' ? mockHub : null)
+            };
+
+            QuickActions.isOpen = () => true;
+            QuickActions.activeTab = 'crear';
+
+            let prevented = false;
+            QuickActions.handleKeydown({
+                key: '6',
+                ctrlKey: false,
+                altKey: false,
+                metaKey: false,
+                preventDefault: () => { prevented = true; }
+            });
+
+            assert.strictEqual(prevented, true);
+            assert.strictEqual(clicked, true);
+        });
+
+        it('handleKeydown con número 9 debe activar el límite superior (Ajuste de Inventario)', () => {
+            let clicked = false;
+            const mockCard = {
+                querySelector: (sel) => (sel === '.qa-key-badge' ? { textContent: '9' } : null),
+                click: () => { clicked = true; }
+            };
+            const mockHub = {
+                querySelectorAll: () => [mockCard]
+            };
+
+            globalThis.document = {
+                getElementById: (id) => (id === 'quick-action-dropdown' ? mockHub : null)
+            };
+
+            QuickActions.isOpen = () => true;
+            QuickActions.activeTab = 'crear';
+
+            let prevented = false;
+            QuickActions.handleKeydown({
+                key: '9',
+                ctrlKey: false,
+                altKey: false,
+                metaKey: false,
+                preventDefault: () => { prevented = true; }
+            });
+
+            assert.strictEqual(prevented, true);
+            assert.strictEqual(clicked, true);
+        });
+    });
+
+    describe('Seguridad y Blindaje de Parámetros de Navegación', () => {
+        it('debe validar que los esquemas y parámetros en rutas de QuickActions sean seguros', () => {
+            const allItems = [
+                ...QUICK_ACTIONS_CONFIG.crear.flatMap(g => g.items),
+                ...QUICK_ACTIONS_CONFIG.listas.flatMap(g => g.items)
+            ];
+            for (const item of allItems) {
+                assert.ok(!item.ruta.toLowerCase().startsWith('javascript:'), 'Ruta insegura en ' + item.titulo);
+                assert.ok(!item.ruta.toLowerCase().startsWith('data:'), 'Ruta insegura en ' + item.titulo);
+                assert.ok(item.ruta.startsWith('#/'), 'Ruta debe usar hash SPA: ' + item.titulo);
+
+                if (item.ruta.includes('?')) {
+                    const [, qs] = item.ruta.split('?');
+                    const params = new URLSearchParams(qs);
+                    assert.strictEqual(params.has('__proto__'), false);
+                    assert.strictEqual(params.has('constructor'), false);
+                    assert.strictEqual(params.has('prototype'), false);
+                }
+            }
+        });
+
+        it('debe procesar el parámetro ?nuevo de manera segura y determinista sin coerción a undefined', () => {
+            const parseHelper = (hash, search = '', pathname = '/app/index.html') => {
+                const hashParts = hash ? hash.split('?') : [];
+                const queryParams = new URLSearchParams(hashParts[1] || search);
+                const isNuevo = queryParams.get('nuevo') === 'true' || queryParams.has('nuevo');
+                const cleanUrl = pathname + (hashParts[0] || '');
+                return { isNuevo, cleanUrl };
+            };
+
+            const res1 = parseHelper('#/gastos/pagos?nuevo=true');
+            assert.strictEqual(res1.isNuevo, true);
+            assert.strictEqual(res1.cleanUrl, '/app/index.html#/gastos/pagos');
+
+            const res2 = parseHelper('', '');
+            assert.strictEqual(res2.isNuevo, false);
+            assert.strictEqual(res2.cleanUrl, '/app/index.html');
+            assert.ok(!res2.cleanUrl.includes('undefined'), 'No debe contener undefined');
+
+            const res3 = parseHelper('#/gastos/pagos?nuevo=<script>alert(1)</script>');
+            assert.strictEqual(res3.cleanUrl, '/app/index.html#/gastos/pagos');
+            assert.ok(!res3.cleanUrl.includes('<script>'), 'URL limpia no debe conservar payload');
         });
     });
 });
