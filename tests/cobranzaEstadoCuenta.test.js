@@ -43,16 +43,26 @@ describe('Unificación de Cobranza & Estado de Cuenta WhatsApp - Test Suite', ()
             }
         ];
 
-        it('debe incluir encabezado oficial de MAS Accesorios y fecha de corte', () => {
-            const fechaCorte = '2026-11-20';
+        it('por defecto debe generar un saludo cordial limpio para acompañar la hoja en blanco sin duplicar detalles', () => {
             const texto = buildEstadoCuentaWhatsAppText({
                 cliente: mockCliente,
-                facturas: mockFacturas,
-                fechaCorte
+                facturas: mockFacturas
             });
 
-            assert.match(texto, /\*ESTADO DE CUENTA - MAS ACCESORIOS\*/);
-            assert.match(texto, /Fecha de corte: 2026-11-20/);
+            // Debe saludar cordialmente usando el nombre del cliente
+            assert.match(texto, /Estimado\(a\) \*Distribuidora San Juan\*, cordial saludo\./);
+            assert.match(texto, /Quedamos atentos a cualquier inquietud/i);
+            assert.match(texto, /confirmación de su pago/i);
+
+            // NO debe incluir la frase eliminada por el usuario
+            assert.doesNotMatch(texto, /Le compartimos su cuenta de cobro a la fecha en el formato adjunto/i);
+            assert.doesNotMatch(texto, /formato adjunto/i);
+
+            // NO debe duplicar en texto el detalle de facturas ni los medios de pago (que ya van en la hoja en blanco)
+            assert.doesNotMatch(texto, /Detalle de Facturas/);
+            assert.doesNotMatch(texto, /MEDIOS DE PAGO AUTORIZADOS/);
+            assert.doesNotMatch(texto, /Fac #FE-101/);
+            assert.doesNotMatch(texto, /Bancolombia/);
         });
 
         it('debe saludar cordialmente usando el nombre del cliente', () => {
@@ -73,60 +83,27 @@ describe('Unificación de Cobranza & Estado de Cuenta WhatsApp - Test Suite', ()
             assert.match(texto, /Estimado\(a\) \*Cliente\*, cordial saludo\./);
         });
 
-        it('debe detallar cada factura con No., vencimiento, días despachados y saldo formateado', () => {
+        it('cuando detailed: true, debe incluir encabezado oficial, desglose de facturas y medios de pago', () => {
+            const fechaCorte = '2026-11-20';
             const texto = buildEstadoCuentaWhatsAppText({
                 cliente: mockCliente,
-                facturas: mockFacturas
+                facturas: mockFacturas,
+                fechaCorte,
+                detailed: true
             });
 
-            // Factura 1
+            assert.match(texto, /\*ESTADO DE CUENTA - MAS ACCESORIOS\*/);
+            assert.match(texto, /Fecha de corte: 2026-11-20/);
             assert.match(texto, /Fac #FE-101/);
             assert.match(texto, /Vence: 2026-10-31/);
             assert.match(texto, /45 días despachado/);
             assert.match(texto, /\$ 150\.000/);
-
-            // Factura 2
-            assert.match(texto, /Fac #FE-102/);
-            assert.match(texto, /Vence: 2026-11-15/);
-            assert.match(texto, /31 días despachado/);
-            assert.match(texto, /\$ 300\.000/);
-        });
-
-        it('debe totalizar correctamente el saldo acumulado de las facturas', () => {
-            const texto = buildEstadoCuentaWhatsAppText({
-                cliente: mockCliente,
-                facturas: mockFacturas
-            });
-
-            // 150.000 + 300.000 = 450.000
             assert.match(texto, /Saldo Total Pendiente:.*\$ 450\.000/);
             assert.match(texto, /Facturas Pendientes:\* 2/);
-        });
-
-        it('debe incluir las cuentas bancarias oficiales autorizadas completas y exactas', () => {
-            const texto = buildEstadoCuentaWhatsAppText({
-                cliente: mockCliente,
-                facturas: mockFacturas
-            });
-
-            // Bancolombia
             assert.match(texto, /Bancolombia \(Ahorros\):\* 54700050214/);
             assert.match(texto, /Titular: Diego M Izquierdo/);
-
-            // Nequi / DaviPlata
             assert.match(texto, /Nequi \/ DaviPlata:\* 3158512091/);
-
-            // Llave Bre-B / Transfiya
             assert.match(texto, /Llave Bre-B \/ Transfiya:\* @izquierdo638/);
-            assert.match(texto, /Transferencia inmediata desde cualquier banco/);
-        });
-
-        it('debe incluir el teléfono oficial de confirmación de comprobantes (3158512091)', () => {
-            const texto = buildEstadoCuentaWhatsAppText({
-                cliente: mockCliente,
-                facturas: mockFacturas
-            });
-
             assert.match(texto, /Confirmar Pago:\* Favor enviar su comprobante a este WhatsApp \(3158512091\)/);
         });
 
@@ -136,7 +113,7 @@ describe('Unificación de Cobranza & Estado de Cuenta WhatsApp - Test Suite', ()
                 facturas: []
             });
 
-            assert.match(texto, /\*ESTADO DE CUENTA - MAS ACCESORIOS\*/);
+            assert.match(texto, /Estimado\(a\) \*Distribuidora San Juan\*, cordial saludo\./);
             assert.match(texto, /al día/i);
             assert.match(texto, /sin saldos pendientes/i);
             assert.match(texto, /agradecemos su puntualidad/i);
@@ -163,13 +140,17 @@ describe('Unificación de Cobranza & Estado de Cuenta WhatsApp - Test Suite', ()
         });
 
         it('debe aceptar tanto firma por objeto { cliente, facturas } como posicional (cliente, facturas, options)', () => {
-            const textoPosicional = buildEstadoCuentaWhatsAppText(mockCliente, mockFacturas, { fechaCorte: '2026-11-20' });
-            assert.match(textoPosicional, /\*ESTADO DE CUENTA - MAS ACCESORIOS\*/);
-            assert.match(textoPosicional, /Distribuidora San Juan/);
-            assert.match(textoPosicional, /\$ 450\.000/);
+            const textoPosicional = buildEstadoCuentaWhatsAppText(mockCliente, mockFacturas);
+            assert.match(textoPosicional, /Estimado\(a\) \*Distribuidora San Juan\*, cordial saludo\./);
+            assert.match(textoPosicional, /Quedamos atentos a cualquier inquietud/i);
+
+            const textoPosicionalDetailed = buildEstadoCuentaWhatsAppText(mockCliente, mockFacturas, { detailed: true });
+            assert.match(textoPosicionalDetailed, /\*ESTADO DE CUENTA - MAS ACCESORIOS\*/);
+            assert.match(textoPosicionalDetailed, /Fac #FE-101/);
+            assert.match(textoPosicionalDetailed, /\$ 450\.000/);
         });
 
-        it('debe calcular días despachados dinámicamente si la factura no trae diasDespachado precalculado', () => {
+        it('debe calcular días despachados dinámicamente si la factura no trae diasDespachado precalculado en modo detailed', () => {
             const hoy = new Date();
             const hace10Dias = new Date(hoy.getTime() - (10 * 24 * 60 * 60 * 1000)).toISOString().split('T')[0];
             const facturaSinDias = [
@@ -178,7 +159,8 @@ describe('Unificación de Cobranza & Estado de Cuenta WhatsApp - Test Suite', ()
 
             const texto = buildEstadoCuentaWhatsAppText({
                 cliente: mockCliente,
-                facturas: facturaSinDias
+                facturas: facturaSinDias,
+                detailed: true
             });
 
             assert.match(texto, /10 días despachado/);
@@ -187,7 +169,6 @@ describe('Unificación de Cobranza & Estado de Cuenta WhatsApp - Test Suite', ()
         it('debe manejar entradas nulas o vacías de manera defensiva sin colapsar', () => {
             const textoNull = buildEstadoCuentaWhatsAppText(null, null);
             assert.ok(typeof textoNull === 'string');
-            assert.match(textoNull, /\*ESTADO DE CUENTA - MAS ACCESORIOS\*/);
             assert.match(textoNull, /sin saldos pendientes/i);
         });
     });

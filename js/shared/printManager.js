@@ -204,6 +204,13 @@ export const PrintManager = {
 
                 // Intentar copiar la imagen generada al portapapeles si el navegador lo soporta
                 let copiadaAlPortapapeles = false;
+                if (!cachedShareFile && typeof precacheShareImage === 'function') {
+                    try {
+                        await precacheShareImage();
+                    } catch (e) {
+                        console.log('Esperando precacheShareImage...', e);
+                    }
+                }
                 if (cachedShareFile && navigator.clipboard && typeof ClipboardItem !== 'undefined') {
                     try {
                         await navigator.clipboard.write([
@@ -497,11 +504,16 @@ export const PrintManager = {
             </div>
         `;
 
+        const shareText = `Estimado(a) *${doc.cliente_razon_social || 'Cliente'}*, cordial saludo.\n\nQuedamos atentos a cualquier inquietud o a la confirmación de su pago.\n\n¡Muchas gracias por su preferencia!`;
+        const phone = doc.cliente_telefono ? String(doc.cliente_telefono).replace(/\D/g, '') : '';
+
         this._renderPreviewShell(htmlContent, {
             mode,
             printClass: 'cuenta-cobro',
             fileName: `CuentaCobro_${numDisplay}.png`,
-            title: 'Cuenta de Cobro'
+            title: 'Cuenta de Cobro',
+            phone,
+            shareText
         });
     },
 
@@ -625,12 +637,17 @@ export const PrintManager = {
             </div>
         `;
 
+        const phone = cliente.telefono ? String(cliente.telefono).replace(/\D/g, '') : '';
+        const shareText = `Estimado(a) *${cliente.nombre || 'Cliente'}*, cordial saludo.\n\nLe compartimos ${tipoDoc} No. ${numDisplay} en el formato adjunto.\n\nQuedamos atentos ante cualquier inquietud.\n\n¡Muchas gracias por su preferencia!`;
+
         const fileName = `${tipoDoc.replace(/[^a-zA-Z0-9]/g, '_')}_${numDisplay}.png`;
         this._renderPreviewShell(htmlContent, {
             mode,
             fileName,
             title: tipoDoc,
-            printClass
+            printClass,
+            phone,
+            shareText
         });
     },
 

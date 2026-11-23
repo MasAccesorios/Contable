@@ -71,8 +71,12 @@ export function buildWhatsAppUrl(phone, text) {
 }
 
 /**
- * Genera el texto estructurado del Estado de Cuenta oficial para WhatsApp.
- * Soporta firma por objeto: { cliente, facturas, fechaCorte }
+ * Genera el texto del saludo oficial para WhatsApp al enviar el Estado de Cuenta / Cuenta de Cobro.
+ * Por defecto genera únicamente un saludo cordial y profesional para acompañar el formato visual en hoja en blanco,
+ * sin duplicar en texto el desglose de facturas ni los medios de pago (que ya residen en la hoja en blanco).
+ *
+ * Si se especifica options.detailed: true, genera el desglose estructurado completo.
+ * Soporta firma por objeto: { cliente, facturas, fechaCorte, detailed }
  * y firma posicional: (cliente, facturas, options)
  */
 export function buildEstadoCuentaWhatsAppText(arg1, arg2, arg3) {
@@ -100,62 +104,69 @@ export function buildEstadoCuentaWhatsAppText(arg1, arg2, arg3) {
 
     // CASO 1: Cliente a Paz y Salvo (0 facturas o saldo $0)
     if (totalSaldo <= 0 || facturas.length === 0) {
-        let msg = `*ESTADO DE CUENTA - MAS ACCESORIOS*\n`;
-        msg += `_Fecha de corte: ${hoyStr}_\n\n`;
-        msg += `Estimado(a) *${nombreCliente}*, cordial saludo.\n\n`;
+        let msg = `Estimado(a) *${nombreCliente}*, cordial saludo.\n\n`;
         msg += `Queremos informarle que a la fecha su estado de cuenta se encuentra *al día* y *sin saldos pendientes*.\n\n`;
         msg += `Agradecemos su puntualidad y valiosa preferencia comercial. ¡Muchas gracias!`;
         return msg;
     }
 
-    // CASO 2: Cliente con Saldo Pendiente (Cobranza y Detalle)
-    let msg = `*ESTADO DE CUENTA - MAS ACCESORIOS*\n`;
-    msg += `_Fecha de corte: ${hoyStr}_\n\n`;
-    msg += `Estimado(a) *${nombreCliente}*, cordial saludo.\n`;
-    if (cliente?.identificacion) {
-        msg += `NIT / CC: ${cliente.identificacion}\n`;
-    }
-
-    msg += `\nLe compartimos el resumen de su estado de cuenta a la fecha:\n\n`;
-    msg += `• *Saldo Total Pendiente:* *${formatMoneyCOP(totalSaldo)}*\n`;
-    msg += `• *Facturas Pendientes:* ${facturas.length}\n\n`;
-    msg += `📌 *Detalle de Facturas:*\n`;
-
-    const MAX_VISIBLES = 15;
-    const visibles = facturas.slice(0, MAX_VISIBLES);
-    const restantes = facturas.slice(MAX_VISIBLES);
-
-    visibles.forEach(f => {
-        const num = f.numero || f.id || 'S/N';
-        const fechaCreacion = f.fecha ? String(f.fecha).split('T')[0] : hoyStr;
-        const venc = f.vencimiento ? String(f.vencimiento).split('T')[0] : fechaCreacion;
-
-        let diasDespachado = f.diasDespachado;
-        if (diasDespachado === undefined || diasDespachado === null) {
-            const dCreacion = new Date(fechaCreacion + 'T00:00:00');
-            const diffDays = Math.floor((hoy - dCreacion) / (1000 * 60 * 60 * 24));
-            diasDespachado = Number.isFinite(diffDays) ? Math.max(0, diffDays) : 0;
+    // Si se solicita el desglose completo en texto mediante opción explícita (e.g. detailed: true)
+    if (options.detailed) {
+        let msg = `*ESTADO DE CUENTA - MAS ACCESORIOS*\n`;
+        msg += `_Fecha de corte: ${hoyStr}_\n\n`;
+        msg += `Estimado(a) *${nombreCliente}*, cordial saludo.\n`;
+        if (cliente?.identificacion) {
+            msg += `NIT / CC: ${cliente.identificacion}\n`;
         }
 
-        const saldoF = formatMoneyCOP(f.saldo);
-        msg += `• *Fac #${num}* | Vence: ${venc} | ${diasDespachado} días despachado | Saldo: *${saldoF}*\n`;
-    });
+        msg += `\nLe compartimos el resumen de su estado de cuenta a la fecha:\n\n`;
+        msg += `• *Saldo Total Pendiente:* *${formatMoneyCOP(totalSaldo)}*\n`;
+        msg += `• *Facturas Pendientes:* ${facturas.length}\n\n`;
+        msg += `📌 *Detalle de Facturas:*\n`;
 
-    if (restantes.length > 0) {
-        const saldoRestante = restantes.reduce((acc, f) => acc + (parseFloat(f.saldo) || 0), 0);
-        msg += `• _... y ${restantes.length} factura(s) más por un saldo adicional de ${formatMoneyCOP(saldoRestante)}._\n`;
+        const MAX_VISIBLES = 15;
+        const visibles = facturas.slice(0, MAX_VISIBLES);
+        const restantes = facturas.slice(MAX_VISIBLES);
+
+        visibles.forEach(f => {
+            const num = f.numero || f.id || 'S/N';
+            const fechaCreacion = f.fecha ? String(f.fecha).split('T')[0] : hoyStr;
+            const venc = f.vencimiento ? String(f.vencimiento).split('T')[0] : fechaCreacion;
+
+            let diasDespachado = f.diasDespachado;
+            if (diasDespachado === undefined || diasDespachado === null) {
+                const dCreacion = new Date(fechaCreacion + 'T00:00:00');
+                const diffDays = Math.floor((hoy - dCreacion) / (1000 * 60 * 60 * 24));
+                diasDespachado = Number.isFinite(diffDays) ? Math.max(0, diffDays) : 0;
+            }
+
+            const saldoF = formatMoneyCOP(f.saldo);
+            msg += `• *Fac #${num}* | Vence: ${venc} | ${diasDespachado} días despachado | Saldo: *${saldoF}*\n`;
+        });
+
+        if (restantes.length > 0) {
+            const saldoRestante = restantes.reduce((acc, f) => acc + (parseFloat(f.saldo) || 0), 0);
+            msg += `• _... y ${restantes.length} factura(s) más por un saldo adicional de ${formatMoneyCOP(saldoRestante)}._\n`;
+        }
+
+        msg += `\n💳 *MEDIOS DE PAGO AUTORIZADOS:*\n`;
+        msg += `• *Bancolombia (Ahorros):* ${OFICIAL_CUENTAS_BANCARIAS.bancolombia.numero}\n`;
+        msg += `  Titular: ${OFICIAL_CUENTAS_BANCARIAS.bancolombia.titular}\n`;
+        msg += `• *Nequi / DaviPlata:* ${OFICIAL_CUENTAS_BANCARIAS.billeteras.numero}\n`;
+        msg += `  Titular: ${OFICIAL_CUENTAS_BANCARIAS.billeteras.titular}\n`;
+        msg += `• *Llave Bre-B / Transfiya:* ${OFICIAL_CUENTAS_BANCARIAS.llaveBreB.llave}\n`;
+        msg += `  (Transferencia inmediata desde cualquier banco o app)\n\n`;
+
+        msg += `*Confirmar Pago:* Favor enviar su comprobante a este WhatsApp (${OFICIAL_CUENTAS_BANCARIAS.telefonoConfirmacion}) indicando el número de factura.\n\n`;
+        msg += `Agradecemos regularizar el saldo pendiente a la mayor brevedad. Si ya realizó el pago, por favor compártanos el comprobante.\n¡Muchas gracias!`;
+
+        return msg;
     }
 
-    msg += `\n💳 *MEDIOS DE PAGO AUTORIZADOS:*\n`;
-    msg += `• *Bancolombia (Ahorros):* ${OFICIAL_CUENTAS_BANCARIAS.bancolombia.numero}\n`;
-    msg += `  Titular: ${OFICIAL_CUENTAS_BANCARIAS.bancolombia.titular}\n`;
-    msg += `• *Nequi / DaviPlata:* ${OFICIAL_CUENTAS_BANCARIAS.billeteras.numero}\n`;
-    msg += `  Titular: ${OFICIAL_CUENTAS_BANCARIAS.billeteras.titular}\n`;
-    msg += `• *Llave Bre-B / Transfiya:* ${OFICIAL_CUENTAS_BANCARIAS.llaveBreB.llave}\n`;
-    msg += `  (Transferencia inmediata desde cualquier banco o app)\n\n`;
-
-    msg += `*Confirmar Pago:* Favor enviar su comprobante a este WhatsApp (${OFICIAL_CUENTAS_BANCARIAS.telefonoConfirmacion}) indicando el número de factura.\n\n`;
-    msg += `Agradecemos regularizar el saldo pendiente a la mayor brevedad. Si ya realizó el pago, por favor compártanos el comprobante.\n¡Muchas gracias!`;
+    // CASO 2 (Por Defecto): Saludo cordial limpio y profesional acompañando el formato visual de la hoja en blanco
+    let msg = `Estimado(a) *${nombreCliente}*, cordial saludo.\n\n`;
+    msg += `Quedamos atentos a cualquier inquietud o a la confirmación de su pago.\n\n`;
+    msg += `¡Muchas gracias por su preferencia!`;
 
     return msg;
 }
