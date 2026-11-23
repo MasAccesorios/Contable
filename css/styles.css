@@ -673,7 +673,7 @@ html[data-theme="dark-blue"] .dropdown-content a.active {
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: background-color 0.15s ease, transform 0.1s ease;
+    transition: background-color 0.15s ease, transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.15s ease;
     box-shadow: 0 1px 2px rgba(37, 99, 235, 0.2);
 }
 
@@ -684,6 +684,230 @@ html[data-theme="dark-blue"] .dropdown-content a.active {
 
 .btn-add:active {
     transform: scale(0.96);
+}
+
+.btn-add.is-active {
+    transform: rotate(45deg) !important;
+    background-color: var(--primary-hover) !important;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25) !important;
+}
+
+/* ==========================================================================
+   QUICK ACTIONS HUB (Centro de Creación y Acceso Rápido Ergonómico)
+   ========================================================================== */
+.quick-action-hub {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    width: 375px;
+    max-width: calc(100vw - 32px);
+    background-color: var(--surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 20px 25px -5px rgba(15, 23, 42, 0.12), 0 8px 10px -6px rgba(15, 23, 42, 0.08);
+    z-index: 1060;
+    overflow: hidden;
+    animation: qaHubFadeIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+    transform-origin: top right;
+}
+
+@keyframes qaHubFadeIn {
+    0% {
+        opacity: 0;
+        transform: scale(0.95) translateY(-6px);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.qa-hub-header {
+    padding: 10px 12px 6px 12px;
+    background-color: var(--surface);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.qa-tab-bar {
+    display: flex;
+    background-color: var(--surface-muted);
+    border-radius: var(--radius-md);
+    padding: 3px;
+    gap: 2px;
+}
+
+.qa-tab-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 5px 8px;
+    border: none;
+    background: transparent;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.qa-tab-btn:hover {
+    color: var(--text-main);
+}
+
+.qa-tab-btn.active {
+    background-color: var(--surface);
+    color: var(--primary);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+.qa-hub-body {
+    max-height: 440px;
+    overflow-y: auto;
+    padding: 6px 8px;
+    scrollbar-width: thin;
+}
+
+.qa-section-label {
+    padding: 8px 8px 3px 8px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    user-select: none;
+}
+
+.qa-action-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 8px;
+    border-radius: var(--radius-md);
+    text-decoration: none;
+    color: inherit;
+    transition: background-color 0.12s ease, transform 0.1s ease;
+    cursor: pointer;
+    border: 1px solid transparent;
+    user-select: none;
+}
+
+.qa-action-card:hover,
+.qa-action-card:focus,
+.qa-action-card.is-focused {
+    background-color: var(--surface-muted);
+    border-color: rgba(37, 99, 235, 0.12);
+    outline: none;
+    transform: translateX(2px);
+}
+
+.qa-icon-box {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    flex-shrink: 0;
+    transition: transform 0.15s ease;
+}
+
+.qa-action-card:hover .qa-icon-box {
+    transform: scale(1.08);
+}
+
+.qa-icon-ventas {
+    background-color: rgba(37, 99, 235, 0.12);
+    color: var(--primary);
+}
+
+.qa-icon-cobros {
+    background-color: rgba(5, 150, 105, 0.12);
+    color: var(--success);
+}
+
+.qa-icon-compras {
+    background-color: rgba(220, 38, 38, 0.12);
+    color: var(--danger);
+}
+
+.qa-icon-gastos {
+    background-color: rgba(217, 119, 6, 0.12);
+    color: var(--warning);
+}
+
+.qa-icon-operaciones {
+    background-color: rgba(99, 102, 241, 0.12);
+    color: #6366f1;
+}
+
+.qa-icon-list {
+    background-color: var(--surface-muted);
+    color: var(--text-body);
+}
+
+.qa-action-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.qa-action-title {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--text-main);
+    line-height: 1.25;
+    margin: 0;
+}
+
+.qa-action-desc {
+    font-size: 11px;
+    color: var(--text-muted);
+    line-height: 1.2;
+    margin: 1px 0 0 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.qa-key-badge {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-muted);
+    background-color: var(--surface-muted);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 1px 5px;
+    flex-shrink: 0;
+}
+
+.qa-hub-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 7px 12px;
+    background-color: var(--surface-muted);
+    border-top: 1px solid var(--border-color);
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+.qa-hub-footer kbd {
+    background-color: var(--surface);
+    border: 1px solid var(--border-color);
+    border-radius: 3px;
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05);
+    color: var(--text-body);
+    font-size: 10px;
+    padding: 1px 4px;
+    font-family: var(--font-mono);
+}
+
+html[data-theme^="dark"] .quick-action-hub {
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.45), 0 8px 10px -6px rgba(0, 0, 0, 0.35);
 }
 
 .user-profile {
