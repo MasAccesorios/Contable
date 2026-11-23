@@ -37,7 +37,7 @@ const routes = {
     'contactos': () => import('../modules/clientes/clientes.js?v=35'),
     'bancos': () => import('../modules/bancos/bancos.js?v=2'),
     'gastos/pagos': () => import('../modules/gastos/gastos.js'),
-    'gastos/proveedores': () => import('../modules/gastos/compras.js'),
+    'gastos/proveedores': () => import('../modules/gastos/compras.js?v=2'),
     'inventario/items': () => import('../modules/productos/productos.js?v=36'),
     'inventario/categorias': () => import('../modules/inventario/categorias.js'),
     'inventario/valor': () => {
@@ -50,7 +50,7 @@ const routes = {
     'ingresos/cotizaciones': () => import('../modules/ingresos/cotizaciones.js?v=2'),
     'ingresos/cuenta-cobro': () => import('../modules/ingresos/cuentaCobro.js?v=2'),
     'ingresos/operativos': () => import('../modules/gastos/ingresos_operativos.js'),
-    'ingresos/facturas': () => import('../modules/ventas/ventas.js?v=2'),
+    'ingresos/facturas': () => import('../modules/ventas/ventas.js?v=3'),
     'ingresos/notas-credito': () => import('../modules/ingresos/notasCredito.js'),
     'ingresos/pagos-recibidos': () => import('../modules/ingresos/pagosRecibidos/pagosRecibidos.js'),
     'ingresos/pagos/nuevo': () => import('../modules/ingresos/pagos_nuevo.js'),

@@ -396,7 +396,7 @@ export const ComprasModule = {
                 <div class="d-flex justify-content-between align-items-start mb-4">
                     <div>
                         ${headerHtml}
-                        <h2 class="h3 fw-bold mb-0" style="color: var(--text-main);">${id ? 'Factura No. ' + escapeHtml(String(factura.numero || '')) : 'Nueva factura'}</h2>
+                        <h2 class="h3 fw-bold mb-0" style="color: var(--text-main);">${id ? 'Factura de Compra No. ' + escapeHtml(String(factura.numero || '')) : 'Nueva Factura de Compra (Proveedor)'}</h2>
                     </div>
                     <div class="d-flex align-items-center gap-2">
                         ${isViewOnly && id && factura.estado !== 'pagada' && !EstadoUtils.estaAnulado(factura.estado) ? 
@@ -436,7 +436,7 @@ export const ComprasModule = {
                                 <input type="hidden" id="select-proveedor" value="${factura.proveedorId || ''}">
                             </div>
                             <div class="col-12 col-sm-6 col-md-3">
-                                <label class="form-label" style="font-size: var(--fs-sm); font-weight: var(--weight-medium); color: var(--text-body);">Tipo de Venta</label>
+                                <label class="form-label" style="font-size: var(--fs-sm); font-weight: var(--weight-medium); color: var(--text-body);">Tipo de Compra</label>
                                 <select id="select-tipo-compra" class="form-select form-select-sm text-muted" ${isViewOnly ? 'disabled' : ''}>
                                     <option value="credito" ${factura.tipoCompra === 'credito' || !factura.tipoCompra ? 'selected' : ''}>A Crédito (Cartera)</option>
                                     <option value="contado" ${factura.tipoCompra === 'contado' ? 'selected' : ''}>De Contado (Caja)</option>
