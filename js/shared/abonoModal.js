@@ -36,6 +36,13 @@ function getThirdPartyAvatar(name, isIngreso) {
     return { initials: initials.substring(0, 2), ...palette[index] };
 }
 
+function formatFechaCorta(fechaStr) {
+    if (!fechaStr) return '-';
+    const parts = String(fechaStr).split('-');
+    if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    return fechaStr;
+}
+
 export const AbonoModal = {
     modalInstance: null,
     onSuccessCallback: null,
@@ -127,24 +134,24 @@ export const AbonoModal = {
             <div class="modal-dialog modal-dialog-centered modal-lg" id="modalAbonoDialog" style="transition: max-width 0.25s ease;">
                 <div class="modal-content border-0 shadow-lg" style="border-radius: 16px; overflow: hidden; background: #ffffff;">
                     <!-- HEADER ESTILO GASTOS OPERATIVOS -->
-                    <div class="modal-header border-bottom px-4 py-3 bg-white d-flex align-items-center justify-content-between">
-                        <div class="d-flex align-items-center gap-3">
-                            <div class="payment-kpi-icon ${this.esIngreso ? 'in-bg' : 'out-bg'}" style="width: 40px; height: 40px; font-size: 18px; border-radius: 10px;">
+                    <div class="modal-header border-bottom px-3 px-sm-4 py-3 bg-white d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center gap-2.5">
+                            <div class="payment-kpi-icon ${this.esIngreso ? 'in-bg' : 'out-bg'}" style="width: 38px; height: 38px; font-size: 17px; border-radius: 10px;">
                                 <i class="bi ${this.esIngreso ? 'bi-arrow-down-left' : 'bi-arrow-up-right'}"></i>
                             </div>
                             <div>
-                                <h5 class="modal-title fw-bold mb-0" style="color: var(--text-main); font-size: 17px;">
+                                <h5 class="modal-title fw-bold mb-0" style="color: var(--text-main); font-size: 16px;">
                                     ${this.esIngreso ? 'Registrar Pago de Cliente' : 'Registrar Pago a Proveedor'}
                                 </h5>
-                                <p class="text-muted mb-0" style="font-size: 12px;">
-                                    ${this.esIngreso ? 'Abono directo a factura o distribución inteligente de cobro.' : 'Registro de egreso y aplicación de pago a facturas.'}
+                                <p class="text-muted mb-0" style="font-size: 11px;">
+                                    ${this.esIngreso ? 'Abono directo a factura o distribución inteligente en cartera.' : 'Registro de egreso y aplicación de pago a facturas.'}
                                 </p>
                             </div>
                         </div>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
 
-                    <div class="modal-body p-4" style="background-color: #f8fafc;">
+                    <div class="modal-body p-3 p-sm-4" style="background-color: #f8fafc;">
                         <!-- TARJETA EJECUTIVA DE CONTACTO Y FACTURA (ESTILO PAYMENT-KPI-CARD) -->
                         <div class="card border rounded-3 p-3 mb-3 bg-white shadow-xs" style="border-color: var(--border-color);">
                             <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2">
@@ -167,16 +174,16 @@ export const AbonoModal = {
 
                             ${tieneMultiples ? `
                             <div class="mt-2 pt-2 border-top d-flex flex-wrap justify-content-between align-items-center gap-2" style="font-size: 12px;">
-                                <div class="text-secondary">
+                                <div class="text-secondary" style="font-size: 11px;">
                                     <i class="bi bi-info-circle text-primary me-1"></i>
-                                    Este cliente tiene <strong>${this.facturasCartera.length} facturas pendientes</strong> (Deuda total: <strong>${formatMoney(this.deudaTotalCliente)}</strong>).
+                                    Tiene <strong>${this.facturasCartera.length} facturas pendientes</strong> (Total: <strong>${formatMoney(this.deudaTotalCliente)}</strong>).
                                 </div>
                                 <div class="payment-tabs-bar p-1" style="background-color: #f1f5f9; border-radius: 8px;">
                                     <button type="button" class="payment-tab-btn active" id="tab-abono-single" style="padding: 4px 10px; font-size: 11px;">
-                                        <i class="bi bi-file-earmark-check"></i> Solo factura #${numDoc}
+                                        <i class="bi bi-file-earmark-check"></i> Solo #${numDoc}
                                     </button>
                                     <button type="button" class="payment-tab-btn" id="tab-abono-multi" style="padding: 4px 10px; font-size: 11px;">
-                                        <i class="bi bi-layers"></i> Distribuir en cartera
+                                        <i class="bi bi-layers"></i> Distribuir cartera
                                     </button>
                                 </div>
                             </div>
@@ -205,7 +212,7 @@ export const AbonoModal = {
                                         <label class="form-label text-muted fw-semibold mb-1" style="font-size: 12px;">Valor Total Recibido *</label>
                                         <div class="input-group">
                                             <span class="input-group-text bg-light border-end-0 text-muted fw-bold" style="border-radius: 8px 0 0 8px;">$</span>
-                                            <input type="text" id="abono-monto-shared" class="form-control border-start-0 fw-bold ${this.esIngreso ? 'text-success' : 'text-danger'} tnum" style="border-radius: 0 8px 8px 0; font-size: 15px;" required autocomplete="off">
+                                            <input type="text" id="abono-monto-shared" class="form-control border-start-0 fw-bold ${this.esIngreso ? 'text-success' : 'text-danger'} tnum" style="border-radius: 0 8px 8px 0; font-size: 15px;" required autocomplete="off" inputmode="decimal">
                                         </div>
                                         <div class="form-text mt-1 text-muted" id="abono-monto-help" style="font-size: 11px;">
                                             Saldo pendiente de esta factura: ${formatMoney(this.currentSaldo)}
@@ -230,53 +237,41 @@ export const AbonoModal = {
                                 </div>
                             </div>
 
-                            <!-- SECCIÓN DE DISTRIBUCIÓN MULTI-FACTURA (DESPLEGABLE / CONDICIONAL) -->
+                            <!-- SECCIÓN DE DISTRIBUCIÓN MULTI-FACTURA (RESPONSIVE CARDS) -->
                             <div id="seccion-distribucion-multi" class="card border rounded-3 p-3 bg-white shadow-xs mb-2" style="border-color: var(--border-color); display: none;">
                                 <div class="d-flex flex-wrap justify-content-between align-items-center mb-2 pb-2 border-bottom gap-2">
                                     <div>
                                         <h6 class="fw-bold mb-0" style="color: var(--text-main); font-size: 13px;">
                                             <i class="bi bi-diagram-3 me-1 text-primary"></i> Distribución del Pago en Facturas
                                         </h6>
-                                        <span class="text-muted" style="font-size: 11px;">Seleccione cómo repartir el monto recibido entre las facturas pendientes.</span>
+                                        <span class="text-muted" style="font-size: 11px;">Reparta el monto recibido entre las facturas pendientes.</span>
                                     </div>
-                                    <div class="d-flex gap-1">
-                                        <button type="button" class="btn btn-sm btn-light border py-1 px-2" id="btn-auto-prioridad-actual" style="font-size: 11px; border-radius: 6px;" title="Pagar factura #${numDoc} primero y el resto a las más antiguas">
+                                    <div class="d-flex flex-wrap gap-1.5 align-items-center">
+                                        <button type="button" class="btn btn-sm btn-light border py-1 px-2 text-nowrap" id="btn-auto-prioridad-actual" style="font-size: 11px; border-radius: 6px;" title="Pagar factura #${numDoc} primero y el resto a las más antiguas">
                                             <i class="bi bi-lightning-fill text-warning"></i> Prioridad #${numDoc}
                                         </button>
-                                        <button type="button" class="btn btn-sm btn-light border py-1 px-2" id="btn-auto-fifo" style="font-size: 11px; border-radius: 6px;" title="Pagar de la más antigua a la más reciente">
+                                        <button type="button" class="btn btn-sm btn-light border py-1 px-2 text-nowrap" id="btn-auto-fifo" style="font-size: 11px; border-radius: 6px;" title="Pagar de la más antigua a la más reciente">
                                             <i class="bi bi-clock-history text-primary"></i> Más antiguas (FIFO)
                                         </button>
-                                        <button type="button" class="btn btn-sm btn-light border py-1 px-2" id="btn-limpiar-distribucion" style="font-size: 11px; border-radius: 6px;" title="Poner en cero">
+                                        <button type="button" class="btn btn-sm btn-light border py-1 px-2 text-nowrap" id="btn-limpiar-distribucion" style="font-size: 11px; border-radius: 6px;" title="Poner en cero">
                                             <i class="bi bi-eraser text-secondary"></i> Limpiar
                                         </button>
                                     </div>
                                 </div>
 
-                                <div class="table-responsive" style="max-height: 220px; overflow-y: auto;">
-                                    <table class="table table-sm table-hover align-middle mb-0" style="font-size: 12px;">
-                                        <thead class="bg-light sticky-top" style="z-index: 2;">
-                                            <tr>
-                                                <th class="py-2 ps-2">Factura</th>
-                                                <th class="py-2">Fecha</th>
-                                                <th class="py-2 text-end">Saldo Pendiente</th>
-                                                <th class="py-2 text-end" style="width: 140px;">Monto a Abonar</th>
-                                                <th class="py-2 pe-2 text-end">Nuevo Saldo</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="tbody-distribucion-facturas">
-                                            ${this.renderFilasDistribucion(numDoc)}
-                                        </tbody>
-                                    </table>
+                                <!-- LISTA DE TARJETAS DE DISTRIBUCIÓN (RESPONSIVE MÓVIL Y DESKTOP) -->
+                                <div class="distribucion-facturas-lista pe-1" id="lista-distribucion-facturas" style="max-height: 270px; overflow-y: auto; overflow-x: hidden;">
+                                    ${this.renderFilasDistribucion(numDoc)}
                                 </div>
 
                                 <!-- BARRA DE CUADRE EN TIEMPO REAL -->
-                                <div class="p-2 mt-2 rounded bg-light border d-flex flex-wrap justify-content-between align-items-center gap-2" style="font-size: 12px;">
-                                    <div>
-                                        <span class="text-muted">Total Recibido:</span> <strong id="lbl-total-recibido" class="tnum">$0</strong>
-                                        <span class="mx-2 text-muted">|</span>
-                                        <span class="text-muted">Total Aplicado:</span> <strong id="lbl-total-aplicado" class="tnum text-primary">$0</strong>
+                                <div class="p-2.5 mt-2 rounded-3 bg-light border d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2" style="font-size: 12px;">
+                                    <div class="d-flex flex-wrap align-items-center gap-2">
+                                        <div><span class="text-muted">Total Recibido:</span> <strong id="lbl-total-recibido" class="tnum text-dark">$0</strong></div>
+                                        <span class="text-muted d-none d-sm-inline">|</span>
+                                        <div><span class="text-muted">Total Aplicado:</span> <strong id="lbl-total-aplicado" class="tnum text-primary">$0</strong></div>
                                     </div>
-                                    <div>
+                                    <div class="text-sm-end">
                                         <span id="badge-cuadre-distribucion" class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 py-1 px-2">
                                             <i class="bi bi-check2-circle me-1"></i> Cuadrado
                                         </span>
@@ -289,7 +284,7 @@ export const AbonoModal = {
                                 <a href="#" id="btn-abono-avanzado" class="text-decoration-none text-muted d-flex align-items-center gap-1" style="font-size: 12px; font-weight: 500;">
                                     <i class="bi bi-box-arrow-up-right"></i> Abrir en formulario completo
                                 </a>
-                                <div class="d-flex align-items-center gap-2">
+                                <div class="d-flex align-items-center gap-2 ms-auto">
                                     <button type="button" class="btn btn-light border btn-sm px-3" data-bs-dismiss="modal" style="border-radius: 8px; font-weight: 500; height: 38px;">
                                         Cancelar
                                     </button>
@@ -327,7 +322,7 @@ export const AbonoModal = {
 
     renderFilasDistribucion(numDocActual) {
         if (!this.facturasCartera || this.facturasCartera.length === 0) {
-            return `<tr><td colspan="5" class="text-center py-3 text-muted">No hay facturas pendientes registradas.</td></tr>`;
+            return `<div class="text-center py-4 text-muted small">No hay facturas pendientes registradas.</div>`;
         }
 
         const formatMoney = val => '$' + (val || 0).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -335,27 +330,43 @@ export const AbonoModal = {
         return this.facturasCartera.map(f => {
             const esActual = String(f.id) === String(this.facturaId);
             return `
-            <tr data-factura-id="${f.id}" class="${esActual ? 'table-primary bg-opacity-25' : ''}">
-                <td class="ps-2 py-2">
-                    <span class="payment-code-badge ${esActual ? 'border-primary text-primary fw-bold' : ''}">#${f.numero || f.id}</span>
-                    ${esActual ? '<span class="badge bg-primary ms-1" style="font-size: 9px;">Actual</span>' : ''}
-                </td>
-                <td class="text-muted py-2">${f.fecha || '-'}</td>
-                <td class="text-end py-2 fw-semibold text-danger tnum td-saldo-original" data-saldo="${f.saldo}">${formatMoney(f.saldo)}</td>
-                <td class="text-end py-2" style="width: 140px;">
-                    <div class="input-group input-group-sm">
-                        <span class="input-group-text bg-white px-1 text-muted">$</span>
-                        <input type="text" class="form-control form-control-sm text-end fw-bold input-distribucion-linea tnum" 
-                            data-factura-id="${f.id}" 
-                            data-saldo="${f.saldo}"
-                            value="${esActual ? f.saldo : 0}" 
-                            autocomplete="off">
+            <div class="item-distribucion-factura p-2.5 mb-2 rounded-3 border bg-white shadow-xs ${esActual ? 'is-actual border-primary bg-primary bg-opacity-10' : ''}" data-factura-id="${f.id}">
+                <!-- Fila 1: Factura, Fecha y Saldo Pendiente -->
+                <div class="d-flex justify-content-between align-items-center mb-2 gap-2">
+                    <div class="d-flex align-items-center gap-1.5 flex-wrap">
+                        <span class="payment-code-badge ${esActual ? 'border-primary text-primary fw-bold' : ''}">#${f.numero || f.id}</span>
+                        ${esActual ? '<span class="badge bg-primary" style="font-size: 10px; font-weight: 600;">Actual</span>' : ''}
+                        <span class="text-muted" style="font-size: 11px; white-space: nowrap;"><i class="bi bi-calendar3 me-1"></i>${formatFechaCorta(f.fecha)}</span>
                     </div>
-                </td>
-                <td class="text-end pe-2 py-2 text-muted tnum td-nuevo-saldo" style="font-size: 11px;">
-                    ${esActual ? '$0,00' : formatMoney(f.saldo)}
-                </td>
-            </tr>`;
+                    <div class="text-end text-nowrap">
+                        <span class="text-muted" style="font-size: 11px;">Saldo:</span>
+                        <span class="fw-bold text-danger tnum ms-1 td-saldo-original" data-saldo="${f.saldo}" style="font-size: 13px;">${formatMoney(f.saldo)}</span>
+                    </div>
+                </div>
+
+                <!-- Fila 2: Input para abonar y Nuevo Saldo -->
+                <div class="d-flex align-items-center justify-content-between gap-2 pt-2 border-top">
+                    <div class="d-flex align-items-center gap-2 flex-grow-1" style="min-width: 0;">
+                        <label class="form-label text-muted mb-0 fw-semibold text-nowrap" style="font-size: 11px;">Abonar:</label>
+                        <div class="input-group input-group-sm flex-grow-1" style="max-width: 180px;">
+                            <span class="input-group-text bg-light text-muted fw-bold px-1.5">$</span>
+                            <input type="text" class="form-control form-control-sm text-end fw-bold input-distribucion-linea tnum text-success" 
+                                data-factura-id="${f.id}" 
+                                data-saldo="${f.saldo}"
+                                value="${esActual ? f.saldo : 0}" 
+                                autocomplete="off"
+                                inputmode="decimal"
+                                style="font-size: 14px; min-height: 36px;">
+                        </div>
+                    </div>
+                    <div class="text-end text-nowrap ps-1">
+                        <div class="text-muted" style="font-size: 10px; line-height: 1.1;">Nuevo Saldo</div>
+                        <div class="td-nuevo-saldo tnum fw-semibold mt-0.5" style="font-size: 12px;">
+                            ${esActual ? '<span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 py-0 px-1.5" style="font-size: 11px;">Saldada</span>' : formatMoney(f.saldo)}
+                        </div>
+                    </div>
+                </div>
+            </div>`;
         }).join('');
     },
 
@@ -396,14 +407,13 @@ export const AbonoModal = {
         if (tabSingle) tabSingle.addEventListener('click', () => setModo('single'));
         if (tabMulti) tabMulti.addEventListener('click', () => setModo('multi'));
 
-        // Recalcular saldos en la tabla de distribución
+        // Recalcular saldos en la lista de distribución
         const actualizarTotalesDistribucion = () => {
             const inputsLineas = modalEl.querySelectorAll('.input-distribucion-linea');
             let totalAplicado = 0;
             const montoTotal = parseCurrencyValue(montoInput.value) || 0;
 
             inputsLineas.forEach(inp => {
-                const fId = inp.getAttribute('data-factura-id');
                 const saldoOrig = parseFloat(inp.getAttribute('data-saldo')) || 0;
                 let valAbono = parseCurrencyValue(inp.value) || 0;
 
@@ -420,13 +430,14 @@ export const AbonoModal = {
                 totalAplicado += valAbono;
 
                 // Actualizar nuevo saldo en la celda
-                const fila = inp.closest('tr');
+                const fila = inp.closest('.item-distribucion-factura');
                 const celdaNuevoSaldo = fila ? fila.querySelector('.td-nuevo-saldo') : null;
                 if (celdaNuevoSaldo) {
                     const remanente = Math.max(0, saldoOrig - valAbono);
-                    celdaNuevoSaldo.textContent = formatMoney(remanente);
                     if (remanente <= 0.01) {
-                        celdaNuevoSaldo.innerHTML = '<span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 py-0 px-1">Saldada</span>';
+                        celdaNuevoSaldo.innerHTML = '<span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 py-0 px-1.5" style="font-size: 11px;">Saldada</span>';
+                    } else {
+                        celdaNuevoSaldo.textContent = formatMoney(remanente);
                     }
                 }
             });
@@ -588,7 +599,7 @@ export const AbonoModal = {
 
                     const totalDistribuido = abonos.reduce((sum, a) => sum + a.monto, 0);
                     if (abonos.length === 0) {
-                        CoreActions.showWarningModal("Debe asignar un monto a al menos una factura en la tabla.");
+                        CoreActions.showWarningModal("Debe asignar un monto a al menos una factura en la lista.");
                         return;
                     }
 
@@ -600,7 +611,7 @@ export const AbonoModal = {
                     // Modo individual: pago a la factura actual
                     if (montoTotal > (this.currentSaldo + 0.01)) {
                         if (this.facturasCartera.length > 1) {
-                            CoreActions.showWarningModal("El monto recibido supera el saldo de esta factura. Utilice la pestaña «Distribuir en cartera» para abonar a otras facturas pendientes.");
+                            CoreActions.showWarningModal("El monto recibido supera el saldo de esta factura. Utilice la pestaña «Distribuir cartera» para abonar a otras facturas pendientes.");
                             setModo('multi');
                             return;
                         } else {

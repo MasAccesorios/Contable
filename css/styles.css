@@ -2794,4 +2794,51 @@ html[data-theme^="dark"] .payment-row:hover {
     background-color: rgba(255, 255, 255, 0.03) !important;
 }
 
+/* ==========================================================================
+   DISTRIBUCIÓN DE PAGOS EN MODAL & VISTA MÓVIL ERGONÓMICA (SMART ABONO MODAL)
+   ========================================================================== */
+.item-distribucion-factura {
+    background-color: #ffffff;
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 10px;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.item-distribucion-factura:hover {
+    border-color: #cbd5e1;
+    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
+}
+.item-distribucion-factura.is-actual {
+    background-color: #f0f7ff !important;
+    border-color: #93c5fd !important;
+}
+
+@media (max-width: 576px) {
+    #modalAbonoShared .modal-dialog {
+        margin: 8px !important;
+        max-width: calc(100% - 16px) !important;
+    }
+    #modalAbonoShared .modal-content {
+        border-radius: 14px !important;
+    }
+    .item-distribucion-factura {
+        padding: 10px 12px !important;
+    }
+    .item-distribucion-factura .input-distribucion-linea {
+        font-size: 16px !important; /* Previene auto-zoom en iOS Safari */
+    }
+    #input-monto-consignado-global,
+    #abono-monto-shared {
+        font-size: 16px !important;
+    }
+}
+
+html[data-theme^="dark"] .item-distribucion-factura {
+    background-color: var(--surface) !important;
+    border-color: var(--border-color) !important;
+}
+html[data-theme^="dark"] .item-distribucion-factura.is-actual {
+    background-color: rgba(37, 99, 235, 0.1) !important;
+    border-color: #3b82f6 !important;
+}
+
 

@@ -202,19 +202,19 @@ export default {
             const nuevoSaldoInicial = Math.max(0, f.saldo - montoInicial);
             return `
             <tr data-id="${f.id}" data-pago-id="${f.pagoIdExistente || ''}" class="payment-row align-middle" style="border-bottom: 1px solid var(--border-color);">
-                <td class="ps-3 py-3">
+                <td class="ps-3 py-3" data-label="Seleccionar">
                     <div class="form-check">
                         <input class="form-check-input check-factura-pago" type="checkbox" data-id="${f.id}" ${montoInicial > 0 ? 'checked' : ''}>
                     </div>
                 </td>
-                <td class="py-3">
+                <td class="py-3" data-label="Factura">
                     <span class="payment-code-badge">#${f.numero}</span>
                 </td>
-                <td class="py-3 text-muted" style="font-size: 13px;">${f.fecha || '-'}</td>
-                <td class="py-3 text-muted tnum" style="font-size: 13px;">${this.formatCurrency(f.total)}</td>
-                <td class="py-3 text-muted tnum" style="font-size: 13px;">${this.formatCurrency(f.totalAbonado)}</td>
-                <td class="py-3 text-danger fw-bold td-saldo-pendiente tnum" style="font-size: 14px;">${this.formatCurrency(f.saldo)}</td>
-                <td class="py-3 text-end" style="width: 160px;">
+                <td class="py-3 text-muted" data-label="Fecha" style="font-size: 13px;">${f.fecha || '-'}</td>
+                <td class="py-3 text-muted tnum" data-label="Total Orig." style="font-size: 13px;">${this.formatCurrency(f.total)}</td>
+                <td class="py-3 text-muted tnum" data-label="Abonado" style="font-size: 13px;">${this.formatCurrency(f.totalAbonado)}</td>
+                <td class="py-3 text-danger fw-bold td-saldo-pendiente tnum" data-label="Saldo Pendiente" style="font-size: 14px;">${this.formatCurrency(f.saldo)}</td>
+                <td class="py-3 text-end td-monto-pagar" data-label="Monto a Pagar" style="width: 160px;">
                     <div class="input-group input-group-sm">
                         <span class="input-group-text bg-light text-muted">$</span>
                         <input type="text" class="form-control monto-abono text-end fw-bold text-success tnum" 
@@ -227,7 +227,7 @@ export default {
                             inputmode="decimal" autocomplete="off" style="font-size: 13px;">
                     </div>
                 </td>
-                <td class="pe-3 py-3 text-end text-muted tnum td-nuevo-saldo-col" style="font-size: 12px;">
+                <td class="pe-3 py-3 text-end text-muted tnum td-nuevo-saldo-col" data-label="Nuevo Saldo" style="font-size: 12px;">
                     ${this.formatCurrency(nuevoSaldoInicial)}
                 </td>
             </tr>
