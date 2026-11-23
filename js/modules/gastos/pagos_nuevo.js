@@ -1,22 +1,23 @@
 import DB, { getLocalDate } from '../../core/db.js';
 import { CoreActions } from '../../shared/crud.js';
 import { supabase } from '../../core/supabase.js';
-import { applyCurrencyFormatting, parseCurrencyValue, escapeHtml } from '../../shared/formatters.js';
+import { applyCurrencyFormatting, parseCurrencyValue, escapeHtml, getClientAvatar } from '../../shared/formatters.js';
 import { UI } from '../../shared/combobox.js';
 
 export default {
     async init(element) {
         if (!element) return;
-        
+
         const hashParts = window.location.hash.split('?');
         const urlParams = new URLSearchParams(hashParts[1] || '');
-        
+
+        const grupoId = urlParams.get('grupoId');
+        this.grupoId = grupoId || null;
+
         if (urlParams.has('proveedorId')) {
             sessionStorage.setItem('proveedorId', urlParams.get('proveedorId'));
-            // Remove parameter from URL to keep it clean (optional, but good practice)
             window.history.replaceState(null, '', window.location.pathname + hashParts[0]);
-        } else {
-            // Limpieza agresiva de cualquier rastro previo si es carga directa limpia
+        } else if (!this.grupoId) {
             sessionStorage.removeItem('proveedorId');
             sessionStorage.removeItem('currentProveedor');
             localStorage.removeItem('proveedorId');
@@ -31,163 +32,393 @@ export default {
         element.innerHTML = this.renderLoading();
         await this.loadData(element);
     },
-    
+
     formatCurrency(val) {
-        return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP' }).format(val);
+        return '$' + (val || 0).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     },
 
     renderLoading() {
-        return `<div class="text-center py-5"><div class="spinner-border text-primary"></div><p class="mt-2">Cargando facturas pendientes...</p></div>`;
+        return `
+            <div class="dash-layout p-4 text-center py-5">
+                <div class="spinner-border text-danger" role="status"></div>
+                <p class="mt-2 text-muted fw-medium" style="font-size: 14px;">Cargando facturas pendientes de proveedores...</p>
+            </div>
+        `;
     },
 
     async loadData(element) {
         try {
             const cuentas = await DB.getAll('cuentas_bancarias') || [];
-            const contactos = await DB.getAll('contactos') || [];
-            this.contactos = contactos;
             let proveedor = null;
             let facturasPendientesRPC = [];
 
+            let pagosGrupo = [];
+            if (this.grupoId) {
+                const { data: pg, error: errPg } = await supabase
+                    .from('pagos_ingresos')
+                    .select('*')
+                    .eq('grupo_pago_id', this.grupoId);
+                if (errPg) console.error("Error fetching pagosGrupo:", errPg);
+                pagosGrupo = pg || [];
+                if (pagosGrupo.some(p => p.conciliacion_id !== null && p.conciliacion_id !== undefined)) {
+                    CoreActions.showWarningModal('Este pago está conciliado. Elimina la conciliación para editarlo.');
+                    window.history.back();
+                    return;
+                }
+                if (pagosGrupo.length > 0) {
+                    const primerPago = pagosGrupo[0];
+                    this.fechaOriginal = primerPago.fecha;
+                    this.cuentaOriginal = primerPago.cuenta_id;
+                    this.metodoOriginal = primerPago.metodo_pago;
+                    this.categoriaOriginal = primerPago.categoria;
+                    this.observacionesOriginal = primerPago.observaciones;
+                    if (!this.proveedorId && primerPago.contacto_id) {
+                        this.proveedorId = primerPago.contacto_id;
+                    }
+                }
+            }
+
             if (this.proveedorId) {
                 proveedor = await DB.get('contactos', this.proveedorId);
-                // Cargar facturas del proveedor usando RPC
-                const { data, error } = await supabase.rpc('get_cartera_con_saldos', { 
+                const { data, error } = await supabase.rpc('get_cartera_con_saldos', {
                     p_tipo_cartera: 'cxp',
                     p_contacto_id: String(this.proveedorId)
                 });
-                if (error) console.error("Error fetching cartera para pagos:", error);
+                if (error) console.error("Error fetching cartera para pagos a proveedores:", error);
                 facturasPendientesRPC = data || [];
             }
-            
+
             this.facturasData = facturasPendientesRPC
-                .map(f => ({
-                    ...f, 
-                    totalAbonado: f.total_pagado 
-                }))
-                .sort((a, b) => Number(a.numero) - Number(b.numero));
+                .map(f => {
+                    const fila = pagosGrupo.find(p => String(p.factura_id) === String(f.id));
+                    return {
+                        ...f,
+                        totalAbonado: f.total_pagado,
+                        pagoIdExistente: fila ? fila.id : null,
+                        montoExistente: fila ? Number(fila.monto) : 0
+                    };
+                });
+
+            if (this.grupoId && pagosGrupo.length > 0) {
+                const facturasFaltantes = pagosGrupo.filter(
+                    p => p.factura_id && !this.facturasData.some(f => String(f.id) === String(p.factura_id))
+                );
+                if (facturasFaltantes.length > 0) {
+                    const fIds = facturasFaltantes.map(p => p.factura_id);
+                    const { data: facsData } = await supabase.from('facturas').select('*').in('id', fIds);
+                    const filasExtras = facturasFaltantes.map(p => {
+                        const fac = (facsData || []).find(f => String(f.id) === String(p.factura_id));
+                        return {
+                            id: p.factura_id,
+                            numero: fac ? fac.numero : p.factura_id,
+                            fecha: fac ? fac.fecha : '',
+                            total: fac ? fac.total : 0,
+                            totalAbonado: fac ? fac.total : 0,
+                            saldo: 0,
+                            pagoIdExistente: p.id,
+                            montoExistente: Number(p.monto)
+                        };
+                    });
+                    this.facturasData = [...this.facturasData, ...filasExtras];
+                }
+            }
+
+            this.facturasData.sort((a, b) => Number(a.numero) - Number(b.numero));
 
             if (this.proveedorId && this.facturasData.length === 0) {
                 element.innerHTML = `
-                    <div class="py-5 px-4 text-center">
-                        <div class="bg-white p-5 shadow-sm rounded border">
-                            <h4 class="text-success mb-3"><i class="bi bi-check-circle-fill"></i> Proveedor al día</h4>
-                            <p>El proveedor <strong>${proveedor ? escapeHtml(proveedor.nombre) : this.proveedorId}</strong> no tiene facturas con saldo pendiente.</p>
-                            <button onclick="window.location.hash='#/gastos/pagos'" class="btn btn-outline-secondary mt-3">Volver a Pagos</button>
+                    <div class="dash-layout p-4" style="max-width: 1200px; margin: 0 auto;">
+                        <button onclick="window.history.back()" class="btn btn-light bg-white border text-secondary shadow-xs mb-3" style="border-radius: 8px;">
+                            <i class="bi bi-arrow-left me-1"></i> Volver
+                        </button>
+                        <div class="card p-5 text-center border-0 shadow-xs rounded-4 bg-white">
+                            <div class="payment-kpi-icon in-bg mx-auto mb-3" style="width: 50px; height: 50px; font-size: 24px;">
+                                <i class="bi bi-check2-circle"></i>
+                            </div>
+                            <h4 class="fw-bold mb-2" style="color: var(--text-main);">Proveedor al día</h4>
+                            <p class="text-muted">El proveedor <strong>${proveedor ? escapeHtml(proveedor.nombre) : this.proveedorId}</strong> no presenta facturas de compra pendientes con saldo.</p>
+                            <div class="mt-3">
+                                <button onclick="window.location.hash='#/gastos/pagos-realizados'" class="btn btn-primary-action px-4 py-2 fw-semibold">
+                                    Ver Egresos Realizados
+                                </button>
+                            </div>
                         </div>
                     </div>
                 `;
                 return;
             }
 
-            this.deudaTotal = this.facturasData.reduce((sum, f) => sum + f.saldo, 0);
+            this.deudaTotal = this.facturasData.reduce((sum, f) => sum + (f.saldo || 0), 0);
 
-            this.renderUI(element, proveedor, contactos, cuentas);
+            this.renderUI(element, proveedor, cuentas);
             this.attachEvents(element);
 
         } catch (error) {
             console.error("Error loading data:", error);
-            element.innerHTML = `<div class="alert alert-danger m-4">Error cargando datos.</div>`;
+            element.innerHTML = `<div class="alert alert-danger m-4">Error cargando información de compras y facturas de proveedores.</div>`;
         }
     },
 
-    renderUI(element, proveedor, contactos, cuentas) {
-        const cuentasOptions = cuentas.map(c => `<option value="${c.id}">${escapeHtml(c.nombre)} (${c.tipo})</option>`).join('');
-        const facturasRows = this.facturasData.map(f => `
-            <tr style="border-bottom: 1px solid var(--border-color); font-size: var(--fs-base); color: var(--text-body);">
-                <td data-label="Factura" class="align-middle fw-bold" style="color: var(--text-main);">#${f.numero}</td>
-                <td data-label="Fecha" class="align-middle text-muted">${f.fecha}</td>
-                <td data-label="Total" class="align-middle">${this.formatCurrency(f.total)}</td>
-                <td data-label="Pagado" class="align-middle text-muted">${this.formatCurrency(f.totalAbonado)}</td>
-                <td data-label="Saldo pendiente" class="align-middle text-danger fw-bold">${this.formatCurrency(f.saldo)}</td>
-                <td data-label="Monto a pagar" class="align-middle td-monto-pagar">
-                    <div class="input-group input-group-sm" style="max-width: 150px; margin-left:auto;">
-                        <span class="input-group-text">$</span>
-                        <input type="text" class="form-control monto-abono text-end fw-bold" 
-                            data-id="${f.id}" data-saldo="${f.saldo}" value="0"
-                            inputmode="decimal" autocomplete="off">
-                    </div>
-                </td>
-            </tr>
+    renderUI(element, proveedor, cuentas) {
+        const cuentaSeleccionada = this.grupoId ? this.cuentaOriginal : null;
+        const cuentasActivas = (cuentas || []).filter(c => c.estado === 'active' || c.activo === true);
+        const cuentasOptions = cuentasActivas.map(c => `
+            <option value="${c.id}" ${cuentaSeleccionada && String(cuentaSeleccionada) === String(c.id) ? 'selected' : ''}>
+                ${escapeHtml(c.nombre)} (${c.tipo || 'Cuenta'})
+            </option>
         `).join('');
 
+        const metodoSeleccionado = (this.grupoId && this.metodoOriginal) ? String(this.metodoOriginal).toLowerCase() : 'transferencia';
+        const fechaValor = (this.grupoId && this.fechaOriginal) ? this.fechaOriginal : getLocalDate();
+        const tituloVista = this.grupoId ? 'Editar Comprobante de Egreso' : 'Comprobante de Egreso / Pago a Proveedores';
+        const btnTexto = this.grupoId ? 'Guardar Cambios' : 'Registrar Pago a Proveedor';
+        const avatar = getClientAvatar(proveedor ? proveedor.nombre : '');
+
+        const facturasRows = this.facturasData.map(f => {
+            const montoInicial = f.pagoIdExistente ? f.montoExistente : 0;
+            const nuevoSaldoInicial = this.grupoId ? f.saldo : Math.max(0, f.saldo - montoInicial);
+            return `
+            <tr data-id="${f.id}" data-pago-id="${f.pagoIdExistente || ''}" class="payment-row align-middle" style="border-bottom: 1px solid var(--border-color);">
+                <td class="ps-3 py-3" data-label="Seleccionar">
+                    <div class="form-check">
+                        <input class="form-check-input check-factura-pago" type="checkbox" data-id="${f.id}" ${montoInicial > 0 ? 'checked' : ''}>
+                    </div>
+                </td>
+                <td class="py-3" data-label="Factura">
+                    <span class="payment-code-badge" style="background-color: #fef2f2; color: #dc2626; border: 1px solid #fecaca;">#${f.numero}</span>
+                </td>
+                <td class="py-3 text-muted" data-label="Fecha" style="font-size: 13px;">${f.fecha || '-'}</td>
+                <td class="py-3 text-muted tnum" data-label="Total Orig." style="font-size: 13px;">${this.formatCurrency(f.total)}</td>
+                <td class="py-3 text-muted tnum" data-label="Abonado" style="font-size: 13px;">${this.formatCurrency(f.totalAbonado)}</td>
+                <td class="py-3 text-danger fw-bold td-saldo-pendiente tnum" data-label="Saldo Pendiente" style="font-size: 14px;">${this.formatCurrency(f.saldo)}</td>
+                <td class="py-3 text-end td-monto-pagar" data-label="Monto a Pagar" style="width: 160px;">
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-light text-muted">$</span>
+                        <input type="text" class="form-control monto-abono text-end fw-bold text-danger tnum" 
+                            data-id="${f.id}" 
+                            data-pago-id="${f.pagoIdExistente || ''}" 
+                            data-saldo="${f.saldo}" 
+                            data-monto-existente="${f.montoExistente || 0}" 
+                            data-total="${f.total || 0}"
+                            value="${montoInicial}"
+                            inputmode="decimal" autocomplete="off" style="font-size: 13px;">
+                    </div>
+                </td>
+                <td class="pe-3 py-3 text-end text-muted tnum td-nuevo-saldo-col" data-label="Nuevo Saldo" style="font-size: 12px;">
+                    ${this.formatCurrency(nuevoSaldoInicial)}
+                </td>
+            </tr>
+            `;
+        }).join('');
+
         element.innerHTML = `
-            <div class="dash-layout p-4" style="max-width: 1200px; margin: 0 auto;">
-                <div class="mb-4">
-                    <button onclick="window.location.hash='#/gastos/pagos'" class="btn btn-light border btn-sm rounded-pill mb-2">
-                        <i class="bi bi-arrow-left"></i> Volver a Pagos
-                    </button>
-                    <h2 class="h3 fw-bold mb-0" style="color: var(--text-main);">Registrar Pagos Multi-Factura</h2>
+            <div class="dash-layout p-4" style="max-width: 1350px; margin: 0 auto;">
+                
+                <!-- TOP BAR DE ALTO IMPACTO (ESTILO GASTOS OPERATIVOS) -->
+                <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4 pb-2 border-bottom">
+                    <div>
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <button onclick="window.history.back()" class="btn btn-sm btn-light bg-white border text-secondary shadow-xs d-flex align-items-center gap-1" style="border-radius: 8px; font-weight: 500;">
+                                <i class="bi bi-arrow-left"></i> Volver
+                            </button>
+                            <span class="badge" style="background-color: #fef2f2; color: #dc2626; font-size: 11px; font-weight: 700; border-radius: 9999px; padding: 4px 10px; border: 1px solid #fecaca;">
+                                <i class="bi bi-wallet2 me-1"></i> Compras & Egresos
+                            </span>
+                        </div>
+                        <h3 class="fw-bold mb-0" style="color: var(--text-main); font-size: 22px;">${tituloVista}</h3>
+                        <p class="text-muted mb-0" style="font-size: 13px;">
+                            Registro y distribución inteligente de pagos sobre facturas de compras a proveedores.
+                        </p>
+                    </div>
+
+                    <div class="d-flex align-items-center gap-2">
+                        <button type="button" class="btn btn-light bg-white border text-secondary shadow-xs btn-sm" id="btn-refrescar-datos" style="border-radius: 8px;" title="Refrescar">
+                            <i class="bi bi-arrow-clockwise"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 4 KPI CARDS DINÁMICAS (ESTILO GASTOS OPERATIVOS) -->
+                <div class="row g-3 mb-4">
+                    <!-- KPI 1: Deuda Total -->
+                    <div class="col-12 col-sm-6 col-lg-3">
+                        <div class="payment-kpi-card">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <span class="ds-kpi-label">Deuda Total Proveedor</span>
+                                <div class="payment-kpi-icon out-bg">
+                                    <i class="bi bi-wallet2"></i>
+                                </div>
+                            </div>
+                            <div class="payment-kpi-value fw-bold text-danger tnum" id="display-deuda-total" style="font-size: 22px;">
+                                ${this.formatCurrency(this.deudaTotal)}
+                            </div>
+                            <div class="mt-2 text-muted" style="font-size: 11px;">
+                                Saldo exigible en facturas de compra
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- KPI 2: Facturas Pendientes -->
+                    <div class="col-12 col-sm-6 col-lg-3">
+                        <div class="payment-kpi-card">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <span class="ds-kpi-label">Facturas con Saldo</span>
+                                <div class="payment-kpi-icon blue-bg">
+                                    <i class="bi bi-collection"></i>
+                                </div>
+                            </div>
+                            <div class="payment-kpi-value fw-bold text-dark tnum" style="font-size: 22px;">
+                                ${this.facturasData.length}
+                            </div>
+                            <div class="mt-2 text-muted" style="font-size: 11px;">
+                                Facturas pendientes por pagar
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- KPI 3: Total a Pagar -->
+                    <div class="col-12 col-sm-6 col-lg-3">
+                        <div class="payment-kpi-card" style="border-left: 3px solid #dc2626;">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <span class="ds-kpi-label">Total a Pagar</span>
+                                <div class="payment-kpi-icon out-bg">
+                                    <i class="bi bi-cash-stack"></i>
+                                </div>
+                            </div>
+                            <div class="payment-kpi-value fw-bold text-danger tnum" id="total-pagar-display" style="font-size: 22px;">
+                                $0,00
+                            </div>
+                            <div class="mt-2 text-muted" style="font-size: 11px;">
+                                Monto total de este comprobante de egreso
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- KPI 4: Deuda Restante Proyectada -->
+                    <div class="col-12 col-sm-6 col-lg-3">
+                        <div class="payment-kpi-card">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <span class="ds-kpi-label">Saldo Restante Estimado</span>
+                                <div class="payment-kpi-icon pending-bg">
+                                    <i class="bi bi-hourglass-split"></i>
+                                </div>
+                            </div>
+                            <div class="payment-kpi-value fw-bold text-secondary tnum" id="display-saldo-restante" style="font-size: 22px;">
+                                ${this.formatCurrency(this.deudaTotal)}
+                            </div>
+                            <div class="mt-2 text-muted" style="font-size: 11px;">
+                                Saldo proveedor tras aplicar pago
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="row g-4">
-                    <!-- Columna Izquierda: Configuración del Pago -->
+                    <!-- COLUMNA IZQUIERDA: CONFIGURACIÓN DEL EGRESO (ESTILO GASTOS OPERATIVOS) -->
                     <div class="col-lg-4">
-                        <div class="dash-table-container p-4 mb-4">
-                            <h6 class="ds-kpi-label mb-1">Proveedor</h6>
-                            ${proveedor ? `<h4 class="fw-bold mb-3" style="color: var(--text-main);">${escapeHtml(proveedor.nombre)}</h4>` : `
-                            <div class="custom-combobox position-relative mb-3" id="combo-proveedor-container">
-                                <input type="text" class="form-control" id="pago-proveedor-search" placeholder="Buscar proveedor por nombre o NIT..." autocomplete="off">
+                        <!-- Tarjeta Tercero / Proveedor -->
+                        <div class="card border rounded-3 p-3 mb-3 bg-white shadow-xs" style="border-color: var(--border-color);">
+                            <span class="ds-kpi-label mb-2 d-block">Proveedor</span>
+                            ${proveedor ? `
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="payment-avatar" style="background-color: ${avatar.bg}; color: ${avatar.color}; width: 44px; height: 44px; font-size: 15px;">
+                                    ${avatar.initials}
+                                </div>
+                                <div style="overflow: hidden;">
+                                    <h5 class="fw-bold mb-0 text-truncate" style="color: var(--text-main); font-size: 15px;">${escapeHtml(proveedor.nombre)}</h5>
+                                    <div class="text-muted" style="font-size: 12px;">NIT / ID: ${escapeHtml(proveedor.identificacion || 'N/A')}</div>
+                                </div>
+                            </div>
+                            ` : `
+                            <div class="custom-combobox position-relative" id="combo-proveedor-container">
+                                <input type="text" class="form-control" id="pago-proveedor-search" placeholder="Buscar proveedor por nombre o NIT..." autocomplete="off" style="border-radius: 8px;">
                                 <input type="hidden" id="pago-proveedor-id">
                             </div>
                             `}
-                            <div class="d-flex justify-content-between pt-3" style="border-top: 1px solid var(--border-color);">
-                                <span class="text-muted">Deuda Total:</span>
-                                <span class="fw-bold text-danger fs-5">${this.formatCurrency(this.deudaTotal)}</span>
-                            </div>
                         </div>
 
-                        <div class="dash-table-container p-4">
-                            <h5 class="fw-bold mb-4" style="color: var(--text-main);">Detalles del Recibo</h5>
-                            
+                        <!-- Tarjeta Parámetros del Pago -->
+                        <div class="card border rounded-3 p-4 bg-white shadow-xs" style="border-color: var(--border-color);">
+                            <h6 class="fw-bold mb-3 d-flex align-items-center gap-2" style="color: var(--text-main); font-size: 14px;">
+                                <i class="bi bi-credit-card text-danger"></i> Parámetros de la Transacción
+                            </h6>
+
                             <div class="mb-3">
-                                <label class="form-label text-muted" style="font-size: 13px;">Cuenta de Origen</label>
-                                <select id="pago-cuenta" class="form-select">
+                                <label class="form-label text-muted fw-semibold mb-1" style="font-size: 12px;">Cuenta Bancaria / Caja Origen *</label>
+                                <select id="pago-cuenta" class="form-select" style="border-radius: 8px; font-size: 13px;" required>
                                     ${cuentasOptions}
                                 </select>
                             </div>
-                            
+
                             <div class="mb-3">
-                                <label class="form-label text-muted" style="font-size: 13px;">Método de Pago</label>
-                                <select id="pago-metodo" class="form-select">
-                                    <option value="transferencia">Transferencia</option>
-                                    <option value="efectivo">Efectivo</option>
-                                    <option value="tarjeta">Tarjeta</option>
-                                    <option value="otro">Otro</option>
+                                <label class="form-label text-muted fw-semibold mb-1" style="font-size: 12px;">Método de Pago *</label>
+                                <select id="pago-metodo" class="form-select" style="border-radius: 8px; font-size: 13px;">
+                                    <option value="transferencia" ${metodoSeleccionado === 'transferencia' ? 'selected' : ''}>Transferencia Bancaria</option>
+                                    <option value="efectivo" ${metodoSeleccionado === 'efectivo' ? 'selected' : ''}>Efectivo</option>
+                                    <option value="tarjeta" ${metodoSeleccionado === 'tarjeta' ? 'selected' : ''}>Tarjeta Débito/Crédito</option>
+                                    <option value="otro" ${metodoSeleccionado === 'otro' ? 'selected' : ''}>Otro medio</option>
                                 </select>
                             </div>
 
+                            <div class="mb-3">
+                                <label class="form-label text-muted fw-semibold mb-1" style="font-size: 12px;">Fecha del Pago *</label>
+                                <input type="date" id="pago-fecha" class="form-control" value="${fechaValor}" style="border-radius: 8px; font-size: 13px;">
+                            </div>
+
                             <div class="mb-4">
-                                <label class="form-label text-muted" style="font-size: 13px;">Fecha de Pago</label>
-                                <input type="date" id="pago-fecha" class="form-control" value="${getLocalDate()}">
+                                <label class="form-label text-muted fw-semibold mb-1" style="font-size: 12px;">Nota o Referencia</label>
+                                <input type="text" id="pago-nota" class="form-control" value="${escapeHtml(this.observacionesOriginal || '')}" placeholder="Ej. Pago con transferencia ref #1234..." style="border-radius: 8px; font-size: 13px;">
                             </div>
 
-                            <div class="p-3 bg-success bg-opacity-10 rounded-3 mb-4 text-center border border-success border-opacity-25">
-                                <h6 class="text-success fw-bold mb-1">TOTAL A PAGAR</h6>
-                                <h2 id="total-pagar-display" class="fw-bold text-success mb-0">$0.00</h2>
-                            </div>
-
-                            <button id="btn-registrar" class="btn btn-primary-action w-100 py-3 fw-bold" disabled>
-                                <i class="bi bi-check-circle me-2"></i>Registrar Pagos
+                            <button id="btn-registrar" class="btn btn-primary-action w-100 py-3 fw-bold shadow-xs d-flex align-items-center justify-content-center gap-2" style="border-radius: 10px; font-size: 15px;" disabled>
+                                <i class="bi bi-check-circle-fill"></i> ${btnTexto}
                             </button>
                         </div>
                     </div>
 
-                    <!-- Columna Derecha: Tabla de Facturas -->
+                    <!-- COLUMNA DERECHA: TABLA Y HERRAMIENTA DE DISTRIBUCIÓN (ESTILO GASTOS OPERATIVOS) -->
                     <div class="col-lg-8">
-                        <div class="dash-table-container h-100">
-                            <div class="p-4" style="border-bottom: 1px solid var(--border-color);">
-                                <h5 class="fw-bold mb-0" style="color: var(--text-main);">Facturas Pendientes</h5>
+                        <div class="card border rounded-3 bg-white shadow-xs" style="border-color: var(--border-color); overflow: hidden;">
+                            
+                            <!-- BARRA DE AUTO-DISTRIBUCIÓN RÁPIDA -->
+                            <div class="p-3 bg-light border-bottom">
+                                <div class="row g-2 align-items-center">
+                                    <div class="col-12 col-md-5">
+                                        <label class="form-label text-muted fw-semibold mb-1" style="font-size: 12px;">
+                                            <i class="bi bi-lightning-charge text-danger"></i> Monto Total Girado / a Pagar
+                                        </label>
+                                        <div class="input-group input-group-sm">
+                                            <span class="input-group-text bg-white fw-bold text-muted">$</span>
+                                            <input type="text" id="input-monto-consignado-global" class="form-control fw-bold text-danger tnum" placeholder="0" autocomplete="off" style="font-size: 14px;">
+                                            <button type="button" class="btn btn-primary-action" id="btn-aplicar-auto-distribucion" title="Distribuir automáticamente en facturas más antiguas">
+                                                <i class="bi bi-magic me-1"></i> Auto-Distribuir
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-md-7 d-flex justify-content-md-end align-items-center gap-2 pt-2 pt-md-0">
+                                        <button type="button" class="btn btn-sm btn-white bg-white border text-secondary shadow-xs" id="btn-seleccionar-todas" style="border-radius: 6px; font-size: 12px;">
+                                            <i class="bi bi-check-all"></i> Saldar Todas
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-white bg-white border text-secondary shadow-xs" id="btn-limpiar-montos" style="border-radius: 6px; font-size: 12px;">
+                                            <i class="bi bi-eraser"></i> Limpiar
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="table-responsive">
-                                <table class="table table-borderless align-middle mb-0 tabla-pagos-multi">
-                                    <thead>
+
+                            <!-- TABLA DE FACTURAS -->
+                            <div class="table-responsive" style="min-height: 250px;">
+                                <table class="table table-hover table-borderless align-middle mb-0 w-100 tabla-pagos-multi">
+                                    <thead style="background-color: #f8fafc; border-bottom: 1px solid #e2e8f0;">
                                         <tr>
-                                            <th class="py-2 fw-normal ps-4"># Factura</th>
-                                            <th class="py-2 fw-normal">Fecha</th>
-                                            <th class="py-2 fw-normal">Total Orig.</th>
-                                            <th class="py-2 fw-normal">Pagado</th>
-                                            <th class="py-2 fw-normal">Saldo Pendiente</th>
-                                            <th class="py-2 fw-normal text-end pe-4">Monto a Pagar</th>
+                                            <th class="ps-3 py-3" style="width: 40px;"></th>
+                                            <th class="py-3 text-uppercase text-muted fw-bold" style="font-size: 11px; letter-spacing: 0.5px;"># Factura Compra</th>
+                                            <th class="py-3 text-uppercase text-muted fw-bold" style="font-size: 11px; letter-spacing: 0.5px;">Fecha</th>
+                                            <th class="py-3 text-uppercase text-muted fw-bold" style="font-size: 11px; letter-spacing: 0.5px;">Total Orig.</th>
+                                            <th class="py-3 text-uppercase text-muted fw-bold" style="font-size: 11px; letter-spacing: 0.5px;">Abonado</th>
+                                            <th class="py-3 text-uppercase text-muted fw-bold" style="font-size: 11px; letter-spacing: 0.5px;">Saldo Pendiente</th>
+                                            <th class="py-3 text-end text-uppercase text-muted fw-bold" style="font-size: 11px; letter-spacing: 0.5px; width: 160px;">Monto a Pagar</th>
+                                            <th class="pe-3 py-3 text-end text-uppercase text-muted fw-bold" style="font-size: 11px; letter-spacing: 0.5px;">Nuevo Saldo</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -195,8 +426,16 @@ export default {
                                     </tbody>
                                 </table>
                             </div>
-                            <div class="p-3 text-end text-muted" style="font-size: var(--fs-xs); border-top: 1px solid var(--border-color);">
-                                Digite el monto a pagar en la casilla correspondiente a cada factura.
+
+                            <!-- FOOTER DE TABLA -->
+                            <div class="p-3 bg-white border-top d-flex flex-wrap justify-content-between align-items-center gap-2" style="font-size: 12px;">
+                                <span class="text-muted">
+                                    <i class="bi bi-info-circle me-1"></i> Ingrese el monto en cada factura de compra o use la barra superior de <strong>Auto-Distribuir</strong>.
+                                </span>
+                                <div>
+                                    <span class="text-muted">Total a Asignar: </span>
+                                    <strong class="text-danger fs-6 tnum" id="lbl-total-asignar-tabla">$0,00</strong>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -208,7 +447,7 @@ export default {
     attachEvents(element) {
         const searchInput = element.querySelector('#pago-proveedor-search');
         const hiddenIdEl = element.querySelector('#pago-proveedor-id');
-        
+
         if (searchInput && hiddenIdEl) {
             UI.createAsyncCombobox({
                 inputEl: searchInput,
@@ -234,33 +473,75 @@ export default {
 
         const inputs = element.querySelectorAll('.monto-abono');
         const display = element.querySelector('#total-pagar-display');
+        const displayAsignar = element.querySelector('#lbl-total-asignar-tabla');
+        const displayRestante = element.querySelector('#display-saldo-restante');
         const btnRegistrar = element.querySelector('#btn-registrar');
+        const inputConsignadoGlobal = element.querySelector('#input-monto-consignado-global');
+        const btnAutoDistribuir = element.querySelector('#btn-aplicar-auto-distribucion');
+        const btnSaldarTodas = element.querySelector('#btn-seleccionar-todas');
+        const btnLimpiar = element.querySelector('#btn-limpiar-montos');
+        const btnRefrescar = element.querySelector('#btn-refrescar-datos');
 
-        // Sumar dinámicamente
+        if (inputConsignadoGlobal) applyCurrencyFormatting(inputConsignadoGlobal);
+
+        // Recalcular sumas y estados dinámicos
         const updateSum = () => {
             let sum = 0;
+            let saldoRestanteProyectado = 0;
+
             inputs.forEach(input => {
                 let val = parseCurrencyValue(input.value);
                 let max = parseFloat(input.getAttribute('data-saldo')) || 0;
-                
-                // Autocorrección si el usuario digita más del saldo
+                if (this.grupoId) {
+                    const montoExistente = parseFloat(input.getAttribute('data-monto-existente')) || 0;
+                    const totalFactura = parseFloat(input.getAttribute('data-total')) || (max + montoExistente);
+                    max = Math.min(max + montoExistente, totalFactura);
+                }
+
                 if (val > max) { val = max; input.value = val; applyCurrencyFormatting(input); }
                 if (val < 0) { val = 0; input.value = 0; }
-                
+
+                const remanente = Math.max(0, max - val);
+                saldoRestanteProyectado += remanente;
+
+                const filaTr = input.closest('tr');
+                const celdaNuevoSaldo = filaTr ? filaTr.querySelector('.td-nuevo-saldo-col') : null;
+                const checkRow = filaTr ? filaTr.querySelector('.check-factura-pago') : null;
+
+                if (celdaNuevoSaldo) {
+                    celdaNuevoSaldo.textContent = this.formatCurrency(remanente);
+                    if (remanente <= 0.01 && val > 0) {
+                        celdaNuevoSaldo.innerHTML = '<span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 py-0 px-2">Saldada</span>';
+                    }
+                }
+
+                if (checkRow) {
+                    checkRow.checked = val > 0;
+                }
+
                 sum += val;
             });
-            display.innerText = this.formatCurrency(sum);
-            btnRegistrar.disabled = sum <= 0;
+
+            if (display) display.innerText = this.formatCurrency(sum);
+            if (displayAsignar) displayAsignar.innerText = this.formatCurrency(sum);
+            if (displayRestante) displayRestante.innerText = this.formatCurrency(saldoRestanteProyectado);
+            if (btnRegistrar) btnRegistrar.disabled = sum <= 0;
         };
 
+        const self = this;
         inputs.forEach(input => {
             applyCurrencyFormatting(input);
             input.addEventListener('input', updateSum);
-            input.addEventListener('focus', function() {
+            input.addEventListener('focus', function () {
                 const valorActual = parseCurrencyValue(this.value);
                 if (valorActual === 0) {
-                    const saldo = parseFloat(this.getAttribute('data-saldo')) || 0;
-                    this.value = saldo;
+                    let maxVal = parseFloat(this.getAttribute('data-saldo')) || 0;
+                    if (self.grupoId) {
+                        const montoExistente = parseFloat(this.getAttribute('data-monto-existente')) || 0;
+                        const totalFactura = parseFloat(this.getAttribute('data-total')) || (maxVal + montoExistente);
+                        maxVal = Math.min(maxVal + montoExistente, totalFactura);
+                    }
+                    this.value = maxVal;
                     applyCurrencyFormatting(this);
                     updateSum();
                 }
@@ -268,71 +549,235 @@ export default {
             });
         });
 
-        // Registrar
+        // Evento en checkboxes de cada fila
+        element.querySelectorAll('.check-factura-pago').forEach(chk => {
+            chk.addEventListener('change', (e) => {
+                const fila = e.target.closest('tr');
+                const inp = fila ? fila.querySelector('.monto-abono') : null;
+                if (!inp) return;
+
+                if (e.target.checked) {
+                    let maxVal = parseFloat(inp.getAttribute('data-saldo')) || 0;
+                    if (this.grupoId) {
+                        const montoExistente = parseFloat(inp.getAttribute('data-monto-existente')) || 0;
+                        const totalFactura = parseFloat(inp.getAttribute('data-total')) || (maxVal + montoExistente);
+                        maxVal = Math.min(maxVal + montoExistente, totalFactura);
+                    }
+                    inp.value = maxVal;
+                } else {
+                    inp.value = '0';
+                }
+                applyCurrencyFormatting(inp);
+                updateSum();
+            });
+        });
+
+        // Botón Auto-Distribuir por Monto Girado Global
+        if (btnAutoDistribuir && inputConsignadoGlobal) {
+            btnAutoDistribuir.addEventListener('click', () => {
+                const totalMonto = parseCurrencyValue(inputConsignadoGlobal.value) || 0;
+                if (totalMonto <= 0) {
+                    CoreActions.showWarningModal("Ingrese el valor total a girar para auto-distribuir.");
+                    return;
+                }
+
+                let disponible = totalMonto;
+                // Distribuir FIFO: de las primeras facturas a las últimas
+                inputs.forEach(input => {
+                    input.value = '0';
+                    applyCurrencyFormatting(input);
+                });
+
+                inputs.forEach(input => {
+                    if (disponible <= 0) return;
+                    let max = parseFloat(input.getAttribute('data-saldo')) || 0;
+                    if (this.grupoId) {
+                        const montoExistente = parseFloat(input.getAttribute('data-monto-existente')) || 0;
+                        const totalFactura = parseFloat(input.getAttribute('data-total')) || (max + montoExistente);
+                        max = Math.min(max + montoExistente, totalFactura);
+                    }
+                    const asignar = Math.min(disponible, max);
+                    input.value = asignar;
+                    applyCurrencyFormatting(input);
+                    disponible -= asignar;
+                });
+
+                updateSum();
+
+                if (disponible > 0) {
+                    CoreActions.showWarningModal(`El monto ingresado superó la deuda total de las facturas de compra. Quedó un excedente de ${this.formatCurrency(disponible)}.`);
+                }
+            });
+        }
+
+        // Botón Saldar Todas
+        if (btnSaldarTodas) {
+            btnSaldarTodas.addEventListener('click', () => {
+                inputs.forEach(input => {
+                    let max = parseFloat(input.getAttribute('data-saldo')) || 0;
+                    if (this.grupoId) {
+                        const montoExistente = parseFloat(input.getAttribute('data-monto-existente')) || 0;
+                        const totalFactura = parseFloat(input.getAttribute('data-total')) || (max + montoExistente);
+                        max = Math.min(max + montoExistente, totalFactura);
+                    }
+                    input.value = max;
+                    applyCurrencyFormatting(input);
+                });
+                updateSum();
+            });
+        }
+
+        // Botón Limpiar Montos
+        if (btnLimpiar) {
+            btnLimpiar.addEventListener('click', () => {
+                inputs.forEach(input => {
+                    input.value = '0';
+                    applyCurrencyFormatting(input);
+                });
+                if (inputConsignadoGlobal) {
+                    inputConsignadoGlobal.value = '';
+                }
+                updateSum();
+            });
+        }
+
+        // Botón Refrescar
+        if (btnRefrescar) {
+            btnRefrescar.addEventListener('click', () => {
+                element.innerHTML = this.renderLoading();
+                this.loadData(element);
+            });
+        }
+
+        if (this.grupoId) {
+            updateSum();
+        }
+
+        // Registrar / Guardar cambios
         btnRegistrar.addEventListener('click', async () => {
             const cuentaId = element.querySelector('#pago-cuenta').value;
             const metodo = element.querySelector('#pago-metodo').value;
             const fecha = element.querySelector('#pago-fecha').value;
 
             if (!cuentaId) {
-                CoreActions.showWarningModal("Debe seleccionar una cuenta bancaria de origen.");
+                CoreActions.showWarningModal("Debe seleccionar una cuenta bancaria o caja de origen.");
                 return;
             }
-
-            const abonos = [];
-            inputs.forEach(input => {
-                const val = parseCurrencyValue(input.value);
-                if (val > 0) {
-                    abonos.push({
-                        factura_id: input.getAttribute('data-id'),
-                        monto: val
-                    });
-                }
-            });
-
-            if (abonos.length === 0) return;
 
             btnRegistrar.disabled = true;
             btnRegistrar.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Guardando...';
 
             try {
-                // Registrar cada pago de forma iterativa y limpia
-                const grupoPagoId = 'pago_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
-                
-                let nextNumero = null;
-                const { data: numData, error: numError } = await supabase.rpc('get_next_numero_recibo');
-                if (!numError && numData) {
-                    nextNumero = numData;
-                }
+                if (this.grupoId) {
+                    const lineas = [];
+                    inputs.forEach(input => {
+                        lineas.push({
+                            pago_id: input.closest('tr')?.dataset?.pagoId || null,
+                            factura_id: input.getAttribute('data-id'),
+                            monto: parseCurrencyValue(input.value) || 0
+                        });
+                    });
 
-                for (const abono of abonos) {
-                    const transaccion = {
-                        id: 'trx_' + Date.now() + '_' + Math.floor(Math.random() * 10000),
-                        numero_recibo: nextNumero,
-                        factura_id: parseInt(abono.factura_id, 10),
-                        contacto_id: parseInt(this.proveedorId, 10),
-                        grupo_pago_id: grupoPagoId,
-                        tipo: 'out',
-                        monto: parseFloat(abono.monto),
+                    const updatePayload = {
                         fecha: fecha,
                         cuenta_id: parseInt(cuentaId, 10),
+                        categoria: this.categoriaOriginal || 'Pago Proveedores',
+                        observaciones: element.querySelector('#pago-nota') ? element.querySelector('#pago-nota').value : this.observacionesOriginal,
                         metodo_pago: metodo
                     };
-                    await DB.save('transacciones', transaccion);
-                    
-                    // Recalcular estado de la factura de forma centralizada en BD
-                    const fId = abono.factura_id;
-                    await supabase.rpc('recalcular_estado_factura', { p_factura_id: fId });
+
+                    const lineasAfectadas = lineas.filter(l => l.pago_id || l.monto > 0);
+                    const facturaIdsAfectadas = [...new Set(lineasAfectadas.map(l => l.factura_id).filter(Boolean))];
+                    let estadosFacturas = [];
+
+                    if (facturaIdsAfectadas.length > 0) {
+                        const { data: transaccionesF } = await supabase.from('pagos_ingresos').select('*').in('factura_id', facturaIdsAfectadas);
+                        const { data: facturasF } = await supabase.from('facturas').select('*').in('id', facturaIdsAfectadas);
+                        if (facturasF && transaccionesF) {
+                            const { calcularEstadoFactura } = await import('../../shared/carteraUtils.js');
+                            for (const f of facturasF) {
+                                f.estado = 'pendiente';
+                                let txM = transaccionesF.filter(tx => tx.factura_id === f.id).map(tx => {
+                                    const lineaMatch = lineas.find(l => l.pago_id && String(l.pago_id) === String(tx.id));
+                                    return { ...tx, monto: lineaMatch ? lineaMatch.monto : tx.monto, tipo: tx.tipo === 'in' ? 'ingreso' : 'egreso' };
+                                });
+                                const lineasNuevas = lineas.filter(l => !l.pago_id && l.monto > 0 && String(l.factura_id) === String(f.id));
+                                lineasNuevas.forEach((ln, index) => {
+                                    txM.push({ id: Date.now() + index, factura_id: f.id, tipo: 'egreso', estado: 'activo', fecha: updatePayload.fecha, observaciones: '', monto: ln.monto });
+                                });
+                                const metricas = calcularEstadoFactura(f, txM);
+                                estadosFacturas.push({ id: f.id, estado: metricas.estado });
+                            }
+                        }
+                    }
+
+                    const { error } = await supabase.rpc('editar_pago_grupo_lineas', {
+                        p_grupo_pago_id: this.grupoId,
+                        p_update_payload: updatePayload,
+                        p_lineas: lineas,
+                        p_estados_facturas: estadosFacturas
+                    });
+                    if (error) throw error;
+
+                    DB.invalidateCache('facturas');
+                    CoreActions.showWarningModal("Comprobante de egreso actualizado exitosamente.");
+                    window.location.hash = '#/gastos/pagos-realizados';
+
+                } else {
+                    const abonos = [];
+                    inputs.forEach(input => {
+                        const val = parseCurrencyValue(input.value);
+                        if (val > 0) {
+                            abonos.push({
+                                factura_id: input.getAttribute('data-id'),
+                                monto: val
+                            });
+                        }
+                    });
+
+                    if (abonos.length === 0) {
+                        CoreActions.showWarningModal("Debe abonar a al menos una factura de compra.");
+                        btnRegistrar.disabled = false;
+                        btnRegistrar.innerHTML = `<i class="bi bi-check-circle-fill"></i> ${btnTexto}`;
+                        return;
+                    }
+
+                    const grupoPagoId = 'pago_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
+
+                    let nextNumero = null;
+                    const { data: numData, error: numError } = await supabase.rpc('get_next_numero_recibo');
+                    if (!numError && numData) {
+                        nextNumero = numData;
+                    }
+
+                    for (const abono of abonos) {
+                        const transaccion = {
+                            id: 'trx_' + Date.now() + '_' + Math.floor(Math.random() * 10000),
+                            numero_recibo: nextNumero,
+                            factura_id: parseInt(abono.factura_id, 10),
+                            contacto_id: parseInt(this.proveedorId, 10),
+                            grupo_pago_id: grupoPagoId,
+                            tipo: 'egreso',
+                            monto: parseFloat(abono.monto),
+                            fecha: fecha,
+                            cuenta_id: parseInt(cuentaId, 10),
+                            metodo_pago: metodo,
+                            observaciones: element.querySelector('#pago-nota')?.value || null
+                        };
+                        await DB.save('transacciones', transaccion);
+                        await supabase.rpc('recalcular_estado_factura', { p_factura_id: abono.factura_id });
+                    }
+
+                    DB.invalidateCache('facturas');
+                    CoreActions.showWarningModal(`¡Se han registrado ${abonos.length} pagos exitosamente!`);
+                    window.location.hash = '#/gastos/pagos-realizados';
                 }
 
-                CoreActions.showWarningModal(`¡Se han registrado ${abonos.length} pagos exitosamente!`);
-                window.location.hash = '#/gastos/pagos';
-                
             } catch (error) {
-                console.error("Error guardando transacciones:", error);
-                CoreActions.showWarningModal("Error al procesar el guardado de transacciones.");
+                console.error("Error guardando transacciones de egreso:", error);
+                CoreActions.showWarningModal("Error al procesar el guardado de comprobantes de egreso.");
                 btnRegistrar.disabled = false;
-                btnRegistrar.innerHTML = '<i class="bi bi-check-circle me-2"></i>Registrar Pagos';
+                btnRegistrar.innerHTML = `<i class="bi bi-check-circle-fill"></i> ${this.grupoId ? 'Guardar Cambios' : 'Registrar Pago a Proveedor'}`;
             }
         });
     }

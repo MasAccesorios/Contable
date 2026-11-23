@@ -112,4 +112,28 @@ test('Smart Payment Allocation - Prioridad Factura Actual + Cascada FIFO', async
         const grupoPagoId = 'pago_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
         assert.match(grupoPagoId, /^pago_\d+_\d+$/);
     });
+
+    await t.test('debe soportar auto-distribución FIFO para facturas de compra a proveedores', () => {
+        const facturasCompras = [
+            { id: 'fc1', numero: '101', fecha: '2026-10-01', saldo: 350000 },
+            { id: 'fc2', numero: '102', fecha: '2026-10-15', saldo: 450000 },
+            { id: 'fc3', numero: '103', fecha: '2026-11-01', saldo: 200000 }
+        ];
+
+        // Se giran $500.000 al proveedor
+        const { resultado, remanenteSobrante, totalAplicado } = autoDistribuirPagos({
+            montoTotal: 500000,
+            facturas: facturasCompras,
+            priorizarFacturaId: null
+        });
+
+        assert.equal(totalAplicado, 500000);
+        assert.equal(remanenteSobrante, 0);
+        assert.equal(resultado[0].abono, 350000);
+        assert.equal(resultado[0].nuevoSaldo, 0);
+        assert.equal(resultado[1].abono, 150000);
+        assert.equal(resultado[1].nuevoSaldo, 300000);
+        assert.equal(resultado[2].abono, 0);
+        assert.equal(resultado[2].nuevoSaldo, 200000);
+    });
 });
