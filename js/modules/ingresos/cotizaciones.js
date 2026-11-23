@@ -1309,162 +1309,316 @@ export const CotizacionesModule = {
         const labelEstado = isFacturada ? 'Facturada' : 'Sin facturar';
 
         element.innerHTML = `
-            <div class=\"dash-layout p-4\" style=\"max-width: 1100px; margin: 0 auto;\">
-                <div class="d-flex justify-content-between align-items-start mb-4">
+            <div class="dash-layout p-3 p-md-4" style="max-width: 1350px; margin: 0 auto;">
+                
+                <!-- TOP BAR DE ALTO IMPACTO (ESTILO GASTOS OPERATIVOS) -->
+                <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4 pb-2 border-bottom">
                     <div>
-                        ${headerHtml}
-                        <div class="d-flex align-items-center gap-2">
-                            <h2 class="h3 fw-bold mb-0" style="color: var(--text-main);">${id ? 'Cotización No. ' + cotizacion.numero : 'Nueva cotización'}</h2>
-                            ${id ? `<span class="badge ${badgeClass} rounded-pill fw-medium" style="font-size: var(--fs-xs); padding: 5px 10px;">${labelEstado}</span>` : ''}
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <button type="button" class="btn btn-sm btn-light bg-white border text-secondary shadow-xs d-flex align-items-center gap-1 btn-volver-atras" style="border-radius: 8px; font-weight: 500;">
+                                <i class="bi bi-arrow-left"></i> Volver
+                            </button>
+                            <span class="badge" style="background-color: #eff6ff; color: #1d4ed8; font-size: 11px; font-weight: 700; border-radius: 9999px; padding: 4px 10px; border: 1px solid #bfdbfe;">
+                                <i class="bi bi-file-earmark-text me-1"></i> Ventas & Propuestas
+                            </span>
+                            ${id ? `<span class="badge ${badgeClass} rounded-pill fw-medium" style="font-size: 11px; padding: 4px 10px;">${labelEstado}</span>` : ''}
                         </div>
+                        <h2 class="page-title mb-0" style="font-size: 24px; font-weight: 800; color: #0f172a; letter-spacing: -0.5px;">
+                            ${id ? 'Cotización No. ' + (cotizacion.numero || id) : 'Nueva Cotización'}
+                        </h2>
+                        <p class="text-muted mb-0" style="font-size: 13px; margin-top: 3px;">
+                            Crea, parametriza y haz seguimiento comercial a ofertas para clientes con cálculo dinámico en tiempo real.
+                        </p>
                     </div>
-                    ${actionsHtml}
+
+                    <div class="d-flex flex-wrap align-items-center gap-2">
+                        ${actionsHtml}
+                    </div>
                 </div>
 
-                <div class="dash-table-container mb-4" style="overflow: visible;">
-                    <div class="card-body p-3 p-md-5">
-                        <!-- HEADER DOCUMENTO -->
-                        <div class="row mb-5 align-items-center">
-                            <div class="col-md-4">
-                                <img src="LogoMas.png" alt="Logo" style="max-height: 80px;">
+                <!-- 4 KPI CARDS DINÁMICAS (ESTILO GASTOS OPERATIVOS) -->
+                <div class="row g-3 mb-4">
+                    <!-- KPI 1: Total Cotización -->
+                    <div class="col-12 col-sm-6 col-lg-3">
+                        <div class="payment-kpi-card">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <span class="ds-kpi-label">Total Propuesta</span>
+                                <div class="payment-kpi-icon blue-bg">
+                                    <i class="bi bi-wallet2"></i>
+                                </div>
                             </div>
-                            <div class="col-md-4 text-center">
-                                <h5 class="fw-bold" style="color: var(--text-main);">Accesorios .</h5>
+                            <div class="payment-kpi-value fw-bold text-primary tnum" id="kpi-cot-total" style="font-size: 22px;">
+                                $0,00
                             </div>
-                            <div class="col-md-4">
-                                <select class="form-select mb-2 bg-light border-0">
-                                    <option>Cotización</option>
-                                </select>
-                                <div class="d-flex justify-content-between align-items-center text-muted" style="font-size: var(--fs-md);">
+                            <div class="mt-2 text-muted" style="font-size: 11px;">
+                                Valor neto cotizado al cliente
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- KPI 2: Ítems y Unidades -->
+                    <div class="col-12 col-sm-6 col-lg-3">
+                        <div class="payment-kpi-card">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <span class="ds-kpi-label">Ítems & Cantidad</span>
+                                <div class="payment-kpi-icon in-bg">
+                                    <i class="bi bi-box-seam"></i>
+                                </div>
+                            </div>
+                            <div class="payment-kpi-value fw-bold text-dark tnum" id="kpi-cot-items" style="font-size: 22px;">
+                                0 líneas
+                            </div>
+                            <div class="mt-2 text-muted" style="font-size: 11px;" id="kpi-cot-unidades">
+                                0 unidades en total
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- KPI 3: Descuento Otorgado -->
+                    <div class="col-12 col-sm-6 col-lg-3">
+                        <div class="payment-kpi-card">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <span class="ds-kpi-label">Descuento Global</span>
+                                <div class="payment-kpi-icon pending-bg">
+                                    <i class="bi bi-tag"></i>
+                                </div>
+                            </div>
+                            <div class="payment-kpi-value fw-bold text-warning-emphasis tnum" id="kpi-cot-descuentos" style="font-size: 22px;">
+                                $0,00
+                            </div>
+                            <div class="mt-2 text-muted" style="font-size: 11px;" id="kpi-cot-descuento-pct">
+                                0.0% de descuento total
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- KPI 4: Vigencia Comercial -->
+                    <div class="col-12 col-sm-6 col-lg-3">
+                        <div class="payment-kpi-card">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <span class="ds-kpi-label">Validez Comercial</span>
+                                <div class="payment-kpi-icon blue-bg">
+                                    <i class="bi bi-calendar-check"></i>
+                                </div>
+                            </div>
+                            <div class="payment-kpi-value fw-bold text-dark tnum" id="kpi-cot-vigencia" style="font-size: 22px;">
+                                15 días
+                            </div>
+                            <div class="mt-2 text-muted" style="font-size: 11px;" id="kpi-cot-vigencia-desc">
+                                Plazo de validez de la oferta
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CONTENEDOR 70/30 (ESTACIÓN DE TRABAJO FINANCIERA) -->
+                <div class="row g-4">
+                    <!-- COLUMNA PRINCIPAL (70% - Captura) -->
+                    <div class="col-12 col-lg-8">
+                        
+                        <!-- CARD 1: INFORMACIÓN COMERCIAL Y CLIENTE -->
+                        <div class="card border rounded-3 shadow-xs mb-4 bg-white" style="border-color: var(--border-color);">
+                            <div class="card-header bg-white border-bottom p-3 d-flex justify-content-between align-items-center">
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="payment-kpi-icon blue-bg" style="width: 32px; height: 32px; font-size: 15px;">
+                                        <i class="bi bi-person-badge"></i>
+                                    </div>
+                                    <h5 class="mb-0 fw-bold" style="color: var(--text-main); font-size: 15px;">
+                                        Información de la Propuesta
+                                    </h5>
+                                </div>
+                                <div class="d-flex align-items-center gap-2 text-muted" style="font-size: 12px;">
                                     <span id="lbl-numero">No. <strong style="color: var(--text-main);">${cotizacion.numero || '[Autogenerado al guardar]'}</strong></span>
-                                    ${!isViewOnly ? `<i class="bi bi-gear" id="btn-config-num" style="cursor: pointer;"></i>` : ''}
+                                    ${!isViewOnly ? `<i class="bi bi-gear" id="btn-config-num" style="cursor: pointer;" title="Configurar numeración"></i>` : ''}
+                                </div>
+                            </div>
+                            <div class="card-body p-3 p-md-4">
+                                <div class="row g-3">
+                                    <!-- Cliente -->
+                                    <div class="col-12 col-md-6">
+                                        <label class="form-label text-muted fw-semibold mb-1" style="font-size: 12px;">Cliente <span class="text-danger">*</span></label>
+                                        ${isViewOnly ? `
+                                        <a href="#/contactos/ver/${cotizacion.clienteId}" class="form-control form-control-sm text-decoration-none d-flex align-items-center justify-content-between" style="cursor:pointer; color: var(--text-body); background-color: #f8fafc; border-color: var(--border-color); height: 38px; border-radius: 8px;">
+                                            <span><i class="bi bi-person me-2 text-primary"></i>${escapeHtml(clienteNombreActual)}</span>
+                                            <i class="bi bi-box-arrow-up-right text-muted" style="font-size: 0.75rem;"></i>
+                                        </a>
+                                        <input type="hidden" id="select-cliente" value="${escapeHtml(cotizacion.clienteId || '')}">
+                                        ` : `
+                                        <div class="custom-combobox" id="combo-cliente-container">
+                                            <input type="text" id="search-cliente" class="form-control form-control-sm text-dark fw-medium" placeholder="Buscar cliente por nombre o NIT..." value="${escapeHtml(clienteNombreActual)}" autocomplete="off" style="border-radius: 8px; height: 38px;">
+                                            <input type="hidden" id="select-cliente" value="${escapeHtml(cotizacion.clienteId || '')}">
+                                        </div>
+                                        `}
+                                        <div id="cliente-info-badge" class="mt-2" style="display: ${clienteActual ? 'flex' : 'none'}; align-items: center; gap: 8px;">
+                                            <div class="badge-avatar" style="width: 24px; height: 24px; border-radius: 6px; background-color: #eff6ff; color: #1d4ed8; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center;">
+                                                ${escapeHtml(clienteActual ? (clienteActual.nombre.substring(0, 2).toUpperCase()) : '')}
+                                            </div>
+                                            <span class="text-muted" style="font-size: 11px;">
+                                                ${clienteActual && clienteActual.nit ? `NIT/CC: <strong>${escapeHtml(clienteActual.nit)}</strong>` : 'Cliente Registrado'}
+                                                ${clienteActual && clienteActual.telefono ? ` · Tel: ${escapeHtml(clienteActual.telefono)}` : ''}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Fecha de Creación -->
+                                    <div class="col-12 col-sm-6 col-md-3">
+                                        <label class="form-label text-muted fw-semibold mb-1" style="font-size: 12px;">Fecha de Creación *</label>
+                                        <input type="date" id="input-fecha" class="form-control form-control-sm" value="${cotizacion.fecha}" ${isViewOnly ? 'disabled' : ''} style="border-radius: 8px; height: 38px;">
+                                    </div>
+
+                                    <!-- Fecha de Vencimiento -->
+                                    <div class="col-12 col-sm-6 col-md-3">
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <label class="form-label text-muted fw-semibold mb-0" style="font-size: 12px;">Vencimiento</label>
+                                            ${!isViewOnly ? `
+                                            <div class="d-flex gap-1">
+                                                <button type="button" class="btn btn-xs btn-light border py-0 px-1 text-primary btn-set-dias" data-dias="15" style="font-size: 10px; border-radius: 4px;">+15d</button>
+                                                <button type="button" class="btn btn-xs btn-light border py-0 px-1 text-primary btn-set-dias" data-dias="30" style="font-size: 10px; border-radius: 4px;">+30d</button>
+                                            </div>
+                                            ` : ''}
+                                        </div>
+                                        <input type="date" id="input-vencimiento" class="form-control form-control-sm" value="${cotizacion.vencimiento}" ${isViewOnly ? 'disabled' : ''} style="border-radius: 8px; height: 38px;">
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- INFO COTIZACION -->
-                        <h6 class="fw-bold mb-3" style="color: var(--text-main);">Información de la cotización</h6>
-                        <div class="row mb-5 g-4">
-                            <div class="col-md-4">
-                                <label class="form-label" style="font-size: var(--fs-sm); font-weight: var(--weight-medium); color: var(--text-body);">Cliente <span class="text-danger">*</span></label>
-                                ${isViewOnly ? `
-                                <a href="#/contactos/ver/${cotizacion.clienteId}" class="form-control form-control-sm text-decoration-none d-flex align-items-center justify-content-between" style="cursor:pointer; color: var(--text-body); background-color: #e9ecef; border-color: #ced4da;">
-                                    ${escapeHtml(clienteNombreActual)}
-                                    <i class="bi bi-box-arrow-up-right text-muted" style="font-size: 0.75rem;"></i>
-                                </a>
-                                <input type="hidden" id="select-cliente" value="${escapeHtml(cotizacion.clienteId || '')}">
-                                ` : `
-                                <input type="text" id="search-cliente" class="form-control form-control-sm text-muted" placeholder="Buscar cliente..." value="${escapeHtml(clienteNombreActual)}" autocomplete="off">
-                                <input type="hidden" id="select-cliente" value="${escapeHtml(cotizacion.clienteId || '')}">
-                                `}
+                        <!-- CARD 2: PRODUCTOS Y SERVICIOS -->
+                        <div class="card border rounded-3 shadow-xs mb-4 bg-white" style="border-color: var(--border-color);">
+                            <div class="card-header bg-white border-bottom p-3 d-flex justify-content-between align-items-center">
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="payment-kpi-icon in-bg" style="width: 32px; height: 32px; font-size: 15px;">
+                                        <i class="bi bi-cart-check"></i>
+                                    </div>
+                                    <h5 class="mb-0 fw-bold" style="color: var(--text-main); font-size: 15px;">
+                                        Productos y Servicios
+                                    </h5>
+                                </div>
+                                ${!isViewOnly ? `
+                                <button id="btn-agregar-linea" type="button" class="btn btn-sm btn-light bg-white border text-primary shadow-xs d-flex align-items-center gap-1" style="border-radius: 8px; font-weight: 600; font-size: 12px;">
+                                    <i class="bi bi-plus-lg"></i> Agregar Línea
+                                </button>
+                                ` : ''}
                             </div>
-                            <div class="col-md-4">
-                                <label class="form-label" style="font-size: var(--fs-sm); font-weight: var(--weight-medium); color: var(--text-body);">Fecha de creación</label>
-                                <input type="date" id="input-fecha" class="form-control form-control-sm text-muted" value="${cotizacion.fecha}" ${isViewOnly ? 'disabled' : ''}>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label" style="font-size: var(--fs-sm); font-weight: var(--weight-medium); color: var(--text-body);">Fecha de vencimiento</label>
-                                <input type="date" id="input-vencimiento" class="form-control form-control-sm text-muted" value="${cotizacion.vencimiento}" ${isViewOnly ? 'disabled' : ''}>
+                            <div class="card-body p-0">
+                                <div class="table-responsive" style="overflow-x: auto; min-height: 120px;">
+                                    <table class="table align-middle mb-0" id="tabla-detalles" style="font-size: 13px;">
+                                        <thead class="bg-light" style="border-bottom: 1px solid var(--border-color);">
+                                            <tr class="text-muted fw-semibold" style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">
+                                                <th style="width: 35px;" class="text-center py-2">#</th>
+                                                <th style="min-width: 220px;" class="py-2">Producto o Servicio</th>
+                                                <th style="width: 100px;" class="py-2">Cant.</th>
+                                                <th style="width: 130px;" class="py-2">Precio Unit.</th>
+                                                <th style="width: 90px;" class="py-2">Desc %</th>
+                                                <th style="width: 90px;" class="py-2">IVA %</th>
+                                                <th style="width: 130px;" class="text-end py-2">Subtotal</th>
+                                                <th style="width: 40px;" class="text-center py-2"></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="tbody-detalles">
+                                            <!-- Líneas inyectadas por JS -->
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         </div>
 
-                        <hr class="mb-5" style="border-color: var(--border-color); opacity: 1;">
-
-                        <!-- PRODUCTOS -->
-                        <h6 class="fw-bold mb-3" style="color: var(--text-main);">Productos y servicios</h6>
-                        <div class="table-responsive mb-3" style="overflow: visible;">
-                            <table class="table table-borderless align-middle mb-0" id="tabla-detalles" style="font-size: var(--fs-base);">
-                                <thead style="border-bottom: 1px solid var(--border-color);">
-                                    <tr style="color: var(--text-muted); font-weight: var(--weight-regular);">
-                                        <th style="width: 40px;"><input type="checkbox" class="form-check-input" disabled></th>
-                                        <th style="width: 35%; min-width: 180px;">Producto o servicios</th>
-                                        <th style="width: 15%;">Cantidad</th>
-                                        <th style="width: 15%;">Precio</th>
-                                        <th style="width: 10%;">Desc %</th>
-                                        <th style="width: 12%;">Impto %</th>
-                                        <th class="text-end" style="width: 13%;">Subtotal</th>
-                                        <th style="width: 40px;"></th>
-                                    </tr>
-                                </thead>
-                                <tbody id="tbody-detalles">
-                                    <!-- Líneas dinámicas renderizadas por JS -->
-                                </tbody>
-                            </table>
+                        <!-- CARD 3: TÉRMINOS, NOTAS Y CONDICIONES -->
+                        <div class="card border rounded-3 shadow-xs mb-4 bg-white" style="border-color: var(--border-color);">
+                            <div class="card-header bg-white border-bottom p-3 d-flex align-items-center gap-2">
+                                <div class="payment-kpi-icon blue-bg" style="width: 32px; height: 32px; font-size: 15px;">
+                                    <i class="bi bi-card-text"></i>
+                                </div>
+                                <h5 class="mb-0 fw-bold" style="color: var(--text-main); font-size: 15px;">
+                                    Observaciones y Condiciones Comerciales
+                                </h5>
+                            </div>
+                            <div class="card-body p-3 p-md-4">
+                                <div class="row g-3">
+                                    <div class="col-12 col-md-6">
+                                        <label class="form-label text-muted fw-semibold mb-1" style="font-size: 12px;">Notas y Comentarios (Visibles al Cliente)</label>
+                                        <textarea id="input-notas" class="form-control text-dark" rows="3" style="font-size: 13px; border-radius: 8px; resize: none;" placeholder="Ej. Precios válidos según disponibilidad de inventario..." ${isViewOnly ? 'disabled' : ''}>${escapeHtml(cotizacion.notas)}</textarea>
+                                    </div>
+                                    <div class="col-12 col-md-6">
+                                        <label class="form-label text-muted fw-semibold mb-1" style="font-size: 12px;">Términos y Condiciones de la Oferta</label>
+                                        <textarea id="input-terminos" class="form-control text-dark" rows="3" style="font-size: 13px; border-radius: 8px; resize: none;" placeholder="Cláusulas de validez, entregas, garantías..." ${isViewOnly ? 'disabled' : ''}>${escapeHtml(cotizacion.terminosCondiciones)}</textarea>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        
-                        ${!isViewOnly ? `
-                        <button id="btn-agregar-linea" class="btn btn-link text-decoration-none p-0 mb-5" style="font-size: var(--fs-md); font-weight: var(--weight-medium); color: var(--primary);">
-                            <i class="bi bi-plus-lg me-1"></i>Agregar línea
-                        </button>
+
+                        <!-- DOCUMENTOS RELACIONADOS (Solo Vista) -->
+                        ${isViewOnly && cotizacion.convertidoAFactura && cotizacion.facturaDestinoId ? `
+                        <div class="card border rounded-3 shadow-xs mb-4 bg-white" style="border-color: var(--border-color);">
+                            <div class="card-header bg-white border-bottom p-3 d-flex align-items-center gap-2">
+                                <i class="bi bi-link-45deg text-primary fs-5"></i>
+                                <h5 class="mb-0 fw-bold" style="color: var(--text-main); font-size: 15px;">Documento Relacionado</h5>
+                            </div>
+                            <div class="card-body p-3">
+                                <div class="card border shadow-xs" style="max-width: 320px; cursor: pointer; border-radius: 10px;" onclick="sessionStorage.setItem('origenVolver', JSON.stringify({hash: '#/ingresos/cotizaciones/ver/${cotizacion.id}', label: 'Volver a la cotización'})); window.location.hash='#/ingresos/facturas/ver/${cotizacion.facturaDestinoId}'">
+                                    <div class="card-body p-3 d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <small class="text-muted d-block" style="font-size: 11px;">Factura emitida a partir de esta oferta</small>
+                                            <span class="fw-bold text-primary" style="font-size: 14px;">Factura No. ${cotizacion.facturaDestinoNumero || cotizacion.facturaDestinoId}</span>
+                                        </div>
+                                        <i class="bi bi-box-arrow-up-right text-primary"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                         ` : ''}
 
-                        <!-- TOTALES -->
-                        <div class="row justify-content-end mb-5">
-                            <div class="col-md-4">
-                                <div class="d-flex justify-content-between mb-2" style="font-size: var(--fs-md); color: var(--text-body);">
-                                    <span>Subtotal</span><span id="tot-subtotal">$0,00</span>
-                                </div>
-                                <div class="d-flex justify-content-between mb-2" style="font-size: var(--fs-md); color: var(--text-body);">
-                                    <span>Descuento</span><span id="tot-descuento">$0,00</span>
-                                </div>
-                                <div class="d-flex justify-content-between mb-3" style="font-size: var(--fs-md); color: var(--text-body);">
-                                    <span>Impuestos</span><span id="tot-impuestos">$0,00</span>
-                                </div>
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <span class="fw-bold" style="font-size: var(--fs-lg); color: var(--text-main);">Total</span>
-                                    <span class="fw-bold" id="tot-total" style="font-size: var(--fs-lg); color: var(--text-main);" data-raw-total="0">$0,00</span>
-                                </div>
-                            </div>
-                        </div>
-
                     </div>
-                </div>
 
-                <!-- TEXTAREAS ADICIONALES -->
-                <div class="mb-4">
-                    <h6 class="fw-bold mb-1" style="font-size: var(--fs-md); color: var(--text-main);">Notas</h6>
-                    <textarea id="input-notas" class="form-control text-muted" rows="2" style="font-size: var(--fs-base); border-color: var(--border-color); resize: none;" placeholder="Agrega comentarios para aclarar datos de la cotización, serán visibles para tus clientes" ${isViewOnly ? 'disabled' : ''}>${escapeHtml(cotizacion.notas)}</textarea>
-                </div>
-                <div>
-                    <h6 class="fw-bold mb-1" style="font-size: var(--fs-md); color: var(--text-main);">Términos y condiciones</h6>
-                    <textarea id="input-terminos" class="form-control text-muted" rows="2" style="font-size: var(--fs-base); border-color: var(--border-color); resize: none;" placeholder="Define los términos y condiciones, y/o las posibles cláusulas en caso de reclamos" ${isViewOnly ? 'disabled' : ''}>${escapeHtml(cotizacion.terminosCondiciones)}</textarea>
-                </div>
-
-                <!-- DOCUMENTOS RELACIONADOS (Solo Vista) -->
-                ${isViewOnly && cotizacion.convertidoAFactura && cotizacion.facturaDestinoId ? `
-                <div class="mt-5">
-                    <h6 class="fw-bold mb-3" style="color: var(--text-main);">Documentos relacionados</h6>
-                    <ul class="nav nav-tabs mb-3" role="tablist" style="border-bottom: 2px solid var(--border-color);">
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-factura" type="button" role="tab" style="font-size: var(--fs-base); font-weight: var(--weight-medium); color: var(--text-main); border-bottom-color: transparent;">Factura relacionada</button>
-                        </li>
-                    </ul>
-                    
-                    <div class="tab-content border-0 p-0">
-                        <div class="tab-pane fade show active" id="tab-factura" role="tabpanel">
-                            <div class="card border border-light shadow-sm" style="max-width:300px; cursor:pointer;" onclick="sessionStorage.setItem('origenVolver', JSON.stringify({hash: '#/ingresos/cotizaciones/ver/${cotizacion.id}', label: 'Volver a la cotización'})); window.location.hash='#/ingresos/facturas/ver/${cotizacion.facturaDestinoId}'">
-                                <div class="card-body py-3 px-3 d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <small class="text-muted d-block" style="font-size: var(--fs-xs);">Ver documento destino</small>
-                                        <span class="fw-medium text-dark" style="font-size: var(--fs-md); color: var(--primary) !important;">Factura</span>
+                    <!-- COLUMNA LATERAL (30% - Sticky Financial Summary) -->
+                    <div class="col-12 col-lg-4">
+                        <div class="sticky-summary-card">
+                            <div class="card border rounded-3 shadow-xs bg-white mb-3" style="border-color: var(--border-color);">
+                                <div class="card-header bg-white border-bottom p-3 d-flex align-items-center gap-2">
+                                    <div class="payment-kpi-icon blue-bg" style="width: 32px; height: 32px; font-size: 15px;">
+                                        <i class="bi bi-receipt-cutoff"></i>
                                     </div>
-                                    <i class="bi bi-box-arrow-up-right text-muted" style="font-size: var(--fs-sm);"></i>
+                                    <h5 class="mb-0 fw-bold" style="color: var(--text-main); font-size: 15px;">
+                                        Resumen Financiero
+                                    </h5>
+                                </div>
+                                <div class="card-body p-4">
+                                    <div class="d-flex justify-content-between mb-2 text-muted" style="font-size: 13px;">
+                                        <span>Subtotal Bruto</span>
+                                        <span class="fw-semibold text-dark tnum" id="tot-subtotal">$0,00</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between mb-2 text-muted" style="font-size: 13px;">
+                                        <span>(-) Descuento</span>
+                                        <span class="fw-semibold text-danger tnum" id="tot-descuento">$0,00</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between mb-3 text-muted" style="font-size: 13px;">
+                                        <span>Impuestos (IVA)</span>
+                                        <span class="fw-semibold text-dark tnum" id="tot-impuestos">$0,00</span>
+                                    </div>
+                                    <hr style="border-color: var(--border-color); margin: 12px 0;">
+                                    <div class="d-flex justify-content-between align-items-baseline mb-2">
+                                        <span class="fw-bold text-dark" style="font-size: 16px;">Total Oferta</span>
+                                        <span class="fw-bold text-primary tnum fs-4" id="tot-total" data-raw-total="0">$0,00</span>
+                                    </div>
+                                    <div class="p-2 rounded-2 bg-light text-muted mb-3" style="font-size: 11px; font-style: italic;" id="tot-letras">
+                                        Cero Pesos M/CTE.
+                                    </div>
+
+                                    ${!isViewOnly ? `
+                                    <div class="d-grid gap-2 pt-2">
+                                        <button id="btn-guardar" type="button" class="btn btn-primary-action py-2 d-flex align-items-center justify-content-center gap-2 shadow-xs" style="font-weight: 600; border-radius: 8px;">
+                                            <i class="bi bi-check-circle"></i> Guardar Cotización
+                                        </button>
+                                        <button id="btn-cancelar" type="button" class="btn btn-light bg-white border text-secondary py-2" style="font-weight: 500; border-radius: 8px;">
+                                            Descartar Cambios
+                                        </button>
+                                    </div>
+                                    ` : ''}
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-                ` : ''}
-
-                <!-- FOOTER ACTIONS -->
-                ${!isViewOnly ? `
-                <div class="d-flex justify-content-end gap-3 mb-5">
-                    <button id="btn-cancelar" class="btn btn-outline-secondary px-4 bg-white" style="font-weight: var(--weight-medium); border-color: var(--border-color);">
-                        Cancelar
-                    </button>
-                    <button id="btn-guardar" class="btn btn-primary px-5" style="font-weight: var(--weight-medium);">Guardar</button>
-                </div>
-                ` : ''}
             </div>
         `;
 
@@ -1487,159 +1641,211 @@ export const CotizacionesModule = {
         const tbody = element.querySelector('#tbody-detalles');
         let contadorLineas = 0;
 
-        // Renderizador de fila dinámica
+        // Renderizador de fila dinámica unificado con ItemEngine
         const addRow = (detalle) => {
             contadorLineas++;
-            const tr = document.createElement('tr');
-            tr.dataset.uid = detalle.id;
-            tr.style.borderBottom = '1px solid var(--border-color)';
-            tr.innerHTML = `
-                <td class="text-muted text-center num-linea align-top pt-3">${contadorLineas}</td>
-                <td class="align-top">
-                    ${ItemEngine.renderProductSearchBox(detalle, productos, isViewOnly)}
-                    <div class="meta-prod ps-1"></div>
-                </td>
-                <td class="align-top">
-                    <input type="number" min="0" class="form-control form-control-sm border-0 bg-light input-qty mb-1" value="${detalle.cantidad}" ${isViewOnly ? 'disabled' : ''}>
-                    <div class="meta-qty ps-1"></div>
-                </td>
-                <td class="align-top"><input type="text" class="form-control form-control-sm border-0 bg-light input-price" value="${detalle.precio}" placeholder="$" ${isViewOnly ? 'disabled' : ''}></td>
-                <td class="align-top"><input type="number" step="any" min="0" max="100" class="form-control form-control-sm border-0 bg-light input-disc" value="${detalle.descuento}" placeholder="0 %" ${isViewOnly ? 'disabled' : ''}></td>
-                <td class="align-top"><input type="number" step="any" min="0" max="100" class="form-control form-control-sm border-0 bg-light input-tax" value="${detalle.impuesto}" placeholder="%" ${isViewOnly ? 'disabled' : ''}></td>
-                <td class="text-end align-top pt-3">
-                    <span class="calc-subtotal fw-bold d-block" style="color: var(--text-main);">$0,00</span>
-                    <a href="#" class="toggle-desc-tax d-md-none text-decoration-none mt-2 d-inline-block" style="font-size: var(--fs-xs); color: var(--primary);">+ Editar descuento/impuesto</a>
-                </td>
-                <td class="text-center align-top pt-2">
-                    ${!isViewOnly ? `<button class="btn btn-link text-muted p-0 btn-eliminar-linea">
-                        <i class="bi bi-trash"></i>
-                    </button>` : ''}
-                </td>
-            `;
-            tbody.appendChild(tr);
-
-            // Toggle Descuento/Impuesto móvil
-            const toggleDesc = tr.querySelector('.toggle-desc-tax');
-            if (toggleDesc) {
-                toggleDesc.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    tr.classList.toggle('show-discount-tax');
-                    toggleDesc.textContent = tr.classList.contains('show-discount-tax') ? '- Ocultar descuento/impuesto' : '+ Editar descuento/impuesto';
-                });
-            }
-
-            // Delegar Eventos Principales al Motor Global (Auto-Pricing y Metadatos)
-            ItemEngine.bindLineEvents(tr, () => calcEngine(), productos);
-
-            if (!isViewOnly) {
-                // Disparadores locales del Math Engine
-                const inpQty = tr.querySelector('.input-qty');
-                const inpPrice = tr.querySelector('.input-price');
-                const inpDisc = tr.querySelector('.input-disc');
-                const inpTax = tr.querySelector('.input-tax');
-                import('../../shared/formatters.js').then(fmt => {
-                    fmt.applyCurrencyFormatting(inpPrice);
-                    [inpQty, inpPrice, inpDisc, inpTax].forEach(el => {
-                        el.addEventListener('input', () => calcEngine());
-                    });
-                });
-
-                // Eliminar línea
-                tr.querySelector('.btn-eliminar-linea').addEventListener('click', () => {
-                    tr.remove();
-                    reindexRows();
-                    calcEngine();
-                });
-            }
-
-            // Render inicial si había producto seleccionado (Edición)
-            if (detalle.productoId) {
-                // Forzar re-cálculo visual inicial si es necesario
-                const metaProd = tr.querySelector('.meta-prod');
-                const metaQty = tr.querySelector('.meta-qty');
-                const prod = productos.find(p => p.id === detalle.productoId);
-                if (prod) {
-                    if (metaProd) metaProd.innerHTML = `<span style="color: var(--text-muted); font-size: var(--fs-xs);">${escapeHtml(prod.sku) || 'S/N'}</span>`;
-                    if (metaQty) metaQty.innerHTML = `<span style="color: var(--text-muted); font-size: var(--fs-xs);">Disp: ${prod.stockActual || prod.cantidad || 0}</span>`;
-                }
-            }
+            ItemEngine.addRow({
+                detalle,
+                tbody,
+                isViewOnly,
+                productosFactura: productos,
+                contadorLineas,
+                calcEngine,
+                reindexRows,
+                isCompra: false
+            });
         };
 
         // Reindexador de numerales
         const reindexRows = () => {
-            contadorLineas = 0;
-            tbody.querySelectorAll('tr').forEach(tr => {
-                contadorLineas++;
-                tr.querySelector('.num-linea').textContent = contadorLineas;
-            });
+            contadorLineas = ItemEngine.reindexRows(tbody);
         };
 
-        // Motor Matemático (Dynamic Pricing & Totals)
-        const formatMoney = (val) => '$' + val.toLocaleString('es-CO', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-        
+        // Helper de formateo monetario
+        const formatMoney = (val) => '$' + Number(val || 0).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+        // Motor Matemático (Dynamic Pricing, Totals & 4 KPIs Reactivas)
         const calcEngine = () => {
             let sumSubtotal = 0;
             let sumDescuento = 0;
             let sumImpuestos = 0;
+            let totalUnits = 0;
 
             const formRows = Array.from(tbody.querySelectorAll('tr'));
             
             import('../../shared/formatters.js').then(fmt => {
+                const round2 = (val) => Math.round((Number(val) + Number.EPSILON) * 100) / 100;
+
                 formRows.forEach(tr => {
-                    const qty = parseFloat(tr.querySelector('.input-qty').value || 0);
-                    const price = fmt.parseCurrencyValue(tr.querySelector('.input-price').value);
-                    const discPct = parseFloat(tr.querySelector('.input-disc').value || 0);
-                    const taxPct = parseFloat(tr.querySelector('.input-tax').value || 0);
+                    const qty = parseFloat(tr.querySelector('.input-qty')?.value || 0);
+                    const price = fmt.parseCurrencyValue(tr.querySelector('.input-price')?.value || 0);
+                    const discPct = parseFloat(tr.querySelector('.input-disc')?.value || 0);
+                    const taxPct = parseFloat(tr.querySelector('.input-tax')?.value || 0);
 
-                    const baseLine = qty * price;
-                    const discAmount = baseLine * (discPct / 100);
-                    const subLine = baseLine - discAmount;
-                    const taxAmount = subLine * (taxPct / 100);
+                    const baseLine = round2(qty * price);
+                    const discAmount = round2(baseLine * (discPct / 100));
+                    const subLine = round2(baseLine - discAmount);
+                    const taxAmount = round2(subLine * (taxPct / 100));
 
-                    tr.querySelector('.calc-subtotal').textContent = formatMoney(subLine);
+                    const subtotalEl = tr.querySelector('.calc-subtotal');
+                    if (subtotalEl) subtotalEl.textContent = formatMoney(subLine);
 
-                    sumSubtotal += baseLine;
-                    sumDescuento += discAmount;
-                    sumImpuestos += taxAmount;
+                    sumSubtotal = round2(sumSubtotal + baseLine);
+                    sumDescuento = round2(sumDescuento + discAmount);
+                    sumImpuestos = round2(sumImpuestos + taxAmount);
+                    totalUnits += qty;
                 });
 
-                const totalFinal = sumSubtotal - sumDescuento + sumImpuestos;
+                const totalFinal = round2(sumSubtotal - sumDescuento + sumImpuestos);
                 
-                element.querySelector('#tot-subtotal').textContent = formatMoney(sumSubtotal);
-                element.querySelector('#tot-descuento').textContent = formatMoney(sumDescuento);
-                element.querySelector('#tot-impuestos').textContent = formatMoney(sumImpuestos);
-                const totalLbl = element.querySelector('#tot-total');
-                totalLbl.textContent = formatMoney(totalFinal);
-                totalLbl.dataset.rawTotal = totalFinal.toString();
+                const elSubtotal = element.querySelector('#tot-subtotal');
+                const elDescuento = element.querySelector('#tot-descuento');
+                const elImpuestos = element.querySelector('#tot-impuestos');
+                const elTotal = element.querySelector('#tot-total');
+                const elLetras = element.querySelector('#tot-letras');
+
+                if (elSubtotal) elSubtotal.textContent = formatMoney(sumSubtotal);
+                if (elDescuento) elDescuento.textContent = formatMoney(sumDescuento);
+                if (elImpuestos) elImpuestos.textContent = formatMoney(sumImpuestos);
+                if (elTotal) {
+                    elTotal.textContent = formatMoney(totalFinal);
+                    elTotal.dataset.rawTotal = totalFinal.toString();
+                }
+
+                // Monto en Letras
+                if (elLetras) {
+                    import('../../shared/numeroALetras.js').then(nl => {
+                        elLetras.textContent = nl.numeroALetras(totalFinal);
+                    });
+                }
+
+                // Reactividad en 4 KPI Cards
+                const kpiTotal = element.querySelector('#kpi-cot-total');
+                if (kpiTotal) kpiTotal.textContent = formatMoney(totalFinal);
+
+                const kpiItems = element.querySelector('#kpi-cot-items');
+                if (kpiItems) kpiItems.textContent = `${formRows.length} ${formRows.length === 1 ? 'línea' : 'líneas'}`;
+                const kpiUnds = element.querySelector('#kpi-cot-unidades');
+                if (kpiUnds) kpiUnds.textContent = `${totalUnits} ${totalUnits === 1 ? 'unidad' : 'unidades'} en total`;
+
+                const kpiDesc = element.querySelector('#kpi-cot-descuentos');
+                if (kpiDesc) kpiDesc.textContent = formatMoney(sumDescuento);
+                const kpiDescPct = element.querySelector('#kpi-cot-descuento-pct');
+                if (kpiDescPct) {
+                    const pct = sumSubtotal > 0 ? (sumDescuento / sumSubtotal) * 100 : 0;
+                    kpiDescPct.textContent = `${pct.toFixed(1)}% de descuento total`;
+                }
+
+                // Cálculo de Vigencia
+                const inpF = element.querySelector('#input-fecha');
+                const inpV = element.querySelector('#input-vencimiento');
+                const kpiVig = element.querySelector('#kpi-cot-vigencia');
+                const kpiVigDesc = element.querySelector('#kpi-cot-vigencia-desc');
+                if (kpiVig && inpF && inpV) {
+                    if (inpV.value && inpF.value) {
+                        const dF = new Date(inpF.value + 'T12:00:00');
+                        const dV = new Date(inpV.value + 'T12:00:00');
+                        const diffDays = Math.round((dV - dF) / (1000 * 60 * 60 * 24));
+                        if (diffDays >= 0) {
+                            kpiVig.textContent = `${diffDays} días`;
+                            kpiVigDesc.textContent = diffDays === 1 ? 'Válido por 1 día' : `Vence el ${inpV.value}`;
+                        } else {
+                            kpiVig.textContent = 'Vencida';
+                            kpiVigDesc.textContent = 'Fecha anterior a la creación';
+                        }
+                    } else {
+                        kpiVig.textContent = 'Indefinida';
+                        kpiVigDesc.textContent = 'Sin fecha de expiración';
+                    }
+                }
                 
-                cotizacion.total = totalFinal; // Mantener en estado global para guardado rápido
+                cotizacion.total = totalFinal;
             });
         };
 
         // Función Helper: Cálculo de Fecha de Vencimiento
         const calcularVencimiento = (cliente) => {
-            const plazos = parseInt(cliente.plazosPago || 0);
+            const plazos = parseInt(cliente.plazosPago || cliente.plazo || 0);
             const inputVencimiento = element.querySelector('#input-vencimiento');
             if (plazos > 0) {
-                const fechaCreacion = new Date(element.querySelector('#input-fecha').value);
+                const fechaCreacion = new Date(element.querySelector('#input-fecha').value + 'T12:00:00');
                 fechaCreacion.setDate(fechaCreacion.getDate() + plazos);
                 if (inputVencimiento) inputVencimiento.value = getLocalDate(fechaCreacion);
+            } else if (!inputVencimiento?.value) {
+                // Default 15 días para cotizaciones si no hay plazo explícito
+                const fechaCreacion = new Date(element.querySelector('#input-fecha').value + 'T12:00:00');
+                fechaCreacion.setDate(fechaCreacion.getDate() + 15);
+                if (inputVencimiento) inputVencimiento.value = getLocalDate(fechaCreacion);
+            }
+            calcEngine();
+        };
+
+        const actualizarBadgeCliente = (c) => {
+            const badgeEl = element.querySelector('#cliente-info-badge');
+            if (!badgeEl) return;
+            if (c) {
+                badgeEl.style.display = 'flex';
+                const av = getClientAvatar(c.nombre || 'Cliente');
+                badgeEl.innerHTML = `
+                    <div class="badge-avatar" style="width: 24px; height: 24px; border-radius: 6px; background-color: ${av.bg}; color: ${av.color}; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center;">
+                        ${escapeHtml(av.initials || 'CL')}
+                    </div>
+                    <span class="text-muted" style="font-size: 11px;">
+                        ${c.nit ? `NIT/CC: <strong>${escapeHtml(c.nit)}</strong>` : 'Cliente Registrado'}
+                        ${c.telefono ? ` · Tel: ${escapeHtml(c.telefono)}` : ''}
+                    </span>
+                `;
             } else {
-                if (inputVencimiento) inputVencimiento.value = '';
+                badgeEl.style.display = 'none';
             }
         };
 
-        // Inicialización de Combobox de Clientes y Cálculo de Vencimiento Automatizado
+        // Botón Volver de la Top Bar
+        element.querySelector('.btn-volver-atras')?.addEventListener('click', () => {
+            const origen = sessionStorage.getItem('origenVolver');
+            if (origen) {
+                try {
+                    const o = JSON.parse(origen);
+                    sessionStorage.removeItem('origenVolver');
+                    window.location.hash = o.hash;
+                    return;
+                } catch(e) {}
+            }
+            window.location.hash = '#/ingresos/cotizaciones';
+        });
+
+        // Botones rápidos de incremento de días (+15d, +30d)
+        element.querySelectorAll('.btn-set-dias').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const dias = parseInt(e.currentTarget.dataset.dias, 10);
+                const fCreacion = element.querySelector('#input-fecha')?.value;
+                if (fCreacion && dias > 0) {
+                    const d = new Date(fCreacion + 'T12:00:00');
+                    d.setDate(d.getDate() + dias);
+                    const inpVenc = element.querySelector('#input-vencimiento');
+                    if (inpVenc) {
+                        inpVenc.value = getLocalDate(d);
+                        calcEngine();
+                    }
+                }
+            });
+        });
+
+        // Escuchadores de cambio en fechas
+        element.querySelector('#input-fecha')?.addEventListener('change', () => calcEngine());
+        element.querySelector('#input-vencimiento')?.addEventListener('change', () => calcEngine());
+
+        // Inicialización de Combobox Asíncrono de Clientes
         if (!isViewOnly) {
-            UI.createCombobox({
+            UI.createAsyncCombobox({
                 inputEl: element.querySelector('#search-cliente'),
                 hiddenIdEl: element.querySelector('#select-cliente'),
-                items: clientes,
+                fetchItems: (query) => UI.fetchContactosCombobox(query, 'cliente'),
                 displayProp: 'nombre',
-                searchProps: ['nit', 'email'],
                 allowCreate: true,
                 onSelect: (selectedItem) => {
                     calcularVencimiento(selectedItem);
+                    actualizarBadgeCliente(selectedItem);
                 },
                 onCreate: (query) => {
                     ContactosModule.renderQuickModal(query, (nuevoContacto) => {
@@ -1647,6 +1853,7 @@ export const CotizacionesModule = {
                         const hiddenInput = element.querySelector('#select-cliente');
                         hiddenInput.value = nuevoContacto.id;
                         calcularVencimiento(nuevoContacto);
+                        actualizarBadgeCliente(nuevoContacto);
                     });
                 }
             });

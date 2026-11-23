@@ -1298,7 +1298,7 @@ export const FacturasModule = {
 
         const [contactos, cliDataResult, productosResult, vendedoresResult, dbCuentasResult] = await Promise.all([
             DB.getAll('contactos'),
-            factura.clienteId ? supabase.from('contactos').select('nombre').eq('id', factura.clienteId).single() : Promise.resolve({ data: null }),
+            factura.clienteId ? supabase.from('contactos').select('id, nombre, nit, telefono').eq('id', factura.clienteId).single() : Promise.resolve({ data: null }),
             pIdsIniciales.length > 0 ? supabase.from('productos').select('*').in('id', pIdsIniciales) : Promise.resolve({ data: [] }),
             supabase.from('vendedores').select('id, nombre').eq('estado', 'activo').order('nombre'),
             DB.getAll('cuentas_bancarias')
@@ -1342,250 +1342,414 @@ export const FacturasModule = {
         }
 
         element.innerHTML = `
-            <div class=\"dash-layout p-4\" style=\"max-width: 1100px; margin: 0 auto;\">
-                <div class="d-flex justify-content-between align-items-start mb-4">
+            <div class="dash-layout p-3 p-md-4" style="max-width: 1350px; margin: 0 auto;">
+                
+                <!-- TOP BAR DE ALTO IMPACTO (ESTILO GASTOS OPERATIVOS) -->
+                <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4 pb-2 border-bottom">
                     <div>
-                        ${headerHtml}
-                        <div class="d-flex align-items-center gap-2">
-                            <h2 class="h3 fw-bold mb-0" style="color: var(--text-main);">${id ? 'Factura No. ' + factura.numero : 'Nueva factura'}</h2>
-                            ${id ? `<span class="badge ${badgeClass} rounded-pill fw-medium" style="font-size: 11px; padding: 5px 10px;">${labelEstado}</span>` : ''}
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <button type="button" class="btn btn-sm btn-light bg-white border text-secondary shadow-xs d-flex align-items-center gap-1 btn-volver-atras" style="border-radius: 8px; font-weight: 500;">
+                                <i class="bi bi-arrow-left"></i> Volver
+                            </button>
+                            <span class="badge" style="background-color: #eff6ff; color: #1d4ed8; font-size: 11px; font-weight: 700; border-radius: 9999px; padding: 4px 10px; border: 1px solid #bfdbfe;">
+                                <i class="bi bi-receipt me-1"></i> Ventas & Facturación Directa
+                            </span>
+                            ${id ? `<span class="badge ${badgeClass} rounded-pill fw-medium" style="font-size: 11px; padding: 4px 10px;">${labelEstado}</span>` : ''}
                         </div>
+                        <h2 class="page-title mb-0" style="font-size: 24px; font-weight: 800; color: #0f172a; letter-spacing: -0.5px;">
+                            ${id ? 'Factura No. ' + (factura.numero || id) : 'Nueva Factura de Venta'}
+                        </h2>
+                        <p class="text-muted mb-0" style="font-size: 13px; margin-top: 3px;">
+                            Generación de facturas comerciales con descargo FIFO de inventario y trazabilidad contable.
+                        </p>
                     </div>
-                    <div class="d-flex align-items-center gap-2">
+
+                    <div class="d-flex flex-wrap align-items-center gap-2">
                         ${isViewOnly && id && factura.estado !== 'pagada' && !EstadoUtils.estaAnulado(factura.estado) ? 
-                            `<button class="btn btn-primary-action px-4 btn-abonar-detalle" data-id="${factura.id}" data-saldo="${factura.saldoPendiente}"><i class="bi bi-wallet2 me-2"></i>Registrar Pago</button>` 
+                            `<button class="btn btn-primary-action px-3 py-1 btn-sm btn-abonar-detalle d-flex align-items-center gap-1 shadow-xs" data-id="${factura.id}" data-saldo="${factura.saldoPendiente}" style="border-radius: 8px; font-weight: 600;"><i class="bi bi-wallet2"></i> Registrar Pago</button>` 
                             : ''}
                         ${actionsHtml}
                     </div>
                 </div>
 
-                <div class="dash-table-container mb-4" style="overflow: visible;">
-                    <div class="card-body p-3 p-md-5">
-                        <!-- HEADER DOCUMENTO -->
-                        <div class="row mb-4 align-items-center">
-                            <div class="col-12 col-md-4 mb-3 mb-md-0 text-center text-md-start">
-                                <img src="LogoMas.png" alt="Logo" style="max-height: 80px;">
+                <!-- 4 KPI CARDS DINÁMICAS (ESTILO GASTOS OPERATIVOS) -->
+                <div class="row g-3 mb-4">
+                    <!-- KPI 1: Total Factura -->
+                    <div class="col-12 col-sm-6 col-lg-3">
+                        <div class="payment-kpi-card">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <span class="ds-kpi-label">Total a Facturar</span>
+                                <div class="payment-kpi-icon in-bg">
+                                    <i class="bi bi-currency-dollar"></i>
+                                </div>
                             </div>
-                            <div class="col-12 col-md-4 text-center mb-3 mb-md-0">
-                                <h5 class="fw-bold" style="color: var(--text-main);">Accesorios .</h5>
+                            <div class="payment-kpi-value fw-bold text-success tnum" id="kpi-fac-total" style="font-size: 22px;">
+                                $0,00
                             </div>
-                            <div class="col-12 col-md-4 text-center text-md-end">
-                                <select class="form-select mb-2 bg-light border-0 d-inline-block w-auto">
-                                    <option>Factura de venta</option>
-                                </select>
-                                <div class="d-flex justify-content-center justify-content-md-end align-items-center text-muted" style="font-size: var(--fs-md);">
+                            <div class="mt-2 text-muted" style="font-size: 11px;">
+                                Monto total de la venta
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- KPI 2: Semáforo de Inventario FIFO -->
+                    <div class="col-12 col-sm-6 col-lg-3">
+                        <div class="payment-kpi-card">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <span class="ds-kpi-label">Disponibilidad Stock</span>
+                                <div class="payment-kpi-icon in-bg" id="kpi-fac-stock-icon">
+                                    <i class="bi bi-check-circle text-success"></i>
+                                </div>
+                            </div>
+                            <div class="payment-kpi-value fw-bold text-success" id="kpi-fac-stock" style="font-size: 20px;">
+                                Disponible
+                            </div>
+                            <div class="mt-2 text-muted" style="font-size: 11px;" id="kpi-fac-stock-desc">
+                                Existencias verificadas en almacén
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- KPI 3: Condición de Venta -->
+                    <div class="col-12 col-sm-6 col-lg-3">
+                        <div class="payment-kpi-card">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <span class="ds-kpi-label">Condición de Pago</span>
+                                <div class="payment-kpi-icon pending-bg" id="kpi-fac-condicion-icon">
+                                    <i class="bi bi-credit-card"></i>
+                                </div>
+                            </div>
+                            <div class="payment-kpi-value fw-bold text-dark" id="kpi-fac-condicion" style="font-size: 20px;">
+                                ${factura.tipoVenta === 'contado' ? 'De Contado' : 'A Crédito'}
+                            </div>
+                            <div class="mt-2 text-muted" style="font-size: 11px;" id="kpi-fac-condicion-desc">
+                                ${factura.tipoVenta === 'contado' ? 'Ingreso directo a caja/banco' : 'Cuenta por cobrar en cartera'}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- KPI 4: Cartera del Cliente -->
+                    <div class="col-12 col-sm-6 col-lg-3">
+                        <div class="payment-kpi-card">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <span class="ds-kpi-label">Cartera del Cliente</span>
+                                <div class="payment-kpi-icon blue-bg" id="kpi-fac-cartera-icon">
+                                    <i class="bi bi-clock-history"></i>
+                                </div>
+                            </div>
+                            <div class="payment-kpi-value fw-bold text-dark tnum" id="kpi-fac-cartera" style="font-size: 22px;">
+                                $0,00
+                            </div>
+                            <div class="mt-2 text-muted" style="font-size: 11px;" id="kpi-fac-cartera-desc">
+                                Saldo exigible en cartera
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CONTENEDOR 70/30 (ESTACIÓN DE TRABAJO FINANCIERA) -->
+                <div class="row g-4">
+                    <!-- COLUMNA PRINCIPAL (70% - Captura) -->
+                    <div class="col-12 col-lg-8">
+                        
+                        <!-- CARD 1: INFORMACIÓN COMERCIAL Y CLIENTE -->
+                        <div class="card border rounded-3 shadow-xs mb-4 bg-white" style="border-color: var(--border-color);">
+                            <div class="card-header bg-white border-bottom p-3 d-flex justify-content-between align-items-center">
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="payment-kpi-icon blue-bg" style="width: 32px; height: 32px; font-size: 15px;">
+                                        <i class="bi bi-person-badge"></i>
+                                    </div>
+                                    <h5 class="mb-0 fw-bold" style="color: var(--text-main); font-size: 15px;">
+                                        Parámetros de Facturación
+                                    </h5>
+                                </div>
+                                <div class="d-flex align-items-center gap-2 text-muted" style="font-size: 12px;">
                                     <span id="lbl-numero">No. <strong style="color: var(--text-main);">${factura.numero || '[Autogenerado al guardar]'}</strong></span>
-                                    ${!isViewOnly ? `<i class="bi bi-gear ms-2" id="btn-config-num" style="cursor: pointer;"></i>` : ''}
+                                    ${!isViewOnly ? `<i class="bi bi-gear" id="btn-config-num" style="cursor: pointer;" title="Configurar numeración"></i>` : ''}
+                                </div>
+                            </div>
+                            <div class="card-body p-3 p-md-4">
+                                <div class="row g-3">
+                                    <!-- Cliente -->
+                                    <div class="col-12 col-md-6">
+                                        <label class="form-label text-muted fw-semibold mb-1" style="font-size: 12px;">Cliente <span class="text-danger">*</span></label>
+                                        ${isViewOnly ? `
+                                        <a href="#/contactos/ver/${factura.clienteId}" class="form-control form-control-sm text-decoration-none d-flex align-items-center justify-content-between" style="cursor:pointer; color: var(--text-body); background-color: #f8fafc; border-color: var(--border-color); height: 38px; border-radius: 8px;">
+                                            <span><i class="bi bi-person me-2 text-primary"></i>${escapeHtml(clienteNombreActual)}</span>
+                                            <i class="bi bi-box-arrow-up-right text-muted" style="font-size: 0.75rem;"></i>
+                                        </a>
+                                        <input type="hidden" id="select-cliente" value="${escapeHtml(factura.clienteId || '')}">
+                                        ` : `
+                                        <div class="custom-combobox" id="combo-cliente-container">
+                                            <input type="text" id="search-cliente" class="form-control form-control-sm text-dark fw-medium" placeholder="Buscar cliente por nombre o NIT..." value="${escapeHtml(clienteNombreActual)}" autocomplete="off" style="border-radius: 8px; height: 38px;">
+                                            <input type="hidden" id="select-cliente" value="${escapeHtml(factura.clienteId || '')}">
+                                        </div>
+                                        `}
+                                        <div id="cliente-info-badge" class="mt-2" style="display: ${cliDataResult?.data ? 'flex' : 'none'}; align-items: center; gap: 8px;">
+                                            <div class="badge-avatar" style="width: 24px; height: 24px; border-radius: 6px; background-color: #eff6ff; color: #1d4ed8; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center;">
+                                                ${escapeHtml(cliDataResult?.data ? (cliDataResult.data.nombre.substring(0, 2).toUpperCase()) : '')}
+                                            </div>
+                                            <span class="text-muted" style="font-size: 11px;" id="cliente-info-text">
+                                                Cliente Seleccionado
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Tipo de Venta -->
+                                    <div class="col-12 col-sm-6 col-md-3">
+                                        <label class="form-label text-muted fw-semibold mb-1" style="font-size: 12px;">Tipo de Venta *</label>
+                                        <select id="select-tipo-venta" class="form-select form-select-sm" ${isViewOnly ? 'disabled' : ''} style="border-radius: 8px; height: 38px; font-weight: 500;">
+                                            <option value="credito" ${factura.tipoVenta === 'credito' || !factura.tipoVenta ? 'selected' : ''}>A Crédito (Cartera)</option>
+                                            <option value="contado" ${factura.tipoVenta === 'contado' ? 'selected' : ''}>De Contado (Caja)</option>
+                                        </select>
+                                    </div>
+
+                                    <!-- Cuenta de Contado -->
+                                    <div class="col-12 col-sm-6 col-md-3" id="container-cuenta-venta" style="display: ${factura.tipoVenta === 'contado' ? 'block' : 'none'};">
+                                        <label class="form-label text-muted fw-semibold mb-1" style="font-size: 12px;">Cuenta Destino *</label>
+                                        <select id="select-cuenta-venta" class="form-select form-select-sm" ${isViewOnly ? 'disabled' : ''} style="border-radius: 8px; height: 38px;">
+                                            ${cuentasActivas.map(c => `<option value="${c.id}" ${String(factura.cuentaId) === String(c.id) || factura.cuentaId === c.nombre ? 'selected' : ''}>${escapeHtml(c.nombre)}</option>`).join('')}
+                                        </select>
+                                    </div>
+
+                                    <!-- Fecha de Creación -->
+                                    <div class="col-12 col-sm-6 col-md-3">
+                                        <label class="form-label text-muted fw-semibold mb-1" style="font-size: 12px;">Fecha de Creación *</label>
+                                        <input type="date" id="input-fecha" class="form-control form-control-sm" value="${factura.fecha}" ${isViewOnly ? 'disabled' : ''} style="border-radius: 8px; height: 38px;">
+                                    </div>
+
+                                    <!-- Fecha de Vencimiento -->
+                                    <div class="col-12 col-sm-6 col-md-3">
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <label class="form-label text-muted fw-semibold mb-0" style="font-size: 12px;">Vencimiento</label>
+                                            ${!isViewOnly ? `
+                                            <div class="d-flex gap-1" id="btn-group-plazos">
+                                                <button type="button" class="btn btn-xs btn-light border py-0 px-1 text-primary btn-set-dias-fac" data-dias="15" style="font-size: 10px; border-radius: 4px;">+15d</button>
+                                                <button type="button" class="btn btn-xs btn-light border py-0 px-1 text-primary btn-set-dias-fac" data-dias="30" style="font-size: 10px; border-radius: 4px;">+30d</button>
+                                                <button type="button" class="btn btn-xs btn-light border py-0 px-1 text-primary btn-set-dias-fac" data-dias="60" style="font-size: 10px; border-radius: 4px;">+60d</button>
+                                            </div>
+                                            ` : ''}
+                                        </div>
+                                        <input type="date" id="input-vencimiento" class="form-control form-control-sm" value="${factura.vencimiento}" ${isViewOnly ? 'disabled' : ''} style="border-radius: 8px; height: 38px;">
+                                    </div>
+
+                                    <!-- Vendedor -->
+                                    <div class="col-12 col-sm-6 col-md-3">
+                                        <label class="form-label text-muted fw-semibold mb-1" style="font-size: 12px;">Vendedor / Asesor</label>
+                                        <select id="select-vendedor" class="form-select form-select-sm" ${isViewOnly ? 'disabled' : ''} style="border-radius: 8px; height: 38px;">
+                                            <option value="">Sin vendedor asignado</option>
+                                            ${(vendedoresActivos || []).map(v => `<option value="${v.id}" ${String(factura.vendedor_id) === String(v.id) ? 'selected' : ''}>${escapeHtml(v.nombre)}</option>`).join('')}
+                                        </select>
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- INFO FACTURA -->
-                        <h6 class="fw-bold mb-3" style="color: var(--text-main);">Información de la factura</h6>
-                        <div class="row mb-5 g-3">
-                            <div class="col-12 col-sm-6 col-md-3">
-                                <label class="form-label" style="font-size: var(--fs-sm); font-weight: var(--weight-medium); color: var(--text-body);">Cliente <span class="text-danger">*</span></label>
-                                ${isViewOnly ? `
-                                <a href="#/contactos/ver/${factura.clienteId}" class="form-control form-control-sm text-decoration-none d-flex align-items-center justify-content-between" style="cursor:pointer; color: var(--text-body); background-color: #e9ecef; border-color: #ced4da;">
-                                    ${escapeHtml(clienteNombreActual)}
-                                    <i class="bi bi-box-arrow-up-right text-muted" style="font-size: 0.75rem;"></i>
-                                </a>
-                                <input type="hidden" id="select-cliente" value="${escapeHtml(factura.clienteId || '')}">
-                                ` : `
-                                <input type="text" id="search-cliente" class="form-control form-control-sm text-muted" placeholder="Buscar cliente..." value="${escapeHtml(clienteNombreActual)}" autocomplete="off">
-                                <input type="hidden" id="select-cliente" value="${escapeHtml(factura.clienteId || '')}">
-                                `}
+                        <!-- CARD 2: PRODUCTOS Y SERVICIOS -->
+                        <div class="card border rounded-3 shadow-xs mb-4 bg-white" style="border-color: var(--border-color);">
+                            <div class="card-header bg-white border-bottom p-3 d-flex justify-content-between align-items-center">
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="payment-kpi-icon in-bg" style="width: 32px; height: 32px; font-size: 15px;">
+                                        <i class="bi bi-cart-check"></i>
+                                    </div>
+                                    <h5 class="mb-0 fw-bold" style="color: var(--text-main); font-size: 15px;">
+                                        Productos y Servicios Facturados
+                                    </h5>
+                                </div>
+                                ${!isViewOnly ? `
+                                <button id="btn-agregar-linea" type="button" class="btn btn-sm btn-light bg-white border text-primary shadow-xs d-flex align-items-center gap-1" style="border-radius: 8px; font-weight: 600; font-size: 12px;">
+                                    <i class="bi bi-plus-lg"></i> Agregar Línea
+                                </button>
+                                ` : ''}
                             </div>
-                            <div class="col-12 col-sm-6 col-md-3">
-                                <label class="form-label" style="font-size: var(--fs-sm); font-weight: var(--weight-medium); color: var(--text-body);">Tipo de Venta</label>
-                                <select id="select-tipo-venta" class="form-select form-select-sm text-muted" ${isViewOnly ? 'disabled' : ''}>
-                                    <option value="credito" ${factura.tipoVenta === 'credito' || !factura.tipoVenta ? 'selected' : ''}>A Crédito (Cartera)</option>
-                                    <option value="contado" ${factura.tipoVenta === 'contado' ? 'selected' : ''}>De Contado (Caja)</option>
-                                </select>
-                            </div>
-                            <div class="col-12 col-sm-6 col-md-3" id="container-cuenta-venta" style="display: ${factura.tipoVenta === 'contado' ? 'block' : 'none'};">
-                                <label class="form-label" style="font-size: var(--fs-sm); font-weight: var(--weight-medium); color: var(--text-body);">Cuenta (Contado)</label>
-                                <select id="select-cuenta-venta" class="form-select form-select-sm text-muted" ${isViewOnly ? 'disabled' : ''}>
-                                    ${cuentasActivas.map(c => `<option value="${escapeHtml(c.nombre)}" ${factura.cuentaId === c.nombre ? 'selected' : ''}>${escapeHtml(c.nombre)}</option>`).join('')}
-                                </select>
-                            </div>
-                            <div class="col-6 col-md-3">
-                                <label class="form-label" style="font-size: var(--fs-sm); font-weight: var(--weight-medium); color: var(--text-body);">Fecha de creación</label>
-                                <input type="date" id="input-fecha" class="form-control form-control-sm text-muted" value="${factura.fecha}" ${isViewOnly ? 'disabled' : ''}>
-                            </div>
-                            <div class="col-6 col-md-3">
-                                <label class="form-label" style="font-size: var(--fs-sm); font-weight: var(--weight-medium); color: var(--text-body);">Fecha de vencimiento</label>
-                                <input type="date" id="input-vencimiento" class="form-control form-control-sm text-muted" value="${factura.vencimiento}" ${isViewOnly ? 'disabled' : ''}>
-                            </div>
-                            <div class="col-6 col-md-3">
-                                <label class="form-label" style="font-size: var(--fs-sm); font-weight: var(--weight-medium); color: var(--text-body);">Vendedor (opcional)</label>
-                                <select id="select-vendedor" class="form-select form-select-sm text-muted" ${isViewOnly ? 'disabled' : ''}>
-                                    <option value="">Sin vendedor asignado</option>
-                                    ${(vendedoresActivos || []).map(v => `<option value="${v.id}" ${String(factura.vendedor_id) === String(v.id) ? 'selected' : ''}>${escapeHtml(v.nombre)}</option>`).join('')}
-                                </select>
+                            <div class="card-body p-0">
+                                <div class="table-responsive" style="overflow-x: auto; min-height: 120px;">
+                                    <table class="table align-middle mb-0" id="tabla-detalles" style="font-size: 13px;">
+                                        <thead class="bg-light" style="border-bottom: 1px solid var(--border-color);">
+                                            <tr class="text-muted fw-semibold" style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">
+                                                <th style="width: 35px;" class="text-center py-2">#</th>
+                                                <th style="min-width: 220px;" class="py-2">Producto o Servicio</th>
+                                                <th style="width: 100px;" class="py-2">Cant.</th>
+                                                <th style="width: 130px;" class="py-2">Precio Unit.</th>
+                                                <th style="width: 90px;" class="py-2">Desc %</th>
+                                                <th style="width: 90px;" class="py-2">IVA %</th>
+                                                <th style="width: 130px;" class="text-end py-2">Subtotal</th>
+                                                <th style="width: 40px;" class="text-center py-2"></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="tbody-detalles">
+                                            <!-- Líneas inyectadas por JS -->
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         </div>
 
-                        <hr class="mb-5" style="border-color: var(--border-color); opacity: 1;">
-
-                        <!-- PRODUCTOS -->
-                        <h6 class="fw-bold mb-3" style="color: var(--text-main);">Productos y servicios</h6>
-                        <div class="table-responsive mb-3" style="overflow: visible;">
-                            <table class="table table-borderless align-middle mb-0" id="tabla-detalles" style="font-size: var(--fs-base);">
-                                <thead style="border-bottom: 1px solid var(--border-color);">
-                                    <tr style="color: var(--text-muted); font-weight: var(--weight-regular);">
-                                        <th style="width: 40px;"><input type="checkbox" class="form-check-input" disabled></th>
-                                        <th style="width: 35%; min-width: 180px;">Producto o servicios</th>
-                                        <th style="width: 15%;">Cantidad</th>
-                                        <th style="width: 15%;">Precio</th>
-                                        <th style="width: 10%;">Desc %</th>
-                                        <th style="width: 12%;">Impto %</th>
-                                        <th class="text-end" style="width: 13%;">Subtotal</th>
-                                        <th style="width: 40px;"></th>
-                                    </tr>
-                                </thead>
-                                <tbody id="tbody-detalles">
-                                    <!-- Líneas dinámicas renderizadas por JS -->
-                                </tbody>
-                            </table>
+                        <!-- CARD 3: OBSERVACIONES Y TÉRMINOS -->
+                        <div class="card border rounded-3 shadow-xs mb-4 bg-white" style="border-color: var(--border-color);">
+                            <div class="card-header bg-white border-bottom p-3 d-flex align-items-center gap-2">
+                                <div class="payment-kpi-icon blue-bg" style="width: 32px; height: 32px; font-size: 15px;">
+                                    <i class="bi bi-card-text"></i>
+                                </div>
+                                <h5 class="mb-0 fw-bold" style="color: var(--text-main); font-size: 15px;">
+                                    Observaciones y Términos Comerciales
+                                </h5>
+                            </div>
+                            <div class="card-body p-3 p-md-4">
+                                <div class="row g-3">
+                                    <div class="col-12 col-md-6">
+                                        <label class="form-label text-muted fw-semibold mb-1" style="font-size: 12px;">Notas y Observaciones (Visibles en la Factura)</label>
+                                        <textarea id="input-notas" class="form-control text-dark" rows="3" style="font-size: 13px; border-radius: 8px; resize: none;" placeholder="Instrucciones de entrega, comentarios de despacho..." ${isViewOnly ? 'disabled' : ''}>${escapeHtml(factura.notas)}</textarea>
+                                    </div>
+                                    <div class="col-12 col-md-6">
+                                        <label class="form-label text-muted fw-semibold mb-1" style="font-size: 12px;">Términos y Condiciones Legales</label>
+                                        <textarea id="input-terminos" class="form-control text-dark" rows="3" style="font-size: 13px; border-radius: 8px; resize: none;" placeholder="Cuentas bancarias para el pago, condiciones de mora..." ${isViewOnly ? 'disabled' : ''}>${escapeHtml(factura.terminosCondiciones)}</textarea>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        
-                        ${!isViewOnly ? `
-                        <button id="btn-agregar-linea" class="btn btn-link text-decoration-none p-0 mb-5" style="font-size: var(--fs-md); font-weight: var(--weight-medium); color: var(--primary);">
-                            <i class="bi bi-plus-lg me-1"></i>Agregar línea
-                        </button>
+
+                        <!-- DOCUMENTOS RELACIONADOS (Solo Vista) -->
+                        ${isViewOnly ? `
+                        <div class="card border rounded-3 shadow-xs mb-4 bg-white" style="border-color: var(--border-color);">
+                            <div class="card-header bg-white border-bottom p-3">
+                                <ul class="nav nav-tabs border-0" role="tablist">
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link active fw-bold text-dark border-0 border-bottom border-primary border-2" data-bs-toggle="tab" data-bs-target="#tab-pagos" type="button" role="tab" style="font-size: 13px;">Pagos Recibidos</button>
+                                    </li>
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link text-muted border-0" data-bs-toggle="tab" data-bs-target="#tab-notas-credito" type="button" role="tab" style="font-size: 13px;">Notas de Crédito</button>
+                                    </li>
+                                    ${factura.cotizacion_origen_id ? `
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link text-muted border-0" data-bs-toggle="tab" data-bs-target="#tab-cotizacion" type="button" role="tab" style="font-size: 13px;">Cotización Origen</button>
+                                    </li>` : ''}
+                                </ul>
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="tab-content">
+                                    <div class="tab-pane fade show active p-3" id="tab-pagos" role="tabpanel">
+                                        <div class="table-responsive">
+                                            <table class="table table-sm align-middle mb-0" style="font-size: 13px;">
+                                                <thead>
+                                                    <tr class="text-muted" style="border-bottom: 1px solid var(--border-color);">
+                                                        <th class="fw-medium pb-2">Fecha</th>
+                                                        <th class="fw-medium pb-2">Cuenta</th>
+                                                        <th class="fw-medium pb-2">Método</th>
+                                                        <th class="fw-medium pb-2 text-end">Monto</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    ${(transacciones && transacciones.length > 0) ? transacciones.map((p, idx) => `
+                                                    <tr class="fila-pago" data-index="${idx}" style="border-bottom: 1px solid #f0f0f0; cursor: pointer; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#f8f9fa'" onmouseout="this.style.backgroundColor='transparent'">
+                                                        <td class="py-2 text-muted">${p.fecha || p.created_at?.split('T')[0] || ''}</td>
+                                                        <td class="py-2">${cuentasMap[p.cuentaId || p.cuenta_id] || (p.cuentaId || p.cuenta_id || '-')}</td>
+                                                        <td class="py-2">${p.metodo_pago || p.metodoPago || '-'}</td>
+                                                        <td class="py-2 text-end fw-medium tnum text-success">$${Number(p.monto || p.valor || 0).toLocaleString()}</td>
+                                                    </tr>`).join('') : `
+                                                    <tr><td colspan="4" class="text-muted text-center py-4">No hay pagos registrados para esta factura</td></tr>
+                                                    `}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="tab-pane fade p-3" id="tab-notas-credito" role="tabpanel">
+                                        <div class="table-responsive">
+                                            <table class="table table-sm align-middle mb-0" style="font-size: 13px;">
+                                                <thead>
+                                                    <tr class="text-muted" style="border-bottom: 1px solid var(--border-color);">
+                                                        <th class="fw-medium pb-2">Fecha</th>
+                                                        <th class="fw-medium pb-2">Número NC</th>
+                                                        <th class="fw-medium pb-2">Motivo</th>
+                                                        <th class="fw-medium pb-2 text-center">Estado</th>
+                                                        <th class="fw-medium pb-2 text-end">Total</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    ${(notasCredito && notasCredito.length > 0) ? notasCredito.map(nc => `
+                                                    <tr style="border-bottom: 1px solid #f0f0f0; cursor: pointer; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#f8f9fa'" onmouseout="this.style.backgroundColor='transparent'" onclick="window.location.hash='#/ingresos/notas-credito/ver/${nc.id}'">
+                                                        <td class="py-2 text-muted">${nc.fecha || ''}</td>
+                                                        <td class="py-2 fw-semibold">NC-${nc.numero || nc.id}</td>
+                                                        <td class="py-2">${escapeHtml(nc.motivo) || '-'}</td>
+                                                        <td class="py-2 text-center">${EstadoUtils.estaAnulado(nc.estado) ? '<span class="text-danger fw-bold">Anulada</span>' : '<span class="text-success fw-bold">Activa</span>'}</td>
+                                                        <td class="py-2 text-end fw-medium tnum">$${Number(nc.total || 0).toLocaleString()}</td>
+                                                    </tr>`).join('') : `
+                                                    <tr><td colspan="5" class="text-muted text-center py-4">No hay notas de crédito registradas</td></tr>
+                                                    `}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+
+                                    ${factura.cotizacion_origen_id ? `
+                                    <div class="tab-pane fade p-3" id="tab-cotizacion" role="tabpanel">
+                                        <div class="card border shadow-xs" style="max-width:320px; cursor:pointer; border-radius: 10px;" onclick="sessionStorage.setItem('origenVolver', JSON.stringify({hash: '#/ingresos/facturas/ver/${factura.id}', label: 'Volver a la factura'})); window.location.hash='#/ingresos/cotizaciones/ver/${factura.cotizacion_origen_id}'">
+                                            <div class="card-body p-3 d-flex justify-content-between align-items-center">
+                                                <div>
+                                                    <small class="text-muted d-block" style="font-size: 11px;">Documento comercial origen</small>
+                                                    <span class="fw-bold text-primary" style="font-size: 14px;">Cotización Origen</span>
+                                                </div>
+                                                <i class="bi bi-box-arrow-up-right text-primary"></i>
+                                            </div>
+                                        </div>
+                                    </div>` : ''}
+                                </div>
+                            </div>
+                        </div>
                         ` : ''}
 
-                        <!-- TOTALES -->
-                        <div class="row justify-content-end mb-5">
-                            <div class="col-md-4">
-                                <div class="d-flex justify-content-between mb-2" style="font-size: var(--fs-md); color: var(--text-body);">
-                                    <span>Subtotal</span><span id="tot-subtotal">$0,00</span>
-                                </div>
-                                <div class="d-flex justify-content-between mb-2" style="font-size: var(--fs-md); color: var(--text-body);">
-                                    <span>Descuento</span><span id="tot-descuento">$0,00</span>
-                                </div>
-                                <div class="d-flex justify-content-between mb-3" style="font-size: var(--fs-md); color: var(--text-body);">
-                                    <span>Impuestos</span><span id="tot-impuestos">$0,00</span>
-                                </div>
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <span class="fw-bold" style="font-size: var(--fs-lg); color: var(--text-main);">Total</span>
-                                    <span class="fw-bold" id="tot-total" style="font-size: var(--fs-lg); color: var(--text-main);" data-raw-total="0">$0,00</span>
-                                </div>
-                            </div>
-                        </div>
-
                     </div>
-                </div>
 
-                <!-- TEXTAREAS ADICIONALES -->
-                <div class="mb-4">
-                    <h6 class="fw-bold mb-1" style="font-size: var(--fs-md); color: var(--text-main);">Notas</h6>
-                    <textarea id="input-notas" class="form-control text-muted" rows="2" style="font-size: var(--fs-base); border-color: var(--border-color); resize: none;" placeholder="Agrega comentarios para aclarar datos de la factura, serán visibles para tus clientes" ${isViewOnly ? 'disabled' : ''}>${escapeHtml(factura.notas)}</textarea>
-                </div>
-                <div>
-                    <h6 class="fw-bold mb-1" style="font-size: var(--fs-md); color: var(--text-main);">Términos y condiciones</h6>
-                    <textarea id="input-terminos" class="form-control text-muted" rows="2" style="font-size: var(--fs-base); border-color: var(--border-color); resize: none;" placeholder="Define los términos y condiciones, y/o las posibles cláusulas en caso de reclamos" ${isViewOnly ? 'disabled' : ''}>${escapeHtml(factura.terminosCondiciones)}</textarea>
-                </div>
-
-                <!-- DOCUMENTOS RELACIONADOS (Solo Vista) -->
-                ${isViewOnly ? `
-                <div class="mt-5">
-                    <h6 class="fw-bold mb-3" style="color: var(--text-main);">Documentos relacionados</h6>
-                    <ul class="nav nav-tabs mb-3" role="tablist" style="border-bottom: 2px solid var(--border-color);">
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-pagos" type="button" role="tab" style="font-size: var(--fs-base); font-weight: var(--weight-medium); color: var(--text-main); border-bottom-color: transparent;">Pagos recibidos</button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link text-muted" data-bs-toggle="tab" data-bs-target="#tab-notas-credito" type="button" role="tab" style="font-size: var(--fs-base); font-weight: var(--weight-medium); border-bottom-color: transparent;">Notas de crédito</button>
-                        </li>
-                        ${factura.cotizacion_origen_id ? `
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link text-muted" data-bs-toggle="tab" data-bs-target="#tab-cotizacion" type="button" role="tab" style="font-size: var(--fs-base); font-weight: var(--weight-medium); border-bottom-color: transparent;">Cotización origen</button>
-                        </li>` : ''}
-                    </ul>
-                    
-                    <div class="tab-content border-0 p-0">
-                        <div class="tab-pane fade show active" id="tab-pagos" role="tabpanel">
-                            <div class="table-responsive">
-                                <table class="table table-sm align-middle mb-0" style="font-size: var(--fs-base);">
-                                    <thead>
-                                        <tr class="text-muted" style="border-bottom: 1px solid var(--border-color);">
-                                            <th class="fw-medium pb-2">Fecha</th>
-                                            <th class="fw-medium pb-2">Cuenta</th>
-                                            <th class="fw-medium pb-2">Método</th>
-                                            <th class="fw-medium pb-2 text-end">Monto</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        ${(transacciones && transacciones.length > 0) ? transacciones.map((p, idx) => `
-                                        <tr class="fila-pago" data-index="${idx}" style="border-bottom: 1px solid #f0f0f0; cursor: pointer; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#f8f9fa'" onmouseout="this.style.backgroundColor='transparent'">
-                                            <td class="py-2 text-muted">${p.fecha || p.created_at?.split('T')[0] || ''}</td>
-                                            <td class="py-2">${cuentasMap[p.cuentaId || p.cuenta_id] || (p.cuentaId || p.cuenta_id || '-')}</td>
-                                            <td class="py-2">${p.metodo_pago || p.metodoPago || '-'}</td>
-                                            <td class="py-2 text-end fw-medium">$${Number(p.monto || p.valor || 0).toLocaleString()}</td>
-                                        </tr>`).join('') : `
-                                        <tr><td colspan="4" class="text-muted text-center py-4">No hay pagos registrados para esta factura</td></tr>
-                                        `}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                        
-                        <div class="tab-pane fade" id="tab-notas-credito" role="tabpanel">
-                            <div class="table-responsive">
-                                <table class="table table-sm align-middle mb-0" style="font-size: var(--fs-base);">
-                                    <thead>
-                                        <tr class="text-muted" style="border-bottom: 1px solid var(--border-color);">
-                                            <th class="fw-medium pb-2">Fecha</th>
-                                            <th class="fw-medium pb-2">Número NC</th>
-                                            <th class="fw-medium pb-2">Motivo</th>
-                                            <th class="fw-medium pb-2 text-center">Estado</th>
-                                            <th class="fw-medium pb-2 text-end">Total</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        ${(notasCredito && notasCredito.length > 0) ? notasCredito.map(nc => `
-                                        <tr style="border-bottom: 1px solid #f0f0f0; cursor: pointer; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#f8f9fa'" onmouseout="this.style.backgroundColor='transparent'" onclick="window.location.hash='#/ingresos/notas-credito/ver/${nc.id}'">
-                                            <td class="py-2 text-muted">${nc.fecha || ''}</td>
-                                            <td class="py-2">NC-${nc.numero || nc.id}</td>
-                                            <td class="py-2">${escapeHtml(nc.motivo) || '-'}</td>
-                                            <td class="py-2 text-center">${EstadoUtils.estaAnulado(nc.estado) ? '<span class="text-danger fw-bold">Anulada</span>' : '<span class="text-success fw-bold">Activa</span>'}</td>
-                                            <td class="py-2 text-end fw-medium">$${Number(nc.total || 0).toLocaleString()}</td>
-                                        </tr>`).join('') : `
-                                        <tr><td colspan="5" class="text-muted text-center py-4">No hay notas de crédito registradas</td></tr>
-                                        `}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-
-                        
-                        ${factura.cotizacion_origen_id ? `
-                        <div class="tab-pane fade" id="tab-cotizacion" role="tabpanel">
-                            <div class="card border border-light shadow-sm" style="max-width:300px; cursor:pointer;" onclick="sessionStorage.setItem('origenVolver', JSON.stringify({hash: '#/ingresos/facturas/ver/${factura.id}', label: 'Volver a la factura'})); window.location.hash='#/ingresos/cotizaciones/ver/${factura.cotizacion_origen_id}'">
-                                <div class="card-body py-3 px-3 d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <small class="text-muted d-block" style="font-size: var(--fs-xs);">Ver documento origen</small>
-                                        <span class="fw-medium text-dark" style="font-size: var(--fs-md); color: var(--primary) !important;">Cotización</span>
+                    <!-- COLUMNA LATERAL (30% - Sticky Financial Summary) -->
+                    <div class="col-12 col-lg-4">
+                        <div class="sticky-summary-card">
+                            <div class="card border rounded-3 shadow-xs bg-white mb-3" style="border-color: var(--border-color);">
+                                <div class="card-header bg-white border-bottom p-3 d-flex align-items-center gap-2">
+                                    <div class="payment-kpi-icon in-bg" style="width: 32px; height: 32px; font-size: 15px;">
+                                        <i class="bi bi-receipt-cutoff"></i>
                                     </div>
-                                    <i class="bi bi-box-arrow-up-right text-muted" style="font-size: var(--fs-sm);"></i>
+                                    <h5 class="mb-0 fw-bold" style="color: var(--text-main); font-size: 15px;">
+                                        Resumen Financiero
+                                    </h5>
+                                </div>
+                                <div class="card-body p-4">
+                                    <div class="d-flex justify-content-between mb-2 text-muted" style="font-size: 13px;">
+                                        <span>Subtotal Bruto</span>
+                                        <span class="fw-semibold text-dark tnum" id="tot-subtotal">$0,00</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between mb-2 text-muted" style="font-size: 13px;">
+                                        <span>(-) Descuento</span>
+                                        <span class="fw-semibold text-danger tnum" id="tot-descuento">$0,00</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between mb-3 text-muted" style="font-size: 13px;">
+                                        <span>Impuestos (IVA)</span>
+                                        <span class="fw-semibold text-dark tnum" id="tot-impuestos">$0,00</span>
+                                    </div>
+                                    <hr style="border-color: var(--border-color); margin: 12px 0;">
+                                    <div class="d-flex justify-content-between align-items-baseline mb-2">
+                                        <span class="fw-bold text-dark" style="font-size: 16px;">Total Factura</span>
+                                        <span class="fw-bold text-success tnum fs-4" id="tot-total" data-raw-total="0">$0,00</span>
+                                    </div>
+                                    <div class="p-2 rounded-2 bg-light text-muted mb-3" style="font-size: 11px; font-style: italic;" id="tot-letras">
+                                        Cero Pesos M/CTE.
+                                    </div>
+
+                                    ${!isViewOnly ? `
+                                    <div class="d-grid gap-2 pt-2">
+                                        <button id="btn-guardar" type="button" class="btn btn-primary-action py-2 d-flex align-items-center justify-content-center gap-2 shadow-xs" style="font-weight: 600; border-radius: 8px;">
+                                            <i class="bi bi-check-circle"></i> Emitir Factura de Venta
+                                        </button>
+                                        <button id="btn-cancelar" type="button" class="btn btn-light bg-white border text-secondary py-2" style="font-weight: 500; border-radius: 8px;">
+                                            Descartar Cambios
+                                        </button>
+                                    </div>
+                                    ` : ''}
                                 </div>
                             </div>
-                        </div>` : ''}
+                        </div>
                     </div>
                 </div>
-                ` : ''}
-
-                <!-- FOOTER ACTIONS -->
-                ${!isViewOnly ? `
-                <div class="d-flex justify-content-end gap-3 mb-5">
-                    <button id="btn-cancelar" class="btn btn-outline-secondary px-4 bg-white" style="font-weight: var(--weight-medium); border-color: var(--border-color);">
-                        Cancelar
-                    </button>
-                    <button id="btn-guardar" class="btn btn-primary px-5" style="font-weight: var(--weight-medium);">Guardar</button>
-                </div>
-                ` : ''}
             </div>
         `;
 
@@ -1632,27 +1796,243 @@ export const FacturasModule = {
             contadorLineas = ItemEngine.reindexRows(tbody);
         };
 
-        // Motor Matemático (Dynamic Pricing & Totals) — formatMoney vive en ItemEngine.formatMoney
+        // Helper de formateo monetario
+        const formatMoney = (val) => '$' + Number(val || 0).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+        // Motor Matemático (Dynamic Pricing & Totals & 4 KPIs Reactivas)
         const calcEngine = () => {
             ItemEngine.calcEngine({
                 tbody,
                 element,
                 factura
             });
+
+            // Reactividad en 4 KPI Cards
+            const rawTotal = parseFloat(element.querySelector('#tot-total')?.dataset.rawTotal || factura.total || 0);
+            const kpiTotal = element.querySelector('#kpi-fac-total');
+            if (kpiTotal) kpiTotal.textContent = formatMoney(rawTotal);
+
+            // Monto en letras
+            const elLetras = element.querySelector('#tot-letras');
+            if (elLetras) {
+                import('../../shared/numeroALetras.js').then(nl => {
+                    elLetras.textContent = nl.numeroALetras(rawTotal);
+                });
+            }
+
+            // Semáforo de Inventario FIFO reactivo
+            const formRows = Array.from(tbody.querySelectorAll('tr'));
+            let stockInsuficiente = false;
+            let unidadesFaltantes = 0;
+
+            formRows.forEach(tr => {
+                const qty = parseFloat(tr.querySelector('.input-qty')?.value || 0);
+                const metaQty = tr.querySelector('.meta-qty');
+                const dispMatch = metaQty?.textContent?.match(/Disp:\s*([0-9.]+)/);
+                if (dispMatch) {
+                    const disp = parseFloat(dispMatch[1]) || 0;
+                    if (qty > disp) {
+                        stockInsuficiente = true;
+                        unidadesFaltantes += (qty - disp);
+                    }
+                }
+            });
+
+            const kpiStock = element.querySelector('#kpi-fac-stock');
+            const kpiStockDesc = element.querySelector('#kpi-fac-stock-desc');
+            const kpiStockIcon = element.querySelector('#kpi-fac-stock-icon');
+            if (kpiStock) {
+                if (stockInsuficiente) {
+                    kpiStock.textContent = 'Insuficiente';
+                    kpiStock.className = 'payment-kpi-value fw-bold text-danger';
+                    if (kpiStockDesc) kpiStockDesc.textContent = `Faltan ${unidadesFaltantes} unds en stock`;
+                    if (kpiStockIcon) {
+                        kpiStockIcon.className = 'payment-kpi-icon out-bg';
+                        kpiStockIcon.innerHTML = '<i class="bi bi-exclamation-triangle text-danger"></i>';
+                    }
+                } else {
+                    kpiStock.textContent = 'Disponible';
+                    kpiStock.className = 'payment-kpi-value fw-bold text-success';
+                    if (kpiStockDesc) kpiStockDesc.textContent = 'Existencias verificadas en almacén';
+                    if (kpiStockIcon) {
+                        kpiStockIcon.className = 'payment-kpi-icon in-bg';
+                        kpiStockIcon.innerHTML = '<i class="bi bi-check-circle text-success"></i>';
+                    }
+                }
+            }
         };
 
         // Función Helper: Cálculo de Fecha de Vencimiento
         const calcularVencimiento = (cliente) => {
-            const plazos = parseInt(cliente.plazosPago || 0);
+            const plazos = parseInt(cliente.plazosPago || cliente.plazo || 0);
             const inputVencimiento = element.querySelector('#input-vencimiento');
             if (plazos > 0) {
-                const fechaCreacion = new Date(element.querySelector('#input-fecha').value);
+                const fechaCreacion = new Date(element.querySelector('#input-fecha').value + 'T12:00:00');
                 fechaCreacion.setDate(fechaCreacion.getDate() + plazos);
                 if (inputVencimiento) inputVencimiento.value = getLocalDate(fechaCreacion);
             } else {
-                if (inputVencimiento) inputVencimiento.value = '';
+                if (inputVencimiento && !inputVencimiento.value) {
+                    const fechaCreacion = new Date(element.querySelector('#input-fecha').value + 'T12:00:00');
+                    fechaCreacion.setDate(fechaCreacion.getDate() + 30);
+                    inputVencimiento.value = getLocalDate(fechaCreacion);
+                }
+            }
+            actualizarCondicionVenta();
+        };
+
+        // Consulta reactiva de cartera de cliente
+        const actualizarCarteraCliente = async (contactoId) => {
+            const kpiVal = element.querySelector('#kpi-fac-cartera');
+            const kpiDesc = element.querySelector('#kpi-fac-cartera-desc');
+            const kpiIcon = element.querySelector('#kpi-fac-cartera-icon');
+            if (!kpiVal) return;
+
+            if (!contactoId) {
+                kpiVal.textContent = '$0,00';
+                kpiVal.className = 'payment-kpi-value fw-bold text-dark tnum';
+                if (kpiDesc) kpiDesc.textContent = 'Seleccione cliente para ver cartera';
+                if (kpiIcon) {
+                    kpiIcon.className = 'payment-kpi-icon blue-bg';
+                    kpiIcon.innerHTML = '<i class="bi bi-clock-history"></i>';
+                }
+                return;
+            }
+
+            try {
+                const { data, error } = await supabase.rpc('get_cartera_con_saldos', {
+                    p_tipo_cartera: 'cxc',
+                    p_contacto_id: String(contactoId)
+                });
+                // Salvaguarda contra condición de carrera: ignorar si el usuario cambió de cliente
+                const currentClienteId = element.querySelector('#select-cliente')?.value;
+                if (currentClienteId && String(currentClienteId) !== String(contactoId)) {
+                    return;
+                }
+                if (!error && Array.isArray(data)) {
+                    const deuda = data.reduce((sum, f) => sum + Number(f.saldo || 0), 0);
+                    if (deuda > 0) {
+                        kpiVal.textContent = formatMoney(deuda);
+                        kpiVal.className = 'payment-kpi-value fw-bold text-danger tnum';
+                        if (kpiDesc) kpiDesc.textContent = `${data.length} ${data.length === 1 ? 'factura pendiente' : 'facturas con saldo'}`;
+                        if (kpiIcon) {
+                            kpiIcon.className = 'payment-kpi-icon out-bg';
+                            kpiIcon.innerHTML = '<i class="bi bi-exclamation-circle text-danger"></i>';
+                        }
+                    } else {
+                        kpiVal.textContent = '$0,00';
+                        kpiVal.className = 'payment-kpi-value fw-bold text-success tnum';
+                        if (kpiDesc) kpiDesc.textContent = 'Cliente al día sin mora';
+                        if (kpiIcon) {
+                            kpiIcon.className = 'payment-kpi-icon in-bg';
+                            kpiIcon.innerHTML = '<i class="bi bi-check2-circle text-success"></i>';
+                        }
+                    }
+                }
+            } catch (e) {
+                console.warn("No se pudo cargar cartera de cliente:", e);
             }
         };
+
+        // Actualizar visualmente la condición de venta (Contado vs Crédito)
+        const actualizarCondicionVenta = () => {
+            const selectTipo = element.querySelector('#select-tipo-venta');
+            const kpiCond = element.querySelector('#kpi-fac-condicion');
+            const kpiCondDesc = element.querySelector('#kpi-fac-condicion-desc');
+            const kpiCondIcon = element.querySelector('#kpi-fac-condicion-icon');
+            const containerCuenta = element.querySelector('#container-cuenta-venta');
+            const btnGroupPlazos = element.querySelector('#btn-group-plazos');
+
+            const esContado = selectTipo?.value === 'contado';
+            if (containerCuenta) containerCuenta.style.display = esContado ? 'block' : 'none';
+            if (btnGroupPlazos) btnGroupPlazos.style.display = esContado ? 'none' : 'flex';
+
+            if (kpiCond) {
+                kpiCond.textContent = esContado ? 'De Contado' : 'A Crédito';
+            }
+            if (kpiCondDesc) {
+                if (esContado) {
+                    const selectCuenta = element.querySelector('#select-cuenta-venta');
+                    const selectedText = selectCuenta?.options[selectCuenta.selectedIndex]?.text;
+                    kpiCondDesc.textContent = selectedText ? `Caja: ${selectedText}` : 'Ingreso directo a caja/banco';
+                } else {
+                    const inpVenc = element.querySelector('#input-vencimiento')?.value;
+                    kpiCondDesc.textContent = inpVenc ? `Vence: ${inpVenc}` : 'Cuenta por cobrar en cartera';
+                }
+            }
+            if (kpiCondIcon) {
+                kpiCondIcon.innerHTML = esContado ? '<i class="bi bi-cash-coin"></i>' : '<i class="bi bi-credit-card"></i>';
+            }
+        };
+
+        const actualizarBadgeCliente = (c) => {
+            const badgeEl = element.querySelector('#cliente-info-badge');
+            const textEl = element.querySelector('#cliente-info-text');
+            if (!badgeEl) return;
+            if (c) {
+                badgeEl.style.display = 'flex';
+                const av = getClientAvatar(c.nombre || 'Cliente');
+                const avatarEl = badgeEl.querySelector('.badge-avatar');
+                if (avatarEl) {
+                    avatarEl.style.backgroundColor = av.bg;
+                    avatarEl.style.color = av.color;
+                    avatarEl.textContent = av.initials || 'CL';
+                }
+                if (textEl) {
+                    textEl.innerHTML = `
+                        ${c.nit ? `NIT/CC: <strong>${escapeHtml(c.nit)}</strong>` : 'Cliente Registrado'}
+                        ${c.telefono ? ` · Tel: ${escapeHtml(c.telefono)}` : ''}
+                    `;
+                }
+            } else {
+                badgeEl.style.display = 'none';
+            }
+        };
+
+        // Botón Volver de la Top Bar
+        element.querySelector('.btn-volver-atras')?.addEventListener('click', () => {
+            const origen = sessionStorage.getItem('origenVolver');
+            if (origen) {
+                try {
+                    const o = JSON.parse(origen);
+                    sessionStorage.removeItem('origenVolver');
+                    window.location.hash = o.hash;
+                    return;
+                } catch(e) {}
+            }
+            window.location.hash = '#/ingresos/facturas';
+        });
+
+        // Botones rápidos de incremento de días (+15d, +30d, +60d)
+        element.querySelectorAll('.btn-set-dias-fac').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const dias = parseInt(e.currentTarget.dataset.dias, 10);
+                const fCreacion = element.querySelector('#input-fecha')?.value;
+                if (fCreacion && dias > 0) {
+                    const d = new Date(fCreacion + 'T12:00:00');
+                    d.setDate(d.getDate() + dias);
+                    const inpVenc = element.querySelector('#input-vencimiento');
+                    if (inpVenc) {
+                        inpVenc.value = getLocalDate(d);
+                        actualizarCondicionVenta();
+                    }
+                }
+            });
+        });
+
+        // Escuchadores de cambio en fechas y tipo de venta
+        element.querySelector('#input-fecha')?.addEventListener('change', () => {
+            actualizarCondicionVenta();
+            calcEngine();
+        });
+        element.querySelector('#input-vencimiento')?.addEventListener('change', () => {
+            actualizarCondicionVenta();
+        });
+        element.querySelector('#select-tipo-venta')?.addEventListener('change', () => {
+            actualizarCondicionVenta();
+        });
+        element.querySelector('#select-cuenta-venta')?.addEventListener('change', () => {
+            actualizarCondicionVenta();
+        });
 
         // Inicialización de Combobox de Clientes y Cálculo de Vencimiento Automatizado
         if (!isViewOnly) {
@@ -1664,6 +2044,8 @@ export const FacturasModule = {
                 allowCreate: true,
                 onSelect: (selectedItem) => {
                     calcularVencimiento(selectedItem);
+                    actualizarBadgeCliente(selectedItem);
+                    actualizarCarteraCliente(selectedItem.id);
                     const selectVendedor = element.querySelector('#select-vendedor');
                     if (selectVendedor && selectedItem.vendedor_id) {
                         selectVendedor.value = selectedItem.vendedor_id;
@@ -1676,8 +2058,9 @@ export const FacturasModule = {
                         const hiddenInput = element.querySelector('#select-cliente');
                         hiddenInput.value = nuevoContacto.id;
                         
-                        // Calculamos vencimiento explícitamente para el nuevo contacto
                         calcularVencimiento(nuevoContacto);
+                        actualizarBadgeCliente(nuevoContacto);
+                        actualizarCarteraCliente(nuevoContacto.id);
                         
                         const selectVendedor = element.querySelector('#select-vendedor');
                         if (selectVendedor && nuevoContacto.vendedor_id) {
@@ -1687,14 +2070,6 @@ export const FacturasModule = {
                 }
             });
         }
-
-        // Configuración de Numeración (Engranaje)
-        element.querySelector('#select-tipo-venta')?.addEventListener('change', (e) => {
-            const containerCuenta = element.querySelector('#container-cuenta-venta');
-            if (containerCuenta) {
-                containerCuenta.style.display = e.target.value === 'contado' ? 'block' : 'none';
-            }
-        });
 
         // Configuración de Numeración (Engranaje)
         element.querySelector('#btn-config-num')?.addEventListener('click', () => {
@@ -1714,6 +2089,15 @@ export const FacturasModule = {
             window.hayCambiosSinGuardar = false;
             window.location.hash = '#/ingresos/facturas';
         });
+
+        // Inicialización de estado si ya hay cliente
+        if (factura.clienteId) {
+            actualizarCarteraCliente(factura.clienteId);
+            if (cliDataResult?.data) {
+                actualizarBadgeCliente(cliDataResult.data);
+            }
+        }
+        actualizarCondicionVenta();
 
         // Evento Imprimir Global (Acción Superior)
         element.querySelector('.btn-imprimir')?.addEventListener('click', (e) => {
@@ -1907,11 +2291,15 @@ export const FacturasModule = {
                                 costo_unitario: parseFloat(op.data.costoUnitario)
                             })),
                             p_origen_documento: 'factura directa venta',
-                            p_pago_contado: tipoVenta === 'contado' ? {
-                                fecha: factura.fecha,
-                                monto: rawTotal,
-                                cuenta_id: parseInt(factura.cuentaId, 10)
-                            } : null
+                            p_pago_contado: tipoVenta === 'contado' ? (() => {
+                                const ctaObj = cuentasActivas.find(c => String(c.id) === String(factura.cuentaId) || c.nombre === factura.cuentaId);
+                                const idCuentaNum = ctaObj ? parseInt(ctaObj.id, 10) : parseInt(factura.cuentaId, 10);
+                                return {
+                                    fecha: factura.fecha,
+                                    monto: rawTotal,
+                                    cuenta_id: !isNaN(idCuentaNum) ? idCuentaNum : null
+                                };
+                            })() : null
                         });
 
                         if (error) throw new Error("Error al guardar la venta: " + error.message);

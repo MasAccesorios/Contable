@@ -9,16 +9,17 @@ export const ItemEngine = {
         // Encontrar producto inicial si existe
         const prod = productos.find(p => String(p.id) === String(detalle.productoId));
         const initialText = prod ? `[${escapeHtml(prod.sku) || 'S/N'}] - ${escapeHtml(prod.nombre)}` : '';
+        const customDesc = detalle.descripcion_personalizada || detalle.descripcionPersonalizada || '';
         
         return `
             <div class="position-relative">
                 <input type="hidden" class="input-prod-id" value="${escapeHtml(detalle.productoId) || ''}">
-                <input type="text" class="form-control form-control-sm text-muted border-0 bg-light input-prod-search mb-1" 
-                       placeholder="Escriba código o nombre..." autocomplete="off" value="${initialText}" ${isViewOnly ? 'disabled' : ''}>
-                <input type="text" class="form-control form-control-sm border-0 bg-light mt-1 input-prod-desc" 
-                       placeholder="" value="${escapeHtml(detalle.descripcion_personalizada) || ''}" ${isViewOnly ? 'disabled' : ''}>
+                <input type="text" class="form-control form-control-sm text-dark border-0 bg-light input-prod-search mb-1 fw-medium" 
+                       placeholder="Escriba código o nombre..." autocomplete="off" value="${initialText}" ${isViewOnly ? 'disabled' : ''} style="border-radius: 6px;">
+                <input type="text" class="form-control form-control-sm text-muted border-0 bg-light mt-1 input-prod-desc" 
+                       placeholder="Descripción adicional (opcional)..." value="${escapeHtml(customDesc)}" ${isViewOnly ? 'disabled' : ''} style="border-radius: 6px; font-size: 11px;">
                 <div class="search-results-dropdown position-absolute w-100 bg-white shadow-sm" 
-                     style="display: none; z-index: 1050; max-height: 250px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 4px; top: 100%;">
+                     style="display: none; z-index: 1050; max-height: 250px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 6px; top: 100%;">
                 </div>
             </div>
         `;
@@ -102,7 +103,9 @@ export const ItemEngine = {
                     `;
                     const stockVal = p.stockActual || p.inventory || p.cantidad || 0;
                     if (metaQty) {
-                        metaQty.innerHTML = `<span style="color: var(--text-muted); font-size: 11px; display: inline-block; margin-top: 4px;">Disp: ${stockVal}</span>`;
+                        const pillClass = Number(stockVal) > 0 ? 'stock-pill-ok' : 'stock-pill-low';
+                        const pillIcon = Number(stockVal) > 0 ? '<i class="bi bi-check-circle me-1"></i>' : '<i class="bi bi-exclamation-triangle me-1"></i>';
+                        metaQty.innerHTML = `<span class="${pillClass}" style="margin-top: 4px;">${pillIcon}Disp: ${stockVal}</span>`;
                     }
                         
                     // Limpieza total del contexto anterior
@@ -189,18 +192,18 @@ export const ItemEngine = {
                 <div class="meta-prod ps-1"></div>
             </td>
             <td class="align-top">
-                <input type="number" min="0" class="form-control form-control-sm border-0 bg-light input-qty mb-1" value="${detalle.cantidad}" ${isViewOnly ? 'disabled' : ''}>
+                <input type="number" min="0" class="form-control form-control-sm border-0 bg-light input-qty mb-1" value="${detalle.cantidad}" ${isViewOnly ? 'disabled' : ''} style="border-radius: 6px; font-weight: 500;">
                 <div class="meta-qty ps-1"></div>
             </td>
-            <td class="align-top"><input type="text" class="form-control form-control-sm border-0 bg-light input-price" value="${Number(detalle.precio || 0).toString().replace('.', ',')}" placeholder="$" ${isViewOnly ? 'disabled' : ''}></td>
-            <td class="align-top"><input type="number" step="any" min="0" max="100" class="form-control form-control-sm border-0 bg-light input-disc" value="${detalle.descuento}" placeholder="0 %" ${isViewOnly ? 'disabled' : ''}></td>
-            <td class="align-top"><input type="number" step="any" min="0" max="100" class="form-control form-control-sm border-0 bg-light input-tax" value="${detalle.impuesto}" placeholder="%" ${isViewOnly ? 'disabled' : ''}></td>
+            <td class="align-top"><input type="text" class="form-control form-control-sm border-0 bg-light input-price" value="${Number(detalle.precio || 0).toString().replace('.', ',')}" placeholder="$" ${isViewOnly ? 'disabled' : ''} style="border-radius: 6px; font-weight: 600;"></td>
+            <td class="align-top"><input type="number" step="any" min="0" max="100" class="form-control form-control-sm border-0 bg-light input-disc" value="${detalle.descuento}" placeholder="0 %" ${isViewOnly ? 'disabled' : ''} style="border-radius: 6px;"></td>
+            <td class="align-top"><input type="number" step="any" min="0" max="100" class="form-control form-control-sm border-0 bg-light input-tax" value="${detalle.impuesto}" placeholder="%" ${isViewOnly ? 'disabled' : ''} style="border-radius: 6px;"></td>
             <td class="text-end align-top pt-3">
-                <span class="calc-subtotal fw-bold d-block" style="color: var(--text-main);">$0,00</span>
+                <span class="calc-subtotal fw-bold d-block tnum" style="color: var(--text-main); font-size: 13px;">$0,00</span>
                 <a href="#" class="toggle-desc-tax d-md-none text-decoration-none mt-2 d-inline-block" style="font-size: var(--fs-xs); color: var(--primary);">+ Editar descuento/impuesto</a>
             </td>
             <td class="text-center align-top pt-2">
-                ${!isViewOnly ? `<button class="btn btn-link text-muted p-0 btn-eliminar-linea">
+                ${!isViewOnly ? `<button class="btn btn-sm btn-light border-0 text-danger p-1 btn-eliminar-linea" title="Eliminar fila" style="border-radius: 6px;">
                     <i class="bi bi-trash"></i>
                 </button>` : ''}
             </td>
@@ -253,10 +256,15 @@ export const ItemEngine = {
             // Forzar re-cálculo visual inicial si es necesario
             const metaProd = tr.querySelector('.meta-prod');
             const metaQty = tr.querySelector('.meta-qty');
-            const prod = productosFactura.find(p => p.id === detalle.productoId);
+            const prod = productosFactura.find(p => String(p.id) === String(detalle.productoId));
             if (prod) {
-                if (metaProd) metaProd.innerHTML = `<span style="color: var(--text-muted); font-size: var(--fs-xs);">${escapeHtml(prod.sku) || 'S/N'}</span>`;
-                if (metaQty) metaQty.innerHTML = `<span style="color: var(--text-muted); font-size: var(--fs-xs);">Disp: ${prod.stockActual || prod.cantidad || 0}</span>`;
+                if (metaProd) metaProd.innerHTML = `<span style="color: var(--text-muted); font-size: 11px; display: inline-block; margin-top: 4px;">${escapeHtml(prod.sku) || 'S/N'}</span>`;
+                const stockVal = prod.stockActual || prod.cantidad || 0;
+                if (metaQty) {
+                    const pillClass = Number(stockVal) > 0 ? 'stock-pill-ok' : 'stock-pill-low';
+                    const pillIcon = Number(stockVal) > 0 ? '<i class="bi bi-check-circle me-1"></i>' : '<i class="bi bi-exclamation-triangle me-1"></i>';
+                    metaQty.innerHTML = `<span class="${pillClass}" style="margin-top: 4px;">${pillIcon}Disp: ${stockVal}</span>`;
+                }
             }
         }
         
