@@ -193,5 +193,79 @@ describe('Formularios Modernos: Cotizaciones y Facturas - Suite de Pruebas Unita
             assert.strictEqual(formatCOP(mlStats.precio_maximo), '22.000');
             assert.strictEqual(formatInput(ultimoPrecio), '19.000,00');
         });
+
+        test('itemEngine.js debe implementar selector compacto tipo split/dropdown para precios ML', async () => {
+            const fs = await import('node:fs');
+            const itemEngineSrc = fs.readFileSync('js/shared/itemEngine.js', 'utf-8');
+
+            assert.ok(itemEngineSrc.includes('btn-ml-quick-price'), 'Debe incluir botón de precio rápido');
+            assert.ok(itemEngineSrc.includes('dropdown-toggle-split'), 'Debe incluir trigger split de dropdown');
+            assert.ok(itemEngineSrc.includes('dropdown-menu'), 'Debe incluir menú desplegable con opciones');
+            assert.ok(!itemEngineSrc.includes('border-top: 1px dashed #bfdbfe'), 'No debe tener el contenedor antiguo vertical');
+        });
+    });
+
+    describe('8. Ergonomía en Facturas Extensas y Adición de Líneas (Mercado Libre)', () => {
+        test('debe permitir adición de líneas individuales y en lote preservando IDs deterministas', () => {
+            const generarLineas = (count, baseTimestamp = 1700000000000) => {
+                const lineas = [];
+                for (let i = 0; i < count; i++) {
+                    lineas.push({
+                        id: baseTimestamp + i + Math.random(),
+                        productoId: '',
+                        cantidad: 0,
+                        precio: 0,
+                        descuento: 0,
+                        impuesto: 0
+                    });
+                }
+                return lineas;
+            };
+
+            const lote1 = generarLineas(1);
+            const lote5 = generarLineas(5);
+            const lote10 = generarLineas(10);
+
+            assert.strictEqual(lote1.length, 1);
+            assert.strictEqual(lote5.length, 5);
+            assert.strictEqual(lote10.length, 10);
+
+            // Verificar que no hayan IDs duplicados dentro del lote
+            const ids = new Set(lote5.map(l => l.id));
+            assert.strictEqual(ids.size, 5);
+        });
+
+        test('reindexRows de ItemEngine debe renumerar secuencialmente todas las filas de la tabla', () => {
+            // Mock de tbody y tr
+            const rows = [];
+            for (let i = 1; i <= 30; i++) {
+                const cell = { textContent: '' };
+                const tr = {
+                    querySelector: (sel) => sel === '.num-linea' ? cell : null
+                };
+                rows.push({ tr, cell });
+            }
+
+            const mockTbody = {
+                querySelectorAll: (sel) => sel === 'tr' ? rows.map(r => r.tr) : []
+            };
+
+            const total = ItemEngine.reindexRows(mockTbody);
+            assert.strictEqual(total, 30);
+            assert.strictEqual(rows[0].cell.textContent, 1);
+            assert.strictEqual(rows[25].cell.textContent, 26);
+            assert.strictEqual(rows[29].cell.textContent, 30);
+        });
+
+        test('archivos fuente de facturas y cotizaciones deben incluir botones inferiores y por lotes', async () => {
+            const fs = await import('node:fs');
+            const ventasSrc = fs.readFileSync('js/modules/ventas/ventas.js', 'utf-8');
+            const cotizacionesSrc = fs.readFileSync('js/modules/ingresos/cotizaciones.js', 'utf-8');
+
+            ['#btn-agregar-linea-abajo', '#btn-agregar-5-lineas', '#btn-agregar-10-lineas'].forEach(id => {
+                assert.ok(ventasSrc.includes(id), `ventas.js debe incluir ${id}`);
+                assert.ok(cotizacionesSrc.includes(id), `cotizaciones.js debe incluir ${id}`);
+            });
+        });
     });
 });

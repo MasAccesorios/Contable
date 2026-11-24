@@ -1583,6 +1583,26 @@ export const FacturasModule = {
                                     </table>
                                 </div>
                             </div>
+                            ${!isViewOnly ? `
+                            <div class="card-footer bg-white border-top p-2 px-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
+                                <div class="d-flex align-items-center gap-2">
+                                    <button id="btn-agregar-linea-abajo" type="button" class="btn btn-sm btn-light bg-white border text-primary shadow-xs d-flex align-items-center gap-1" style="border-radius: 8px; font-weight: 600; font-size: 12px;">
+                                        <i class="bi bi-plus-lg"></i> Agregar Línea
+                                    </button>
+                                    <div class="btn-group btn-group-sm">
+                                        <button id="btn-agregar-5-lineas" type="button" class="btn btn-light bg-white border text-secondary shadow-xs" style="font-weight: 500; font-size: 11px;" title="Agregar 5 líneas en blanco">
+                                            +5 Líneas
+                                        </button>
+                                        <button id="btn-agregar-10-lineas" type="button" class="btn btn-light bg-white border text-secondary shadow-xs" style="font-weight: 500; font-size: 11px;" title="Agregar 10 líneas en blanco">
+                                            +10 Líneas
+                                        </button>
+                                    </div>
+                                </div>
+                                <small class="text-muted d-none d-sm-inline" style="font-size: 11px;">
+                                    <i class="bi bi-info-circle me-1"></i>Puedes agregar líneas individuales o en lote
+                                </small>
+                            </div>
+                            ` : ''}
                         </div>
 
                         <!-- CARD 3: OBSERVACIONES Y TÉRMINOS -->
@@ -1779,7 +1799,7 @@ export const FacturasModule = {
         // Renderizador de fila dinámica
         const addRow = (detalle) => {
             contadorLineas++;
-            ItemEngine.addRow({
+            return ItemEngine.addRow({
                 detalle,
                 tbody,
                 isViewOnly,
@@ -2080,11 +2100,29 @@ export const FacturasModule = {
             });
         });
 
-        // Evento Agregar Línea
-        element.querySelector('#btn-agregar-linea')?.addEventListener('click', () => {
-            addRow({ id: Date.now(), productoId: '', cantidad: 0, precio: 0, descuento: 0, impuesto: 0 });
+        // Eventos Agregar Línea (Superior, Inferior y Lotes)
+        const handleAddLine = (count = 1) => {
+            let lastTr = null;
+            let firstNewTr = null;
+            for (let i = 0; i < count; i++) {
+                const tr = addRow({ id: Date.now() + i + Math.random(), productoId: '', cantidad: 0, precio: 0, descuento: 0, impuesto: 0 });
+                if (!firstNewTr) firstNewTr = tr;
+                lastTr = tr;
+            }
             calcEngine();
-        });
+            if (lastTr) {
+                lastTr.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                const targetTr = count === 1 ? lastTr : firstNewTr;
+                setTimeout(() => {
+                    targetTr?.querySelector('.input-prod-search')?.focus();
+                }, 50);
+            }
+        };
+
+        element.querySelector('#btn-agregar-linea')?.addEventListener('click', () => handleAddLine(1));
+        element.querySelector('#btn-agregar-linea-abajo')?.addEventListener('click', () => handleAddLine(1));
+        element.querySelector('#btn-agregar-5-lineas')?.addEventListener('click', () => handleAddLine(5));
+        element.querySelector('#btn-agregar-10-lineas')?.addEventListener('click', () => handleAddLine(10));
 
         // Evento Cancelar
         element.querySelector('#btn-cancelar')?.addEventListener('click', () => {

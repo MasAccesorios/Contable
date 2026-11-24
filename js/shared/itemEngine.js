@@ -261,7 +261,7 @@ export const ItemEngine = {
         if (!esMercadoLibre) return;
 
         const inpPrice = tr.querySelector('.input-price');
-        if (!inpPrice) return;
+        if (!inpPrice || inpPrice.disabled) return;
 
         try {
             const { supabase } = await import('../core/supabase.js');
@@ -288,69 +288,118 @@ export const ItemEngine = {
 
             const formatCOP = (num) => Number(Math.round(num || 0)).toLocaleString('es-CO');
             const formatInput = (num) => Number(num || 0).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            const primaryPrice = ultimoPrecio || mlInfo?.precio_promedio || mlInfo?.precio_minimo || 0;
+            if (!primaryPrice) return;
 
             const mlContainer = document.createElement('div');
-            mlContainer.className = 'ml-price-container mt-1 pt-1';
-            mlContainer.style.cssText = 'border-top: 1px dashed #bfdbfe; font-size: 11px;';
+            mlContainer.className = 'ml-price-container mt-1';
 
-            let buttonsHtml = '';
+            let itemsHtml = '';
             if (ultimoPrecio) {
-                buttonsHtml += `
-                    <button type="button" class="btn btn-xs py-0 px-1 border btn-ml-price shadow-2xs" data-price="${ultimoPrecio}"
-                            title="Haga clic para aplicar el último precio facturado ($${formatCOP(ultimoPrecio)})"
-                            style="font-size: 10px; border-radius: 4px; background: #ecfdf5; border-color: #a7f3d0 !important; color: #065f46; font-weight: 700;">
-                        Últ: $${formatCOP(ultimoPrecio)}
-                    </button>
-                `;
-            }
-            if (mlInfo?.precio_minimo) {
-                buttonsHtml += `
-                    <button type="button" class="btn btn-xs py-0 px-1 border btn-ml-price shadow-2xs" data-price="${mlInfo.precio_minimo}"
-                            title="Haga clic para aplicar el precio mínimo ($${formatCOP(mlInfo.precio_minimo)})"
-                            style="font-size: 10px; border-radius: 4px; background: #f8fafc; border-color: #cbd5e1 !important; color: #334155;">
-                        Mín: $${formatCOP(mlInfo.precio_minimo)}
-                    </button>
+                itemsHtml += `
+                    <li>
+                        <button type="button" class="dropdown-item d-flex align-items-center justify-content-between py-1.5 px-2 rounded btn-ml-price" data-price="${ultimoPrecio}" style="font-size: 11px;">
+                            <span class="d-flex align-items-center gap-1.5 text-secondary">
+                                <span class="badge" style="background: #ecfdf5; color: #065f46; font-size: 9.5px; font-weight: 700;">Último</span>
+                                Facturado:
+                            </span>
+                            <strong class="text-dark font-monospace" style="font-size: 11.5px;">$${formatCOP(ultimoPrecio)}</strong>
+                        </button>
+                    </li>
                 `;
             }
             if (mlInfo?.precio_promedio) {
-                buttonsHtml += `
-                    <button type="button" class="btn btn-xs py-0 px-1 border btn-ml-price shadow-2xs" data-price="${mlInfo.precio_promedio}"
-                            title="Haga clic para aplicar el precio promedio ($${formatCOP(mlInfo.precio_promedio)})"
-                            style="font-size: 10px; border-radius: 4px; background: #eff6ff; border-color: #bfdbfe !important; color: #1d4ed8; font-weight: 700;">
-                        Prom: $${formatCOP(mlInfo.precio_promedio)}
-                    </button>
+                itemsHtml += `
+                    <li>
+                        <button type="button" class="dropdown-item d-flex align-items-center justify-content-between py-1.5 px-2 rounded btn-ml-price" data-price="${mlInfo.precio_promedio}" style="font-size: 11px;">
+                            <span class="d-flex align-items-center gap-1.5 text-secondary">
+                                <span class="badge" style="background: #eff6ff; color: #1d4ed8; font-size: 9.5px; font-weight: 700;">Prom</span>
+                                Promedio:
+                            </span>
+                            <strong class="text-dark font-monospace" style="font-size: 11.5px;">$${formatCOP(mlInfo.precio_promedio)}</strong>
+                        </button>
+                    </li>
+                `;
+            }
+            if (mlInfo?.precio_minimo) {
+                itemsHtml += `
+                    <li>
+                        <button type="button" class="dropdown-item d-flex align-items-center justify-content-between py-1.5 px-2 rounded btn-ml-price" data-price="${mlInfo.precio_minimo}" style="font-size: 11px;">
+                            <span class="d-flex align-items-center gap-1.5 text-secondary">
+                                <span class="badge" style="background: #f8fafc; color: #475569; font-size: 9.5px; font-weight: 600;">Mín</span>
+                                Mínimo:
+                            </span>
+                            <strong class="text-dark font-monospace" style="font-size: 11.5px;">$${formatCOP(mlInfo.precio_minimo)}</strong>
+                        </button>
+                    </li>
                 `;
             }
             if (mlInfo?.precio_maximo) {
-                buttonsHtml += `
-                    <button type="button" class="btn btn-xs py-0 px-1 border btn-ml-price shadow-2xs" data-price="${mlInfo.precio_maximo}"
-                            title="Haga clic para aplicar el precio máximo ($${formatCOP(mlInfo.precio_maximo)})"
-                            style="font-size: 10px; border-radius: 4px; background: #fff7ed; border-color: #fed7aa !important; color: #9a3412;">
-                        Máx: $${formatCOP(mlInfo.precio_maximo)}
-                    </button>
+                itemsHtml += `
+                    <li>
+                        <button type="button" class="dropdown-item d-flex align-items-center justify-content-between py-1.5 px-2 rounded btn-ml-price" data-price="${mlInfo.precio_maximo}" style="font-size: 11px;">
+                            <span class="d-flex align-items-center gap-1.5 text-secondary">
+                                <span class="badge" style="background: #fff7ed; color: #9a3412; font-size: 9.5px; font-weight: 600;">Máx</span>
+                                Máximo:
+                            </span>
+                            <strong class="text-dark font-monospace" style="font-size: 11.5px;">$${formatCOP(mlInfo.precio_maximo)}</strong>
+                        </button>
+                    </li>
                 `;
             }
 
             mlContainer.innerHTML = `
-                <div class="d-flex align-items-center justify-content-between mb-1" style="font-size: 10px; color: #1e40af;">
-                    <span class="fw-semibold"><i class="bi bi-shop me-1"></i>Precios ML:</span>
-                    ${mlInfo?.veces_vendido ? `<span class="badge bg-light text-muted border py-0 px-1" style="font-size: 9px;">${mlInfo.veces_vendido} ${mlInfo.veces_vendido === 1 ? 'venta' : 'ventas'}</span>` : ''}
-                </div>
-                <div class="d-flex flex-wrap gap-1 align-items-center">
-                    ${buttonsHtml}
+                <div class="dropdown">
+                    <div class="btn-group btn-group-xs" style="border-radius: 5px;">
+                        <button type="button" class="btn btn-xs py-0 px-1 border btn-ml-quick-price text-start d-flex align-items-center gap-1"
+                                data-price="${primaryPrice}"
+                                title="Clic para aplicar último precio ($${formatCOP(primaryPrice)})"
+                                style="font-size: 10px; font-weight: 600; background: #f8fafc; border-color: #cbd5e1; color: #334155; border-radius: 4px 0 0 4px; height: 19px; line-height: 1;">
+                            <i class="bi bi-tag text-primary" style="font-size: 8.5px;"></i>
+                            <span>$${formatCOP(primaryPrice)}</span>
+                        </button>
+                        <button type="button" class="btn btn-xs py-0 px-1 border dropdown-toggle dropdown-toggle-split" 
+                                data-bs-toggle="dropdown" data-bs-auto-close="true" aria-expanded="false" 
+                                title="Ver precios de referencia Mercado Libre"
+                                style="font-size: 8.5px; background: #f8fafc; border-color: #cbd5e1; border-left: none; color: #64748b; border-radius: 0 4px 4px 0; height: 19px; line-height: 1;">
+                            <span class="visually-hidden">Precios</span>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end shadow-sm p-1 rounded-3" style="min-width: 220px; z-index: 1060; border: 1px solid var(--border-color) !important;">
+                            <li class="dropdown-header px-2 py-1 text-muted d-flex justify-content-between align-items-center" style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">
+                                <span><i class="bi bi-shop text-primary me-1"></i>Mercado Libre</span>
+                                ${mlInfo?.veces_vendido ? `<span class="badge bg-light text-muted border py-0 px-1" style="font-weight: 500;">${mlInfo.veces_vendido} ${mlInfo.veces_vendido === 1 ? 'venta' : 'ventas'}</span>` : ''}
+                            </li>
+                            <li><hr class="dropdown-divider my-1"></li>
+                            ${itemsHtml}
+                        </ul>
+                    </div>
                 </div>
             `;
 
             inpPrice.parentNode.appendChild(mlContainer);
 
+            const applyPrice = (priceVal) => {
+                const selectedPrice = parseFloat(priceVal);
+                if (!isNaN(selectedPrice) && inpPrice) {
+                    inpPrice.value = formatInput(selectedPrice);
+                    inpPrice.dispatchEvent(new Event('input', { bubbles: true }));
+                    if (typeof calcEngine === 'function') calcEngine();
+                }
+            };
+
+            mlContainer.querySelector('.btn-ml-quick-price')?.addEventListener('click', (e) => {
+                e.preventDefault();
+                applyPrice(e.currentTarget.dataset.price);
+            });
+
+            const toggleBtn = mlContainer.querySelector('.dropdown-toggle');
             mlContainer.querySelectorAll('.btn-ml-price').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     e.preventDefault();
-                    const selectedPrice = parseFloat(btn.dataset.price);
-                    if (!isNaN(selectedPrice) && inpPrice) {
-                        inpPrice.value = formatInput(selectedPrice);
-                        inpPrice.dispatchEvent(new Event('input', { bubbles: true }));
-                        if (typeof calcEngine === 'function') calcEngine();
+                    applyPrice(btn.dataset.price);
+                    if (toggleBtn && window.bootstrap?.Dropdown) {
+                        const inst = window.bootstrap.Dropdown.getInstance(toggleBtn);
+                        if (inst) inst.hide();
                     }
                 });
             });
