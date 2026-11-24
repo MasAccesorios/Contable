@@ -3467,3 +3467,269 @@ BEGIN
     RETURN v_result;
 END;
 $function$;
+
+
+-- =========================================================================
+-- CHEQUEOS DE AUDITORÍA AVANZADA 360° (MOTOR DE INTEGRIDAD CONTABLE)
+-- =========================================================================
+
+-- 1. Discrepancia matemática entre total de factura y suma de sus detalles
+CREATE OR REPLACE FUNCTION public.run_audit_check_diff_factura_detalles()
+RETURNS json
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $function$
+DECLARE
+    v_fails json;
+    v_count int;
+BEGIN
+    WITH fails AS (
+        SELECT f.id, f.numero, f.fecha, f.total, 
+               COALESCE(SUM(d.subtotal), 0) AS suma_detalles, 
+               ROUND(ABS(f.total - COALESCE(SUM(d.subtotal), 0))::numeric, 2) AS diferencia
+        FROM facturas f
+        JOIN factura_detalles d ON f.id = d.factura_id
+        WHERE f.estado NOT IN ('anulada', 'void')
+        GROUP BY f.id, f.numero, f.fecha, f.total
+        HAVING ABS(f.total - COALESCE(SUM(d.subtotal), 0)) > 0.05
+        ORDER BY f.fecha DESC
+    )
+    SELECT COALESCE(json_agg(row_to_json(f)), '[]'::json), COUNT(*) 
+    INTO v_fails, v_count 
+    FROM fails f;
+
+    IF v_count = 0 THEN 
+        RETURN json_build_object('success', true);
+    ELSE 
+        RETURN json_build_object(
+            'success', false, 
+            'count', v_count, 
+            'columns', json_build_array('id', 'numero', 'fecha', 'total', 'suma_detalles', 'diferencia'), 
+            'data', v_fails
+        );
+    END IF;
+END;
+$function$;
+
+-- 2. Contactos Duplicados o Identificación Inválida
+CREATE OR REPLACE FUNCTION public.run_audit_check_contactos_duplicados()
+RETURNS json
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $function$
+DECLARE
+    v_fails json;
+    v_count int;
+BEGIN
+    WITH dupes AS (
+        SELECT 
+            identificacion,
+            COUNT(*) AS total_registros,
+            STRING_AGG(id::text, ', ') AS ids_afectados,
+            STRING_AGG(nombre, ' | ') AS nombres_asociados
+        FROM contactos
+        WHERE estado = 'active'
+          AND (
+            identificacion ILIKE '%null%' 
+            OR TRIM(identificacion) = ''
+            OR identificacion IN (
+                SELECT identificacion 
+                FROM contactos 
+                WHERE estado = 'active' AND identificacion IS NOT NULL AND TRIM(identificacion) != ''
+                GROUP BY identificacion 
+                HAVING COUNT(*) > 1
+            )
+          )
+        GROUP BY identificacion
+        ORDER BY COUNT(*) DESC
+    )
+    SELECT COALESCE(json_agg(row_to_json(d)), '[]'::json), COUNT(*)
+    INTO v_fails, v_count
+    FROM dupes d;
+
+    IF v_count = 0 THEN 
+        RETURN json_build_object('success', true);
+    ELSE 
+        RETURN json_build_object(
+            'success', false, 
+            'count', v_count, 
+            'columns', json_build_array('identificacion', 'total_registros', 'ids_afectados', 'nombres_asociados'), 
+            'data', v_fails
+        );
+    END IF;
+END;
+$function$;
+
+-- 3. Lotes Inconsistentes Físicamente
+CREATE OR REPLACE FUNCTION public.run_audit_check_lotes_inconsistentes()
+RETURNS json
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $function$
+DECLARE
+    v_fails json;
+    v_count int;
+BEGIN
+    WITH fails AS (
+        SELECT 
+            l.id AS lote_id,
+            l.producto_id,
+            p.sku,
+            p.nombre,
+            l.cantidad_inicial,
+            l.cantidad_actual,
+            l.costo_unitario,
+            l.fecha_ingreso
+        FROM lotes_fifo l
+        JOIN productos p ON l.producto_id = p.id
+        WHERE l.cantidad_actual > l.cantidad_inicial + 0.001
+           OR l.costo_unitario < 0
+        ORDER BY l.fecha_ingreso DESC
+    )
+    SELECT COALESCE(json_agg(row_to_json(f)), '[]'::json), COUNT(*)
+    INTO v_fails, v_count
+    FROM fails f;
+
+    IF v_count = 0 THEN 
+        RETURN json_build_object('success', true);
+    ELSE 
+        RETURN json_build_object(
+            'success', false, 
+            'count', v_count, 
+            'columns', json_build_array('lote_id', 'producto_id', 'sku', 'nombre', 'cantidad_inicial', 'cantidad_actual', 'costo_unitario', 'fecha_ingreso'), 
+            'data', v_fails
+        );
+    END IF;
+END;
+$function$;
+
+-- 4. Productos con Margen Negativo (Venta a Pérdida)
+CREATE OR REPLACE FUNCTION public.run_audit_check_productos_margen_negativo()
+RETURNS json
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $function$
+DECLARE
+    v_fails json;
+    v_count int;
+BEGIN
+    WITH fails AS (
+        SELECT 
+            p.id AS producto_id,
+            p.sku,
+            p.nombre,
+            p.costo_base,
+            p.precio_venta,
+            ROUND((p.costo_base - p.precio_venta)::numeric, 2) AS perdida_unitaria,
+            ROUND((((p.precio_venta - p.costo_base) / NULLIF(p.costo_base, 0)) * 100)::numeric, 1) AS margen_porcentaje
+        FROM productos p
+        WHERE p.estado = 'active'
+          AND p.precio_venta > 0
+          AND p.costo_base > p.precio_venta
+        ORDER BY (p.costo_base - p.precio_venta) DESC
+    )
+    SELECT COALESCE(json_agg(row_to_json(f)), '[]'::json), COUNT(*)
+    INTO v_fails, v_count
+    FROM fails f;
+
+    IF v_count = 0 THEN 
+        RETURN json_build_object('success', true);
+    ELSE 
+        RETURN json_build_object(
+            'success', false, 
+            'count', v_count, 
+            'columns', json_build_array('producto_id', 'sku', 'nombre', 'costo_base', 'precio_venta', 'perdida_unitaria', 'margen_porcentaje'), 
+            'data', v_fails
+        );
+    END IF;
+END;
+$function$;
+
+-- 5. Pagos Sospechosos Duplicados
+CREATE OR REPLACE FUNCTION public.run_audit_check_pagos_duplicados()
+RETURNS json
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $function$
+DECLARE
+    v_fails json;
+    v_count int;
+BEGIN
+    WITH fails AS (
+        SELECT 
+            p.factura_id,
+            f.numero AS factura_numero,
+            p.monto,
+            p.fecha,
+            COALESCE(c.nombre, 'Sin cuenta') AS cuenta_bancaria,
+            COUNT(*) AS repeticiones,
+            STRING_AGG(p.id::text, ', ') AS pago_ids
+        FROM pagos_ingresos p
+        JOIN facturas f ON p.factura_id = f.id
+        LEFT JOIN cuentas_bancarias c ON p.cuenta_id = c.id
+        WHERE p.estado NOT IN ('anulado', 'void')
+        GROUP BY p.factura_id, f.numero, p.monto, p.fecha, c.nombre
+        HAVING COUNT(*) > 1
+        ORDER BY p.fecha DESC
+    )
+    SELECT COALESCE(json_agg(row_to_json(f)), '[]'::json), COUNT(*)
+    INTO v_fails, v_count
+    FROM fails f;
+
+    IF v_count = 0 THEN 
+        RETURN json_build_object('success', true);
+    ELSE 
+        RETURN json_build_object(
+            'success', false, 
+            'count', v_count, 
+            'columns', json_build_array('factura_id', 'factura_numero', 'monto', 'fecha', 'cuenta_bancaria', 'repeticiones', 'pago_ids'), 
+            'data', v_fails
+        );
+    END IF;
+END;
+$function$;
+
+-- 6. Pagos Activos Recientes Sin Cuenta Bancaria
+CREATE OR REPLACE FUNCTION public.run_audit_check_pagos_sin_cuenta()
+RETURNS json
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $function$
+DECLARE
+    v_fails json;
+    v_count int;
+BEGIN
+    WITH fails AS (
+        SELECT 
+            p.id AS pago_id,
+            p.numero AS pago_numero,
+            p.fecha,
+            p.monto,
+            p.tipo,
+            p.factura_id,
+            f.numero AS factura_numero
+        FROM pagos_ingresos p
+        LEFT JOIN facturas f ON p.factura_id = f.id
+        LEFT JOIN cuentas_bancarias c ON p.cuenta_id = c.id
+        WHERE p.estado NOT IN ('anulado', 'void')
+          AND (p.cuenta_id IS NULL OR c.id IS NULL)
+          AND p.fecha >= (CURRENT_DATE - INTERVAL '1 year')
+        ORDER BY p.fecha DESC
+        LIMIT 100
+    )
+    SELECT COALESCE(json_agg(row_to_json(f)), '[]'::json), COUNT(*)
+    INTO v_fails, v_count
+    FROM fails f;
+
+    IF v_count = 0 THEN 
+        RETURN json_build_object('success', true);
+    ELSE 
+        RETURN json_build_object(
+            'success', false, 
+            'count', v_count, 
+            'columns', json_build_array('pago_id', 'pago_numero', 'fecha', 'monto', 'tipo', 'factura_id', 'factura_numero'), 
+            'data', v_fails
+        );
+    END IF;
+END;
+$function$;
