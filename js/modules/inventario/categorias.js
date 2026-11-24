@@ -1,121 +1,125 @@
+// js/modules/inventario/categorias.js
+// Módulo de Categorías Contables Moderno
+// MAS Accesorios - Sistema Contable
+
 import { supabase } from '../../core/supabase.js';
-import { escapeHtml } from '../../shared/formatters.js';
+import { CategoriasData } from './categorias/categorias.data.js';
+import { CategoriasTemplates } from './categorias/categorias.templates.js';
+import { CategoriasEvents } from './categorias/categorias.events.js';
 
 export const CategoriasModule = {
-    async init(element) {
-        if (!element) return;
-        this.renderList(element);
+    element: null,
+    state: {
+        categorias: [],
+        categoriasFiltradas: [],
+        conteoMovimientos: {},
+        selectedTab: 'todas',
+        searchQuery: '',
+        kpis: {}
     },
 
-    async renderList(element) {
+    async init(element) {
+        if (!element) return;
+        this.element = element;
+        this.state.selectedTab = 'todas';
+        this.state.searchQuery = '';
+
+        // 1. Mostrar estado de carga moderno
+        this.renderLoading(element);
+
+        // 2. Cargar datos desde Supabase
+        await this.cargarDatos();
+
+        // 3. Renderizar layout principal
+        this.renderLayoutCompleto();
+
+        // 4. Vincular eventos e interacciones
+        CategoriasEvents.bind(this.element, this);
+
+        // 5. Renderizar contenido de tabla
+        CategoriasEvents.actualizarTablaFiltrada();
+    },
+
+    renderLoading(element) {
         element.innerHTML = `
             <div class="d-flex justify-content-center align-items-center" style="min-height: 400px;">
-                <div class="spinner-border" role="status" style="width: 3rem; height: 3rem; color: var(--primary);">
-                    <span class="visually-hidden">Cargando...</span>
+                <div class="d-flex flex-column align-items-center gap-3">
+                    <div class="spinner-border text-primary" role="status" style="width: 2.8rem; height: 2.8rem;">
+                        <span class="visually-hidden">Cargando...</span>
+                    </div>
+                    <span class="text-muted fw-semibold" style="font-size: 13px;">Cargando catálogo contable...</span>
                 </div>
             </div>
         `;
+    },
 
-        let totalCategorias = 0;
-        let catActivas = 0;
-        let categorias = [];
-
+    async cargarDatos() {
         try {
-            const { data, error } = await supabase.from('categorias_contables').select('*').order('nombre', { ascending: true });
-            if (!error && data) {
-                categorias = data;
-                totalCategorias = data.length;
-                catActivas = data.filter(c => c.estado === 'activa').length;
+            // Consulta en paralelo: categorías contables + uso en transacciones (pagos_ingresos)
+            const [catRes, pagosRes] = await Promise.all([
+                supabase.from('categorias_contables').select('*').order('nombre', { ascending: true }),
+                supabase.from('pagos_ingresos').select('categoria').not('categoria', 'is', null)
+            ]);
+
+            if (catRes.error) {
+                console.error('Error cargando categorías contables:', catRes.error);
             }
-        } catch(e) {
-            console.error('Error fetching categories:', e);
+            this.state.categorias = catRes.data || [];
+
+            // Contar movimientos por categoría
+            const conteo = {};
+            if (pagosRes.data) {
+                for (const row of pagosRes.data) {
+                    const catName = row.categoria;
+                    if (catName) {
+                        conteo[catName] = (conteo[catName] || 0) + 1;
+                    }
+                }
+            }
+            this.state.conteoMovimientos = conteo;
+
+            // Calcular KPIs
+            this.state.kpis = CategoriasData.calcularKpis(this.state.categorias, this.state.conteoMovimientos);
+        } catch (err) {
+            console.error('Error inesperado cargando categorías:', err);
+            this.state.categorias = [];
+            this.state.conteoMovimientos = {};
+            this.state.kpis = CategoriasData.calcularKpis([], {});
         }
+    },
 
-        element.innerHTML = `
-            <div class="ds-layout p-4" style="max-width: 1100px; margin: 0 auto;">
-                <!-- TOP BAR -->
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <div>
-                        <h2 class="page-title">Categorías</h2>
-                        <p class="text-muted mb-0" style="font-size: var(--fs-md);">
-                            Gestiona las categorías de tus productos y movimientos financieros.
-                        </p>
-                    </div>
-                    <div class="d-flex gap-2">
-                        <button class="btn btn-light bg-white border" style="font-weight: var(--weight-medium); font-size: var(--fs-md); color: var(--text-body);" onclick="location.reload()">
-                            <i class="bi bi-arrow-clockwise me-1"></i> Actualizar
-                        </button>
-                        <button class="btn btn-primary-action">
-                            <i class="bi bi-plus-lg me-1"></i> Nueva Categoría
-                        </button>
-                    </div>
-                </div>
+    renderLayoutCompleto() {
+        if (!this.element) return;
+        this.element.innerHTML = CategoriasTemplates.renderLayout(
+            this.state.kpis,
+            this.state.selectedTab,
+            this.state.searchQuery
+        );
+    },
 
-                <!-- KPI CARDS -->
-                <div class="row g-3 mb-4">
-                    <div class="col-12 col-sm-6 col-lg-4">
-                        <div class="ds-kpi-card">
-                            <span class="ds-kpi-label">Total Categorías</span>
-                            <div class="ds-kpi-value">${totalCategorias}</div>
-                        </div>
-                    </div>
-                    <div class="col-12 col-sm-6 col-lg-4">
-                        <div class="ds-kpi-card">
-                            <span class="ds-kpi-label">Categorías Activas</span>
-                            <div class="ds-kpi-value text-success">${catActivas}</div>
-                        </div>
-                    </div>
-                    <div class="col-12 col-sm-6 col-lg-4">
-                        <div class="ds-kpi-card">
-                            <span class="ds-kpi-label">Productos Asociados</span>
-                            <div class="ds-kpi-value">0</div>
-                        </div>
-                    </div>
-                </div>
+    async recargarDatos(mostrarFeedback = false) {
+        await this.cargarDatos();
+        this.actualizarVistasCompletas();
+        if (mostrarFeedback) {
+            CategoriasEvents.mostrarToast('Datos actualizados correctamente.');
+        }
+    },
 
-                <!-- DATA TABLE CARD -->
-                <div class="dash-table-container mb-4">
-                    <!-- FILTERS -->
-                    <div class="card-header bg-white border-bottom p-3 d-flex gap-3 align-items-center">
-                        <div class="ds-search-container" style="width: 250px;">
-                            <i class="bi bi-search ds-search-icon"></i>
-                            <input type="text" class="ds-search-input" id="searchCategorias" autocomplete="off" placeholder="Buscar categoría...">
-                        </div>
-                    </div>
+    actualizarVistasCompletas() {
+        if (!this.element) return;
+        this.state.kpis = CategoriasData.calcularKpis(this.state.categorias, this.state.conteoMovimientos);
 
-                    <!-- GRID -->
-                    <div class="table-responsive">
-                        <table class="table table-borderless align-middle mb-0">
-                            <thead>
-                                <tr>
-                                    <th class="py-2 fw-normal" style="min-width: 200px;">Nombre</th>
-                                    <th class="py-2 fw-normal text-center" style="width: 150px;">Flujo</th>
-                                    <th class="py-2 fw-normal text-center" style="width: 120px;">Estado</th>
-                                    <th class="py-2 fw-normal text-end" style="width: 80px;"></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${categorias.length > 0 ? categorias.map(c => `
-                                    <tr style="border-bottom: 1px solid var(--border-color); font-size: var(--fs-base); color: var(--text-body);">
-                                        <td class="py-3 fw-medium" style="color: var(--text-main); white-space: nowrap;">${escapeHtml(c.nombre)}</td>
-                                        <td class="py-3 text-center" style="white-space: nowrap;"><span class="badge bg-light text-dark border border-secondary-subtle px-2 py-1 rounded-pill">${c.tipo_flujo || 'N/A'}</span></td>
-                                        <td class="py-3 text-center" style="white-space: nowrap;">
-                                            <span class="badge ${c.estado === 'activa' ? 'bg-success text-success bg-opacity-10 border border-success-subtle' : 'bg-secondary text-secondary bg-opacity-10 border border-secondary-subtle'} rounded-pill fw-medium" style="font-size: var(--fs-xs); padding: 5px 10px;">
-                                                ${c.estado === 'activa' ? 'Activa' : 'Inactiva'}
-                                            </span>
-                                        </td>
-                                        <td class="py-3 text-end" style="white-space: nowrap;">
-                                            <button class="btn btn-link text-muted p-0">
-                                                <i class="bi bi-three-dots-vertical"></i>
-                                            </button>
-                                        </td>
-                                    </tr>
-                                `).join('') : '<tr><td colspan="4" class="text-center py-5 text-muted">No se encontraron categorías</td></tr>'}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        `;
+        // Guardar estado actual del buscador
+        const currentSearch = this.element.querySelector('#search-categorias')?.value || '';
+        this.state.searchQuery = currentSearch;
+
+        // Re-render layout
+        this.renderLayoutCompleto();
+
+        // Re-vincular eventos
+        CategoriasEvents.bind(this.element, this);
+
+        // Actualizar tabla
+        CategoriasEvents.actualizarTablaFiltrada();
     }
 };
