@@ -241,16 +241,25 @@ export const TesoreriaData = {
             }
         }
 
-        // 4. Conteo de transacciones pendientes por conciliar (a partir de la fecha de corte)
+        // 4. Conteo de transacciones pendientes por conciliar (a partir de la fecha de corte y solo en cuentas activas)
         let conteoPendientes = 0;
         if (supabaseClient) {
             try {
+                const cuentasActivasIds = (this.state.todasLasCuentas || [])
+                    .filter(c => c.estado !== 'inactivo' && c.estado !== 'inactive')
+                    .map(c => c.id);
+
                 let query = supabaseClient
                     .from('pagos_ingresos')
                     .select('id', { count: 'exact', head: true })
                     .is('conciliacion_id', null)
                     .is('conciliado_en', null)
+                    .not('cuenta_id', 'is', null)
                     .neq('estado', 'anulado');
+
+                if (cuentasActivasIds.length > 0) {
+                    query = query.in('cuenta_id', cuentasActivasIds);
+                }
 
                 if (this.FECHA_CORTE_CONCILIACION) {
                     query = query.gte('fecha', this.FECHA_CORTE_CONCILIACION);

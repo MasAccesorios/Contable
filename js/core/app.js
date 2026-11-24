@@ -58,7 +58,7 @@ const routes = {
     'gastos/pagos-realizados': () => import('../modules/gastos/pagosRealizados/pagosRealizados.js'),
     'cartera': () => import('../modules/cartera/cartera.js'),
     'bancos/conciliacion': () => import('../modules/bancos/conciliacion.js?v=2'),
-    'bancos/detalle': () => import('../modules/bancos/detalle.js'),
+    'bancos/detalle': () => import('../modules/bancos/detalle.js?v=2'),
     'reportes': () => import('../modules/reportes.js?v=23'),
     'configuracion': () => import('../modules/configuracion.js?v=2'),
     'auditoria': () => import('../modules/auditoria.js'),
