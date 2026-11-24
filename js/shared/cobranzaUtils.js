@@ -170,3 +170,46 @@ export function buildEstadoCuentaWhatsAppText(arg1, arg2, arg3) {
 
     return msg;
 }
+
+/**
+ * Genera el texto profesional para compartir una Factura de Venta por WhatsApp.
+ * Si la factura está pagada (saldo <= 0), genera mensaje de comprobante / paz y salvo.
+ * Si tiene saldo pendiente, desglosa el saldo, vencimiento y medios de pago.
+ */
+export function buildFacturaWhatsAppText(factura, cliente) {
+    const num = factura.numero || factura.id;
+    const total = formatMoneyCOP(factura.total);
+    const saldoVal = Number(factura.saldoPendiente ?? factura.saldo ?? (Number(factura.total || 0) - Number(factura.totalPagado || 0)));
+    const saldo = formatMoneyCOP(saldoVal);
+    const venc = factura.vencimiento ? ` con vencimiento el ${factura.vencimiento}` : '';
+    const nom = (cliente?.nombre || '').trim() || 'Estimado(a) cliente';
+
+    if (saldoVal <= 0 && Number(factura.total || 0) > 0) {
+        return `Hola *${nom}*, cordial saludo.\n\nLe confirmamos que su *Factura de Venta No. ${num}* por un valor de *${total}* se encuentra *totalmente saldada (Paz y Salvo)*.\n\n¡Muchas gracias por su preferencia comercial!\n*MAS Accesorios*`;
+    }
+
+    let msg = `Hola *${nom}*, cordial saludo.\n\nLe compartimos el estado de su *Factura de Venta No. ${num}*:\n• *Total Factura:* ${total}\n• *Saldo pendiente:* ${saldo}${venc}\n\n`;
+    msg += `💳 *Medios de Pago Autorizados:*\n`;
+    msg += `• *Bancolombia (Ahorros):* ${OFICIAL_CUENTAS_BANCARIAS.bancolombia.numero} (${OFICIAL_CUENTAS_BANCARIAS.bancolombia.titular})\n`;
+    msg += `• *Nequi / DaviPlata:* ${OFICIAL_CUENTAS_BANCARIAS.billeteras.numero} (${OFICIAL_CUENTAS_BANCARIAS.billeteras.titular})\n`;
+    msg += `• *Llave Bre-B / Transfiya:* ${OFICIAL_CUENTAS_BANCARIAS.llaveBreB.llave}\n\n`;
+    msg += `Favor enviar el soporte de pago a este chat indicando el número de factura. ¡Muchas gracias!\n*MAS Accesorios*`;
+    return msg;
+}
+
+/**
+ * Genera el texto profesional para compartir una Cotización por WhatsApp.
+ */
+export function buildCotizacionWhatsAppText(cotizacion, cliente) {
+    const num = cotizacion.numero || cotizacion.id;
+    const total = formatMoneyCOP(cotizacion.total);
+    const venc = cotizacion.vencimiento ? ` (válida hasta ${cotizacion.vencimiento})` : '';
+    const nom = (cliente?.nombre || '').trim() || 'Estimado(a) cliente';
+
+    let msg = `Hola *${nom}*, cordial saludo.\n\n`;
+    msg += `Le compartimos los detalles de su *Cotización No. ${num}* por un valor total de *${total}*${venc}.\n\n`;
+    msg += `Quedamos a su entera disposición ante cualquier duda o para confirmar su pedido y proceder con la entrega.\n\n`;
+    msg += `¡Muchas gracias por confiar en nosotros!\n*MAS Accesorios*`;
+    return msg;
+}
+

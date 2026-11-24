@@ -7,6 +7,7 @@ import { NumberingManager } from '../../shared/numberingManager.js';
 import { ContactosModule } from '../clientes/clientes.js';
 import { UI } from '../../shared/combobox.js';
 import { escapeHtml, getClientAvatar } from '../../shared/formatters.js';
+import { openCotizacionRowMenu } from '../../shared/rowActionMenu.js';
 
 export const CotizacionesModule = {
     async init(element) {
@@ -486,36 +487,9 @@ export const CotizacionesModule = {
                                         <button class="btn btn-sm btn-light border-0 p-1 btn-imprimir-row" data-id="${c.id}" title="Imprimir">
                                             <i class="bi bi-printer text-secondary"></i>
                                         </button>
-                                        <div class="dropdown d-inline-block">
-                                            <button class="btn btn-sm btn-link text-muted p-1 border-0" data-bs-toggle="dropdown">
-                                                <i class="bi bi-three-dots-vertical"></i>
-                                            </button>
-                                            <ul class="dropdown-menu dropdown-menu-end shadow border" style="font-size: 13px; border-radius: 8px;">
-                                                <li>
-                                                    <a class="dropdown-item py-2 d-flex align-items-center gap-2 btn-menu-ver-cot" href="javascript:void(0)" data-id="${c.id}">
-                                                        <i class="bi bi-layout-sidebar-inset-reverse text-primary"></i> Ver detalle
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a class="dropdown-item py-2 d-flex align-items-center gap-2" href="#/ingresos/cotizaciones/editar/${c.id}">
-                                                        <i class="bi bi-pencil text-secondary"></i> Editar
-                                                    </a>
-                                                </li>
-                                                ${!isFacturada ? `
-                                                    <li>
-                                                        <a class="dropdown-item py-2 d-flex align-items-center gap-2 text-success btn-menu-convertir-cot" href="javascript:void(0)" data-id="${c.id}">
-                                                            <i class="bi bi-arrow-right-circle"></i> Convertir a Factura
-                                                        </a>
-                                                    </li>
-                                                ` : ''}
-                                                <li><hr class="dropdown-divider my-1"></li>
-                                                <li>
-                                                    <a class="dropdown-item py-2 d-flex align-items-center gap-2 text-danger btn-menu-eliminar-cot" href="javascript:void(0)" data-id="${c.id}">
-                                                        <i class="bi bi-trash"></i> Eliminar
-                                                    </a>
-                                                </li>
-                                            </ul>
-                                        </div>
+                                        <button class="btn btn-sm btn-light border-0 p-1 btn-menu-row" data-id="${c.id}" title="Opciones">
+                                            <i class="bi bi-three-dots-vertical text-secondary"></i>
+                                        </button>
                                     </div>
                                 </td>
                             </tr>
@@ -602,26 +576,62 @@ export const CotizacionesModule = {
                     });
                 });
 
-                tbodyEl.querySelectorAll('.btn-menu-convertir-cot').forEach(btn => {
-                    btn.addEventListener('click', async (e) => {
+                // 3-dots Menu Actions Inteligente
+                tbodyEl.querySelectorAll('.btn-menu-row').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
                         e.stopPropagation();
                         const id = btn.dataset.id;
-                        await CoreActions.convertirCotizacionAFactura(id, () => {
-                            kpiDataCotizaciones = null;
-                            renderGrid();
-                        });
-                    });
-                });
+                        const cotData = currentItems.find(c => String(c.id) === String(id));
+                        if (!cotData) return;
 
-                tbodyEl.querySelectorAll('.btn-menu-eliminar-cot').forEach(btn => {
-                    btn.addEventListener('click', async (e) => {
-                        e.stopPropagation();
-                        const id = btn.dataset.id;
-                        if (confirm('¿Estás seguro de eliminar esta cotización de forma permanente?')) {
-                            await DB.delete('cotizaciones', id);
-                            kpiDataCotizaciones = null;
-                            renderGrid();
-                        }
+                        const clienteId = cotData.contacto_id || cotData.cliente_id || cotData.clienteId;
+                        const cliente = {
+                            id: clienteId,
+                            nombre: cotData.cliente_nombre || 'Cliente',
+                            telefono: cotData.cliente_telefono || ''
+                        };
+
+                        openCotizacionRowMenu({
+                            trigger: btn,
+                            cotizacion: cotData,
+                            cliente,
+                            onConvertir: async (cotId) => {
+                                await CoreActions.convertirCotizacionAFactura(cotId, () => {
+                                    kpiDataCotizaciones = null;
+                                    renderGrid();
+                                });
+                            },
+                            onVerDetalle: (cotId) => {
+                                mostrarDrawer(cotId);
+                            },
+                            onVerFactura: (facId) => {
+                                window.location.hash = `#/ingresos/facturas/ver/${facId}`;
+                            },
+                            onImprimir: async (cotId) => {
+                                const doc = await DB.get('cotizaciones', cotId);
+                                if (doc) {
+                                    const pIds = (doc.detalles || []).map(d => parseInt(d.productoId, 10)).filter(p => !isNaN(p) && p > 0);
+                                    const [clienteRes, prodsRes] = await Promise.all([
+                                        doc.clienteId ? supabase.from('contactos').select('*').eq('id', parseInt(doc.clienteId, 10)).single() : Promise.resolve({ data: null }),
+                                        pIds.length > 0 ? supabase.from('productos').select('*').in('id', pIds) : Promise.resolve({ data: [] })
+                                    ]);
+                                    const contactos = clienteRes.data ? [DB._mapToFrontend('contactos', clienteRes.data)] : [];
+                                    const productos = (prodsRes.data || []).map(p => DB._mapToFrontend('productos', p));
+                                    PrintManager.printDocument(doc, 'Cotización', contactos, productos);
+                                }
+                            },
+                            onDuplicar: (cotId) => {
+                                window.location.hash = `#/ingresos/cotizaciones/nueva?duplicar=${cotId}`;
+                            },
+                            onEliminar: async (cotId) => {
+                                if (confirm('¿Estás seguro de eliminar esta cotización de forma permanente?')) {
+                                    await DB.delete('cotizaciones', cotId);
+                                    kpiDataCotizaciones = null;
+                                    renderGrid();
+                                    CoreActions.showSuccessModal('Cotización eliminada exitosamente.');
+                                }
+                            }
+                        });
                     });
                 });
 
@@ -1279,11 +1289,34 @@ export const CotizacionesModule = {
             if (rawClienteId && /^\d+$/.test(rawClienteId)) {
                 cotizacion.clienteId = String(rawClienteId);
             }
+            const dupId = urlParams.get('duplicar');
+            if (dupId) {
+                try {
+                    const originalDoc = await DB.get('cotizaciones', dupId);
+                    if (originalDoc) {
+                        cotizacion.clienteId = String(originalDoc.clienteId || originalDoc.contacto_id || '');
+                        if (originalDoc.detalles && originalDoc.detalles.length > 0) {
+                            cotizacion.detalles = originalDoc.detalles.map(d => ({
+                                id: Date.now() + Math.random(),
+                                productoId: String(d.productoId || d.producto_id || ''),
+                                cantidad: Number(d.cantidad || 1),
+                                precio: Number(d.precio || d.precio_unitario || 0),
+                                descuento: Number(d.descuento || d.descuento_porcentaje || 0),
+                                impuesto: Number(d.impuesto || 0)
+                            }));
+                        }
+                        cotizacion.notas = originalDoc.notas || originalDoc.observaciones || '';
+                        cotizacion.terminosCondiciones = originalDoc.terminosCondiciones || cotizacion.terminosCondiciones;
+                    }
+                } catch (e) {
+                    console.error("Error al duplicar cotización:", e);
+                }
+            }
         }
 
         // Cargar solo los productos de los detalles (evita descargar el catálogo completo)
         let productos = [];
-        if (id && cotizacion.detalles && cotizacion.detalles.length > 0) {
+        if (cotizacion.detalles && cotizacion.detalles.length > 0) {
             const pIds = cotizacion.detalles
                 .map(d => parseInt(d.productoId, 10))
                 .filter(pId => !isNaN(pId) && pId > 0);

@@ -14,6 +14,7 @@ import { InventarioUtils } from '../../shared/inventarioUtils.js';
 import { EstadoUtils } from '../../shared/estadoUtils.js';
 import { anularTransaccion } from '../../shared/transaccionesUtils.js';
 import { escapeHtml, getClientAvatar } from '../../shared/formatters.js';
+import { openFacturaRowMenu } from '../../shared/rowActionMenu.js';
 
 export const FacturasModule = {
     cache: { contactos: null, productos: null },
@@ -378,10 +379,11 @@ export const FacturasModule = {
                 // Resolver nombres de clientes dinámicamente
                 const contactoIds = pageData.map(c => c.clienteId || c.contacto_id || c.contactoId).filter(Boolean);
                 if (contactoIds.length > 0) {
-                    const { data: cdata } = await supabase.from('contactos').select('id, nombre, identificacion').in('id', contactoIds);
+                    const { data: cdata } = await supabase.from('contactos').select('id, nombre, identificacion, telefono').in('id', contactoIds);
                     if (cdata) cdata.forEach(c => {
                         contactosMap[c.id] = c.nombre;
                         if (c.identificacion) contactosMap[`nit_${c.id}`] = c.identificacion;
+                        if (c.telefono) contactosMap[`tel_${c.id}`] = c.telefono;
                     });
                 }
 
@@ -1092,75 +1094,52 @@ export const FacturasModule = {
                 });
             });
 
-            // 3-dots Menu Actions
+            // 3-dots Menu Actions Inteligente
             element.querySelectorAll('.btn-menu-row').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    const existing = document.querySelector('.row-action-menu');
-                    if (existing) existing.remove();
-
                     const id = e.currentTarget.dataset.id;
-                    const rect = e.currentTarget.getBoundingClientRect();
-
                     const factData = currentItems.find(f => String(f.id) === String(id));
-                    const canAbonar = factData && factData.estado !== 'pagada' && !EstadoUtils.estaAnulado(factData.estado);
-                    const isAnulada = factData && EstadoUtils.estaAnulado(factData.estado);
+                    if (!factData) return;
 
-                    const menuHtml = `
-                        <div class="row-action-menu position-absolute bg-white shadow rounded border py-2" 
-                             style="z-index: 1060; width: 160px; top: ${rect.bottom + window.scrollY}px; left: ${rect.left - 110}px;">
-                            ${canAbonar ? `
-                            <a href="#" class="d-block px-3 py-1.5 text-decoration-none btn-abonar-factura text-success fw-medium" data-id="${id}" data-saldo="${factData.saldoPendiente}" style="font-size: 13px;">
-                                <i class="bi bi-wallet2 me-2"></i> Registrar Pago
-                            </a>
-                            <hr class="dropdown-divider my-1">` : ''}
-                            <a href="#" class="d-block px-3 py-1.5 text-decoration-none btn-ver-drawer-menu text-primary" data-id="${id}" style="font-size: 13px;">
-                                <i class="bi bi-layout-sidebar-inset-reverse me-2"></i> Ver detalle
-                            </a>
-                            ${!isAnulada ? `
-                            <a href="#/ingresos/facturas/editar/${id}" class="d-block px-3 py-1.5 text-decoration-none text-dark" style="font-size: 13px;">
-                                <i class="bi bi-pencil me-2 text-secondary"></i> Editar
-                            </a>
-                            ${factData?.totalPagado > 0 ? `
-                            <a href="#" class="d-block px-3 py-1.5 text-decoration-none text-danger btn-anular-venta" data-id="${id}" style="font-size: 13px;">
-                                <i class="bi bi-x-circle me-2"></i> Anular Venta
-                            </a>` : `
-                            <a href="#" class="d-block px-3 py-1.5 text-decoration-none text-danger btn-delete-row" data-id="${id}" style="font-size: 13px;">
-                                <i class="bi bi-trash me-2"></i> Eliminar
-                            </a>`}
-                            ` : ''}
-                        </div>
-                    `;
-                    document.body.insertAdjacentHTML('beforeend', menuHtml);
+                    const clienteId = factData.contacto_id || factData.clienteId || factData.contactoId;
+                    const cliente = {
+                        id: clienteId,
+                        nombre: factData.contactos?.nombre || contactosMap[clienteId] || 'Cliente',
+                        telefono: contactosMap[`tel_${clienteId}`] || factData.contactos?.telefono || ''
+                    };
 
-                    const menu = document.querySelector('.row-action-menu');
-
-                    menu.querySelector('.btn-ver-drawer-menu')?.addEventListener('click', (ev) => {
-                        ev.preventDefault();
-                        menu.remove();
-                        mostrarDrawer(id);
-                    });
-
-                    if (canAbonar) {
-                        menu.querySelector('.btn-abonar-factura')?.addEventListener('click', (ev) => {
-                            ev.preventDefault();
-                            menu.remove();
-                            AbonoModal.show(id, async () => {
+                    openFacturaRowMenu({
+                        trigger: e.currentTarget,
+                        factura: factData,
+                        cliente,
+                        onAbonar: (facId, saldo) => {
+                            AbonoModal.show(facId, async () => {
                                 kpiDataCxc = null;
                                 await renderGrid();
                             });
-                        });
-                    }
-
-                    const btnDeleteRow = menu.querySelector('.btn-delete-row');
-                    if (btnDeleteRow) {
-                        btnDeleteRow.addEventListener('click', async (ev) => {
-                            ev.preventDefault();
+                        },
+                        onVerDetalle: (facId) => {
+                            mostrarDrawer(facId);
+                        },
+                        onImprimir: async (facId) => {
+                            const doc = await DB.get('facturas', facId);
+                            if (doc) {
+                                const [contactos, productos] = await Promise.all([
+                                    DB.getAll('contactos'),
+                                    DB.getAll('productos')
+                                ]);
+                                PrintManager.printDocument(doc, 'Factura de venta', contactos, productos);
+                            }
+                        },
+                        onDuplicar: (facId) => {
+                            window.location.hash = `#/ingresos/facturas/nueva?duplicar=${facId}`;
+                        },
+                        onEliminar: async (facId) => {
                             if (confirm('¿Estás seguro de eliminar esta factura de forma permanente? Se devolverá el inventario asociado.')) {
-                                menu.remove();
                                 try {
                                     const { error } = await supabase.rpc('eliminar_factura_venta', { 
-                                        p_factura_id: parseInt(id, 10) 
+                                        p_factura_id: parseInt(facId, 10) 
                                     });
                                     if (error) throw error;
 
@@ -1174,18 +1153,12 @@ export const FacturasModule = {
                                     CoreActions.showWarningModal("No se pudo eliminar: " + error.message);
                                 }
                             }
-                        });
-                    }
-
-                    const btnAnularVenta = menu.querySelector('.btn-anular-venta');
-                    if (btnAnularVenta) {
-                        btnAnularVenta.addEventListener('click', async (ev) => {
-                            ev.preventDefault();
+                        },
+                        onAnular: async (facId) => {
                             if (confirm('¿Estás seguro de anular esta venta? Se revertirá el inventario y el pago asociado.')) {
-                                menu.remove();
                                 try {
                                     const { error } = await supabase.rpc('anular_venta_pagada', { 
-                                        p_factura_id: parseInt(id, 10) 
+                                        p_factura_id: parseInt(facId, 10) 
                                     });
                                     if (error) throw error;
 
@@ -1195,14 +1168,14 @@ export const FacturasModule = {
                                     DB.invalidateCache('pagos_ingresos');
                                     kpiDataCxc = null;
                                     await renderGrid();
-                                    CoreActions.showSuccessModal('Venta anulada exitosamente.');
+                                    CoreActions.showSuccessModal('Venta anulada exitosamente. Stock y pagos revertidos.');
                                 } catch (error) {
                                     console.error("Error al anular venta:", error);
                                     CoreActions.showWarningModal("No se pudo anular: " + error.message);
                                 }
                             }
-                        });
-                    }
+                        }
+                    });
                 });
             });
         };
@@ -1286,6 +1259,29 @@ export const FacturasModule = {
             if (rawProductoId && /^\d+$/.test(rawProductoId) && factura.detalles && factura.detalles[0]) {
                 factura.detalles[0].productoId = String(rawProductoId);
                 factura.detalles[0].cantidad = 1;
+            }
+            const dupId = urlParams.get('duplicar');
+            if (dupId) {
+                try {
+                    const originalDoc = await DB.get('facturas', dupId);
+                    if (originalDoc) {
+                        factura.clienteId = String(originalDoc.clienteId || originalDoc.contacto_id || originalDoc.contactoId || '');
+                        if (originalDoc.detalles && originalDoc.detalles.length > 0) {
+                            factura.detalles = originalDoc.detalles.map(d => ({
+                                id: Date.now() + Math.random(),
+                                productoId: String(d.productoId || d.producto_id || ''),
+                                cantidad: Number(d.cantidad || 1),
+                                precio: Number(d.precio || d.precio_unitario || 0),
+                                descuento: Number(d.descuento || d.descuento_porcentaje || 0),
+                                impuesto: Number(d.impuesto || 0)
+                            }));
+                        }
+                        factura.notas = originalDoc.notas || originalDoc.observaciones || '';
+                        factura.terminosCondiciones = originalDoc.terminosCondiciones || factura.terminosCondiciones;
+                    }
+                } catch (e) {
+                    console.error("Error al duplicar factura:", e);
+                }
             }
         }
 
