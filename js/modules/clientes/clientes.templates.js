@@ -379,11 +379,11 @@ export const ContactosTemplates = {
 
                         <!-- Cliente / Razón Social con Avatar Hash -->
                         <td class="py-3">
-                            <div class="d-flex align-items-center gap-2.5">
+                            <div class="d-flex align-items-center gap-3">
                                 <div class="payment-avatar" style="background-color: ${avatar.bg}; color: ${avatar.color};">
                                     ${avatar.initials}
                                 </div>
-                                <div class="text-truncate" style="max-width: 250px;">
+                                <div class="text-truncate" style="max-width: 280px;">
                                     <div class="fw-bold text-dark text-truncate" title="${escapeHtml(c.nombre)}" style="font-size: 13.5px;">
                                         ${escapeHtml(c.nombre)}
                                     </div>

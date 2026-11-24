@@ -185,6 +185,8 @@ describe('Módulo Clientes & Contactos 360° - TDD Test Suite', () => {
             assert.ok(html.includes('Bogotá'));
             assert.ok(html.includes('$ 110.853.296'));
             assert.ok(html.includes('$ 7.509.903'));
+            assert.ok(html.includes('payment-avatar'));
+            assert.ok(html.includes('gap-3'));
             assert.ok(html.includes('btn-ver-drawer'));
             assert.ok(html.includes('btn-wpp-cliente'));
             assert.ok(html.includes('btn-menu-cliente') || html.includes('btn-editar'));

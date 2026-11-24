@@ -3391,6 +3391,14 @@ html[data-theme^="dark"] .stock-pill-danger {
     width: 100%;
 }
 
+/* Utilidades de espaciado decimal defensivas */
+.gap-1\.5 {
+    gap: 0.375rem !important; /* 6px */
+}
+.gap-2\.5 {
+    gap: 0.75rem !important; /* 12px */
+}
+
 
 
 
