@@ -280,18 +280,13 @@ export const AbonoModal = {
                             </div>
 
                             <!-- FOOTER CON ACCIONES -->
-                            <div class="d-flex flex-wrap justify-content-between align-items-center mt-3 pt-3 border-top gap-2">
-                                <a href="#" id="btn-abono-avanzado" class="text-decoration-none text-muted d-flex align-items-center gap-1" style="font-size: 12px; font-weight: 500;">
-                                    <i class="bi bi-box-arrow-up-right"></i> Abrir en formulario completo
-                                </a>
-                                <div class="d-flex align-items-center gap-2 ms-auto">
-                                    <button type="button" class="btn btn-light border btn-sm px-3" data-bs-dismiss="modal" style="border-radius: 8px; font-weight: 500; height: 38px;">
-                                        Cancelar
-                                    </button>
-                                    <button type="submit" id="btn-guardar-abono" class="btn btn-primary-action btn-sm px-4 shadow-xs" style="border-radius: 8px; font-weight: 600; height: 38px;">
-                                        <i class="bi bi-check2-circle me-1"></i> Guardar Pago
-                                    </button>
-                                </div>
+                            <div class="d-flex flex-wrap justify-content-end align-items-center mt-3 pt-3 border-top gap-2">
+                                <button type="button" class="btn btn-light border btn-sm px-3" data-bs-dismiss="modal" style="border-radius: 8px; font-weight: 500; height: 38px;">
+                                    Cancelar
+                                </button>
+                                <button type="submit" id="btn-guardar-abono" class="btn btn-primary-action btn-sm px-4 shadow-xs" style="border-radius: 8px; font-weight: 600; height: 38px;">
+                                    <i class="bi bi-check2-circle me-1"></i> Guardar Pago
+                                </button>
                             </div>
                         </form>
                     </div>
@@ -380,7 +375,6 @@ export const AbonoModal = {
         const btnAutoPrioridad = document.getElementById('btn-auto-prioridad-actual');
         const btnAutoFifo = document.getElementById('btn-auto-fifo');
         const btnLimpiar = document.getElementById('btn-limpiar-distribucion');
-        const btnAvanzado = document.getElementById('btn-abono-avanzado');
         const modalDialog = document.getElementById('modalAbonoDialog');
 
         if (montoInput) applyCurrencyFormatting(montoInput);
@@ -545,22 +539,6 @@ export const AbonoModal = {
                 autoDistribuir(true);
             }
         });
-
-        // Evento botón Ir al Formulario Avanzado (Preservando clienteId)
-        if (btnAvanzado) {
-            btnAvanzado.addEventListener('click', (e) => {
-                e.preventDefault();
-                if (this.clienteId) {
-                    sessionStorage.setItem('clienteId', this.clienteId);
-                }
-                if (this.modalInstance) {
-                    this.modalInstance.hide();
-                }
-                document.querySelectorAll('.modal-backdrop').forEach(b => b.remove());
-                document.body.classList.remove('modal-open');
-                window.location.hash = '#/ingresos/pagos/nuevo?clienteId=' + this.clienteId;
-            });
-        }
 
         // Envío del formulario
         if (form) {
