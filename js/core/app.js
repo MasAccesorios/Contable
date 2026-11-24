@@ -64,6 +64,7 @@ const routes = {
     'auditoria': () => import('../modules/auditoria.js'),
     'vendedores': () => import('../modules/vendedores/vendedores.js?v=2'),
     // Soporte para alias de compatibilidad con módulos anteriores
+    'factura-electronica': () => import('../modules/configuracion.js?v=2'),
     'dashboard': () => import('../modules/dashboard.js?v=2'),
     'tesoreria': () => import('../modules/bancos/bancos.js?v=2')
 };
@@ -154,6 +155,8 @@ async function router() {
             const parentDropdown = link.closest('.menu-dropdown');
             if (parentDropdown) {
                 parentDropdown.classList.add('open');
+                const trigger = parentDropdown.querySelector('.dropdown-trigger');
+                if (trigger) trigger.setAttribute('aria-expanded', 'true');
             }
         } else {
             link.classList.remove('active');
@@ -244,9 +247,13 @@ function initUI() {
     // Lógica para desplegables (Dropdowns)
     const dropdownTriggers = document.querySelectorAll('.dropdown-trigger');
     dropdownTriggers.forEach(trigger => {
-        trigger.addEventListener('click', function() {
+        trigger.addEventListener('click', function(e) {
+            e.preventDefault();
             const parent = this.closest('.menu-dropdown');
-            parent.classList.toggle('open');
+            if (parent) {
+                const isOpen = parent.classList.toggle('open');
+                this.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+            }
         });
     });
 
@@ -341,9 +348,22 @@ window.addEventListener('DOMContentLoaded', () => {
     supabase.auth.onAuthStateChange((event, session) => {
         if (session) {
             // Usuario Autenticado: Restauramos la UI normal
-            sidebar.style.display = 'block'; 
+            sidebar.style.display = 'flex'; 
             navbar.style.display = 'flex';
             document.getElementById('app-container').classList.remove('unauthenticated');
+            
+            // Actualizar tarjeta de usuario en el sidebar si hay sesión
+            const userNameEl = document.getElementById('sidebar-user-name');
+            const userAvatarEl = document.getElementById('sidebar-user-avatar');
+            if (session.user) {
+                const email = session.user.email || 'Usuario';
+                const name = session.user.user_metadata?.full_name || session.user.user_metadata?.name || email.split('@')[0];
+                if (userNameEl) userNameEl.textContent = name;
+                if (userAvatarEl) {
+                    const initials = name.substring(0, 2).toUpperCase();
+                    userAvatarEl.textContent = initials;
+                }
+            }
             
             // Dejamos que el enrutador lea la URL actual y cargue el módulo
             // SOLO si es la primera vez que se detecta sesión
