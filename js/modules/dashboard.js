@@ -16,9 +16,9 @@ export const DashboardModule = {
                     <div>
                         <div class="d-flex align-items-center gap-2">
                             <h2 class="page-title mb-0">Resumen del negocio</h2>
-                            <span class="dash-badge-chip dash-badge-chip--info">
-                                <span class="spinner-grow spinner-grow-sm" style="width: 7px; height: 7px; vertical-align: middle;"></span>
-                                En Tiempo Real
+                            <span class="dash-badge-chip--live">
+                                <span class="pulse-dot-live"></span>
+                                En Vivo
                             </span>
                         </div>
                         <p class="mb-0 text-muted" style="font-size: var(--fs-sm); margin-top: 3px;">Vista consolidada de liquidez, operaciones y cartera</p>
@@ -29,11 +29,19 @@ export const DashboardModule = {
                             <button type="button" class="dpg-btn dpg-btn--active" data-rango="Este Mes">Este Mes</button>
                             <button type="button" class="dpg-btn" data-rango="Este Año">Este Año</button>
                         </div>
-                        <button type="button" class="btn btn-sm btn-outline-secondary d-none d-sm-inline-flex align-items-center gap-1" id="btn-exportar-dashboard" title="Imprimir / Exportar vista" style="border-radius: 8px; font-weight: 500;">
-                            <span class="material-symbols-outlined text-[16px]">print</span>
+                        <button type="button" class="btn-refresh-icon" id="btn-refresh-dashboard" title="Actualizar datos">
+                            <i class="bi bi-arrow-clockwise"></i>
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary d-none d-sm-inline-flex align-items-center gap-1.5" id="btn-exportar-dashboard" title="Imprimir / Exportar vista" style="border-radius: 8px; font-weight: 500;">
+                            <i class="bi bi-printer text-[14px]"></i>
                             <span>Imprimir</span>
                         </button>
                     </div>
+                </div>
+
+                <!-- ═══ BANNER DE SMART FINANCIAL INSIGHTS ═══ -->
+                <div class="dash-insights-banner" id="dash-insights-container">
+                    <!-- Inyectado dinámicamente con alertas y KPIs de alto impacto -->
                 </div>
 
                 <!-- ═══ 4 KPI CARDS PRINCIPALES ═══ -->
@@ -44,7 +52,7 @@ export const DashboardModule = {
                         <div class="d-flex justify-content-between align-items-start">
                             <span class="dash-kpi-label">Ventas del periodo</span>
                             <div class="dash-icon-box variant-blue">
-                                <span class="material-symbols-outlined text-[20px]">point_of_sale</span>
+                                <i class="bi bi-graph-up-arrow"></i>
                             </div>
                         </div>
                         <div>
@@ -63,7 +71,7 @@ export const DashboardModule = {
                         <div class="d-flex justify-content-between align-items-start">
                             <span class="dash-kpi-label">Utilidad operativa</span>
                             <div class="dash-icon-box variant-green">
-                                <span class="material-symbols-outlined text-[20px]">account_balance_wallet</span>
+                                <i class="bi bi-cash-stack"></i>
                             </div>
                         </div>
                         <div>
@@ -79,7 +87,7 @@ export const DashboardModule = {
                         <div class="d-flex justify-content-between align-items-start">
                             <span class="dash-kpi-label">Saldo disponible</span>
                             <div class="dash-icon-box variant-cyan">
-                                <span class="material-symbols-outlined text-[20px]">account_balance</span>
+                                <i class="bi bi-bank"></i>
                             </div>
                         </div>
                         <div>
@@ -92,8 +100,8 @@ export const DashboardModule = {
                     <div class="dash-kpi-card d-flex flex-column justify-content-between dash-card-link" onclick="window.location.hash = '#/inventario/items'" tabindex="0" role="link" aria-label="Ir a Ítems de Venta e Inventario">
                         <div class="d-flex justify-content-between align-items-start">
                             <span class="dash-kpi-label">Inventario val.</span>
-                            <div class="dash-icon-box variant-blue">
-                                <span class="material-symbols-outlined text-[20px]">warehouse</span>
+                            <div class="dash-icon-box variant-yellow">
+                                <i class="bi bi-box-seam"></i>
                             </div>
                         </div>
                         <div>
@@ -112,7 +120,7 @@ export const DashboardModule = {
                         <div class="d-flex justify-content-between align-items-start mb-2">
                             <div>
                                 <span class="dash-card-label">
-                                    <span class="material-symbols-outlined text-[16px] me-1" style="color: var(--success); vertical-align: -3px;">trending_up</span>
+                                    <i class="bi bi-arrow-up-right-circle text-success me-1"></i>
                                     Cuentas por cobrar
                                 </span>
                                 <div class="dash-card-metric text-metric" id="kpi-cxc-total"><span class="dash-skeleton"></span></div>
@@ -142,7 +150,7 @@ export const DashboardModule = {
                         <div class="d-flex justify-content-between align-items-start mb-2">
                             <div>
                                 <span class="dash-card-label">
-                                    <span class="material-symbols-outlined text-[16px] me-1" style="color: var(--danger); vertical-align: -3px;">payments</span>
+                                    <i class="bi bi-arrow-down-left-circle text-danger me-1"></i>
                                     Cuentas por pagar
                                 </span>
                                 <div class="dash-card-metric text-metric" id="kpi-cxp-total"><span class="dash-skeleton"></span></div>
@@ -208,8 +216,8 @@ export const DashboardModule = {
                                 <h6 class="mb-0 fw-bold" style="font-size: 14px;">Operaciones Recientes</h6>
                                 <span class="text-muted" style="font-size: 11px;">Últimas facturaciones con saldo y estado</span>
                             </div>
-                            <button type="button" class="btn btn-sm btn-link text-decoration-none p-0 fw-semibold" style="font-size: 12px; color: var(--primary);" onclick="window.location.hash = '#/ingresos/facturas'">
-                                Ver todas <span class="material-symbols-outlined text-[14px]" style="vertical-align: -2px;">chevron_right</span>
+                            <button type="button" class="btn btn-sm btn-link text-decoration-none p-0 fw-semibold d-flex align-items-center gap-1" style="font-size: 12px; color: var(--primary);" onclick="window.location.hash = '#/ingresos/facturas'">
+                                <span>Ver todas</span> <i class="bi bi-chevron-right text-[12px]"></i>
                             </button>
                         </div>
                         <div class="table-responsive">
@@ -255,7 +263,7 @@ export const DashboardModule = {
                             <div class="d-flex flex-column gap-3 mb-4">
                                 <div class="d-flex justify-content-between align-items-center p-2 rounded" style="background: var(--surface-muted);">
                                     <div class="d-flex align-items-center gap-2">
-                                        <span class="material-symbols-outlined text-[18px] text-muted">receipt_long</span>
+                                        <i class="bi bi-receipt text-[17px] text-muted"></i>
                                         <span style="font-size: 13px; font-weight: 500;">Facturas del periodo</span>
                                     </div>
                                     <span class="fw-bold text-metric" id="kpi-facturas-conteo"><span class="dash-skeleton dash-skeleton-sm"></span></span>
@@ -263,7 +271,7 @@ export const DashboardModule = {
 
                                 <div class="d-flex justify-content-between align-items-center p-2 rounded" style="background: var(--surface-muted);">
                                     <div class="d-flex align-items-center gap-2">
-                                        <span class="material-symbols-outlined text-[18px] text-muted">inventory_2</span>
+                                        <i class="bi bi-box-seam text-[17px] text-muted"></i>
                                         <span style="font-size: 13px; font-weight: 500;">Productos vendidos</span>
                                     </div>
                                     <span class="fw-bold text-metric" id="kpi-productos"><span class="dash-skeleton dash-skeleton-sm"></span></span>
@@ -271,7 +279,7 @@ export const DashboardModule = {
 
                                 <div class="d-flex justify-content-between align-items-center p-2 rounded" style="background: var(--surface-muted);">
                                     <div class="d-flex align-items-center gap-2">
-                                        <span class="material-symbols-outlined text-[18px] text-muted">verified</span>
+                                        <i class="bi bi-shield-check text-[17px] text-muted"></i>
                                         <span style="font-size: 13px; font-weight: 500;">Estatus de Cobranza</span>
                                     </div>
                                     <span class="dash-badge-chip dash-badge-chip--success" id="kpi-tasa-cobranza">...</span>
@@ -284,11 +292,11 @@ export const DashboardModule = {
                             <span class="text-muted d-block mb-2" style="font-size: 11px; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Accesos Rápidos</span>
                             <div class="d-grid gap-2">
                                 <button type="button" class="btn btn-sm btn-primary-action d-flex align-items-center justify-content-center gap-1.5 py-2" onclick="window.location.hash = '#/ingresos/facturas'">
-                                    <span class="material-symbols-outlined text-[18px]">add_circle</span>
+                                    <i class="bi bi-plus-circle me-1"></i>
                                     <span>Nueva Venta</span>
                                 </button>
                                 <button type="button" class="btn btn-sm btn-outline-secondary d-flex align-items-center justify-content-center gap-1.5 py-1.5" onclick="window.location.hash = '#/ingresos/pagos/nuevo'" style="border-radius: 8px;">
-                                    <span class="material-symbols-outlined text-[18px]">payments</span>
+                                    <i class="bi bi-cash-coin me-1"></i>
                                     <span>Registrar Cobro</span>
                                 </button>
                             </div>
@@ -361,6 +369,16 @@ export const DashboardModule = {
                     this.setLoadingSkeletons(element);
                     this.renderDynamicContent(element, e.target.dataset.rango);
                 }
+            });
+        }
+        const btnRefresh = element.querySelector('#btn-refresh-dashboard');
+        if (btnRefresh) {
+            btnRefresh.addEventListener('click', async () => {
+                btnRefresh.classList.add('rotating');
+                this.setLoadingSkeletons(element);
+                const activeBtn = element.querySelector('#dashboard-rango-filtro .dpg-btn--active');
+                await this.renderDynamicContent(element, activeBtn ? activeBtn.dataset.rango : 'Este Mes');
+                setTimeout(() => btnRefresh.classList.remove('rotating'), 600);
             });
         }
         const btnExport = element.querySelector('#btn-exportar-dashboard');
@@ -437,6 +455,32 @@ export const DashboardModule = {
         };
         const formatMoney = val => '$' + (val || 0).toLocaleString('es-CO', {minimumFractionDigits: 0, maximumFractionDigits: 0});
 
+        let resolvedKPIs = null;
+        let resolvedCartera = null;
+
+        const getClientMonogram = (name) => {
+            if (!name) return { initials: 'CF', bg: 'rgba(37, 99, 235, 0.1)', color: '#2563eb' };
+            const clean = name.trim();
+            const parts = clean.split(/\s+/);
+            let initials = 'CF';
+            if (parts.length > 1) {
+                initials = (parts[0][0] + parts[1][0]).toUpperCase();
+            } else if (clean.length > 0) {
+                initials = clean.substring(0, 2).toUpperCase();
+            }
+            const colors = [
+                { bg: 'rgba(37, 99, 235, 0.1)', color: '#2563eb' },
+                { bg: 'rgba(5, 150, 105, 0.1)', color: '#059669' },
+                { bg: 'rgba(147, 51, 234, 0.1)', color: '#9333ea' },
+                { bg: 'rgba(234, 88, 12, 0.1)', color: '#ea580c' },
+                { bg: 'rgba(13, 148, 136, 0.1)', color: '#0d9488' }
+            ];
+            let hash = 0;
+            for (let i = 0; i < clean.length; i++) hash = clean.charCodeAt(i) + ((hash << 5) - hash);
+            const color = colors[Math.abs(hash) % colors.length];
+            return { initials, bg: color.bg, color: color.color };
+        };
+
         // ==========================================
         // PROMESAS PARALELAS CON RENDER PROGRESIVO
         // ==========================================
@@ -450,7 +494,8 @@ export const DashboardModule = {
         }).then(({ data, error }) => {
             if (error) throw error;
             
-            const kpis = data || {};
+            resolvedKPIs = data || {};
+            const kpis = resolvedKPIs;
             const ventasMes = kpis.ventas_mes || 0;
             const utilidadMes = kpis.utilidad_mes || 0;
             const ventasPrev = kpis.ventas_prev || 0;
@@ -584,7 +629,8 @@ export const DashboardModule = {
 
         const pCartera = supabase.rpc('get_dashboard_cartera_kpis')
             .then(({ data }) => {
-                const kpis = data || {};
+                resolvedCartera = data || {};
+                const kpis = resolvedCartera;
                 updateCarteraUI(kpis, 'cxc', ['#059669', '#dc2626']);
                 updateCarteraUI(kpis, 'cxp', ['#64748b', '#d97706']);
 
@@ -632,29 +678,39 @@ export const DashboardModule = {
                 const estaPagada = saldo <= 0;
                 const esVencida = !estaPagada && f.vencimiento && new Date(f.vencimiento + 'T00:00:00') < hoy;
 
-                let badgeClass = 'dash-badge-chip--success';
+                let badgeClass = 'status-pill--success';
                 let badgeText = 'Al Día';
                 if (esVencida) {
-                    badgeClass = 'dash-badge-chip--danger';
+                    badgeClass = 'status-pill--danger';
                     badgeText = 'Vencida';
                 } else if (!estaPagada) {
-                    badgeClass = 'dash-badge-chip--warning';
+                    badgeClass = 'status-pill--warning';
                     badgeText = 'Pendiente';
                 }
+
+                const mono = getClientMonogram(contacto.nombre);
 
                 return `
                     <tr>
                         <td class="py-2.5 px-3">
-                            <div class="d-flex flex-column">
-                                <span class="fw-semibold text-main text-truncate" style="max-width: 220px;" title="${escapeHtml(contacto.nombre)}">${escapeHtml(contacto.nombre)}</span>
-                                <span class="text-muted" style="font-size: 11px;">Factura #${f.numero || f.id}</span>
+                            <div class="d-flex align-items-center gap-2.5">
+                                <div class="client-avatar-monogram" style="background-color: ${mono.bg}; color: ${mono.color};">
+                                    ${mono.initials}
+                                </div>
+                                <div class="d-flex flex-column min-w-0">
+                                    <span class="fw-semibold text-main text-truncate" style="max-width: 200px;" title="${escapeHtml(contacto.nombre)}">${escapeHtml(contacto.nombre)}</span>
+                                    <span class="text-muted" style="font-size: 11px;">Factura #${f.numero || f.id}</span>
+                                </div>
                             </div>
                         </td>
                         <td class="py-2.5 px-3 text-muted" style="font-size: 12px; white-space: nowrap;">${f.fecha || '---'}</td>
                         <td class="py-2.5 px-3 text-end fw-bold text-main tabular-nums">${formatMoney(total)}</td>
                         <td class="py-2.5 px-3 text-end tabular-nums text-muted">${saldo > 0 ? formatMoney(saldo) : '<span class="text-success">$0</span>'}</td>
                         <td class="py-2.5 px-3 text-center">
-                            <span class="dash-badge-chip ${badgeClass}">${badgeText}</span>
+                            <span class="status-pill ${badgeClass}">
+                                <span class="pill-dot"></span>
+                                <span>${badgeText}</span>
+                            </span>
                         </td>
                     </tr>
                 `;
@@ -667,6 +723,78 @@ export const DashboardModule = {
 
         // Lanzar TODAS en paralelo y esperar a que terminen para asegurar consistencia
         await Promise.all([pKPIs, pInventario, pBancos, pCartera, pTopOperaciones]);
+
+        // Renderizar insights inteligentes con los datos consolidados
+        this.renderInsights(element, resolvedKPIs, resolvedCartera);
+    },
+
+    renderInsights(element, kpis, cartera) {
+        const container = element.querySelector('#dash-insights-container');
+        if (!container) return;
+
+        const cards = [];
+        const vencidasDoc = cartera?.cxc_vencidas_doc || 0;
+        const vencidasMonto = cartera?.cxc_vencidas || 0;
+        const formatMoney = val => '$' + (val || 0).toLocaleString('es-CO', {minimumFractionDigits: 0, maximumFractionDigits: 0});
+
+        if (vencidasDoc > 0) {
+            cards.push(`
+                <a href="#/cartera" class="dash-insight-card" title="Ver detalle de cartera vencida">
+                    <div class="dash-insight-icon" style="background: rgba(220, 38, 38, 0.1); color: #dc2626;">
+                        <i class="bi bi-exclamation-triangle-fill"></i>
+                    </div>
+                    <div class="dash-insight-content">
+                        <span class="dash-insight-title">Atención en Cartera</span>
+                        <span class="dash-insight-desc">${vencidasDoc} factura${vencidasDoc > 1 ? 's' : ''} vencida${vencidasDoc > 1 ? 's' : ''} (${formatMoney(vencidasMonto)})</span>
+                    </div>
+                    <i class="bi bi-chevron-right ms-auto text-muted" style="font-size: 11px;"></i>
+                </a>
+            `);
+        } else {
+            cards.push(`
+                <div class="dash-insight-card">
+                    <div class="dash-insight-icon" style="background: rgba(5, 150, 105, 0.1); color: #059669;">
+                        <i class="bi bi-shield-check"></i>
+                    </div>
+                    <div class="dash-insight-content">
+                        <span class="dash-insight-title">Cobranza al día</span>
+                        <span class="dash-insight-desc">No hay facturas vencidas registradas</span>
+                    </div>
+                </div>
+            `);
+        }
+
+        const ventasMes = kpis?.ventas_mes || 0;
+        const utilidadMes = kpis?.utilidad_mes || 0;
+        const margenPct = ventasMes > 0 ? ((utilidadMes / ventasMes) * 100) : 0;
+        if (ventasMes > 0) {
+            cards.push(`
+                <div class="dash-insight-card">
+                    <div class="dash-insight-icon" style="background: rgba(37, 99, 235, 0.1); color: #2563eb;">
+                        <i class="bi bi-pie-chart-fill"></i>
+                    </div>
+                    <div class="dash-insight-content">
+                        <span class="dash-insight-title">Rentabilidad Operativa</span>
+                        <span class="dash-insight-desc">Margen del ${margenPct.toFixed(1)}% sobre facturación</span>
+                    </div>
+                </div>
+            `);
+        }
+
+        cards.push(`
+            <a href="#/ingresos/facturas" class="dash-insight-card" title="Crear nueva venta">
+                <div class="dash-insight-icon" style="background: rgba(147, 51, 234, 0.1); color: #9333ea;">
+                    <i class="bi bi-lightning-charge-fill"></i>
+                </div>
+                <div class="dash-insight-content">
+                    <span class="dash-insight-title">Atajo Rápido</span>
+                    <span class="dash-insight-desc">Crear nueva factura de venta</span>
+                </div>
+                <i class="bi bi-chevron-right ms-auto text-muted" style="font-size: 11px;"></i>
+            </a>
+        `);
+
+        container.innerHTML = cards.join('');
     },
 
     renderChart(dailySales, rango) {
@@ -745,15 +873,15 @@ export const DashboardModule = {
                         }
                     },
                     tooltip: {
-                        backgroundColor: '#0f172a',
+                        backgroundColor: isDark ? 'rgba(15, 23, 42, 0.96)' : 'rgba(15, 23, 42, 0.92)',
                         titleColor: '#f8fafc',
                         bodyColor: '#e2e8f0',
-                        borderColor: 'rgba(255,255,255,0.12)',
+                        borderColor: 'rgba(255,255,255,0.15)',
                         borderWidth: 1,
                         padding: 12,
-                        cornerRadius: 8,
+                        cornerRadius: 10,
                         displayColors: false,
-                        titleFont: { family: "'Inter', sans-serif", size: 12, weight: '600' },
+                        titleFont: { family: "'Plus Jakarta Sans', 'Inter', sans-serif", size: 12, weight: '600' },
                         bodyFont: { family: "'Inter', sans-serif", size: 13, weight: '700' },
                         callbacks: {
                             label: function(context) {
