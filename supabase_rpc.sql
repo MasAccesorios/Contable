@@ -3491,7 +3491,8 @@ BEGIN
         JOIN factura_detalles d ON f.id = d.factura_id
         WHERE f.estado NOT IN ('anulada', 'void')
         GROUP BY f.id, f.numero, f.fecha, f.total
-        HAVING ABS(f.total - COALESCE(SUM(d.subtotal), 0)) > 0.05
+        HAVING (f.total > COALESCE(SUM(d.subtotal), 0) + 0.05)
+            OR (f.total > 0 AND COALESCE(SUM(d.subtotal), 0) = 0)
         ORDER BY f.fecha DESC
     )
     SELECT COALESCE(json_agg(row_to_json(f)), '[]'::json), COUNT(*) 
@@ -3668,8 +3669,13 @@ BEGIN
         JOIN facturas f ON p.factura_id = f.id
         LEFT JOIN cuentas_bancarias c ON p.cuenta_id = c.id
         WHERE p.estado NOT IN ('anulado', 'void')
-        GROUP BY p.factura_id, f.numero, p.monto, p.fecha, c.nombre
+        GROUP BY p.factura_id, f.numero, p.monto, p.fecha, c.nombre, f.total
         HAVING COUNT(*) > 1
+           AND (
+               SELECT COALESCE(SUM(p2.monto), 0) 
+               FROM pagos_ingresos p2 
+               WHERE p2.factura_id = p.factura_id AND p2.estado NOT IN ('anulado', 'void')
+           ) > (f.total + 0.05)
         ORDER BY p.fecha DESC
     )
     SELECT COALESCE(json_agg(row_to_json(f)), '[]'::json), COUNT(*)
@@ -3714,6 +3720,11 @@ BEGIN
         WHERE p.estado NOT IN ('anulado', 'void')
           AND (p.cuenta_id IS NULL OR c.id IS NULL)
           AND p.fecha >= (CURRENT_DATE - INTERVAL '1 year')
+          AND (p.observaciones IS NULL OR (
+              p.observaciones NOT ILIKE '%saldo a favor%' 
+              AND p.observaciones NOT ILIKE '%nota de cr%' 
+              AND p.observaciones NOT ILIKE '%nota cr%'
+          ))
         ORDER BY p.fecha DESC
         LIMIT 100
     )
