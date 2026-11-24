@@ -35,11 +35,11 @@ export const QUICK_ACTIONS_CONFIG = {
                 },
                 {
                     key: '4',
-                    titulo: 'Cuenta de Cobro',
-                    descripcion: 'Documento de cobro sin factura fiscal',
-                    icono: 'bi-file-earmark-check',
+                    titulo: 'Ingresos',
+                    descripcion: 'Ingresos no operacionales, cuotas y entradas directas',
+                    icono: 'bi-cash-stack',
                     claseIcono: 'qa-icon-cobros',
-                    ruta: '#/ingresos/cuenta-cobro/nueva'
+                    ruta: '#/ingresos/operativos?nuevo=true'
                 }
             ]
         },

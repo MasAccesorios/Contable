@@ -47,6 +47,14 @@ describe('QuickActions Hub 2.0 - TDD & Config Validation', () => {
             assert.match(gastoItem.titulo, /gasto/i, 'El título debe indicar explícitamente Gasto');
         });
 
+        it('debe incluir la acción rápida para registrar Ingresos con ruta #/ingresos/operativos?nuevo=true', () => {
+            const allCrear = QUICK_ACTIONS_CONFIG.crear.flatMap(g => g.items);
+            const ingresoItem = allCrear.find(i => i.ruta === '#/ingresos/operativos?nuevo=true');
+            assert.ok(ingresoItem, 'Debe existir un ítem de creación para Ingresos con ruta #/ingresos/operativos?nuevo=true');
+            assert.match(ingresoItem.titulo, /ingreso/i, 'El título debe indicar explícitamente Ingresos');
+            assert.strictEqual(ingresoItem.key, '4', 'Debe conservar el atajo de teclado 4');
+        });
+
         it('debe incluir Gastos Operativos en la sección de listas con ruta #/gastos/pagos', () => {
             const allListas = QUICK_ACTIONS_CONFIG.listas.flatMap(g => g.items);
             const gastosLista = allListas.find(i => i.ruta === '#/gastos/pagos');
