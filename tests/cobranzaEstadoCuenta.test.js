@@ -152,7 +152,9 @@ describe('Unificación de Cobranza & Estado de Cuenta WhatsApp - Test Suite', ()
 
         it('debe calcular días despachados dinámicamente si la factura no trae diasDespachado precalculado en modo detailed', () => {
             const hoy = new Date();
-            const hace10Dias = new Date(hoy.getTime() - (10 * 24 * 60 * 60 * 1000)).toISOString().split('T')[0];
+            const pad = n => n.toString().padStart(2, '0');
+            const d = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() - 10);
+            const hace10Dias = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
             const facturaSinDias = [
                 { id: 'f99', numero: 'FE-99', fecha: hace10Dias, vencimiento: hace10Dias, total: 100000, saldo: 100000 }
             ];

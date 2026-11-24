@@ -94,8 +94,14 @@ export function buildEstadoCuentaWhatsAppText(arg1, arg2, arg3) {
         options = arg3 || {};
     }
 
+    const getSafeLocalDate = (d = new Date()) => {
+        if (typeof getLocalDate === 'function') return getLocalDate(d);
+        const pad = n => n.toString().padStart(2, '0');
+        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    };
+
     const hoy = new Date();
-    const hoyStr = options.fechaCorte || (typeof getLocalDate === 'function' ? getLocalDate() : hoy.toISOString().split('T')[0]);
+    const hoyStr = options.fechaCorte || getSafeLocalDate(hoy);
     const nombreCliente = (cliente?.nombre || '').trim() || 'Cliente';
 
     // Filtrar facturas pendientes con saldo > 0
@@ -135,8 +141,9 @@ export function buildEstadoCuentaWhatsAppText(arg1, arg2, arg3) {
 
             let diasDespachado = f.diasDespachado;
             if (diasDespachado === undefined || diasDespachado === null) {
+                const dCorte = new Date(hoyStr + 'T00:00:00');
                 const dCreacion = new Date(fechaCreacion + 'T00:00:00');
-                const diffDays = Math.floor((hoy - dCreacion) / (1000 * 60 * 60 * 24));
+                const diffDays = Math.round((dCorte - dCreacion) / (1000 * 60 * 60 * 24));
                 diasDespachado = Number.isFinite(diffDays) ? Math.max(0, diffDays) : 0;
             }
 
