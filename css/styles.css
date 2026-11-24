@@ -1691,62 +1691,6 @@ html[data-theme^="dark"] .quick-action-hub {
     100% { transform: rotate(360deg); }
 }
 
-/* Banner de Alertas e Insights Proactivos */
-.dash-insights-banner {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-    gap: 0.75rem;
-}
-.dash-insight-card {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 10px 14px;
-    border-radius: 12px;
-    background: var(--surface);
-    border: 1px solid var(--border-color);
-    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
-    transition: all 0.2s ease;
-    text-decoration: none;
-    color: inherit;
-}
-.dash-insight-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 16px -4px rgba(15, 23, 42, 0.08);
-    border-color: var(--primary-subtle);
-}
-.dash-insight-icon {
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 15px;
-    flex-shrink: 0;
-}
-.dash-insight-content {
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-}
-.dash-insight-title {
-    font-size: 10.5px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: var(--text-muted);
-    line-height: 1.2;
-}
-.dash-insight-desc {
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--text-main);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    line-height: 1.3;
-}
 
 /* Enlaces y foco accesible en tarjetas */
 .dash-card-link:focus-visible {
@@ -1918,211 +1862,189 @@ html[data-theme^="dark"] .quick-action-hub {
     border-color: rgba(253, 126, 20, 0.2);
 }
 
-/* =========================================
-   DASHBOARD 鈥?4 MICRO-KPIs
-   ========================================= */
-.dash-kpi-card {
-    border: 1px solid #e2e8f0 !important;
-    border-radius: 14px !important;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.03), 0 1px 3px rgba(0,0,0,0.04) !important;
-    transition: all 0.25s ease !important;
-}
-.dash-kpi-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 12px 24px -6px rgba(0,0,0,0.06) !important;
-}
-.dash-kpi-label {
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.4px;
-    line-height: 1.3;
-    padding-right: 8px;
-}
-.dash-kpi-value {
-    font-size: clamp(1.05rem, 2vw, 1.2rem);
-    font-weight: 700;
-    color: var(--text-main);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    margin-top: 8px;
-}
+/* ======================================================================
+   DASHBOARD EJECUTIVO BENTO & DESIGN SYSTEM UNIFICADO
+   ====================================================================== */
 
-/* Icono-box pastel en esquina */
-.dash-kpi-icon-box {
-    width: 34px;
-    height: 34px;
-    border-radius: 9px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 15px;
-    flex-shrink: 0;
-}
-.dash-kpi-icon-box--success {
-    background: rgba(25, 135, 84, 0.1);
-    color: #198754;
-}
-.dash-kpi-icon-box--dark {
-    background: rgba(33, 37, 41, 0.08);
-    color: #212529;
-}
-.dash-kpi-icon-box--primary {
-    background: rgba(13, 110, 253, 0.1);
-    color: #0d6efd;
-}
-.dash-kpi-icon-box--info {
-    background: rgba(13, 202, 240, 0.1);
-    color: #0dcaf0;
-}
-
-@media (max-width: 575.98px) {
-    .dash-card-premium { padding: 1rem; }
-    .dash-card-metric  { font-size: 1.2rem; }
-    .dashboard-pill-group { width: 100%; justify-content: stretch; }
-    .dpg-btn { flex: 1; text-align: center; }
-}
-
-/* =========================================
-   DASHBOARD 鈥?LAYOUT UNIFICADO (CSS GRID PURO)
-   ========================================= */
+/* 1. CONTENEDOR MAESTRO */
 .dash-layout {
-    max-width: 1100px;
+    max-width: 1320px;
     margin: 0 auto;
     display: grid;
-    grid-template-columns: minmax(0, 1fr);  /* una columna — cada bloque ocupa el ancho exacto */
+    grid-template-columns: minmax(0, 1fr);
     gap: 1.25rem;
+    padding: 0 0.5rem;
 }
 
-/* Header: dos extremos alineados con los bordes de las tarjetas */
+/* 2. HEADER EJECUTIVO */
 .dash-header {
     display: flex;
     flex-wrap: wrap;
     justify-content: space-between;
     align-items: center;
-    gap: 0.75rem;
+    gap: 0.85rem;
 }
 
-/* Grid superior: 2 tarjetas CxC / CxP */
-.dash-grid-top {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 1.25rem;
-}
-
-/* Grid de 4 micro-KPIs */
+/* 3. HERO BENTO GRID (4 TARJETAS) */
 .dash-grid-kpis {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 1.25rem;
+    gap: 1.15rem;
 }
 
-/* Tarjeta del gr谩fico de ventas */
-.dash-chart-card {
-    background: var(--surface);
-    border: 1px solid var(--border-color);
-    border-radius: 14px;
-    box-shadow: var(--shadow-card);
-    transition: all 0.25s ease;
-}
-.dash-chart-card:hover {
-    box-shadow: 0 8px 20px rgba(0,0,0,0.06);
-}
-.dash-chart-card .text-dark {
-    color: var(--text-main) !important;
-}
-
-/* Encabezado del grafico: flex-wrap para evitar desborde en movil */
-.dash-chart-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    margin-bottom: 1.5rem;
-}
-.dash-chart-header .text-end { flex-shrink: 0; }
-
-/* Tipografia adaptativa: monto total de ventas no colisiona con badge en movil */
-#kpi-total-ventas {
-    font-size: clamp(1.25rem, 4.5vw, 1.75rem);
-    white-space: nowrap;
-}
-
-/* Responsividad */
-@media (max-width: 767.98px) {
-    .dash-grid-top  { grid-template-columns: 1fr; }
-    .dash-grid-kpis { grid-template-columns: repeat(2, 1fr); }
-}
-@media (max-width: 575.98px) {
-    .dash-grid-kpis { grid-template-columns: 1fr; }
-    .dash-card-premium { padding: 1rem; }
-    .dash-card-metric  { font-size: 1.2rem; }
-    .dashboard-pill-group { width: 100%; justify-content: stretch; }
-    .dpg-btn { flex: 1; text-align: center; }
-}
-
-
-/* ======================================================================
-   DESIGN TOKENS UNIFICADOS FINTECH
-   ====================================================================== */
-
-/* 1. CONTENEDOR MAESTRO */
-.dash-layout {
-    max-width: 1260px;
-    margin: 0 auto;
-    padding: 0 1.25rem;
-}
-
-/* 2. TARJETAS KPI */
 .dash-kpi-card {
     background: var(--surface) !important;
     border: 1px solid var(--border-color) !important;
     border-radius: 14px !important;
     padding: 1.25rem !important;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.03) !important;
-    transition: transform 0.25s ease, box-shadow 0.25s ease;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 4px 16px rgba(15, 23, 42, 0.03) !important;
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.25s ease !important;
+    position: relative;
+    overflow: hidden;
 }
 .dash-kpi-card:hover {
     transform: translateY(-3px);
-    box-shadow: 0 10px 24px -6px rgba(0,0,0,0.06) !important;
+    box-shadow: 0 12px 24px -6px rgba(15, 23, 42, 0.08) !important;
+    border-color: var(--primary-subtle, #93c5fd) !important;
 }
 
-/* 3. CAJAS DE íCONOS */
+.dash-kpi-label {
+    font-size: 0.72rem !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    color: var(--text-muted) !important;
+    letter-spacing: 0.05em !important;
+    line-height: 1.2;
+}
+
+.dash-kpi-value {
+    font-size: clamp(1.25rem, 2.2vw, 1.55rem) !important;
+    font-weight: 700 !important;
+    color: var(--text-main) !important;
+    line-height: 1.2 !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 0.35rem;
+}
+
+.dash-kpi-subtext {
+    font-size: 0.75rem !important;
+    color: var(--text-muted) !important;
+    line-height: 1.25;
+}
+
+/* Cajas de Íconos Bento con Micro-Gradientes */
 .dash-icon-box {
-    width: 38px; height: 38px; border-radius: 10px;
-    display: flex; align-items: center; justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.15rem;
+    flex-shrink: 0;
 }
-.dash-icon-box.variant-blue { background: var(--primary-light) !important; color: var(--primary) !important; }
-.dash-icon-box.variant-green { background: var(--success-bg) !important; color: var(--success) !important; }
-.dash-icon-box.variant-red { background: var(--danger-bg) !important; color: var(--danger) !important; }
-.dash-icon-box.variant-yellow { background: var(--warning-bg) !important; color: var(--warning) !important; }
-.dash-icon-box.variant-cyan { background: var(--info-bg) !important; color: var(--info) !important; }
+.dash-icon-box.variant-blue { background: rgba(37, 99, 235, 0.1) !important; color: #2563eb !important; }
+.dash-icon-box.variant-green { background: rgba(5, 150, 105, 0.1) !important; color: #059669 !important; }
+.dash-icon-box.variant-red { background: rgba(220, 38, 38, 0.1) !important; color: #dc2626 !important; }
+.dash-icon-box.variant-yellow { background: rgba(217, 119, 6, 0.12) !important; color: #d97706 !important; }
+.dash-icon-box.variant-cyan { background: rgba(13, 148, 136, 0.12) !important; color: #0d9488 !important; }
 
-/* 4. TIPOGRAFíA */
-.dash-kpi-label { font-size: 0.75rem !important; font-weight: 600 !important; text-transform: uppercase !important; color: var(--text-muted) !important; letter-spacing: 0.04em !important; }
-.dash-kpi-value { font-size: clamp(1.25rem, 4vw, 1.5rem) !important; font-weight: 700 !important; color: var(--text-main) !important; line-height: 1.2 !important; }
-.dash-kpi-subtext { font-size: 0.75rem !important; color: var(--text-muted) !important; }
+/* 4. RADAR DE CARTERA Y TESORERÍA (CxC / CxP) */
+.dash-grid-top {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.15rem;
+}
 
-/* 5. TABLAS */
+/* 5. PERFORMANCE STUDIO (GRÁFICA) */
+.dash-chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 4px 16px rgba(15, 23, 42, 0.03);
+    transition: all 0.25s ease;
+}
+.dash-chart-card:hover {
+    box-shadow: 0 8px 24px -4px rgba(15, 23, 42, 0.08);
+}
+.dash-chart-card .text-dark {
+    color: var(--text-main) !important;
+}
+
+.dash-chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+}
+
+/* Selector Interactivo de Modo (Diario vs Acumulado) */
+.chart-mode-pill-group {
+    display: inline-flex;
+    background: var(--surface-muted, #f1f5f9);
+    padding: 3px;
+    border-radius: 9px;
+    border: 1px solid var(--border-color, #e2e8f0);
+    gap: 2px;
+}
+.chart-mode-btn {
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 11.5px;
+    font-weight: 600;
+    padding: 5px 12px;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+}
+.chart-mode-btn:hover {
+    color: var(--text-main);
+}
+.chart-mode-btn--active {
+    background: var(--surface, #ffffff);
+    color: var(--primary, #2563eb);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+/* 6. TABLAS & LEDGER */
 .dash-table-container {
-    background: var(--surface); border-radius: 14px; border: 1px solid var(--border-color);
-    box-shadow: 0 4px 16px rgba(0,0,0,0.03); overflow: hidden;
+    background: var(--surface);
+    border-radius: 14px;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 4px 16px rgba(15, 23, 42, 0.03);
+    overflow: hidden;
 }
 .dash-table-container .table-responsive {
     overflow-x: hidden !important;
     width: 100%;
 }
-.dash-table-container th { font-size: 0.75rem !important; font-weight: 600 !important; color: var(--text-muted) !important; text-transform: uppercase !important; padding: 0.5rem 0.75rem !important; }
-.dash-table-container td { font-size: 0.875rem !important; color: var(--text-body) !important; padding: 0.5rem 0.75rem !important; vertical-align: middle; }
+.dash-table-container th {
+    font-size: 0.72rem !important;
+    font-weight: 700 !important;
+    color: var(--text-muted) !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+    padding: 0.65rem 0.85rem !important;
+}
+.dash-table-container td {
+    font-size: 0.85rem !important;
+    color: var(--text-body) !important;
+    padding: 0.65rem 0.85rem !important;
+    vertical-align: middle;
+}
 .dash-table-container .card-header.bg-white {
     background-color: var(--surface) !important;
     border-color: var(--border-color) !important;
 }
 
-/* 6. BOTONES */
+/* 7. BOTONES DE ACCIÓN PRINCIPAL */
 .btn-primary-action {
     background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
     border: 1px solid #1d4ed8 !important;
@@ -2136,6 +2058,19 @@ html[data-theme^="dark"] .quick-action-hub {
     background: linear-gradient(135deg, #1d4ed8, #1e40af) !important;
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35) !important;
+}
+
+/* 8. ADAPTATIVIDAD RESPONSIVA */
+@media (max-width: 991.98px) {
+    .dash-grid-top { grid-template-columns: 1fr; }
+    .dash-grid-kpis { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 575.98px) {
+    .dash-grid-kpis { grid-template-columns: 1fr; }
+    .dash-card-premium { padding: 1rem; }
+    .dash-card-metric { font-size: 1.2rem; }
+    .dashboard-pill-group { width: 100%; justify-content: stretch; }
+    .dpg-btn { flex: 1; text-align: center; }
 }
 
 /* En los temas oscuros nuevos, el botón principal sigue el color de marca del tema */
@@ -2165,6 +2100,19 @@ html[data-theme="dark-green"] .btn-primary:not(.btn-primary-action),
 html[data-theme="dark-blue"] .btn-primary:not(.btn-primary-action) {
     background-color: var(--primary) !important;
     border-color: var(--primary) !important;
+}
+
+/* Modo oscuro para controles interactivos de Gráfica y Micro-barras */
+html[data-theme^="dark"] .chart-mode-pill-group {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+html[data-theme^="dark"] .chart-mode-btn--active {
+    background: rgba(255, 255, 255, 0.12);
+    color: #38bdf8;
+}
+html[data-theme^="dark"] .dash-micro-bar {
+    background: rgba(255, 255, 255, 0.08);
 }
 
 /* Inputs de formulario (Bootstrap .form-control/.form-select) — que se vean nativos del tema, no blancos impuestos */

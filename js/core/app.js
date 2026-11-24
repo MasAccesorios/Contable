@@ -33,7 +33,7 @@ document.addEventListener('click', (e) => {
 });
 
 const routes = {
-    'inicio': () => import('../modules/dashboard.js?v=3'),
+    'inicio': () => import('../modules/dashboard.js?v=4'),
     'contactos': () => import('../modules/clientes/clientes.js?v=35'),
     'bancos': () => import('../modules/bancos/bancos.js?v=2'),
     'gastos/pagos': () => import('../modules/gastos/gastos.js'),
@@ -65,7 +65,7 @@ const routes = {
     'vendedores': () => import('../modules/vendedores/vendedores.js?v=2'),
     // Soporte para alias de compatibilidad con módulos anteriores
     'factura-electronica': () => import('../modules/configuracion.js?v=2'),
-    'dashboard': () => import('../modules/dashboard.js?v=3'),
+    'dashboard': () => import('../modules/dashboard.js?v=4'),
     'tesoreria': () => import('../modules/bancos/bancos.js?v=2')
 };
 

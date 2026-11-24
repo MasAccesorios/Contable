@@ -11,17 +11,17 @@ export const DashboardModule = {
             <div class="p-3 p-md-4" style="background-color: transparent; min-height: 100vh;">
                 <div class="dash-layout">
 
-                <!-- ═══ HEADER ═══ -->
+                <!-- ═══ HEADER EJECUTIVO ═══ -->
                 <div class="dash-header">
                     <div>
                         <div class="d-flex align-items-center gap-2">
-                            <h2 class="page-title mb-0">Resumen del negocio</h2>
+                            <h2 class="page-title mb-0">Panel Ejecutivo & Finanzas</h2>
                             <span class="dash-badge-chip--live">
                                 <span class="pulse-dot-live"></span>
                                 En Vivo
                             </span>
                         </div>
-                        <p class="mb-0 text-muted" style="font-size: var(--fs-sm); margin-top: 3px;">Vista consolidada de liquidez, operaciones y cartera</p>
+                        <p class="mb-0 text-muted" style="font-size: var(--fs-sm); margin-top: 3px;">MAS Accesorios • Monitor financiero y operativo en tiempo real</p>
                     </div>
                     <div class="d-flex align-items-center gap-2">
                         <div class="dashboard-pill-group" role="group" id="dashboard-rango-filtro">
@@ -39,80 +39,91 @@ export const DashboardModule = {
                     </div>
                 </div>
 
-                <!-- ═══ BANNER DE SMART FINANCIAL INSIGHTS ═══ -->
-                <div class="dash-insights-banner" id="dash-insights-container">
-                    <!-- Inyectado dinámicamente con alertas y KPIs de alto impacto -->
-                </div>
-
-                <!-- ═══ 4 KPI CARDS PRINCIPALES ═══ -->
+                <!-- ═══ HERO BENTO GRID (4 PILARES ESTRATÉGICOS) ═══ -->
                 <div class="dash-grid-kpis">
 
-                    <!-- Ventas Totales -->
-                    <div class="dash-kpi-card d-flex flex-column justify-content-between">
+                    <!-- 1. Liquidez Inmediata -->
+                    <div class="dash-kpi-card d-flex flex-column justify-content-between dash-card-link" onclick="window.location.hash = '#/bancos'" tabindex="0" role="link" aria-label="Ir al módulo de Bancos">
                         <div class="d-flex justify-content-between align-items-start">
-                            <span class="dash-kpi-label">Ventas del periodo</span>
+                            <div>
+                                <span class="dash-kpi-label">Liquidez Inmediata</span>
+                                <span class="d-block text-muted" style="font-size: 11px; margin-top: 1px;">Bancos y Cajas</span>
+                            </div>
+                            <div class="dash-icon-box variant-cyan">
+                                <i class="bi bi-wallet2"></i>
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <div class="dash-kpi-value text-metric" id="kpi-saldo-bancos"><span class="dash-skeleton"></span></div>
+                            <div class="d-flex align-items-center gap-1 mt-1">
+                                <span class="dash-badge-chip dash-badge-chip--success" style="font-size: 10.5px;">
+                                    <i class="bi bi-check-circle-fill me-1"></i> Disponible neto
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 2. Facturación del Periodo -->
+                    <div class="dash-kpi-card d-flex flex-column justify-content-between dash-card-link" onclick="window.location.hash = '#/ingresos/facturas'" tabindex="0" role="link" aria-label="Ir a Facturas de Venta">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <span class="dash-kpi-label">Facturación Periodo</span>
+                                <span class="d-block text-muted" style="font-size: 11px; margin-top: 1px;">Ventas consolidadas</span>
+                            </div>
                             <div class="dash-icon-box variant-blue">
                                 <i class="bi bi-graph-up-arrow"></i>
                             </div>
                         </div>
-                        <div>
+                        <div class="mt-2">
                             <div class="dash-kpi-value text-metric" id="kpi-total-ventas"><span class="dash-skeleton"></span></div>
                             <div class="d-flex align-items-center gap-1 mt-1">
-                                <span id="kpi-ventas-growth-badge" class="dash-badge-chip dash-badge-chip--success" style="display: none;">
+                                <span id="kpi-ventas-growth-badge" class="dash-badge-chip dash-badge-chip--success" style="display: none; font-size: 10.5px;">
                                     <i id="kpi-ventas-growth-icon" class="bi me-1"></i> <span id="kpi-ventas-growth-text">...</span>
                                 </span>
-                                <small id="kpi-ventas-growth-label" class="dash-kpi-subtext">vs periodo anterior</small>
+                                <small id="kpi-ventas-growth-label" class="dash-kpi-subtext" style="font-size: 11px;">vs periodo anterior</small>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Utilidad Real -->
+                    <!-- 3. Utilidad Operativa -->
                     <div class="dash-kpi-card d-flex flex-column justify-content-between">
                         <div class="d-flex justify-content-between align-items-start">
-                            <span class="dash-kpi-label">Utilidad operativa</span>
+                            <div>
+                                <span class="dash-kpi-label">Utilidad Operativa</span>
+                                <span class="d-block text-muted" style="font-size: 11px; margin-top: 1px;">Margen bruto neto</span>
+                            </div>
                             <div class="dash-icon-box variant-green">
                                 <i class="bi bi-cash-stack"></i>
                             </div>
                         </div>
-                        <div>
+                        <div class="mt-2">
                             <div class="dash-kpi-value text-metric" id="kpi-utilidad-monto"><span class="dash-skeleton"></span></div>
                             <div class="d-flex align-items-center gap-1 mt-1">
-                                <span class="dash-badge-chip dash-badge-chip--success" id="kpi-utilidad-margen-badge">Margen: 0.0%</span>
+                                <span class="dash-badge-chip dash-badge-chip--success" id="kpi-utilidad-margen-badge" style="font-size: 10.5px;">Margen: 0.0%</span>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Saldo en Bancos -->
-                    <div class="dash-kpi-card d-flex flex-column justify-content-between dash-card-link" onclick="window.location.hash = '#/bancos'" tabindex="0" role="link" aria-label="Ir al módulo de Bancos">
-                        <div class="d-flex justify-content-between align-items-start">
-                            <span class="dash-kpi-label">Saldo disponible</span>
-                            <div class="dash-icon-box variant-cyan">
-                                <i class="bi bi-bank"></i>
-                            </div>
-                        </div>
-                        <div>
-                            <div class="dash-kpi-value text-metric" id="kpi-saldo-bancos"><span class="dash-skeleton"></span></div>
-                            <span class="dash-kpi-subtext mt-1 d-block">Total en cuentas bancarias</span>
-                        </div>
-                    </div>
-
-                    <!-- Inventario Valorizado -->
+                    <!-- 4. Activos en Stock -->
                     <div class="dash-kpi-card d-flex flex-column justify-content-between dash-card-link" onclick="window.location.hash = '#/inventario/items'" tabindex="0" role="link" aria-label="Ir a Ítems de Venta e Inventario">
                         <div class="d-flex justify-content-between align-items-start">
-                            <span class="dash-kpi-label">Inventario val.</span>
+                            <div>
+                                <span class="dash-kpi-label">Activos en Stock</span>
+                                <span class="d-block text-muted" style="font-size: 11px; margin-top: 1px;">Existencias bodega</span>
+                            </div>
                             <div class="dash-icon-box variant-yellow">
-                                <i class="bi bi-box-seam"></i>
+                                <i class="bi bi-box-seam-fill"></i>
                             </div>
                         </div>
-                        <div>
+                        <div class="mt-2">
                             <div class="dash-kpi-value text-metric" id="kpi-inventario-valorizado"><span class="dash-skeleton"></span></div>
-                            <span class="dash-kpi-subtext mt-1 d-block">Costo existencias bodega</span>
+                            <span class="dash-kpi-subtext mt-1 d-block" style="font-size: 11px;">Costo existencias bodega</span>
                         </div>
                     </div>
 
                 </div>
 
-                <!-- ═══ CxC / CxP ═══ -->
+                <!-- ═══ RADAR DE CARTERA Y TESORERÍA (CxC / CxP) ═══ -->
                 <div class="dash-grid-top">
 
                     <!-- Cuentas por cobrar -->
@@ -121,7 +132,7 @@ export const DashboardModule = {
                             <div>
                                 <span class="dash-card-label">
                                     <i class="bi bi-arrow-up-right-circle text-success me-1"></i>
-                                    Cuentas por cobrar
+                                    Cuentas por cobrar (CxC)
                                 </span>
                                 <div class="dash-card-metric text-metric" id="kpi-cxc-total"><span class="dash-skeleton"></span></div>
                             </div>
@@ -133,7 +144,7 @@ export const DashboardModule = {
                         </div>
                         <div class="d-flex gap-4 mt-3 pt-1">
                             <div class="dash-sub-item dash-sub-green">
-                                <span class="dash-sub-label">Vigentes</span>
+                                <span class="dash-sub-label">Vigentes al día</span>
                                 <span class="dash-sub-value text-metric" id="kpi-cxc-vigentes"><span class="dash-skeleton dash-skeleton-sm"></span></span>
                                 <span class="dash-sub-docs" id="kpi-cxc-vigentes-doc">...</span>
                             </div>
@@ -150,8 +161,8 @@ export const DashboardModule = {
                         <div class="d-flex justify-content-between align-items-start mb-2">
                             <div>
                                 <span class="dash-card-label">
-                                    <i class="bi bi-arrow-down-left-circle text-danger me-1"></i>
-                                    Cuentas por pagar
+                                    <i class="bi bi-arrow-down-left-circle text-warning me-1"></i>
+                                    Cuentas por pagar (CxP)
                                 </span>
                                 <div class="dash-card-metric text-metric" id="kpi-cxp-total"><span class="dash-skeleton"></span></div>
                             </div>
@@ -163,12 +174,12 @@ export const DashboardModule = {
                         </div>
                         <div class="d-flex gap-4 mt-3 pt-1">
                             <div class="dash-sub-item dash-sub-neutral">
-                                <span class="dash-sub-label">Vigentes</span>
+                                <span class="dash-sub-label">Vigentes proveedores</span>
                                 <span class="dash-sub-value text-metric" id="kpi-cxp-vigentes"><span class="dash-skeleton dash-skeleton-sm"></span></span>
                                 <span class="dash-sub-docs" id="kpi-cxp-vigentes-doc">...</span>
                             </div>
                             <div class="dash-sub-item dash-sub-orange">
-                                <span class="dash-sub-label">Vencidas</span>
+                                <span class="dash-sub-label">Por vencer / vencidas</span>
                                 <span class="dash-sub-value text-metric" id="kpi-cxp-vencidas"><span class="dash-skeleton dash-skeleton-sm"></span></span>
                                 <span class="dash-sub-docs" id="kpi-cxp-vencidas-doc">...</span>
                             </div>
@@ -176,48 +187,58 @@ export const DashboardModule = {
                     </div>
                 </div>
 
-                <!-- ═══ SECCIÓN GRÁFICA ═══ -->
+                <!-- ═══ PERFORMANCE STUDIO (GRÁFICA INTERACTIVA) ═══ -->
                 <div class="card dash-chart-card">
                     <div class="card-body p-3 p-md-4">
                         <div class="dash-chart-header">
                             <div>
-                                <h6 class="text-dark text-body mb-1 fw-bold" style="font-size: 15px;">Evolución de ventas y facturación</h6>
-                                <span class="text-muted" style="font-size: var(--fs-xs);">Comportamiento cronológico de ingresos</span>
-                                <div class="d-flex flex-wrap gap-4 mt-3">
-                                    <div>
-                                        <span class="text-muted d-block text-uppercase fw-semibold" style="font-size: var(--fs-xxs); letter-spacing: 0.5px;">Ticket Promedio</span>
-                                        <span class="text-dark fw-bold text-metric" id="kpi-ticket-promedio" style="font-size: var(--fs-md);"><span class="dash-skeleton dash-skeleton-sm"></span></span>
-                                    </div>
-                                    <div>
-                                        <span class="text-muted d-block text-uppercase fw-semibold" style="font-size: var(--fs-xxs); letter-spacing: 0.5px;">Promedio Diario</span>
-                                        <span class="text-dark fw-bold text-metric" id="kpi-promedio-diario" style="font-size: var(--fs-md);"><span class="dash-skeleton dash-skeleton-sm"></span></span>
-                                    </div>
-                                    <div>
-                                        <span class="text-muted d-block text-uppercase fw-semibold" style="font-size: var(--fs-xxs); letter-spacing: 0.5px;">Pico Diario</span>
-                                        <span class="text-dark fw-bold text-metric text-success" id="kpi-pico-diario" style="font-size: var(--fs-md);"><span class="dash-skeleton dash-skeleton-sm"></span></span>
-                                    </div>
-                                </div>
+                                <h6 class="text-dark text-body mb-1 fw-bold" style="font-size: 15px;">Rendimiento Financiero & Facturación</h6>
+                                <span class="text-muted" style="font-size: var(--fs-xs);">Comportamiento cronológico de ventas e ingresos</span>
+                            </div>
+                            <div class="chart-mode-pill-group" id="chart-mode-group">
+                                <button type="button" class="chart-mode-btn chart-mode-btn--active" data-mode="diario">
+                                    <i class="bi bi-bar-chart-line me-1"></i> Facturación Diaria
+                                </button>
+                                <button type="button" class="chart-mode-btn" data-mode="acumulado">
+                                    <i class="bi bi-graph-up me-1"></i> Tendencia Acumulada
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Micro-métricas del estudio -->
+                        <div class="d-flex flex-wrap gap-4 mb-3 pt-1 border-top" style="border-color: var(--border-color) !important;">
+                            <div>
+                                <span class="text-muted d-block text-uppercase fw-semibold" style="font-size: var(--fs-xxs); letter-spacing: 0.5px;">Ticket Promedio</span>
+                                <span class="text-dark fw-bold text-metric" id="kpi-ticket-promedio" style="font-size: var(--fs-md);"><span class="dash-skeleton dash-skeleton-sm"></span></span>
+                            </div>
+                            <div>
+                                <span class="text-muted d-block text-uppercase fw-semibold" style="font-size: var(--fs-xxs); letter-spacing: 0.5px;">Promedio Diario</span>
+                                <span class="text-dark fw-bold text-metric" id="kpi-promedio-diario" style="font-size: var(--fs-md);"><span class="dash-skeleton dash-skeleton-sm"></span></span>
+                            </div>
+                            <div>
+                                <span class="text-muted d-block text-uppercase fw-semibold" style="font-size: var(--fs-xxs); letter-spacing: 0.5px;">Pico de Venta</span>
+                                <span class="text-dark fw-bold text-metric text-success" id="kpi-pico-diario" style="font-size: var(--fs-md);"><span class="dash-skeleton dash-skeleton-sm"></span></span>
                             </div>
                         </div>
                         
-                        <div style="height: 290px; width: 100%; position: relative;">
+                        <div style="height: 300px; width: 100%; position: relative;">
                             <canvas id="ventasChart"></canvas>
                         </div>
                     </div>
                 </div>
 
-                <!-- ═══ SECCIÓN INFERIOR: OPERACIONES RECIENTES & SALUD OPERATIVA ═══ -->
+                <!-- ═══ BENTO INFERIOR DUAL: LEDGER & COCKPIT OPERATIVO ═══ -->
                 <div class="dash-grid-bottom">
 
-                    <!-- Columna 1: Operaciones Recientes y Top Clientes -->
+                    <!-- Columna 1: Ledger de Operaciones Recientes -->
                     <div class="dash-table-container">
                         <div class="card-header bg-white d-flex justify-content-between align-items-center p-3 border-bottom">
                             <div>
                                 <h6 class="mb-0 fw-bold" style="font-size: 14px;">Operaciones Recientes</h6>
-                                <span class="text-muted" style="font-size: 11px;">Últimas facturaciones con saldo y estado</span>
+                                <span class="text-muted" style="font-size: 11px;">Últimas facturaciones con saldo y estado en vivo</span>
                             </div>
                             <button type="button" class="btn btn-sm btn-link text-decoration-none p-0 fw-semibold d-flex align-items-center gap-1" style="font-size: 12px; color: var(--primary);" onclick="window.location.hash = '#/ingresos/facturas'">
-                                <span>Ver todas</span> <i class="bi bi-chevron-right text-[12px]"></i>
+                                <span>Ver todas las facturas</span> <i class="bi bi-chevron-right text-[12px]"></i>
                             </button>
                         </div>
                         <div class="table-responsive">
@@ -252,32 +273,32 @@ export const DashboardModule = {
                         </div>
                     </div>
 
-                    <!-- Columna 2: Salud Operativa y Accesos Rápidos -->
+                    <!-- Columna 2: Cockpit Operativo y Accesos de Alta Velocidad -->
                     <div class="dash-card-premium d-flex flex-column justify-content-between">
                         <div>
                             <div class="d-flex justify-content-between align-items-center mb-3">
-                                <h6 class="mb-0 fw-bold" style="font-size: 14px;">Salud Operativa</h6>
-                                <span class="dash-badge-chip dash-badge-chip--info">Indicadores</span>
+                                <h6 class="mb-0 fw-bold" style="font-size: 14px;">Cockpit Operativo</h6>
+                                <span class="dash-badge-chip dash-badge-chip--info">Tiempo Real</span>
                             </div>
                             
                             <div class="d-flex flex-column gap-3 mb-4">
-                                <div class="d-flex justify-content-between align-items-center p-2 rounded" style="background: var(--surface-muted);">
+                                <div class="d-flex justify-content-between align-items-center p-2.5 rounded" style="background: var(--surface-muted);">
                                     <div class="d-flex align-items-center gap-2">
                                         <i class="bi bi-receipt text-[17px] text-muted"></i>
-                                        <span style="font-size: 13px; font-weight: 500;">Facturas del periodo</span>
+                                        <span style="font-size: 13px; font-weight: 500;">Facturas emitidas</span>
                                     </div>
                                     <span class="fw-bold text-metric" id="kpi-facturas-conteo"><span class="dash-skeleton dash-skeleton-sm"></span></span>
                                 </div>
 
-                                <div class="d-flex justify-content-between align-items-center p-2 rounded" style="background: var(--surface-muted);">
+                                <div class="d-flex justify-content-between align-items-center p-2.5 rounded" style="background: var(--surface-muted);">
                                     <div class="d-flex align-items-center gap-2">
                                         <i class="bi bi-box-seam text-[17px] text-muted"></i>
-                                        <span style="font-size: 13px; font-weight: 500;">Productos vendidos</span>
+                                        <span style="font-size: 13px; font-weight: 500;">Unidades despachadas</span>
                                     </div>
                                     <span class="fw-bold text-metric" id="kpi-productos"><span class="dash-skeleton dash-skeleton-sm"></span></span>
                                 </div>
 
-                                <div class="d-flex justify-content-between align-items-center p-2 rounded" style="background: var(--surface-muted);">
+                                <div class="d-flex justify-content-between align-items-center p-2.5 rounded" style="background: var(--surface-muted);">
                                     <div class="d-flex align-items-center gap-2">
                                         <i class="bi bi-shield-check text-[17px] text-muted"></i>
                                         <span style="font-size: 13px; font-weight: 500;">Estatus de Cobranza</span>
@@ -288,8 +309,8 @@ export const DashboardModule = {
                         </div>
 
                         <!-- Acciones directas -->
-                        <div class="pt-3 border-top">
-                            <span class="text-muted d-block mb-2" style="font-size: 11px; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Accesos Rápidos</span>
+                        <div class="pt-3 border-top" style="border-color: var(--border-color) !important;">
+                            <span class="text-muted d-block mb-2" style="font-size: 11px; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Acciones Rápidas</span>
                             <div class="d-grid gap-2">
                                 <button type="button" class="btn btn-sm btn-primary-action d-flex align-items-center justify-content-center gap-1.5 py-2" onclick="window.location.hash = '#/ingresos/facturas'">
                                     <i class="bi bi-plus-circle me-1"></i>
@@ -385,6 +406,21 @@ export const DashboardModule = {
         if (btnExport) {
             btnExport.addEventListener('click', () => {
                 window.print();
+            });
+        }
+
+        const modeGroup = element.querySelector('#chart-mode-group');
+        if (modeGroup) {
+            modeGroup.addEventListener('click', (e) => {
+                const btn = e.target.closest('.chart-mode-btn');
+                if (btn && btn.dataset.mode) {
+                    modeGroup.querySelectorAll('.chart-mode-btn').forEach(b => b.classList.remove('chart-mode-btn--active'));
+                    btn.classList.add('chart-mode-btn--active');
+                    this._chartMode = btn.dataset.mode;
+                    if (this._dailySales) {
+                        this.renderChart(this._dailySales, this._currentRango, this._chartMode);
+                    }
+                }
             });
         }
     },
@@ -568,7 +604,9 @@ export const DashboardModule = {
                 }
             }
 
-            this.renderChart(dailySales, rango);
+            this._dailySales = dailySales;
+            this._currentRango = rango;
+            this.renderChart(dailySales, rango, this._chartMode || 'diario');
         }).catch(e => console.error('Error fetching KPIs', e));
 
         // 2. Inventario Valorizado
@@ -723,81 +761,9 @@ export const DashboardModule = {
 
         // Lanzar TODAS en paralelo y esperar a que terminen para asegurar consistencia
         await Promise.all([pKPIs, pInventario, pBancos, pCartera, pTopOperaciones]);
-
-        // Renderizar insights inteligentes con los datos consolidados
-        this.renderInsights(element, resolvedKPIs, resolvedCartera);
     },
 
-    renderInsights(element, kpis, cartera) {
-        const container = element.querySelector('#dash-insights-container');
-        if (!container) return;
-
-        const cards = [];
-        const vencidasDoc = cartera?.cxc_vencidas_doc || 0;
-        const vencidasMonto = cartera?.cxc_vencidas || 0;
-        const formatMoney = val => '$' + (val || 0).toLocaleString('es-CO', {minimumFractionDigits: 0, maximumFractionDigits: 0});
-
-        if (vencidasDoc > 0) {
-            cards.push(`
-                <a href="#/cartera" class="dash-insight-card" title="Ver detalle de cartera vencida">
-                    <div class="dash-insight-icon" style="background: rgba(220, 38, 38, 0.1); color: #dc2626;">
-                        <i class="bi bi-exclamation-triangle-fill"></i>
-                    </div>
-                    <div class="dash-insight-content">
-                        <span class="dash-insight-title">Atención en Cartera</span>
-                        <span class="dash-insight-desc">${vencidasDoc} factura${vencidasDoc > 1 ? 's' : ''} vencida${vencidasDoc > 1 ? 's' : ''} (${formatMoney(vencidasMonto)})</span>
-                    </div>
-                    <i class="bi bi-chevron-right ms-auto text-muted" style="font-size: 11px;"></i>
-                </a>
-            `);
-        } else {
-            cards.push(`
-                <div class="dash-insight-card">
-                    <div class="dash-insight-icon" style="background: rgba(5, 150, 105, 0.1); color: #059669;">
-                        <i class="bi bi-shield-check"></i>
-                    </div>
-                    <div class="dash-insight-content">
-                        <span class="dash-insight-title">Cobranza al día</span>
-                        <span class="dash-insight-desc">No hay facturas vencidas registradas</span>
-                    </div>
-                </div>
-            `);
-        }
-
-        const ventasMes = kpis?.ventas_mes || 0;
-        const utilidadMes = kpis?.utilidad_mes || 0;
-        const margenPct = ventasMes > 0 ? ((utilidadMes / ventasMes) * 100) : 0;
-        if (ventasMes > 0) {
-            cards.push(`
-                <div class="dash-insight-card">
-                    <div class="dash-insight-icon" style="background: rgba(37, 99, 235, 0.1); color: #2563eb;">
-                        <i class="bi bi-pie-chart-fill"></i>
-                    </div>
-                    <div class="dash-insight-content">
-                        <span class="dash-insight-title">Rentabilidad Operativa</span>
-                        <span class="dash-insight-desc">Margen del ${margenPct.toFixed(1)}% sobre facturación</span>
-                    </div>
-                </div>
-            `);
-        }
-
-        cards.push(`
-            <a href="#/ingresos/facturas" class="dash-insight-card" title="Crear nueva venta">
-                <div class="dash-insight-icon" style="background: rgba(147, 51, 234, 0.1); color: #9333ea;">
-                    <i class="bi bi-lightning-charge-fill"></i>
-                </div>
-                <div class="dash-insight-content">
-                    <span class="dash-insight-title">Atajo Rápido</span>
-                    <span class="dash-insight-desc">Crear nueva factura de venta</span>
-                </div>
-                <i class="bi bi-chevron-right ms-auto text-muted" style="font-size: 11px;"></i>
-            </a>
-        `);
-
-        container.innerHTML = cards.join('');
-    },
-
-    renderChart(dailySales, rango) {
+    renderChart(dailySales, rango, mode = 'diario') {
         const canvas = document.getElementById('ventasChart');
         if (!canvas) return;
         
@@ -820,10 +786,25 @@ export const DashboardModule = {
             return `${parseInt(d)} ${monthNames[parseInt(m)-1]}`;
         });
         
-        const dataVentas = Object.values(dailySales);
-        const datasetLabel = rango === 'Mes actual' || rango === 'Este Mes' 
-            ? `Ventas ${currentMonthName} ${currentYear}` 
-            : `Ventas (${rango})`;
+        let dataVentas;
+        let datasetLabel;
+
+        if (mode === 'acumulado') {
+            let runningSum = 0;
+            dataVentas = Object.values(dailySales).map(val => {
+                if (val === null || val === undefined) return null;
+                runningSum += val;
+                return runningSum;
+            });
+            datasetLabel = (rango === 'Mes actual' || rango === 'Este Mes')
+                ? `Venta Acumulada ${currentMonthName} ${currentYear}`
+                : `Venta Acumulada (${rango})`;
+        } else {
+            dataVentas = Object.values(dailySales);
+            datasetLabel = (rango === 'Mes actual' || rango === 'Este Mes')
+                ? `Ventas Diarias ${currentMonthName} ${currentYear}`
+                : `Ventas Diarias (${rango})`;
+        }
 
         window.myVentasChart = new Chart(ctx, {
             type: 'line',
