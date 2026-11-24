@@ -1,4 +1,4 @@
-import { escapeHtml } from './formatters.js';
+import { escapeHtml, parseCurrencyValue } from './formatters.js';
 
 /**
  * MOTOR COMPARTIDO DE LÍNEAS DE INVENTARIO (COTIZACIONES Y FACTURAS)
@@ -448,49 +448,46 @@ export const ItemEngine = {
         let sumDescuento = 0;
         let sumImpuestos = 0;
         const formRows = Array.from(tbody.querySelectorAll('tr'));
-        
-        import('./formatters.js').then(fmt => {
-            const round2 = (val) => Math.round((Number(val) + Number.EPSILON) * 100) / 100;
+        const round2 = (val) => Math.round((Number(val) + Number.EPSILON) * 100) / 100;
 
-            formRows.forEach(tr => {
-                const qty = parseFloat(tr.querySelector('.input-qty').value || 0);
-                const price = fmt.parseCurrencyValue(tr.querySelector('.input-price').value);
-                const discPct = parseFloat(tr.querySelector('.input-disc').value || 0);
-                const taxPct = parseFloat(tr.querySelector('.input-tax').value || 0);
+        formRows.forEach(tr => {
+            const qty = parseFloat(tr.querySelector('.input-qty').value || 0);
+            const price = parseCurrencyValue(tr.querySelector('.input-price').value);
+            const discPct = parseFloat(tr.querySelector('.input-disc').value || 0);
+            const taxPct = parseFloat(tr.querySelector('.input-tax').value || 0);
 
-                const baseLine = round2(qty * price);
-                const discAmount = round2(baseLine * (discPct / 100));
-                const subLine = round2(baseLine - discAmount);
-                const taxAmount = round2(subLine * (taxPct / 100));
+            const baseLine = round2(qty * price);
+            const discAmount = round2(baseLine * (discPct / 100));
+            const subLine = round2(baseLine - discAmount);
+            const taxAmount = round2(subLine * (taxPct / 100));
 
-                const subtotalEl = tr.querySelector('.calc-subtotal');
-                if (subtotalEl) subtotalEl.textContent = fmt_money(subLine);
+            const subtotalEl = tr.querySelector('.calc-subtotal');
+            if (subtotalEl) subtotalEl.textContent = fmt_money(subLine);
 
-                sumSubtotal = round2(sumSubtotal + baseLine);
-                sumDescuento = round2(sumDescuento + discAmount);
-                sumImpuestos = round2(sumImpuestos + taxAmount);
-            });
-
-            const totalFinal = round2(sumSubtotal - sumDescuento + sumImpuestos);
-            
-            if (element) {
-                const elSubtotal = element.querySelector('#tot-subtotal');
-                const elDescuento = element.querySelector('#tot-descuento');
-                const elImpuestos = element.querySelector('#tot-impuestos');
-                const elTotal = element.querySelector('#tot-total');
-
-                if (elSubtotal) elSubtotal.textContent = fmt_money(sumSubtotal);
-                if (elDescuento) elDescuento.textContent = fmt_money(sumDescuento);
-                if (elImpuestos) elImpuestos.textContent = fmt_money(sumImpuestos);
-                if (elTotal) {
-                    elTotal.textContent = fmt_money(totalFinal);
-                    elTotal.dataset.rawTotal = totalFinal.toString();
-                }
-            }
-            
-            if (factura) {
-                factura.total = totalFinal; // Mantener en estado global para guardado rápido
-            }
+            sumSubtotal = round2(sumSubtotal + baseLine);
+            sumDescuento = round2(sumDescuento + discAmount);
+            sumImpuestos = round2(sumImpuestos + taxAmount);
         });
+
+        const totalFinal = round2(sumSubtotal - sumDescuento + sumImpuestos);
+
+        if (element) {
+            const elSubtotal = element.querySelector('#tot-subtotal');
+            const elDescuento = element.querySelector('#tot-descuento');
+            const elImpuestos = element.querySelector('#tot-impuestos');
+            const elTotal = element.querySelector('#tot-total');
+
+            if (elSubtotal) elSubtotal.textContent = fmt_money(sumSubtotal);
+            if (elDescuento) elDescuento.textContent = fmt_money(sumDescuento);
+            if (elImpuestos) elImpuestos.textContent = fmt_money(sumImpuestos);
+            if (elTotal) {
+                elTotal.textContent = fmt_money(totalFinal);
+                elTotal.dataset.rawTotal = totalFinal.toString();
+            }
+        }
+
+        if (factura) {
+            factura.total = totalFinal; // Mantener en estado global para guardado rápido
+        }
     }
 };

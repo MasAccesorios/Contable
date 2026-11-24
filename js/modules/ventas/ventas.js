@@ -1837,6 +1837,33 @@ export const FacturasModule = {
             }
 
             // Semáforo de Inventario FIFO reactivo
+            const kpiStock = element.querySelector('#kpi-fac-stock');
+            const kpiStockDesc = element.querySelector('#kpi-fac-stock-desc');
+            const kpiStockIcon = element.querySelector('#kpi-fac-stock-icon');
+
+            if (isViewOnly) {
+                if (kpiStock) {
+                    if (EstadoUtils.estaAnulado(factura.estado)) {
+                        kpiStock.textContent = 'Anulada';
+                        kpiStock.className = 'payment-kpi-value fw-bold text-danger';
+                        if (kpiStockDesc) kpiStockDesc.textContent = 'Factura anulada / stock revertido';
+                        if (kpiStockIcon) {
+                            kpiStockIcon.className = 'payment-kpi-icon out-bg';
+                            kpiStockIcon.innerHTML = '<i class="bi bi-x-circle text-danger"></i>';
+                        }
+                    } else {
+                        kpiStock.textContent = 'Despachado';
+                        kpiStock.className = 'payment-kpi-value fw-bold text-success';
+                        if (kpiStockDesc) kpiStockDesc.textContent = 'Inventario procesado en factura';
+                        if (kpiStockIcon) {
+                            kpiStockIcon.className = 'payment-kpi-icon in-bg';
+                            kpiStockIcon.innerHTML = '<i class="bi bi-check-circle text-success"></i>';
+                        }
+                    }
+                }
+                return;
+            }
+
             const formRows = Array.from(tbody.querySelectorAll('tr'));
             let stockInsuficiente = false;
             let unidadesFaltantes = 0;
@@ -1854,9 +1881,6 @@ export const FacturasModule = {
                 }
             });
 
-            const kpiStock = element.querySelector('#kpi-fac-stock');
-            const kpiStockDesc = element.querySelector('#kpi-fac-stock-desc');
-            const kpiStockIcon = element.querySelector('#kpi-fac-stock-icon');
             if (kpiStock) {
                 if (stockInsuficiente) {
                     kpiStock.textContent = 'Insuficiente';
