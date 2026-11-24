@@ -103,6 +103,9 @@ describe('Módulo Bancos y Cajas 360° - TDD Test Suite', () => {
             // Movimientos por conciliar
             assert.strictEqual(kpis.movimientosPorConciliar, 14);
 
+            // Fecha de corte de conciliación (agosto 2026)
+            assert.strictEqual(TesoreriaData.FECHA_CORTE_CONCILIACION, '2026-08-01');
+
             // Conteo de Tabs
             assert.strictEqual(kpis.tabCounts.todas, 7); // Activas
             assert.strictEqual(kpis.tabCounts.bancos, 5);
@@ -215,6 +218,7 @@ describe('Módulo Bancos y Cajas 360° - TDD Test Suite', () => {
             assert.ok(html.includes('modal-transferir'), 'Debe preservar modal transferir');
             assert.ok(html.includes('modal-agregar-banco'), 'Debe preservar modal agregar banco');
             assert.ok(html.includes('modal-editar-banco'), 'Debe preservar modal editar banco');
+            assert.ok(html.includes('desde ago 2026'), 'Debe indicar el corte temporal desde ago 2026 en el KPI');
         });
     });
     // =========================================================================

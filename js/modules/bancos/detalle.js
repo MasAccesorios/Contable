@@ -111,10 +111,14 @@ export const DetalleBancoModule = {
                 if (idsMov.length > 0) {
                     const { data: concRows } = await supabase
                         .from('pagos_ingresos')
-                        .select('id, conciliacion_id')
+                        .select('id, conciliacion_id, conciliado_en')
                         .in('id', idsMov);
-                    const mapaConc = new Map((concRows || []).map(r => [r.id, r.conciliacion_id]));
-                    mapped.forEach(m => { m.conciliacion_id = mapaConc.get(m.id) ?? null; });
+                    const mapaConc = new Map((concRows || []).map(r => [r.id, r]));
+                    mapped.forEach(m => {
+                        const r = mapaConc.get(m.id);
+                        m.conciliacion_id = r?.conciliacion_id ?? null;
+                        m.conciliado_en = r?.conciliado_en ?? null;
+                    });
                 }
 
                 if (!isLoadMore) {
@@ -329,7 +333,7 @@ export const DetalleBancoModule = {
                                 <i class="bi bi-three-dots-vertical fs-6"></i>
                             </button>
                             <ul class="dropdown-menu dropdown-menu-end shadow border-0" style="font-size: var(--fs-base);">
-                                ${!t.conciliacion_id ? `
+                                ${!t.conciliacion_id && !t.conciliado_en ? `
                                     <li><a class="dropdown-item btn-editar-transaccion" href="javascript:void(0)" data-id="${t.id}">Editar</a></li>
                                     <li><a class="dropdown-item text-danger btn-eliminar-banco" href="javascript:void(0)" data-id="${t.id}" data-grupo="${t.grupo_pago_id || ''}" data-monto="${t.monto}" data-fecha="${t.fecha}">Eliminar</a></li>
                                 ` : `

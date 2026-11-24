@@ -292,7 +292,7 @@ export const ConciliacionTemplates = {
                             <div class="d-flex align-items-center gap-2 bg-light border px-3 rounded-3" style="height: 38px;">
                                 <i class="bi bi-calendar3 text-muted" style="font-size: 12px;"></i>
                                 <span class="text-muted small fw-medium" style="font-size: 11.5px;">Desde:</span>
-                                <input type="date" id="concil-desde" class="form-control border-0 bg-transparent text-dark fw-semibold p-0 shadow-none" style="font-size: 12px; width: 115px;" value="${escapeHtml(this.state.fechaDesde || '')}">
+                                <input type="date" id="concil-desde" class="form-control border-0 bg-transparent text-dark fw-semibold p-0 shadow-none" style="font-size: 12px; width: 115px;" min="2026-08-01" value="${escapeHtml(this.state.fechaDesde || '')}">
                                 <span class="text-muted mx-1">-</span>
                                 <span class="text-muted small fw-medium" style="font-size: 11.5px;">Hasta:</span>
                                 <input type="date" id="concil-hasta" class="form-control border-0 bg-transparent text-dark fw-semibold p-0 shadow-none" style="font-size: 12px; width: 115px;" value="${escapeHtml(this.state.fechaHasta || '')}">

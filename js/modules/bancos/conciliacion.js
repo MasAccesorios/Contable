@@ -52,7 +52,9 @@ export const ConciliacionModule = {
             const hoy = new Date();
             const hace3MesesDate = new Date(hoy);
             hace3MesesDate.setMonth(hace3MesesDate.getMonth() - 3);
-            this.state.fechaDesde = getLocalDate(hace3MesesDate);
+            const fechaCorte = new Date('2026-08-01T00:00:00');
+            const fechaInicio = hace3MesesDate < fechaCorte ? fechaCorte : hace3MesesDate;
+            this.state.fechaDesde = getLocalDate(fechaInicio);
             this.state.fechaHasta = getLocalDate(hoy);
             this.state.currentTab = 'nueva';
             this.state.filterTipoMovs = 'todos';

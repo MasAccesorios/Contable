@@ -220,7 +220,12 @@ export const ConciliacionEvents = {
         // 10. Rango de Fechas
         el.querySelector('#concil-desde')?.addEventListener('change', async (e) => {
             this.state._seleccionados = new Set();
-            this.state.fechaDesde = e.target.value;
+            let val = e.target.value;
+            if (val && val < '2026-08-01') {
+                val = '2026-08-01';
+                e.target.value = val;
+            }
+            this.state.fechaDesde = val;
             await this.cargarDatosRPC();
             this.calcularTotales();
             this.recalcularDiferenciaPendiente();

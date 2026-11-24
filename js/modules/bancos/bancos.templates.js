@@ -153,7 +153,7 @@ export const TesoreriaTemplates = {
                                 ${kpis.movimientosPorConciliar}
                             </div>
                             <div class="mt-2 text-muted" style="font-size: 11px;">
-                                Transacciones abiertas por cuadrar
+                                Transacciones abiertas (desde ago 2026)
                             </div>
                         </div>
                     </div>

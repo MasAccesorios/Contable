@@ -2,6 +2,7 @@
 // Capa de Acceso a Datos, KPIs, Normalización y Exportación de Bancos y Cajas 360°
 
 export const TesoreriaData = {
+    FECHA_CORTE_CONCILIACION: '2026-08-01',
     _supabase: null,
     _db: null,
 
@@ -240,15 +241,22 @@ export const TesoreriaData = {
             }
         }
 
-        // 4. Conteo de transacciones pendientes por conciliar
+        // 4. Conteo de transacciones pendientes por conciliar (a partir de la fecha de corte)
         let conteoPendientes = 0;
         if (supabaseClient) {
             try {
-                const { count } = await supabaseClient
+                let query = supabaseClient
                     .from('pagos_ingresos')
                     .select('id', { count: 'exact', head: true })
                     .is('conciliacion_id', null)
+                    .is('conciliado_en', null)
                     .neq('estado', 'anulado');
+
+                if (this.FECHA_CORTE_CONCILIACION) {
+                    query = query.gte('fecha', this.FECHA_CORTE_CONCILIACION);
+                }
+
+                const { count } = await query;
                 conteoPendientes = count || 0;
             } catch (err) {
                 console.warn('[TesoreriaData] Error consultando pagos pendientes:', err);
