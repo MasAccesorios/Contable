@@ -2445,6 +2445,13 @@ export const FacturasModule = {
                             factura.total_costo = updateRes.total_costo;
                         }
 
+                        // Recalcular estado de cartera y pagos tras la edición
+                        try {
+                            await supabase.rpc('recalcular_estado_factura', { p_factura_id: parseInt(id, 10) });
+                        } catch (eRecalc) {
+                            console.warn("No se pudo recalcular estado de factura:", eRecalc);
+                        }
+
                         // Factura y detalles ya actualizados atómicamente por editar_factura_inventario_fifo
                         facturaGuardadaId = factura.id;
                         

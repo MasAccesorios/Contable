@@ -185,6 +185,10 @@ BEGIN
         (value->>'descripcion_personalizada')
     FROM jsonb_array_elements(p_nuevos_detalles);
 
+    IF (SELECT saldo_original IS NULL FROM facturas WHERE id = p_factura_id) THEN
+        PERFORM public.recalcular_estado_factura(p_factura_id);
+    END IF;
+
     RETURN jsonb_build_object('success', true, 'total_costo', v_nuevo_total_costo, 'costo_delta', v_costo_delta);
 END;
 $$;
