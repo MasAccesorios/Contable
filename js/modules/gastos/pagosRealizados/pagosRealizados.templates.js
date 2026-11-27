@@ -351,7 +351,7 @@ export const PagosRealizadosTemplates = {
                         <div class="fw-semibold text-dark" style="font-size: 13px;">Destino del Pago</div>
                         <div class="text-muted" style="font-size: 12px; margin-top: 2px;">
                             ${t.factura_id ? `
-                                Vinculado a <a href="#/gastos/compras/ver/${t.factura_id}" class="text-danger fw-medium text-decoration-none">Compra #${t.facturas?.numero || t.factura_id}</a>
+                                Vinculado a <a href="#/gastos/proveedores/ver/${t.factura_id}" class="text-danger fw-medium text-decoration-none">Compra #${t.facturas?.numero || t.factura_id}</a>
                                 ${t.facturas?.total ? `<span class="badge bg-light text-secondary border ms-1">Total Compra: ${formatMoney(t.facturas.total)}</span>` : ''}
                             ` : (t.itemsGrupo && t.itemsGrupo.length > 1 ? `
                                 Pago agrupado cubriendo <strong>${t.itemsGrupo.length} facturas de compra</strong>
@@ -406,7 +406,7 @@ export const PagosRealizadosTemplates = {
                             ${t.itemsGrupo.map(p => `
                             <tr>
                                 <td class="py-2 ps-3">
-                                    ${p.factura_id ? `<a href="#/gastos/compras/ver/${p.factura_id}" class="text-danger fw-medium text-decoration-none"># ${p.facturas?.numero || p.factura_id}</a>` : 'Directo'}
+                                    ${p.factura_id ? `<a href="#/gastos/proveedores/ver/${p.factura_id}" class="text-danger fw-medium text-decoration-none"># ${p.facturas?.numero || p.factura_id}</a>` : 'Directo'}
                                 </td>
                                 <td class="py-2 text-muted">${escapeHtml(p.categoria || 'Abono compra')}</td>
                                 <td class="py-2 text-end pe-3 fw-bold text-dark tnum">${formatMoney(p.monto)}</td>
@@ -742,7 +742,7 @@ export const PagosRealizadosTemplates = {
                             <!-- Columna 3: Compra / Factura -->
                             <td class="py-3">
                                 ${pago.factura_id ? `
-                                    <a href="#/gastos/compras/ver/${pago.factura_id}" class="payment-invoice-tag" style="background-color: #fef2f2; color: #dc2626; border-color: #fecaca;" onclick="event.stopPropagation()" title="Ver compra asociada">
+                                    <a href="#/gastos/proveedores/ver/${pago.factura_id}" class="payment-invoice-tag" style="background-color: #fef2f2; color: #dc2626; border-color: #fecaca;" onclick="event.stopPropagation()" title="Ver compra asociada">
                                         <i class="bi bi-bag-check"></i> Compra #${pago.factura_numero || pago.factura_id}
                                     </a>
                                 ` : `

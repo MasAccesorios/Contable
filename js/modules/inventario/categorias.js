@@ -38,6 +38,8 @@ export const CategoriasModule = {
 
         // 5. Renderizar contenido de tabla
         CategoriasEvents.actualizarTablaFiltrada();
+
+        return () => CategoriasEvents.unbind();
     },
 
     renderLoading(element) {

@@ -499,7 +499,7 @@ export const AuditoriaTemplates = {
         }
         if (entityType === 'contacto') {
             return `
-                <a href="#/clientes" class="btn btn-xs btn-outline-primary py-0 px-2" style="font-size: 11px; border-radius: 4px;" title="Ver en Clientes">
+                <a href="#/contactos" class="btn btn-xs btn-outline-primary py-0 px-2" style="font-size: 11px; border-radius: 4px;" title="Ver en Contactos">
                     <i class="bi bi-box-arrow-up-right me-1"></i>Ver Contactos
                 </a>
             `;

@@ -2,10 +2,12 @@
 import DB from '../core/db.js';
 import { supabase } from '../core/supabase.js';
 import { escapeHtml } from '../shared/formatters.js';
+import { ensureFreshSession, executeRpcWithRetry } from './dashboard.utils.js';
 
 export const DashboardModule = {
     async init(element) {
         if (!element) return;
+        this._loading = false;
 
         element.innerHTML = `
             <div class="p-3 p-md-4" style="background-color: transparent; min-height: 100vh;">
@@ -337,11 +339,12 @@ export const DashboardModule = {
             this.setupFilters(element);
         };
 
-        // Ensure Chart.js is loaded
+        // Ensure Chart.js is loaded (sin bloquear el resto del dashboard si el CDN falla)
         if (typeof Chart === 'undefined') {
             const script = document.createElement('script');
             script.src = 'https://cdn.jsdelivr.net/npm/chart.js';
             script.onload = startLoad;
+            script.onerror = startLoad;
             document.head.appendChild(script);
         } else {
             await startLoad();
@@ -437,7 +440,7 @@ export const DashboardModule = {
     },
 
     async renderDynamicContent(element, rango) {
-        await supabase.auth.getSession();
+        await ensureFreshSession(supabase);
 
         const hoy = new Date();
         hoy.setHours(0,0,0,0);
@@ -450,9 +453,9 @@ export const DashboardModule = {
         if (rango === 'Mes actual' || rango === 'Este Mes') {
             startDate.setDate(1);
             endDate = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0); // Last day of month
-            prevStartDate.setDate(1);
-            prevStartDate.setMonth(prevStartDate.getMonth() - 1);
-            prevEndDate.setMonth(prevEndDate.getMonth() - 1);
+            prevStartDate = new Date(hoy.getFullYear(), hoy.getMonth() - 1, 1);
+            const daysInPrevMonth = new Date(hoy.getFullYear(), hoy.getMonth(), 0).getDate();
+            prevEndDate = new Date(hoy.getFullYear(), hoy.getMonth() - 1, Math.min(hoy.getDate(), daysInPrevMonth));
         } else if (rango === '7 Días') {
             startDate.setDate(hoy.getDate() - 6);
             prevStartDate = new Date(startDate);
@@ -522,14 +525,12 @@ export const DashboardModule = {
         // ==========================================
 
         // 1. KPIs de Ventas y Gráfica (RPC)
-        const pKPIs = supabase.rpc('get_dashboard_kpis', {
+        const pKPIs = executeRpcWithRetry(supabase, 'get_dashboard_kpis', {
             p_fecha_inicio: startDateStr,
             p_fecha_fin: endDateStr,
             p_prev_fecha_inicio: prevStartDateStr,
             p_prev_fecha_fin: prevEndDateStr
-        }).then(({ data, error }) => {
-            if (error) throw error;
-            
+        }).then((data) => {
             resolvedKPIs = data || {};
             const kpis = resolvedKPIs;
             const ventasMes = kpis.ventas_mes || 0;
@@ -607,22 +608,33 @@ export const DashboardModule = {
             this._dailySales = dailySales;
             this._currentRango = rango;
             this.renderChart(dailySales, rango, this._chartMode || 'diario');
-        }).catch(e => console.error('Error fetching KPIs', e));
+        }).catch(e => {
+            console.error('Error fetching KPIs', e);
+            ['#kpi-total-ventas', '#kpi-utilidad-monto', '#kpi-productos', '#kpi-facturas-conteo', '#kpi-ticket-promedio', '#kpi-promedio-diario', '#kpi-pico-diario']
+                .forEach(id => safeSetText(id, '--'));
+            const margenBadge = element.querySelector('#kpi-utilidad-margen-badge');
+            if (margenBadge) margenBadge.textContent = 'Margen: --';
+        });
 
         // 2. Inventario Valorizado
-        const pInventario = supabase.rpc('get_inventario_valorizado', {
+        const pInventario = executeRpcWithRetry(supabase, 'get_inventario_valorizado', {
             p_search: '', p_page: 1, p_limit: 1, p_export_all: false
-        }).then(({ data, error }) => {
-            if (error) throw error;
+        }).then((data) => {
             safeSetText('#kpi-inventario-valorizado', formatMoney(data?.gran_total || 0));
-        }).catch(e => console.error('Error fetching inventario', e));
+        }).catch(e => {
+            console.error('Error fetching inventario', e);
+            safeSetText('#kpi-inventario-valorizado', '--');
+        });
 
         // 3. Saldo Total Bancos (Cruzado con estado de cuenta activo)
-        const pBancos = supabase.rpc('get_saldo_total_bancos')
-            .then(({ data }) => {
+        const pBancos = executeRpcWithRetry(supabase, 'get_saldo_total_bancos')
+            .then((data) => {
                 safeSetText('#kpi-saldo-bancos', formatMoney(data || 0));
             })
-            .catch(e => console.error('Error fetching bancos', e));
+            .catch(e => {
+                console.error('Error fetching bancos', e);
+                safeSetText('#kpi-saldo-bancos', '--');
+            });
 
         // 4. Cartera CxC & CxP
         const updateMicroBar = (total, vigentes, vencidas, barId, colors) => {
@@ -665,8 +677,8 @@ export const DashboardModule = {
             updateMicroBar(total, vigentes, vencidas, `#kpi-${prefix}-progress`, colors);
         };
 
-        const pCartera = supabase.rpc('get_dashboard_cartera_kpis')
-            .then(({ data }) => {
+        const pCartera = executeRpcWithRetry(supabase, 'get_dashboard_cartera_kpis')
+            .then((data) => {
                 resolvedCartera = data || {};
                 const kpis = resolvedCartera;
                 updateCarteraUI(kpis, 'cxc', ['#059669', '#dc2626']);
@@ -677,10 +689,16 @@ export const DashboardModule = {
                 const tasaCobro = cxcTotal > 0 ? ((cxcVigentes / cxcTotal) * 100).toFixed(0) : '100';
                 safeSetText('#kpi-tasa-cobranza', `${tasaCobro}% al día`);
             })
-            .catch(e => console.error('Error fetching Cartera KPIs', e));
+            .catch(e => {
+                console.error('Error fetching Cartera KPIs', e);
+                ['#kpi-cxc-total', '#kpi-cxc-vigentes', '#kpi-cxc-vencidas', '#kpi-cxp-total', '#kpi-cxp-vigentes', '#kpi-cxp-vencidas', '#kpi-tasa-cobranza']
+                    .forEach(id => safeSetText(id, '--'));
+                ['#kpi-cxc-vigentes-doc', '#kpi-cxc-vencidas-doc', '#kpi-cxp-vigentes-doc', '#kpi-cxp-vencidas-doc']
+                    .forEach(id => safeSetText(id, 'No disponible'));
+            });
 
         // 5. Operaciones Recientes y Top Clientes
-        const pTopOperaciones = supabase.rpc('get_facturas_con_saldos', {
+        const pTopOperaciones = executeRpcWithRetry(supabase, 'get_facturas_con_saldos', {
             p_page: 1,
             p_limit: 5,
             p_sort_col: 'fecha',
@@ -688,8 +706,7 @@ export const DashboardModule = {
             p_search: '',
             p_filter_criteria: 'todos',
             p_tipo: 'venta'
-        }).then(async ({ data: facturas, error }) => {
-            if (error) throw error;
+        }).then(async (facturas) => {
             const tbody = element.querySelector('#dash-top-clientes-tbody');
             if (!tbody) return;
 
@@ -764,6 +781,7 @@ export const DashboardModule = {
     },
 
     renderChart(dailySales, rango, mode = 'diario') {
+        if (typeof Chart === 'undefined') return;
         const canvas = document.getElementById('ventasChart');
         if (!canvas) return;
         

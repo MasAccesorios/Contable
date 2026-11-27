@@ -80,17 +80,31 @@ export const CategoriasEvents = {
         });
 
         // 7. Cierre de menú flotante al hacer clic fuera o presionar Escape
-        document.addEventListener('click', (e) => {
+        this.unbind();
+        this._onDocClick = (e) => {
             if (this.activeMenuEl && !this.activeMenuEl.contains(e.target)) {
                 this.cleanupFloatingMenu();
             }
-        });
-
-        document.addEventListener('keydown', (e) => {
+        };
+        this._onDocKeydown = (e) => {
             if (e.key === 'Escape') {
                 this.cleanupFloatingMenu();
             }
-        });
+        };
+        document.addEventListener('click', this._onDocClick);
+        document.addEventListener('keydown', this._onDocKeydown);
+    },
+
+    unbind() {
+        if (this._onDocClick) {
+            document.removeEventListener('click', this._onDocClick);
+            this._onDocClick = null;
+        }
+        if (this._onDocKeydown) {
+            document.removeEventListener('keydown', this._onDocKeydown);
+            this._onDocKeydown = null;
+        }
+        this.cleanupFloatingMenu();
     },
 
     /**

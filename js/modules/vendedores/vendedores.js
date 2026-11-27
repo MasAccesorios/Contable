@@ -46,7 +46,7 @@ export const VendedoresModule = {
         VendedoresEvents.init(this);
 
         // Soporte de enlace profundo (deep link) #/vendedores/ver/:id
-        const hashParts = window.location.hash.split('/');
+        const hashParts = window.location.hash.split('?')[0].split('/');
         const action = hashParts[2];
         const id = hashParts[3];
         if (action === 'ver' && id) {

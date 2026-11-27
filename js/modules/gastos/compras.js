@@ -45,7 +45,7 @@ export const ComprasModule = {
         this.state.currentPage = 1;
         this.state.selectedTab = 'todas';
 
-        const hashParts = window.location.hash.split('/');
+        const hashParts = window.location.hash.split('?')[0].split('/');
         const action = hashParts[3];
         const id = hashParts[4];
 

@@ -33,17 +33,13 @@ document.addEventListener('click', (e) => {
 });
 
 const routes = {
-    'inicio': () => import('../modules/dashboard.js?v=4'),
+    'inicio': () => import('../modules/dashboard.js?v=5'),
     'contactos': () => import('../modules/clientes/clientes.js?v=35'),
     'bancos': () => import('../modules/bancos/bancos.js?v=2'),
     'gastos/pagos': () => import('../modules/gastos/gastos.js'),
     'gastos/proveedores': () => import('../modules/gastos/compras.js?v=2'),
     'inventario/items': () => import('../modules/productos/productos.js?v=36'),
     'inventario/categorias': () => import('../modules/inventario/categorias.js'),
-    'inventario/valor': () => {
-        if (typeof window !== 'undefined') window.location.hash = '#/inventario/items';
-        return import('../modules/productos/productos.js?v=36');
-    },
     'inventario/analisis-recompra': () => import('../modules/inventario/analisisRecompra.js?v=3'),
     'inventario/analisis-nanocarbon': () => import('../modules/inventario/analisisNanocarbon.js'),
     'inventario/ajustes': () => import('../modules/inventario/ajustes.js?v=3'),
@@ -63,10 +59,8 @@ const routes = {
     'configuracion': () => import('../modules/configuracion.js?v=2'),
     'auditoria': () => import('../modules/auditoria.js'),
     'vendedores': () => import('../modules/vendedores/vendedores.js?v=2'),
-    // Soporte para alias de compatibilidad con módulos anteriores
-    'factura-electronica': () => import('../modules/configuracion.js?v=2'),
-    'dashboard': () => import('../modules/dashboard.js?v=4'),
-    'tesoreria': () => import('../modules/bancos/bancos.js?v=2')
+    // Alias de compatibilidad
+    'dashboard': () => import('../modules/dashboard.js?v=5')
 };
 
 let currentNavId = 0;
@@ -207,10 +201,15 @@ async function router() {
                 appEl.parentNode.replaceChild(newAppEl, appEl);
 
                 const cleanup = await initFn(newAppEl);
+                if (myNavId !== currentNavId) {
+                    if (typeof cleanup === 'function') {
+                        try { cleanup(); } catch (e) {}
+                    }
+                    return; // Una navegación más reciente ya tomó el control, abortar esta
+                }
                 if (typeof cleanup === 'function') {
                     currentModuleCleanup = cleanup;
                 }
-                if (myNavId !== currentNavId) return; // Una navegación más reciente ya tomó el control, abortar esta
             } else {
                 renderPlaceholder(appEl, routePath, "El módulo se cargó correctamente, pero no expone un método init().");
             }

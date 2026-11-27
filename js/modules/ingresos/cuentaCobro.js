@@ -40,7 +40,7 @@ export const CuentaCobroModule = {
     async init(element) {
         if (!element) return;
 
-        const hashParts = window.location.hash.split('/');
+        const hashParts = window.location.hash.split('?')[0].split('/');
         const subAction = hashParts[3];
         const id = hashParts[4];
 
